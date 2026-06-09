@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../lib/db';
-import { inMemoryClients } from '../clients/route';
-import { inMemoryTrades } from '../trades/route';
+import { prisma } from '../../../../lib/db';
+import { inMemoryClients } from '../../clients/route';
+import { inMemoryTrades } from '../../trades/route';
 
 export async function GET() {
   try {
