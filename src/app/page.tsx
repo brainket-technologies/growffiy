@@ -4,16 +4,11 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card } from '../views/components/Card';
 import { Button } from '../views/components/Button';
-import { Modal } from '../views/components/Modal';
 import { PerformanceChart } from '../views/components/PerformanceChart';
-import { Check, ShieldCheck, Zap, Activity, ArrowRight, Play, Award, Sparkles } from 'lucide-react';
+import { Check, ShieldCheck, Zap, Activity, ArrowRight, Award, Sparkles } from 'lucide-react';
 
-export default function SinglePageWebsite() {
-  const [selectedPlan, setSelectedPlan] = useState<{ name: string; price: number } | null>(null);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-
-  // Live simulator stats on the landing page to wow the user!
+export default function InformationalSinglePage() {
+  // Live simulator stats on the landing page to keep it engaging
   const [simLtp, setSimLtp] = useState(2450.00);
   const [simPnl, setSimPnl] = useState(48250);
 
@@ -30,14 +25,6 @@ export default function SinglePageWebsite() {
     { name: 'Quarterly Plan', price: 12999, duration: '90 Days', tag: 'Most Popular', popular: true, features: ['All Monthly features', 'Priority API setup help', '1:3 Risk Reward management', 'Telegram Trade alerts', 'Priority Ticket Support'] },
     { name: 'Yearly Plan', price: 39999, duration: '365 Days', tag: 'Best Value', popular: false, features: ['All Quarterly features', 'Dedicated Account Manager', 'Custom Strategy parameters config', 'Emergency kill switch access', '24/7 Telephone Support'] },
   ];
-
-  const handleCheckoutSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPaymentSuccess(true);
-    setTimeout(() => {
-      window.location.href = '/dashboard';
-    }, 2000);
-  };
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#fafbfd', color: '#1e293b', fontFamily: 'var(--font-family)', scrollBehavior: 'smooth' }}>
@@ -94,11 +81,11 @@ export default function SinglePageWebsite() {
           </p>
 
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '16px' }}>
-            <a href="#pricing">
+            <Link href="/login">
               <Button style={{ padding: '12px 28px', borderRadius: '30px' }}>
-                View Subscription Plans <ArrowRight size={16} />
+                Access Trading Portal <ArrowRight size={16} />
               </Button>
-            </a>
+            </Link>
             <a href="#demo">
               <Button variant="secondary" style={{ padding: '12px 28px', borderRadius: '30px' }}>
                 Watch Live Strategy
@@ -215,7 +202,7 @@ export default function SinglePageWebsite() {
           <h2 style={{ fontSize: '36px', fontWeight: 800, color: '#0f172a', fontFamily: 'var(--font-title)', letterSpacing: '-0.5px' }}>
             Choose Your Subscription Plan
           </h2>
-          <p style={{ color: '#64748b', marginTop: '8px' }}>Select an option below to authorize Razorpay payments and activate auto trading.</p>
+          <p style={{ color: '#64748b', marginTop: '8px' }}>Log in to your credentials provided by the admin to subscribe and map API routing configurations.</p>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px', alignItems: 'stretch' }}>
@@ -259,13 +246,14 @@ export default function SinglePageWebsite() {
                 ))}
               </ul>
 
-              <Button
-                onClick={() => { setSelectedPlan(plan); setIsCheckoutOpen(true); }}
-                style={{ width: '100%', borderRadius: '25px', padding: '10px' }}
-                variant={plan.popular ? 'primary' : 'secondary'}
-              >
-                Choose {plan.name}
-              </Button>
+              <Link href="/login" style={{ width: '100%' }}>
+                <Button
+                  style={{ width: '100%', borderRadius: '25px', padding: '10px' }}
+                  variant={plan.popular ? 'primary' : 'secondary'}
+                >
+                  Access Trading Portal
+                </Button>
+              </Link>
             </div>
           ))}
         </div>
@@ -285,42 +273,6 @@ export default function SinglePageWebsite() {
           </div>
         </div>
       </footer>
-
-      {/* Razorpay Subscription Checkout Modal */}
-      <Modal isOpen={isCheckoutOpen} onClose={() => setIsCheckoutOpen(false)} title="Razorpay Secure Subscription Checkout">
-        {paymentSuccess ? (
-          <div style={{ textAlign: 'center', padding: '32px 16px', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
-            <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
-              <Check size={32} />
-            </div>
-            <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a' }}>Payment Confirmed</h3>
-            <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.5' }}>
-              Subscription activated. Setting up trade credentials and mapping API redirection parameters...
-            </p>
-          </div>
-        ) : (
-          <form onSubmit={handleCheckoutSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '16px', marginBottom: '8px' }}>
-              <p style={{ fontSize: '12px', color: '#64748b' }}>Subscribing to</p>
-              <h4 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>{selectedPlan?.name}</h4>
-              <h3 style={{ fontSize: '24px', fontWeight: 800, color: '#2563eb', marginTop: '4px' }}>₹{selectedPlan?.price.toLocaleString()}</h3>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>Mobile Number</label>
-              <input type="text" required placeholder="+91 99999 99999" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', outline: 'none' }} />
-            </div>
-
-            <div style={{ padding: '14px', borderRadius: '8px', border: '1px solid #dbeafe', backgroundColor: '#eff6ff', color: '#1e40af', fontSize: '12px', lineHeight: '1.5' }}>
-              <strong>Razorpay Sandbox Mode Active:</strong> Direct checkout simulation will authorize mock subscription parameters.
-            </div>
-
-            <Button type="submit" style={{ width: '100%', borderRadius: '25px', padding: '12px', marginTop: '12px' }}>
-              Pay via Razorpay Secure
-            </Button>
-          </form>
-        )}
-      </Modal>
     </div>
   );
 }
