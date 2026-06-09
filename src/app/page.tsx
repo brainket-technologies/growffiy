@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card } from '../views/components/Card';
 import { Button } from '../views/components/Button';
 import { PerformanceChart } from '../views/components/PerformanceChart';
-import { Check, ShieldCheck, Zap, Activity, ArrowRight, Award, Sparkles, Info, RefreshCw } from 'lucide-react';
+import { Check, ShieldCheck, Zap, Activity, ArrowRight, Award, Sparkles, Info, RefreshCw, TrendingUp } from 'lucide-react';
 
 export default function AnimatedLightLanding() {
   // Live simulated Nifty 200 quotes
@@ -80,32 +80,45 @@ export default function AnimatedLightLanding() {
         </nav>
       </header>
 
-      {/* Hero Section with Animations */}
       <section style={{
         padding: '180px 24px 100px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         background: 'radial-gradient(circle at 50% -120px, rgba(37, 99, 235, 0.12) 0%, rgba(248, 250, 252, 0) 70%)',
-        position: 'relative'
+        position: 'relative',
+        overflow: 'hidden'
       }}>
-        <div style={{ maxWidth: '950px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '28px' }} className="animate-fade-in-up">
-          <div style={{ display: 'inline-flex', alignSelf: 'center', gap: '8px', alignItems: 'center', padding: '6px 18px', borderRadius: '99px', backgroundColor: '#eff6ff', border: '1px solid #cbd5e1', color: '#2563eb', fontWeight: 600, fontSize: '12px', letterSpacing: '0.5px' }} className="animate-pulse-ring">
+        {/* Floating Background Icons */}
+        <div style={{ position: 'absolute', top: '20%', left: '8%', opacity: 0.05, color: '#2563eb', pointerEvents: 'none' }} className="animate-float-slow">
+          <TrendingUp size={72} />
+        </div>
+        <div style={{ position: 'absolute', top: '25%', right: '10%', opacity: 0.04, color: '#10b981', pointerEvents: 'none' }} className="animate-float-delayed">
+          <ShieldCheck size={64} />
+        </div>
+        <div style={{ position: 'absolute', bottom: '15%', left: '12%', opacity: 0.05, color: '#fbbf24', pointerEvents: 'none' }} className="animate-float">
+          <Zap size={56} />
+        </div>
+        <div style={{ position: 'absolute', bottom: '20%', right: '8%', opacity: 0.04, color: '#6366f1', pointerEvents: 'none' }} className="animate-float-slow">
+          <Activity size={80} />
+        </div>
+        <div style={{ maxWidth: '950px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+          <div style={{ display: 'inline-flex', alignSelf: 'center', gap: '8px', alignItems: 'center', padding: '6px 18px', borderRadius: '99px', backgroundColor: '#eff6ff', border: '1px solid #cbd5e1', color: '#2563eb', fontWeight: 600, fontSize: '12px', letterSpacing: '0.5px' }} className="animate-fade-in-up animate-pulse-ring">
             <Sparkles size={14} /> INSTITUTIONAL QUANT WORKSPACE
           </div>
           
-          <h1 style={{ fontSize: '60px', fontWeight: 800, letterSpacing: '-1.8px', color: '#0f172a', lineHeight: '1.1', fontFamily: 'var(--font-title)' }}>
+          <h1 style={{ fontSize: '60px', fontWeight: 800, letterSpacing: '-1.8px', color: '#0f172a', lineHeight: '1.1', fontFamily: 'var(--font-title)' }} className="animate-fade-in-up delay-100">
             Fully Automated Intraday Breakouts <br />
             <span style={{ background: 'linear-gradient(to right, #2563eb, #6366f1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               Built Around Strict 1% Risk Rules
             </span>
           </h1>
 
-          <p style={{ fontSize: '19px', color: '#475569', lineHeight: '1.6', maxWidth: '800px', margin: '0 auto' }}>
+          <p style={{ fontSize: '19px', color: '#475569', lineHeight: '1.6', maxWidth: '800px', margin: '0 auto' }} className="animate-fade-in-up delay-200">
             Growffiy maps directly with your Zerodha Kite broker token to execute pre-open momentum breakout strategies. Protects capital using calculated quantity limits with zero manual adjustments.
           </p>
 
-          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '20px' }}>
+          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '20px' }} className="animate-fade-in-up delay-300">
             <Link href="/login">
               <Button style={{ padding: '14px 32px', borderRadius: '30px', fontSize: '15px' }}>
                 Access Trading Portal <ArrowRight size={16} />

@@ -148,8 +148,22 @@ tr:hover td {
   animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+.delay-100 { animation-delay: 100ms; animation-fill-mode: both; }
+.delay-200 { animation-delay: 200ms; animation-fill-mode: both; }
+.delay-300 { animation-delay: 300ms; animation-fill-mode: both; }
+.delay-400 { animation-delay: 400ms; animation-fill-mode: both; }
+
 .animate-float {
   animation: float 4s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float 7s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float 5s ease-in-out infinite;
+  animation-delay: 1.5s;
 }
 
 .animate-pulse-ring {
