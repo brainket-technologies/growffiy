@@ -41,42 +41,48 @@ export default function AnimatedLightLanding() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', color: '#1e293b', fontFamily: 'var(--font-family)', scrollBehavior: 'smooth', overflowX: 'hidden' }}>
       
-      {/* Light Glass Header */}
+      {/* Floating Glass Pill Header */}
       <header style={{
-        position: 'sticky',
-        top: 0,
+        position: 'fixed',
+        top: '20px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 'calc(100% - 40px)',
+        maxWidth: '1100px',
         zIndex: 1000,
-        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
         backdropFilter: 'blur(16px)',
-        borderBottom: '1px solid #e2e8f0',
-        padding: '18px 40px',
+        border: '1px solid rgba(226, 232, 240, 0.8)',
+        borderRadius: '99px',
+        padding: '12px 32px',
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
+        boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.01)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}>
-            <Activity size={20} color="#ffffff" />
+          <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(37, 99, 235, 0.2)' }}>
+            <Activity size={18} color="#ffffff" />
           </div>
-          <span style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.5px', background: 'linear-gradient(to right, #2563eb, #1d4ed8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: 'var(--font-title)' }}>
+          <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.5px', background: 'linear-gradient(to right, #2563eb, #1d4ed8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: 'var(--font-title)' }}>
             GROWFFIY
           </span>
         </div>
 
-        <nav style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
-          <a href="#features" style={{ fontWeight: 500, color: '#475569', fontSize: '14px' }}>System Features</a>
-          <a href="#strategy" style={{ fontWeight: 500, color: '#475569', fontSize: '14px' }}>Strategy Rules</a>
-          <a href="#live-data" style={{ fontWeight: 500, color: '#475569', fontSize: '14px' }}>Live Board</a>
-          <a href="#pricing" style={{ fontWeight: 500, color: '#475569', fontSize: '14px' }}>Pricing</a>
+        <nav style={{ display: 'flex', gap: '28px', alignItems: 'center' }}>
+          <a href="#features" style={{ fontWeight: 500, color: '#475569', fontSize: '13px' }}>System Features</a>
+          <a href="#strategy" style={{ fontWeight: 500, color: '#475569', fontSize: '13px' }}>Strategy Rules</a>
+          <a href="#live-data" style={{ fontWeight: 500, color: '#475569', fontSize: '13px' }}>Live Board</a>
+          <a href="#pricing" style={{ fontWeight: 500, color: '#475569', fontSize: '13px' }}>Pricing</a>
           <Link href="/login">
-            <Button style={{ borderRadius: '20px', padding: '6px 20px', background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' }}>Portal Access</Button>
+            <Button style={{ borderRadius: '99px', padding: '6px 18px', fontSize: '12px', background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' }}>Portal Access</Button>
           </Link>
         </nav>
       </header>
 
       {/* Hero Section with Animations */}
       <section style={{
-        padding: '120px 24px 100px',
+        padding: '180px 24px 100px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
