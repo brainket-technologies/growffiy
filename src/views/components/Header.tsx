@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
               backgroundColor: '#e2e8f0',
               display: 'flex',
               alignItems: 'center',
-              justify-content: 'center',
+              justifyContent: 'center',
               color: 'var(--text-primary)',
             }}
           >
