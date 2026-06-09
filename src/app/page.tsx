@@ -378,9 +378,10 @@ export default function PremiumSinglePage() {
           </div>
           <div style={{ display: 'flex', gap: '24px', fontSize: '13px' }}>
             <a href="#features">Features</a>
-            <a href="#strategy">Strategy specs</a>
-            <a href="#live-data">WebSocket Feed</a>
-            <a href="#pricing">Pricing Plans</a>
+            <a href="#strategy">Strategy Specs</a>
+            <Link href="/privacy">Privacy Policy</Link>
+            <Link href="/terms">Terms & Conditions</Link>
+            <Link href="/contact">Contact Support</Link>
           </div>
         </div>
       </footer>
