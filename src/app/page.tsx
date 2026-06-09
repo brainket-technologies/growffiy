@@ -55,7 +55,6 @@ export default function InformationalSinglePage() {
           <a href="#features" style={{ fontWeight: 500, color: '#475569', fontSize: '14px', transition: 'color 0.2s' }}>Features</a>
           <a href="#demo" style={{ fontWeight: 500, color: '#475569', fontSize: '14px', transition: 'color 0.2s' }}>Live Feed</a>
           <a href="#pricing" style={{ fontWeight: 500, color: '#475569', fontSize: '14px', transition: 'color 0.2s' }}>Pricing</a>
-          <a href="http://admin.localhost:3000/" target="_blank" rel="noreferrer" style={{ fontWeight: 500, color: '#2563eb', fontSize: '14px' }}>Admin Login</a>
           <Link href="/login">
             <Button variant="secondary" style={{ borderRadius: '20px', padding: '6px 18px' }}>Client Portal</Button>
           </Link>
