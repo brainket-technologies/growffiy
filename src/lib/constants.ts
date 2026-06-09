@@ -59,3 +59,19 @@ export const TRADE_STATUS = {
   CANCELLED: 'cancelled',
   FAILED: 'failed',
 };
+
+// Global Theme Colors for inline SVG and visual style styling
+export const THEME_COLORS = {
+  PRIMARY: '#2563eb', // Indigo-blue primary
+  SUCCESS: '#10b981', // Emerald green
+  DANGER: '#ef4444',  // Red
+  WARNING: '#f59e0b', // Amber warning
+  INFO: '#3b82f6',    // Sky blue info
+  BG_PRIMARY: '#f5f7fb',
+  BG_CARD: '#ffffff',
+  TEXT_PRIMARY: '#1e293b',
+  TEXT_SECONDARY: '#64748b',
+  TEXT_MUTED: '#94a3b8',
+  SIDEBAR_START: '#0d213a',
+  SIDEBAR_END: '#051020',
+};
