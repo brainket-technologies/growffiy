@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { Card } from '../views/components/Card';
 import { Button } from '../views/components/Button';
 import { PerformanceChart } from '../views/components/PerformanceChart';
-import { Check, ShieldCheck, Zap, Activity, ArrowRight, Award, Sparkles, Info, RefreshCw, TrendingUp } from 'lucide-react';
+import { Check, ShieldCheck, Zap, Activity, ArrowRight, Award, Sparkles, Info, ChevronDown, ChevronUp } from 'lucide-react';
 
-export default function AnimatedLightLanding() {
+export default function PremiumQuantLanding() {
   // Live simulated Nifty 200 quotes
   const [simStocks, setSimStocks] = useState([
     { symbol: 'RELIANCE', name: 'Reliance Industries Ltd.', ltp: 2450.40, change: -1.24 },
@@ -18,6 +18,7 @@ export default function AnimatedLightLanding() {
   ]);
 
   const [simPnl, setSimPnl] = useState(645230);
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -36,6 +37,13 @@ export default function AnimatedLightLanding() {
     { name: 'Monthly Plan', price: 4999, duration: '30 Days', tag: 'Standard Access', popular: false, features: ['Pre-Open Momentum Strategy', '1% Capital Risk Allocation', 'Zerodha Kite Integration', 'Real-time Performance Reports', 'Email Support'] },
     { name: 'Quarterly Plan', price: 12999, duration: '90 Days', tag: 'Most Popular', popular: true, features: ['All Monthly features', 'Priority API setup help', '1:3 Risk Reward management', 'Telegram Trade alerts', 'Priority Ticket Support'] },
     { name: 'Yearly Plan', price: 39999, duration: '365 Days', tag: 'Best Value', popular: false, features: ['All Quarterly features', 'Dedicated Account Manager', 'Custom Strategy parameters config', 'Emergency kill switch access', '24/7 Telephone Support'] },
+  ];
+
+  const faqs = [
+    { q: 'How does the Pre-Open Momentum Breakout strategy work?', a: 'The strategy scans the Nifty 200 list at 09:08 AM to find stocks showing maximum gap-down opening. It marks the high of the first 5-minute candle (09:15 - 09:20 AM). A Buy Stop-Loss Market (SLM) order is automatically placed at High + 0.1% buffer. The stop-loss is placed at Entry - 0.5% and target is placed at Entry + 1.5%.' },
+    { q: 'How is the trade quantity calculated?', a: 'To enforce capital protection, quantity sizing is auto-calculated using the 1% risk rule: Quantity = (Allocated Capital * 1%) / (Entry Price - Stop Loss Price). This ensures that if the trade hits stop loss, the total account loss is strictly capped at 1.00%.' },
+    { q: 'Is a Zerodha Kite Connect API subscription required?', a: 'Yes. To execute trades, you must connect your Zerodha account. Kite Connect credentials (API Key and Secret) are managed inside your secure portal dashboard. Broker API charges are billed directly by Zerodha.' },
+    { q: 'Can I stop or pause executions instantly?', a: 'Yes. The admin panel features an instant emergency Kill Switch. Toggling it off stops the trading loop and automatically pulls/cancels any pending bracket orders.' }
   ];
 
   return (
@@ -74,12 +82,14 @@ export default function AnimatedLightLanding() {
           <a href="#strategy" style={{ fontWeight: 500, color: '#475569', fontSize: '13px' }}>Strategy Rules</a>
           <a href="#live-data" style={{ fontWeight: 500, color: '#475569', fontSize: '13px' }}>Live Board</a>
           <a href="#pricing" style={{ fontWeight: 500, color: '#475569', fontSize: '13px' }}>Pricing</a>
+          <a href="#faq" style={{ fontWeight: 500, color: '#475569', fontSize: '13px' }}>FAQs</a>
           <Link href="/login">
             <Button style={{ borderRadius: '99px', padding: '6px 18px', fontSize: '12px', background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' }}>Portal Access</Button>
           </Link>
         </nav>
       </header>
 
+      {/* Hero Section with Animations */}
       <section style={{
         padding: '180px 24px 100px',
         display: 'flex',
@@ -91,7 +101,7 @@ export default function AnimatedLightLanding() {
       }}>
         {/* Floating Background Icons */}
         <div style={{ position: 'absolute', top: '20%', left: '8%', opacity: 0.05, color: '#2563eb', pointerEvents: 'none' }} className="animate-float-slow">
-          <TrendingUp size={72} />
+          <Activity size={72} />
         </div>
         <div style={{ position: 'absolute', top: '25%', right: '10%', opacity: 0.04, color: '#10b981', pointerEvents: 'none' }} className="animate-float-delayed">
           <ShieldCheck size={64} />
@@ -102,6 +112,7 @@ export default function AnimatedLightLanding() {
         <div style={{ position: 'absolute', bottom: '20%', right: '8%', opacity: 0.04, color: '#6366f1', pointerEvents: 'none' }} className="animate-float-slow">
           <Activity size={80} />
         </div>
+
         <div style={{ maxWidth: '950px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '28px' }}>
           <div style={{ display: 'inline-flex', alignSelf: 'center', gap: '8px', alignItems: 'center', padding: '6px 18px', borderRadius: '99px', backgroundColor: '#eff6ff', border: '1px solid #cbd5e1', color: '#2563eb', fontWeight: 600, fontSize: '12px', letterSpacing: '0.5px' }} className="animate-fade-in-up animate-pulse-ring">
             <Sparkles size={14} /> INSTITUTIONAL QUANT WORKSPACE
@@ -310,7 +321,7 @@ export default function AnimatedLightLanding() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <Card style={{ padding: '32px' }} className="animate-float">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <span style={{ fontSize: '13px', color: '#475569' }}>Cumulative Algo P&L Today</span>
+                <span style={{ fontSize: '13px', color: '#475569' }}>Cumulative P&L today</span>
                 <span style={{ fontSize: '20px', fontWeight: 800, color: '#10b981' }}>+₹{simPnl.toLocaleString()}</span>
               </div>
               <PerformanceChart
@@ -385,6 +396,60 @@ export default function AnimatedLightLanding() {
               </Link>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Interactive FAQ Section */}
+      <section id="faq" style={{ padding: '100px 24px', maxWidth: '800px', margin: '0 auto', borderTop: '1px solid #e2e8f0' }}>
+        <div style={{ textAlign: 'center', marginBottom: '50px' }}>
+          <h2 style={{ fontSize: '36px', fontWeight: 800, color: '#0f172a', fontFamily: 'var(--font-title)', letterSpacing: '-0.5px' }}>
+            Frequently Asked Questions
+          </h2>
+          <p style={{ color: '#475569', marginTop: '8px' }}>Common inquiries regarding automation, pricing, and APIs.</p>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {faqs.map((faq, idx) => {
+            const isOpen = activeFaq === idx;
+            return (
+              <div
+                key={idx}
+                style={{
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '12px',
+                  backgroundColor: '#ffffff',
+                  overflow: 'hidden',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <button
+                  onClick={() => setActiveFaq(isOpen ? null : idx)}
+                  style={{
+                    width: '100%',
+                    padding: '20px 24px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    background: 'none',
+                    border: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    fontSize: '15px',
+                    color: '#0f172a',
+                  }}
+                >
+                  <span>{faq.q}</span>
+                  {isOpen ? <ChevronUp size={18} color="#475569" /> : <ChevronDown size={18} color="#475569" />}
+                </button>
+                {isOpen && (
+                  <div style={{ padding: '0 24px 20px', color: '#475569', fontSize: '14px', lineHeight: '1.6', borderTop: '1px solid #e2e8f0', paddingTop: '16px', backgroundColor: '#fafbfc' }}>
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 
