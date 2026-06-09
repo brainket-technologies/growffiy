@@ -370,18 +370,52 @@ export default function PremiumSinglePage() {
       </section>
 
       {/* Footer */}
-      <footer style={{ backgroundColor: '#030712', color: '#9ca3af', padding: '60px 40px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <span style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-title)' }}>GROWFFIY</span>
-            <p style={{ fontSize: '12px', marginTop: '8px', color: '#4b5563' }}>© 2026 Growffiy Inc. All rights reserved.</p>
+      <footer style={{ backgroundColor: '#030712', color: '#9ca3af', padding: '80px 40px 40px', borderTop: '1px solid rgba(255, 255, 255, 0.05)', fontSize: '13px' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '48px' }}>
+          
+          {/* Footer Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '48px' }}>
+            {/* Brand & Pitch */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Activity size={20} color="#3b82f6" />
+                <span style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-title)' }}>GROWFFIY</span>
+              </div>
+              <p style={{ lineHeight: '1.6', color: '#9ca3af' }}>
+                Advanced automated algorithmic trading middleware mapping directly with your Zerodha Kite broker token keys. Engineered for mathematical discipline and speed.
+              </p>
+            </div>
+
+            {/* Platform Links */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <h4 style={{ color: '#ffffff', fontWeight: 700, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Workspace</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <a href="#features" style={{ color: '#9ca3af', transition: 'color 0.2s' }}>Features</a>
+                <a href="#strategy" style={{ color: '#9ca3af', transition: 'color 0.2s' }}>Breakout Specs</a>
+                <a href="#live-data" style={{ color: '#9ca3af', transition: 'color 0.2s' }}>WebSocket Live</a>
+                <Link href="/login" style={{ color: '#3b82f6', fontWeight: 600 }}>Client Portal Login</Link>
+              </div>
+            </div>
+
+            {/* Legal & Compliance */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <h4 style={{ color: '#ffffff', fontWeight: 700, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Compliance</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <Link href="/privacy" style={{ color: '#9ca3af' }}>Privacy & Keys Policy</Link>
+                <Link href="/terms" style={{ color: '#9ca3af' }}>Terms & Risk Disclosure</Link>
+                <Link href="/contact" style={{ color: '#9ca3af' }}>Contact Technical Desk</Link>
+              </div>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '24px', fontSize: '13px' }}>
-            <a href="#features">Features</a>
-            <a href="#strategy">Strategy Specs</a>
-            <Link href="/privacy">Privacy Policy</Link>
-            <Link href="/terms">Terms & Conditions</Link>
-            <Link href="/contact">Contact Support</Link>
+
+          {/* Regulatory Risk Disclosure Note */}
+          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '11px', color: '#4b5563', lineHeight: '1.6' }}>
+            <p>
+              <strong>REGULATORY RISK WARNING:</strong> Algorithmic and automated trading involves high financial risks. Growffiy is a software utility designed to automate trade placements based on predefined math conditions; it is not a SEBI registered investment advisor, stock broker, or portfolio manager. All returns, charts, and performance metrics shown are simulated in sandbox environments and do not represent guaranteed future results.
+            </p>
+            <p style={{ textAlign: 'center', marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.03)', paddingTop: '12px' }}>
+              © 2026 Growffiy Inc. All rights reserved. Managed with institutional security standards.
+            </p>
           </div>
         </div>
       </footer>
