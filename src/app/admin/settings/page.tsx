@@ -285,7 +285,15 @@ export default function SettingsPage() {
                 <span style={{ fontSize: '11px', fontWeight: 700, color: razorpayMode === 'test' ? 'var(--primary)' : '#64748b' }}>TEST MODE</span>
                 <button
                   type="button"
-                  onClick={() => setRazorpayMode(razorpayMode === 'test' ? 'live' : 'test')}
+                  onClick={async () => {
+                    const nextMode = razorpayMode === 'test' ? 'live' : 'test';
+                    setRazorpayMode(nextMode);
+                    try {
+                      await api.put('/api/admin/settings', { razorpay_mode: nextMode });
+                    } catch (err) {
+                      console.error('Instant Razorpay toggle error:', err);
+                    }
+                  }}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -531,7 +539,15 @@ export default function SettingsPage() {
                 <span style={{ fontSize: '11px', fontWeight: 700, color: smtpStatus === 'false' ? 'var(--danger)' : '#64748b' }}>MAIL OFF</span>
                 <button
                   type="button"
-                  onClick={() => setSmtpStatus(smtpStatus === 'true' ? 'false' : 'true')}
+                  onClick={async () => {
+                    const nextStatus = smtpStatus === 'true' ? 'false' : 'true';
+                    setSmtpStatus(nextStatus);
+                    try {
+                      await api.put('/api/admin/settings', { smtp_status: nextStatus });
+                    } catch (err) {
+                      console.error('Instant SMTP toggle error:', err);
+                    }
+                  }}
                   style={{
                     background: 'none',
                     border: 'none',
