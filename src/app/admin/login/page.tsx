@@ -18,7 +18,7 @@ export default function AdminLoginPage() {
       const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
       // If admin or any user session is logged in, auto navigate to dashboard
       if (activeUser) {
-        window.location.href = activeUser.toLowerCase().includes('admin') ? '/admin' : '/dashboard';
+        window.location.href = '/admin';
       }
     }
   }, []);
