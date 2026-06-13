@@ -17,7 +17,7 @@ export async function sendEmail({ to, subject, text, html }: SendMailOptions) {
   let transporter: nodemailer.Transporter;
 
   if (host && user && pass) {
-    // Production / Configured SMTP
+    // Configured SMTP
     transporter = nodemailer.createTransport({
       host,
       port,
@@ -25,28 +25,11 @@ export async function sendEmail({ to, subject, text, html }: SendMailOptions) {
       auth: { user, pass }
     });
   } else {
-    // Development Fallback: Create test account on ethereal.email dynamically
-    try {
-      const testAccount = await nodemailer.createTestAccount();
-      transporter = nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
-        port: 587,
-        secure: false,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass
-        }
-      });
-      console.log('⚡ Ethereal SMTP Transporter initialized dynamically');
-    } catch (err) {
-      console.error('Failed to create Ethereal SMTP test account, logging only:', err);
-      // Fallback transporter that logs to console
-      return {
-        success: false,
-        previewUrl: null,
-        message: 'No SMTP configured. Email logged to server console.'
-      };
-    }
+    console.log('✉️ SMTP not configured in env. Skipping email dispatch.');
+    return {
+      success: false,
+      message: 'SMTP not configured. Skipping email dispatch.'
+    };
   }
 
   try {
