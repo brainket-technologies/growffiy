@@ -488,7 +488,7 @@ export default function GrowffiyLanding() {
                 <Link href="/login" style={{ display: 'block' }}>
                   <button style={{
                     width: '100%', padding: '13px', borderRadius: 99, fontWeight: 700,
-                    fontSize: 14, cursor: 'pointer', transition: 'all 0.3s', border: 'none',
+                    fontSize: 14, cursor: 'pointer', transition: 'all 0.3s',
                     background: plan.popular ? 'linear-gradient(135deg,#0ea5e9,#6366f1)' : 'white',
                     color: plan.popular ? 'white' : '#334155',
                     boxShadow: plan.popular ? '0 6px 20px rgba(14,165,233,0.3)' : 'none',
