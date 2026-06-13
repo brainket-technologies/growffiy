@@ -47,7 +47,7 @@ export async function POST(request: Request) {
 
         try {
           await sendEmail({
-            to: 'firozm613@gmail.com',
+            to: process.env.ADMIN_ALERT_EMAIL || 'firozm613@gmail.com',
             subject: 'Growffiy Alert: Admin Password Changed Successfully',
             text: `Hello ${user.name},\n\nYour administrator password has been updated.\n\nCredentials Details:\n- Admin ID: ${user.userId}\n- New Password: ${newPassword}\n- Control Panel URL: ${loginUrl}\n\nSystem Details:\n- IP Address: ${ip}\n- Device: ${userAgent}\n- Time: ${timestamp}\n\nIf you did not authorize this change, please check security logs immediately.\n\nBest Regards,\nGrowffiy Security Team`,
             html: `
