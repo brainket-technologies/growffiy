@@ -88,9 +88,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
             {isAdmin ? 'Super Admin' : 'Client Account'}
           </p>
         </div>
-        <Link href="/login" style={{ opacity: 0.7 }}>
+        <button 
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('growffiy_logged_in_user_id');
+              window.location.href = isAdmin ? '/admin/login' : '/login';
+            }
+          }} 
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', display: 'flex', alignItems: 'center', opacity: 0.7 }}
+        >
           <LogOut size={16} />
-        </Link>
+        </button>
       </div>
     </aside>
   );

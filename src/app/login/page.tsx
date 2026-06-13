@@ -6,14 +6,27 @@ import { Activity, ArrowRight, TrendingUp, Shield, Zap, BarChart2 } from 'lucide
 export default function LoginPage() {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // If client is already logged in, auto navigate to dashboard
     if (typeof window !== 'undefined') {
       const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
-      if (activeUser) {
+      const isSessionPersistent = localStorage.getItem('growffiy_remember_me') === 'true';
+      
+      // If user checked Remember Me, keep session active
+      if (activeUser && isSessionPersistent) {
         window.location.href = '/dashboard';
+      } else if (activeUser && !isSessionPersistent) {
+        // If they did not check Remember Me, clear active session on fresh page load (simulation)
+        localStorage.removeItem('growffiy_logged_in_user_id');
+      }
+
+      // Pre-fill user ID if remembered
+      const savedUserId = localStorage.getItem('growffiy_saved_user_id');
+      if (savedUserId) {
+        setUserId(savedUserId);
+        setRememberMe(true);
       }
     }
   }, []);
@@ -22,9 +35,14 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     
-    // Store user ID in localStorage for simulation of live user profile database
     if (typeof window !== 'undefined') {
       localStorage.setItem('growffiy_logged_in_user_id', userId);
+      localStorage.setItem('growffiy_remember_me', String(rememberMe));
+      if (rememberMe) {
+        localStorage.setItem('growffiy_saved_user_id', userId);
+      } else {
+        localStorage.removeItem('growffiy_saved_user_id');
+      }
     }
     
     setTimeout(() => {
@@ -289,6 +307,36 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="login-input"
                 />
+              </div>
+
+              {/* Remember Me Checkbox option */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '2px 0 6px 0' }}>
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    borderRadius: '4px',
+                    border: '1.5px solid #cbd5e1',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                />
+                <label 
+                  htmlFor="rememberMe" 
+                  style={{ 
+                    fontSize: '13px', 
+                    color: '#475569', 
+                    fontWeight: 500, 
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  Remember Me
+                </label>
               </div>
 
               <button
