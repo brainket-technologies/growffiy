@@ -3,12 +3,23 @@ import { prisma } from '../../../../lib/db';
 
 let inMemoryAuditLogs: any[] = [];
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const dbLogs = await prisma.auditLog.findMany({
-      include: { admin: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '10', 10);
+    const skip = (page - 1) * limit;
+
+    const [dbLogs, totalCount] = await Promise.all([
+      prisma.auditLog.findMany({
+        include: { admin: true },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: skip,
+      }),
+      prisma.auditLog.count(),
+    ]);
+
     const mappedLogs = dbLogs.map(log => ({
       action: log.action,
       user: log.admin?.name || 'Administrator',
@@ -16,9 +27,23 @@ export async function GET() {
       time: new Date(log.createdAt).toLocaleString('en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
       type: log.action.toLowerCase().includes('login') ? 'security' : 'action',
     }));
-    return NextResponse.json({ success: true, auditLogs: mappedLogs });
+
+    return NextResponse.json({ 
+      success: true, 
+      auditLogs: mappedLogs,
+      pagination: {
+        total: totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit)
+      }
+    });
   } catch (error) {
-    return NextResponse.json({ success: true, auditLogs: [] });
+    return NextResponse.json({ 
+      success: true, 
+      auditLogs: [], 
+      pagination: { total: 0, page: 1, limit: 10, totalPages: 0 } 
+    });
   }
 }
 
