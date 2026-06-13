@@ -5,6 +5,7 @@ import { THEME_COLORS, API_ENDPOINTS } from '../lib/constants';
 import { api } from '../lib/api';
 
 interface AppState {
+  activeUser: any;
   clients: any[];
   trades: any[];
   stocks: any[];
@@ -49,12 +50,38 @@ const defaultStats = {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [activeUser, setActiveUser] = useState<any>(null);
   const [clients, setClients] = useState<any[]>([]);
   const [trades, setTrades] = useState<any[]>([]);
   const [stocks, setStocks] = useState<any[]>([]);
   const [isTradingActive, setIsTradingActive] = useState<boolean>(false);
   const [dashboardStats, setDashboardStats] = useState(defaultStats);
   const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedId = localStorage.getItem('growffiy_logged_in_user_id');
+      const storedName = localStorage.getItem('growffiy_logged_in_user_name');
+      if (storedId) {
+        const cleanName = storedName || storedId
+          .split(/[_-]/)
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        
+        // Set initial local state from localStorage to avoid loading state delay
+        setActiveUser({ name: cleanName, id: storedId });
+
+        // Fetch complete profile from API including active subscriptions
+        api.get(`${API_ENDPOINTS.AUTH_PROFILE}?userId=${storedId}`)
+          .then(res => {
+            if (res.success && res.user) {
+              setActiveUser(res.user);
+            }
+          })
+          .catch(err => console.error('Error loading active user profile:', err));
+      }
+    }
+  }, []);
 
   // Derive scanner results from live stocks (top losers)
   const scannerResults = [...stocks]
@@ -283,6 +310,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   return (
     <AppContext.Provider
       value={{
+        activeUser,
         clients,
         trades,
         stocks,

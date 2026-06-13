@@ -342,9 +342,9 @@ export default function ClientDetailsPage() {
                   borderRadius: '12px',
                   fontSize: '12px',
                   fontWeight: 600,
-                  backgroundColor: accessToken ? 'rgba(37, 99, 235, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-                  color: accessToken ? '#2563eb' : 'var(--danger)',
-                  border: `1px solid ${accessToken ? 'rgba(37, 99, 235, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
+                  backgroundColor: accessToken ? 'rgba(14, 165, 233, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                  color: accessToken ? 'var(--primary)' : 'var(--danger)',
+                  border: `1px solid ${accessToken ? 'rgba(14, 165, 233, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
                 }}>
                   {accessToken ? 'Kite Session Live' : 'Kite Session Expired'}
                 </span>
@@ -648,8 +648,8 @@ export default function ClientDetailsPage() {
                 width: '38px', 
                 height: '38px', 
                 borderRadius: '8px', 
-                backgroundColor: 'rgba(239, 68, 68, 0.1)', 
-                color: 'var(--danger)', 
+                backgroundColor: 'rgba(14, 165, 233, 0.1)', 
+                color: 'var(--primary)', 
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center',
@@ -771,8 +771,8 @@ export default function ClientDetailsPage() {
                 width: '38px', 
                 height: '38px', 
                 borderRadius: '8px', 
-                backgroundColor: 'rgba(37, 99, 235, 0.1)', 
-                color: '#2563eb', 
+                backgroundColor: 'rgba(14, 165, 233, 0.1)', 
+                color: 'var(--primary)', 
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center',
@@ -815,9 +815,9 @@ export default function ClientDetailsPage() {
 
                   {margins.equity.enabled && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <div style={{ padding: '12px', backgroundColor: 'rgba(37, 99, 235, 0.05)', borderRadius: '8px', border: '1px solid rgba(37, 99, 235, 0.1)' }}>
-                        <span style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Net Cash Balance</span>
-                        <span style={{ fontSize: '20px', fontWeight: 800, color: '#2563eb' }}>
+                      <div style={{ padding: '12px', backgroundColor: 'rgba(14, 165, 233, 0.05)', borderRadius: '8px', border: '1px solid rgba(14, 165, 233, 0.1)' }}>
+                        <span style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Net Cash Balance</span>
+                        <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--primary)' }}>
                           ₹{margins.equity.net?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
@@ -911,9 +911,9 @@ export default function ClientDetailsPage() {
 
                   {margins.commodity.enabled && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <div style={{ padding: '12px', backgroundColor: 'rgba(37, 99, 235, 0.05)', borderRadius: '8px', border: '1px solid rgba(37, 99, 235, 0.1)' }}>
-                        <span style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Net Cash Balance</span>
-                        <span style={{ fontSize: '20px', fontWeight: 800, color: '#2563eb' }}>
+                      <div style={{ padding: '12px', backgroundColor: 'rgba(14, 165, 233, 0.05)', borderRadius: '8px', border: '1px solid rgba(14, 165, 233, 0.1)' }}>
+                        <span style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Net Cash Balance</span>
+                        <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--primary)' }}>
                           ₹{margins.commodity.net?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>

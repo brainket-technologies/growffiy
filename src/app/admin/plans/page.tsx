@@ -32,8 +32,10 @@ export default function AdminPlansPage() {
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const fetchPlans = async () => {
-    setLoading(true);
+  const fetchPlans = async (showSpinner = true) => {
+    if (showSpinner) {
+      setLoading(true);
+    }
     try {
       const res = await api.get('/api/plans');
       if (res.success) {
@@ -42,7 +44,9 @@ export default function AdminPlansPage() {
     } catch (err: any) {
       console.error('Failed to fetch plans:', err);
     } finally {
-      setLoading(false);
+      if (showSpinner) {
+        setLoading(false);
+      }
     }
   };
 
@@ -134,6 +138,12 @@ export default function AdminPlansPage() {
 
   const togglePlanStatus = async (plan: any) => {
     const nextStatus = plan.status === 'active' ? 'inactive' : 'active';
+    
+    // Optimistic Update: update UI state immediately
+    setPlans(prevPlans =>
+      prevPlans.map(p => p.id === plan.id ? { ...p, status: nextStatus } : p)
+    );
+
     try {
       const res = await api.put(`/api/plans/${plan.id}`, {
         name: plan.name,
@@ -142,11 +152,18 @@ export default function AdminPlansPage() {
         features: plan.features,
         status: nextStatus
       });
-      if (res.success) {
-        fetchPlans();
+      if (!res.success) {
+        // Revert on failure
+        setPlans(prevPlans =>
+          prevPlans.map(p => p.id === plan.id ? { ...p, status: plan.status } : p)
+        );
       }
     } catch (err) {
       console.error('Failed to toggle plan status:', err);
+      // Revert on failure
+      setPlans(prevPlans =>
+        prevPlans.map(p => p.id === plan.id ? { ...p, status: plan.status } : p)
+      );
     }
   };
 
@@ -211,7 +228,7 @@ export default function AdminPlansPage() {
         }
         .plan-input-field:focus {
           border-color: ${THEME_COLORS.PRIMARY};
-          box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+          box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
         }
         .spin {
           animation: spin 1s linear infinite;
@@ -246,7 +263,7 @@ export default function AdminPlansPage() {
             fontSize: '13px',
             fontWeight: 600,
             cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(37,99,235,0.2)',
+            boxShadow: '0 4px 12px rgba(14,165,233,0.2)',
             transition: 'background 0.2s'
           }}
         >
@@ -387,7 +404,7 @@ export default function AdminPlansPage() {
                               key={idx}
                               style={{
                                 fontSize: '11px',
-                                backgroundColor: 'rgba(37, 99, 235, 0.06)',
+                                backgroundColor: 'rgba(14, 165, 233, 0.06)',
                                 color: 'var(--primary)',
                                 padding: '3px 8px',
                                 borderRadius: '4px',

@@ -318,8 +318,8 @@ export default function SettingsPage() {
               <div style={{ 
                 padding: '24px', 
                 borderRadius: '12px', 
-                border: '1px solid ' + (razorpayMode === 'test' ? 'rgba(37, 99, 235, 0.25)' : 'var(--border-light)'), 
-                backgroundColor: razorpayMode === 'test' ? 'rgba(37, 99, 235, 0.01)' : 'transparent',
+                border: '1px solid ' + (razorpayMode === 'test' ? 'rgba(14, 165, 233, 0.25)' : 'var(--border-light)'), 
+                backgroundColor: razorpayMode === 'test' ? 'rgba(14, 165, 233, 0.01)' : 'transparent',
                 opacity: razorpayMode === 'test' ? 1 : 0.6,
                 transition: 'all 0.2s'
               }}>

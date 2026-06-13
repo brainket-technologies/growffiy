@@ -44,7 +44,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
   const userMenuItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Subscription Plans', path: '/dashboard/subscription', icon: CreditCard },
-    { name: 'Trading Report', path: '/dashboard/reports', icon: FileText },
     { name: 'Payment History', path: '/dashboard/payments', icon: Activity },
     { name: 'Support', path: '/dashboard/support', icon: LifeBuoy },
   ];

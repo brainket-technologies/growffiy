@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { AppProvider } from '../../viewmodels/AppContext';
 import { Sidebar } from '../../views/components/Sidebar';
 import { Header } from '../../views/components/Header';
+import { Loader } from '../../views/components/Loader';
 import styles from '../../views/components/components.module.css';
 import { THEME_COLORS } from '../../lib/constants';
 
@@ -46,11 +47,7 @@ export default function AdminLayout({
   }, [isAdminLogin]);
 
   if (!isAdminAuthenticated) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: THEME_COLORS.BG_PRIMARY, color: '#64748b', fontFamily: 'sans-serif' }}>
-        Authenticating admin session...
-      </div>
-    );
+    return <Loader title="Authenticating admin session" text="Securing admin panel settings and verifying credentials..." />;
   }
 
   if (isAdminLogin) {

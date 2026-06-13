@@ -14,13 +14,14 @@
 }
 
 .btnPrimary {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  background: var(--primary);
   color: #ffffff;
-  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+  box-shadow: var(--shadow-sm);
 }
 .btnPrimary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 12px -1px rgba(37, 99, 235, 0.3);
+  background: var(--primary-dark);
+  box-shadow: var(--shadow-md);
 }
 
 .btnSecondary {
@@ -66,7 +67,7 @@
 .cardHover:hover {
   transform: translateY(-4px);
   box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.06), 0 10px 10px -5px rgba(15, 23, 42, 0.04);
-  border-color: rgba(37, 99, 235, 0.2);
+  border-color: rgba(14, 165, 233, 0.2);
 }
 
 /* Modals */

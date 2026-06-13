@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/db';
 import { inMemoryClients } from '../route';
 import { KiteClient } from '../../../../lib/kite';
+import { sendEmail } from '../../../../lib/mailer';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

@@ -88,7 +88,7 @@ export async function POST(request: Request) {
           riskPercentage: Number(riskPercentage || 1.00),
           strategyId,
           tradingStatus: 'inactive',
-          subscriptionStatus: 'active',
+          subscriptionStatus: 'pending',
         },
         include: { user: true },
       });
@@ -131,7 +131,7 @@ export async function POST(request: Request) {
         capital: Number(capital),
         riskPercentage: Number(riskPercentage || 1.00),
         tradingStatus: 'inactive',
-        subscriptionStatus: 'active',
+        subscriptionStatus: 'pending',
         strategyId: strategyId || 'pre-open-breakout',
       };
       inMemoryClients.push(newClientMock);

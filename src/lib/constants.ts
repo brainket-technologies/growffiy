@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
   TOGGLE_TRADING: '/api/trading/toggle',
   SETTINGS: '/api/admin/settings',
   AUTH_LOGIN: '/api/auth/login',
+  AUTH_PROFILE: '/api/auth/profile',
 };
 
 export const USER_ROLES = {
@@ -73,7 +74,7 @@ export const TRADE_STATUS = {
 
 // Global Theme Colors for inline SVG and visual style styling
 export const THEME_COLORS = {
-  PRIMARY: '#2563eb', // Indigo-blue primary
+  PRIMARY: '#0ea5e9', // Sky-blue primary (updated to match theme CSS variable --primary)
   SUCCESS: '#10b981', // Emerald green
   DANGER: '#ef4444',  // Red
   WARNING: '#f59e0b', // Amber warning

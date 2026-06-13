@@ -91,41 +91,34 @@ export default function GrowffiyLanding() {
     { icon: <Lock size={22} />, cls: 'feature-icon-rose', title: 'Emergency Kill Switch', desc: 'One-click kill switch immediately cancels all pending orders and halts the trading engine.' },
   ];
 
-  const [plans, setPlans] = useState<any[]>([
-    {
-      tag: 'Standard Access', name: 'Monthly Plan', price: 4999, per: '30 Days', popular: false,
-      features: ['Pre-Open Momentum Strategy', '1% Capital Risk Guard', 'Zerodha Kite API Integration', 'Live Performance Dashboard', 'Email Support (48hr SLA)'],
-    },
-    {
-      tag: 'Most Popular', name: 'Quarterly Plan', price: 12999, per: '90 Days', popular: true,
-      features: ['Everything in Monthly', 'Telegram Trade Alerts', 'Priority API Setup Assistance', '1:3 Risk-Reward Configuration', 'Priority Support (12hr SLA)'],
-    },
-    {
-      tag: 'Best Value', name: 'Yearly Plan', price: 39999, per: '365 Days', popular: false,
-      features: ['Everything in Quarterly', 'Dedicated Account Manager', 'Custom Strategy Parameters', 'Emergency Kill Switch Access', '24/7 Phone Support'],
-    },
-  ]);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [plansLoading, setPlansLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/plans')
+    fetch('/api/plans', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.plans && data.plans.length > 0) {
+        if (data.success && data.plans) {
           const activePlans = data.plans.filter((p: any) => p.status === 'active');
           if (activePlans.length > 0) {
+            // Sort by price ascending
+            activePlans.sort((a: any, b: any) => Number(a.price) - Number(b.price));
             const mapped = activePlans.map((p: any) => ({
               tag: p.name.toLowerCase().includes('monthly') ? 'Standard Access' : p.name.toLowerCase().includes('quarterly') ? 'Most Popular' : 'Best Value',
               name: p.name,
               price: p.price,
               per: `${p.durationDays} Days`,
-              popular: p.name.toLowerCase().includes('quarterly'),
+              popular: p.name.toLowerCase().includes('quarterly') || p.name.toLowerCase().includes('popular'),
               features: p.features
             }));
             setPlans(mapped);
+          } else {
+            setPlans([]);
           }
         }
       })
-      .catch(err => console.error('Failed to fetch subscription plans on landing page:', err));
+      .catch(err => console.error('Failed to fetch subscription plans on landing page:', err))
+      .finally(() => setPlansLoading(false));
   }, []);
 
   const faqs = [
@@ -488,39 +481,64 @@ export default function GrowffiyLanding() {
             </p>
           </div>
 
-          <div className="pricing-grid">
-            {plans.map(plan => (
-              <div key={plan.name} className={`pricing-card${plan.popular ? ' popular' : ''}`}>
-                {plan.popular && <div className="popular-badge">Most Popular</div>}
-                <div className="pricing-tag">{plan.tag}</div>
-                <div className="pricing-name">{plan.name}</div>
-                <div className="pricing-amount">
-                  <span className="pricing-currency">₹</span>
-                  <span className="pricing-price">{plan.price.toLocaleString()}</span>
-                  <span className="pricing-per">/ {plan.per}</span>
-                </div>
-                <ul className="pricing-features">
-                  {plan.features.map(f => (
-                    <li key={f} className="pricing-feature-item">
-                      <div className="check-icon"><Check size={11} /></div>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/login" target="_blank" style={{ display: 'block' }}>
-                  <button style={{
-                    width: '100%', padding: '13px', borderRadius: 99, fontWeight: 700,
-                    fontSize: 14, cursor: 'pointer', transition: 'all 0.3s',
-                    background: plan.popular ? 'linear-gradient(135deg,#0ea5e9,#6366f1)' : 'white',
-                    color: plan.popular ? 'white' : '#334155',
-                    boxShadow: plan.popular ? '0 6px 20px rgba(14,165,233,0.3)' : 'none',
-                    border: plan.popular ? 'none' : '1.5px solid #e2e8f0',
-                  }}>
-                    Access Portal →
-                  </button>
-                </Link>
+          <div className="pricing-grid" style={{
+            display: 'flex',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            gap: '24px',
+            marginTop: '56px',
+            alignItems: 'stretch'
+          }}>
+            {plansLoading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '48px', color: '#64748b', fontSize: '15px' }}>
+                <Activity size={20} className="spin" style={{ marginRight: '10px', animation: 'spin 1s linear infinite' }} /> Loading subscription plans...
               </div>
-            ))}
+            ) : plans.length === 0 ? (
+              <div style={{ color: '#64748b', fontSize: '15px', padding: '40px', textAlign: 'center' }}>
+                No active subscription plans are currently configured.
+              </div>
+            ) : (
+              plans.map(plan => (
+                <div
+                  key={plan.name}
+                  className={`pricing-card${plan.popular ? ' popular' : ''}`}
+                  style={{
+                    flex: '1 1 360px',
+                    maxWidth: '380px',
+                    minWidth: '280px'
+                  }}
+                >
+                  {plan.popular && <div className="popular-badge">Most Popular</div>}
+                  <div className="pricing-tag">{plan.tag}</div>
+                  <div className="pricing-name">{plan.name}</div>
+                  <div className="pricing-amount">
+                    <span className="pricing-currency">₹</span>
+                    <span className="pricing-price">{plan.price.toLocaleString()}</span>
+                    <span className="pricing-per">/ {plan.per}</span>
+                  </div>
+                  <ul className="pricing-features">
+                    {plan.features.map(f => (
+                      <li key={f} className="pricing-feature-item">
+                        <div className="check-icon"><Check size={11} /></div>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href="/login" target="_blank" style={{ display: 'block' }}>
+                    <button style={{
+                      width: '100%', padding: '13px', borderRadius: 99, fontWeight: 700,
+                      fontSize: 14, cursor: 'pointer', transition: 'all 0.3s',
+                      background: plan.popular ? 'var(--primary)' : 'white',
+                      color: plan.popular ? 'white' : 'var(--text-body)',
+                      boxShadow: plan.popular ? '0 6px 20px rgba(14, 165, 233, 0.2)' : 'none',
+                      border: plan.popular ? 'none' : '1.5px solid var(--border)',
+                    }}>
+                      Access Portal →
+                    </button>
+                  </Link>
+                </div>
+              ))
+            )}
           </div>
 
           {/* Trust badges */}

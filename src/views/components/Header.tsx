@@ -36,14 +36,27 @@ export const Header: React.FC<HeaderProps> = ({
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
-  // Fetch current user details on profile modal open
+  // Fetch current user details dynamically on profile modal open
   useEffect(() => {
     if (profileModalOpen && typeof window !== 'undefined') {
       const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
       if (activeUser) {
-        setProfileName(userName);
-        // Simple heuristic to infer email or try to check stored user details
-        setProfileEmail(activeUser.includes('@') ? activeUser : `${activeUser}@growffiy.com`);
+        api.get(`/api/auth/profile?userId=${activeUser}`)
+          .then(res => {
+            if (res.success && res.user) {
+              setProfileName(res.user.name);
+              setProfileEmail(res.user.email);
+              // Also update localStorage so that display names are refreshed locally
+              localStorage.setItem('growffiy_logged_in_user_name', res.user.name);
+            } else {
+              setProfileName(userName);
+              setProfileEmail(activeUser.includes('@') ? activeUser : `${activeUser}@growffiy.com`);
+            }
+          })
+          .catch(() => {
+            setProfileName(userName);
+            setProfileEmail(activeUser.includes('@') ? activeUser : `${activeUser}@growffiy.com`);
+          });
       }
     }
   }, [profileModalOpen, userName]);

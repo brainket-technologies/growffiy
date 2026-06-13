@@ -4,6 +4,7 @@ import React from 'react';
 import { AppProvider } from '../../viewmodels/AppContext';
 import { Sidebar } from '../../views/components/Sidebar';
 import { Header } from '../../views/components/Header';
+import { Loader } from '../../views/components/Loader';
 import styles from '../../views/components/components.module.css';
 
 export default function ClientDashboardLayout({
@@ -11,7 +12,7 @@ export default function ClientDashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [activeUser, setActiveUser] = React.useState({ name: 'Aman Sharma', id: 'aman_sharma' });
+  const [activeUser, setActiveUser] = React.useState<any>({ name: 'Client User', id: '' });
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
 
   React.useEffect(() => {
@@ -27,8 +28,8 @@ export default function ClientDashboardLayout({
           window.location.href = '/login';
         }
       } else {
-        // Humanize the userId for display name
-        const cleanName = storedId
+        const storedName = localStorage.getItem('growffiy_logged_in_user_name');
+        const cleanName = storedName || storedId
           .split(/[_-]/)
           .map(word => word.charAt(0).toUpperCase() + word.slice(1))
           .join(' ');
@@ -39,11 +40,7 @@ export default function ClientDashboardLayout({
   }, []);
 
   if (!isAuthenticated) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', color: '#64748b', fontFamily: 'sans-serif' }}>
-        Authenticating session...
-      </div>
-    );
+    return <Loader title="Authenticating session" text="Securing demat connection and verifying client credentials..." />;
   }
 
   return (

@@ -1,3 +1,5 @@
+import { API_ENDPOINTS } from './constants';
+
 class ApiClient {
   private async request(path: string, options: RequestInit = {}) {
     const defaultHeaders = {
@@ -19,11 +21,11 @@ class ApiClient {
       }
 
       // Log successful API calls
-      if (!path.includes('/api/admin/audit-logs')) {
+      if (!path.includes(API_ENDPOINTS.AUDIT_LOGS)) {
         const payloadStr = options.body ? String(options.body) : 'No Payload';
         const method = options.method || 'GET';
         
-        fetch('/api/admin/audit-logs', {
+        fetch(API_ENDPOINTS.AUDIT_LOGS, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -40,11 +42,11 @@ class ApiClient {
       console.error(`ApiClient Error [${options.method || 'GET'} ${path}]:`, error);
 
       // Log API errors
-      if (!path.includes('/api/admin/audit-logs')) {
+      if (!path.includes(API_ENDPOINTS.AUDIT_LOGS)) {
         const payloadStr = options.body ? String(options.body) : 'No Payload';
         const method = options.method || 'GET';
         
-        fetch('/api/admin/audit-logs', {
+        fetch(API_ENDPOINTS.AUDIT_LOGS, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
