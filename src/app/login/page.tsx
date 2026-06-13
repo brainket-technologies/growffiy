@@ -29,12 +29,6 @@ export default function LoginPage() {
         }
       }
 
-      // Pre-fill user ID if remembered
-      const savedUserId = localStorage.getItem('growffiy_saved_user_id');
-      if (savedUserId) {
-        setUserId(savedUserId);
-        setRememberMe(true);
-      }
     }
   }, []);
 
@@ -332,6 +326,7 @@ export default function LoginPage() {
                   value={userId}
                   onChange={(e) => setUserId(e.target.value)}
                   className="login-input"
+                  autoComplete="off"
                 />
               </div>
 
@@ -349,6 +344,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="login-input"
+                  autoComplete="new-password"
                 />
               </div>
 
