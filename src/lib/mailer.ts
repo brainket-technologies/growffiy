@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { prisma } from './db';
 
 interface SendMailOptions {
   to: string;
@@ -8,31 +9,61 @@ interface SendMailOptions {
 }
 
 export async function sendEmail({ to, subject, text, html }: SendMailOptions) {
-  const host = process.env.SMTP_HOST;
-  const port = parseInt(process.env.SMTP_PORT || '587', 10);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM || '"Growffiy Alerts" <noreply@growffiy.in>';
+  try {
+    // Fetch SMTP settings strictly from database
+    const dbSettings = await prisma.appSettings.findMany({
+      where: {
+        settingKey: {
+          in: [
+            'smtp_host',
+            'smtp_port',
+            'smtp_user',
+            'smtp_password',
+            'smtp_sender_name',
+            'smtp_status'
+          ]
+        }
+      }
+    });
 
-  let transporter: nodemailer.Transporter;
+    const settings: Record<string, string> = {};
+    dbSettings.forEach(s => {
+      settings[s.settingKey] = s.settingValue;
+    });
 
-  if (host && user && pass) {
-    // Configured SMTP
-    transporter = nodemailer.createTransport({
+    const host = settings['smtp_host'];
+    const port = parseInt(settings['smtp_port'] || '587', 10);
+    const user = settings['smtp_user'];
+    const pass = settings['smtp_password'];
+    const senderName = settings['smtp_sender_name'] || 'Growffiy Alerts';
+    const status = settings['smtp_status'] || 'false';
+
+    // If SMTP status is not active, skip
+    if (status !== 'true') {
+      console.log('✉️ SMTP is turned off in database settings. Skipping email dispatch.');
+      return {
+        success: false,
+        message: 'SMTP status is disabled.'
+      };
+    }
+
+    if (!host || !user || !pass) {
+      console.log('✉️ SMTP host/user/password credentials are missing in DB. Skipping email.');
+      return {
+        success: false,
+        message: 'SMTP credentials missing.'
+      };
+    }
+
+    const transporter = nodemailer.createTransport({
       host,
       port,
       secure: port === 465,
       auth: { user, pass }
     });
-  } else {
-    console.log('✉️ SMTP not configured in env. Skipping email dispatch.');
-    return {
-      success: false,
-      message: 'SMTP not configured. Skipping email dispatch.'
-    };
-  }
 
-  try {
+    const from = `"${senderName}" <${user}>`;
+
     const info = await transporter.sendMail({
       from,
       to,
@@ -41,18 +72,15 @@ export async function sendEmail({ to, subject, text, html }: SendMailOptions) {
       html,
     });
 
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log(`✉️ Test Email Preview URL: ${previewUrl}`);
-    }
-
     return {
       success: true,
-      messageId: info.messageId,
-      previewUrl
+      messageId: info.messageId
     };
   } catch (error) {
     console.error('Error sending email:', error);
-    throw error;
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    };
   }
 }
