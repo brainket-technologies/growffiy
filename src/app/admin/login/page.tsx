@@ -16,9 +16,13 @@ export default function AdminLoginPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
-      // If admin or any user session is logged in, auto navigate to dashboard
+      const activeUserRole = localStorage.getItem('growffiy_logged_in_user_role');
       if (activeUser) {
-        window.location.href = '/admin';
+        if (activeUserRole === 'admin') {
+          window.location.href = '/admin';
+        } else if (activeUserRole === 'client') {
+          window.location.href = '/dashboard';
+        }
       }
     }
   }, []);
@@ -43,6 +47,7 @@ export default function AdminLoginPage() {
 
       if (typeof window !== 'undefined') {
         localStorage.setItem('growffiy_logged_in_user_id', userId);
+        localStorage.setItem('growffiy_logged_in_user_role', 'admin');
       }
       
       setTimeout(() => {

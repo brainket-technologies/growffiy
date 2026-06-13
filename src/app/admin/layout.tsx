@@ -21,12 +21,24 @@ export default function AdminLayout({
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
+      const activeUserRole = localStorage.getItem('growffiy_logged_in_user_role');
       if (isAdminLogin) {
+        if (activeUser) {
+          if (activeUserRole === 'admin') {
+            window.location.href = '/admin';
+            return;
+          } else if (activeUserRole === 'client') {
+            window.location.href = '/dashboard';
+            return;
+          }
+        }
         setIsAdminAuthenticated(true);
         return;
       }
       if (!activeUser) {
         window.location.href = '/admin/login';
+      } else if (activeUserRole !== 'admin') {
+        window.location.href = '/dashboard';
       } else {
         setIsAdminAuthenticated(true);
       }

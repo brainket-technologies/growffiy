@@ -13,8 +13,15 @@ export default function ClientDashboardOverview() {
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedId = localStorage.getItem('growffiy_logged_in_user_id');
-      if (!storedId) {
-        window.location.href = '/login';
+      const storedRole = localStorage.getItem('growffiy_logged_in_user_role');
+      if (!storedId || storedRole !== 'client') {
+        if (storedRole === 'admin') {
+          window.location.href = '/admin';
+        } else {
+          localStorage.removeItem('growffiy_logged_in_user_id');
+          localStorage.removeItem('growffiy_logged_in_user_role');
+          window.location.href = '/login';
+        }
         return;
       }
       const cleanName = storedId

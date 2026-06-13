@@ -15,11 +15,18 @@ export default function LoginPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
+      const activeUserRole = localStorage.getItem('growffiy_logged_in_user_role');
       const isSessionPersistent = localStorage.getItem('growffiy_remember_me') === 'true';
       
-      // If user is logged in, auto navigate to dashboard
+      // If user is logged in, auto navigate to their correct portal dashboard
       if (activeUser) {
-        window.location.href = '/dashboard';
+        if (activeUserRole === 'admin') {
+          window.location.href = '/admin';
+          return;
+        } else if (activeUserRole === 'client') {
+          window.location.href = '/dashboard';
+          return;
+        }
       }
 
       // Pre-fill user ID if remembered
@@ -51,6 +58,7 @@ export default function LoginPage() {
 
       if (typeof window !== 'undefined') {
         localStorage.setItem('growffiy_logged_in_user_id', userId);
+        localStorage.setItem('growffiy_logged_in_user_role', 'client');
         localStorage.setItem('growffiy_remember_me', String(rememberMe));
         if (rememberMe) {
           localStorage.setItem('growffiy_saved_user_id', userId);
