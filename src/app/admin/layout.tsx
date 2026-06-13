@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import { AppProvider } from '../../viewmodels/AppContext';
 import { Sidebar } from '../../views/components/Sidebar';
 import { Header } from '../../views/components/Header';
@@ -11,6 +12,19 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const isAdminLogin = pathname === '/admin/login';
+
+  if (isAdminLogin) {
+    return (
+      <AppProvider>
+        <div style={{ minHeight: '100vh', width: '100vw', background: '#f8fafc' }}>
+          {children}
+        </div>
+      </AppProvider>
+    );
+  }
+
   return (
     <AppProvider>
       <div className={styles.layoutWrapper}>

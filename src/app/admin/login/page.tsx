@@ -38,7 +38,9 @@ export default function AdminLoginPage() {
     <style>{`
       @keyframes spin { to { transform: rotate(360deg); } }
       .admin-login-wrap {
-        min-height: 100vh;
+        height: 100vh;
+        max-height: 100vh;
+        overflow: hidden;
         display: flex;
         font-family: 'Inter', -apple-system, sans-serif;
       }
