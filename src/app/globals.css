@@ -26,6 +26,7 @@
 
   --border: #e2e8f0;
   --border-light: #f1f5f9;
+  --border-color: #cbd5e1;
 
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
@@ -1393,4 +1394,38 @@ tr:hover td { background-color: var(--surface); }
   .hero-btns button, .hero-btns a { width: 100%; justify-content: center; }
   .navbar-inner { padding: 12px 16px; }
 }
+
+/* ========================
+   GLOBAL FORM INPUTS
+======================== */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="password"],
+input[type="tel"],
+select,
+textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color) !important;
+  background-color: #ffffff !important;
+  color: var(--text-heading) !important;
+  font-size: 14px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus,
+input[type="tel"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 4px var(--primary-light) !important;
+}
+
 
