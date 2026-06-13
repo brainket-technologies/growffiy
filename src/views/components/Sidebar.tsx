@@ -53,7 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.sidebarBrand}>
-        <div className={styles.brandText}>TRADE PRO</div>
+        <div className={styles.brandText}>GROWFFIY</div>
       </div>
       <nav className={styles.sidebarMenu}>
         {menuItems.map((item) => {
