@@ -6,6 +6,7 @@ import { AppProvider } from '../../viewmodels/AppContext';
 import { Sidebar } from '../../views/components/Sidebar';
 import { Header } from '../../views/components/Header';
 import styles from '../../views/components/components.module.css';
+import { THEME_COLORS } from '../../lib/constants';
 
 export default function AdminLayout({
   children,
@@ -18,7 +19,7 @@ export default function AdminLayout({
   if (isAdminLogin) {
     return (
       <AppProvider>
-        <div style={{ minHeight: '100vh', width: '100vw', background: '#f8fafc' }}>
+        <div style={{ minHeight: '100vh', width: '100vw', background: THEME_COLORS.BG_PRIMARY }}>
           {children}
         </div>
       </AppProvider>

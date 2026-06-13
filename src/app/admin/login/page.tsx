@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Activity, ShieldCheck, Eye, EyeOff, Lock, User, AlertTriangle, Server, Database, BarChart2 } from 'lucide-react';
+import { THEME_COLORS } from '../../../lib/constants';
 
 export default function AdminLoginPage() {
   const [userId, setUserId] = useState('');
