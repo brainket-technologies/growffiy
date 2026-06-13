@@ -45,6 +45,14 @@
 
   --sidebar-width: 260px;
   --header-height: 70px;
+
+  /* Sidebar Theme Variables */
+  --sidebar-gradient-start: #0f172a;
+  --sidebar-gradient-end: #1e293b;
+  --sidebar-text: #94a3b8;
+  --sidebar-text-active: #ffffff;
+  --sidebar-active-bg: rgba(255, 255, 255, 0.08);
+  --sidebar-active-border: #3b82f6;
 }
 
 *, *::before, *::after {

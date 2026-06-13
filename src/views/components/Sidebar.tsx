@@ -81,7 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
           <p style={{ fontWeight: 600, fontSize: '13px' }}>
             {isAdmin ? 'Admin Portal' : 'Client Profile'}
           </p>
-          <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+          <p style={{ fontSize: '11px', color: 'var(--sidebar-text)' }}>
             {isAdmin ? 'Super Admin' : 'Client Account'}
           </p>
         </div>
