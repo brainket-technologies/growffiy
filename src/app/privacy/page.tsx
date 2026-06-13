@@ -1,57 +1,58 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import { Card } from '../../views/components/Card';
-import { Button } from '../../views/components/Button';
-import { Activity, ArrowLeft } from 'lucide-react';
+import LegalLayout, { LegalSection } from '../../views/components/LegalLayout';
 
 export default function PrivacyPolicyPage() {
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#030712', color: '#f3f4f6', fontFamily: 'var(--font-family)', padding: '40px 24px' }}>
-      <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Activity size={24} color="#3b82f6" />
-            <span style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-title)' }}>GROWFFIY</span>
-          </div>
-          <Link href="/">
-            <Button variant="secondary" style={{ backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.1)', color: '#ffffff', borderRadius: '20px', padding: '6px 16px' }}>
-              <ArrowLeft size={14} style={{ marginRight: '6px' }} /> Back to Home
-            </Button>
-          </Link>
-        </div>
+    <LegalLayout title="Privacy Policy" lastUpdated="June 10, 2026">
+      <LegalSection number="1" title="Data Collection">
+        <p>
+          We collect information provided directly by clients during account registration, including name, email address,
+          contact numbers, and Zerodha Kite API keys. We do not store or inspect individual broker passwords or
+          transactional banking details.
+        </p>
+      </LegalSection>
 
-        {/* Content */}
-        <Card style={{ backgroundColor: 'rgba(255, 255, 255, 0.01)', borderColor: 'rgba(255, 255, 255, 0.06)', padding: '32px' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#ffffff', marginBottom: '20px', fontFamily: 'var(--font-title)' }}>Privacy Policy</h1>
-          <p style={{ color: '#9ca3af', fontSize: '12px', marginBottom: '24px' }}>Last Updated: June 10, 2026</p>
+      <LegalSection number="2" title="Key Encryption & Security">
+        <p>
+          All client credentials (API Key, API Secret, Access Tokens) are encrypted using industry-standard AES-256
+          protocols before storage inside the database. Authorization keys are stored in memory and flushed immediately
+          upon session timeouts.
+        </p>
+      </LegalSection>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', fontSize: '14px', lineHeight: '1.6', color: '#d1d5db' }}>
-            <div>
-              <h3 style={{ color: '#ffffff', fontWeight: 700, marginBottom: '8px' }}>1. Data Collection</h3>
-              <p>We collect information provided directly by clients during account registration, including name, email address, contact numbers, and Zerodha Kite API keys. We do not store or inspect individual broker passwords or transactional banking details.</p>
-            </div>
+      <LegalSection number="3" title="Third-Party API Integrations">
+        <p>
+          Growffiy maps trades using the Zerodha Kite Connect API. Trade requests are authenticated on client behalf
+          strictly within user-configured parameters. Payments are securely processed via Razorpay API checkout
+          wrappers; no credit card details are stored locally.
+        </p>
+      </LegalSection>
 
-            <div>
-              <h3 style={{ color: '#ffffff', fontWeight: 700, marginBottom: '8px' }}>2. Key Encryption & Security</h3>
-              <p>All client credentials (API Key, API Secret, Access Tokens) are encrypted using industry-standard AES-256 protocols before storage inside the database. Authorization keys are stored in memory and flushed immediately upon session timeouts.</p>
-            </div>
+      <LegalSection number="4" title="Compliance & Consent">
+        <p>
+          Clients maintain absolute control. Trading can be immediately suspended or revoked by client demand. By
+          connecting your broker terminal, you consent to automatic MIS order placement within predefined risk rules.
+        </p>
+      </LegalSection>
 
-            <div>
-              <h3 style={{ color: '#ffffff', fontWeight: 700, marginBottom: '8px' }}>3. Third-Party API integrations</h3>
-              <p>Growffiy maps trades using the Zerodha Kite Connect API. Trade requests are authenticated on client behalf strictly within user-configured parameters. Payments are securely processed via Razorpay API checkout wrappers; no credit card details are stored locally.</p>
-            </div>
+      <LegalSection number="5" title="Data Retention">
+        <p>
+          Client data is retained for the duration of the subscription and up to 90 days post-cancellation for
+          compliance and audit purposes. You may request full data deletion by contacting support@growffiy.in.
+        </p>
+      </LegalSection>
 
-            <div>
-              <h3 style={{ color: '#ffffff', fontWeight: 700, marginBottom: '8px' }}>4. Compliance & Consent</h3>
-              <p>Clients maintain absolute control. Trading can be immediately suspended or revoked by client demand. By connecting your broker terminal, you consent to automatic MIS order placement within predefined risk rules.</p>
-            </div>
-          </div>
-        </Card>
-      </div>
-    </div>
+      <LegalSection number="6" title="Contact Us">
+        <p>
+          For any privacy-related concerns, please reach out to us at{' '}
+          <a href="mailto:support@growffiy.in" style={{ color: '#0ea5e9', textDecoration: 'none' }}>
+            support@growffiy.in
+          </a>
+          . We aim to respond within 2 business days.
+        </p>
+      </LegalSection>
+    </LegalLayout>
   );
 }

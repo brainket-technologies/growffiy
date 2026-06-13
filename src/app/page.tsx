@@ -1,508 +1,551 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Card } from '../views/components/Card';
-import { Button } from '../views/components/Button';
 import { PerformanceChart } from '../views/components/PerformanceChart';
-import { Check, ShieldCheck, Zap, Activity, ArrowRight, Award, Sparkles, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import Footer from '../views/components/Footer';
+import {
+  Activity, ShieldCheck, Zap, ArrowRight, Sparkles,
+  ChevronDown, ChevronUp, Menu, X,
+  BarChart2, Lock, Bell, Target, Cpu,
+  Check, Phone, Mail, MapPin
+} from 'lucide-react';
 
-export default function PremiumQuantLanding() {
-  // Live simulated Nifty 200 quotes
-  const [simStocks, setSimStocks] = useState([
-    { symbol: 'RELIANCE', name: 'Reliance Industries Ltd.', ltp: 2450.40, change: -1.24 },
-    { symbol: 'TCS', name: 'Tata Consultancy Services Ltd.', ltp: 3215.10, change: -0.95 },
-    { symbol: 'INFY', name: 'Infosys Limited', ltp: 1420.50, change: -2.15 },
-    { symbol: 'TATAMOTORS', name: 'Tata Motors Limited', ltp: 620.30, change: -3.12 },
-    { symbol: 'HDFCBANK', name: 'HDFC Bank Limited', ltp: 1610.15, change: -0.48 },
+// ─── Types ───────────────────────────────────────────────────────────────────
+interface Stock {
+  symbol: string;
+  name: string;
+  ltp: number;
+  change: number;
+  high: number;
+  low: number;
+  volume: string;
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+export default function GrowffiyLanding() {
+  // Live stock state
+  const [stocks, setStocks] = useState<Stock[]>([
+    { symbol: 'RELIANCE', name: 'Reliance Industries', ltp: 2450.40, change: -1.24, high: 2481.00, low: 2432.00, volume: '4.2M' },
+    { symbol: 'TCS', name: 'Tata Consultancy', ltp: 3215.10, change: -0.95, high: 3240.00, low: 3192.00, volume: '1.8M' },
+    { symbol: 'INFY', name: 'Infosys Ltd.', ltp: 1420.50, change: -2.15, high: 1448.00, low: 1415.00, volume: '3.1M' },
+    { symbol: 'TATAMOTORS', name: 'Tata Motors', ltp: 620.30, change: -3.12, high: 644.00, low: 618.00, volume: '9.4M' },
+    { symbol: 'HDFCBANK', name: 'HDFC Bank', ltp: 1610.15, change: +0.48, high: 1624.00, low: 1601.00, volume: '5.7M' },
   ]);
 
-  const [simPnl, setSimPnl] = useState(645230);
-  const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [heroData, setHeroData] = useState<number[]>([
+    2410, 2418, 2415, 2425, 2432, 2428, 2436, 2441, 2439, 2447, 2443, 2450, 2450
+  ]);
+  const [heroLabels, setHeroLabels] = useState<string[]>([
+    '9:15', '9:20', '9:25', '9:30', '9:35', '9:40', '9:45', '9:50', '9:55', '10:00', '10:05', '10:10', '10:15'
+  ]);
 
+  const [pnl, setPnl] = useState(645230);
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Scroll detection for transparent navbar
   useEffect(() => {
-    const interval = setInterval(() => {
-      setSimStocks(prev => prev.map(stock => {
-        const pct = (Math.random() - 0.52) * 0.002;
-        const newLtp = parseFloat((stock.ltp * (1 + pct)).toFixed(2));
-        const newChange = parseFloat((stock.change + pct * 100).toFixed(2));
-        return { ...stock, ltp: newLtp, change: newChange };
-      }));
-      setSimPnl(prev => prev + Math.floor((Math.random() - 0.4) * 250));
-    }, 2000);
-    return () => clearInterval(interval);
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Tick simulation
+  useEffect(() => {
+    const iv = setInterval(() => {
+      let newReliance = 0;
+      setStocks(prev => {
+        const updated = prev.map(s => {
+          const d = (Math.random() - 0.50) * 0.002;
+          const ltp = parseFloat((s.ltp * (1 + d)).toFixed(2));
+          const change = parseFloat((s.change + d * 100 * 0.3).toFixed(2));
+          if (s.symbol === 'RELIANCE') newReliance = ltp;
+          return { ...s, ltp, change };
+        });
+        // slide hero chart
+        if (newReliance) {
+          setHeroData(p => [...p.slice(1), newReliance]);
+          setHeroLabels(p => {
+            const t = new Date();
+            const label = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
+            return [...p.slice(1), label];
+          });
+        }
+        return updated;
+      });
+      setPnl(p => p + Math.floor((Math.random() - 0.4) * 300));
+    }, 2000);
+    return () => clearInterval(iv);
+  }, []);
+
+  // ─── Data ─────────────────────────────────────────────────────────────────
+  const features = [
+    { icon: <Cpu size={22} />, cls: 'feature-icon-blue', title: 'Pre-Open Scan Engine', desc: 'Scans entire Nifty 200 at 09:08 AM. Identifies maximum gap-down candidates with momentum potential.' },
+    { icon: <ShieldCheck size={22} />, cls: 'feature-icon-green', title: '1% Capital Risk Guard', desc: 'Auto-calculates position sizing so every trade risks exactly 1% of your allocated capital.' },
+    { icon: <Zap size={22} />, cls: 'feature-icon-purple', title: 'MIS Bracket Execution', desc: 'Intraday MIS orders with automatic bracket target + stop-loss submitted instantly to Zerodha.' },
+    { icon: <Bell size={22} />, cls: 'feature-icon-orange', title: 'Telegram Trade Alerts', desc: 'Real-time buy/sell entry and exit alerts delivered to your Telegram channel the moment orders fire.' },
+    { icon: <BarChart2 size={22} />, cls: 'feature-icon-cyan', title: 'Live Performance Board', desc: 'Track live P&L, win rate, trades executed, and portfolio exposure in your client dashboard.' },
+    { icon: <Lock size={22} />, cls: 'feature-icon-rose', title: 'Emergency Kill Switch', desc: 'One-click kill switch immediately cancels all pending orders and halts the trading engine.' },
+  ];
+
   const plans = [
-    { name: 'Monthly Plan', price: 4999, duration: '30 Days', tag: 'Standard Access', popular: false, features: ['Pre-Open Momentum Strategy', '1% Capital Risk Allocation', 'Zerodha Kite Integration', 'Real-time Performance Reports', 'Email Support'] },
-    { name: 'Quarterly Plan', price: 12999, duration: '90 Days', tag: 'Most Popular', popular: true, features: ['All Monthly features', 'Priority API setup help', '1:3 Risk Reward management', 'Telegram Trade alerts', 'Priority Ticket Support'] },
-    { name: 'Yearly Plan', price: 39999, duration: '365 Days', tag: 'Best Value', popular: false, features: ['All Quarterly features', 'Dedicated Account Manager', 'Custom Strategy parameters config', 'Emergency kill switch access', '24/7 Telephone Support'] },
+    {
+      tag: 'Standard Access', name: 'Monthly Plan', price: 4999, per: '30 Days', popular: false,
+      features: ['Pre-Open Momentum Strategy', '1% Capital Risk Guard', 'Zerodha Kite API Integration', 'Live Performance Dashboard', 'Email Support (48hr SLA)'],
+    },
+    {
+      tag: 'Most Popular', name: 'Quarterly Plan', price: 12999, per: '90 Days', popular: true,
+      features: ['Everything in Monthly', 'Telegram Trade Alerts', 'Priority API Setup Assistance', '1:3 Risk-Reward Configuration', 'Priority Support (12hr SLA)'],
+    },
+    {
+      tag: 'Best Value', name: 'Yearly Plan', price: 39999, per: '365 Days', popular: false,
+      features: ['Everything in Quarterly', 'Dedicated Account Manager', 'Custom Strategy Parameters', 'Emergency Kill Switch Access', '24/7 Phone Support'],
+    },
   ];
 
   const faqs = [
-    { q: 'How does the Pre-Open Momentum Breakout strategy work?', a: 'The strategy scans the Nifty 200 list at 09:08 AM to find stocks showing maximum gap-down opening. It marks the high of the first 5-minute candle (09:15 - 09:20 AM). A Buy Stop-Loss Market (SLM) order is automatically placed at High + 0.1% buffer. The stop-loss is placed at Entry - 0.5% and target is placed at Entry + 1.5%.' },
-    { q: 'How is the trade quantity calculated?', a: 'To enforce capital protection, quantity sizing is auto-calculated using the 1% risk rule: Quantity = (Allocated Capital * 1%) / (Entry Price - Stop Loss Price). This ensures that if the trade hits stop loss, the total account loss is strictly capped at 1.00%.' },
-    { q: 'Is a Zerodha Kite Connect API subscription required?', a: 'Yes. To execute trades, you must connect your Zerodha account. Kite Connect credentials (API Key and Secret) are managed inside your secure portal dashboard. Broker API charges are billed directly by Zerodha.' },
-    { q: 'Can I stop or pause executions instantly?', a: 'Yes. The admin panel features an instant emergency Kill Switch. Toggling it off stops the trading loop and automatically pulls/cancels any pending bracket orders.' }
+    { q: 'How does the Pre-Open Momentum Breakout strategy work?', a: 'At 09:08 AM, the engine scans the Nifty 200 for stocks showing the largest gap-down opening. Once the first 5-minute candle closes (09:15–09:20 AM), it marks the candle high and places a Buy SLM order at High + 0.1% buffer, stop-loss at Entry − 0.5%, and target at Entry + 1.5%.' },
+    { q: 'How is position sizing calculated?', a: 'The system uses the 1% Risk Rule: Quantity = (Capital × 1%) ÷ (Entry − Stop Loss). This caps maximum loss per trade at exactly 1% of your allocated capital regardless of stock price.' },
+    { q: 'Do I need a Zerodha Kite Connect subscription?', a: 'Yes. You need an active Zerodha account with Kite Connect API access. You enter your API key and secret in your secure portal dashboard. Kite Connect charges (₹2,000/month) are billed separately by Zerodha.' },
+    { q: 'Can I pause the bot at any time?', a: 'Absolutely. The Kill Switch in your dashboard immediately stops the trading loop, cancels all pending orders, and places no new trades until you re-enable it.' },
+    { q: 'What happens if my internet goes down during a trade?', a: 'All orders (including target and stop-loss) are placed as GTT bracket orders at Zerodha\'s servers. Your trade is protected even if your connection drops.' },
   ];
 
+  const isUp = (change: number) => change >= 0;
+
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', color: '#1e293b', fontFamily: 'var(--font-family)', scrollBehavior: 'smooth', overflowX: 'hidden' }}>
-      
-      {/* Floating Glass Pill Header */}
-      <header style={{
-        position: 'fixed',
-        top: '20px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 'calc(100% - 40px)',
-        maxWidth: '1100px',
-        zIndex: 1000,
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        backdropFilter: 'blur(16px)',
-        border: '1px solid rgba(226, 232, 240, 0.8)',
-        borderRadius: '99px',
-        padding: '12px 32px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.01)'
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'var(--font-body)' }}>
+
+
+      {/* ════════════════════════════════════════
+          NAVBAR
+      ════════════════════════════════════════ */}
+      <nav style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
+        background: scrolled || mobileMenuOpen ? 'rgba(255,255,255,0.97)' : 'transparent',
+        backdropFilter: scrolled || mobileMenuOpen ? 'blur(20px)' : 'none',
+        WebkitBackdropFilter: scrolled || mobileMenuOpen ? 'blur(20px)' : 'none',
+        borderBottom: scrolled || mobileMenuOpen ? '1px solid rgba(226,232,240,0.8)' : 'none',
+        boxShadow: scrolled || mobileMenuOpen ? '0 2px 20px rgba(0,0,0,0.06)' : 'none',
+        transition: 'all 0.3s ease',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(37, 99, 235, 0.2)' }}>
-            <Activity size={18} color="#ffffff" />
-          </div>
-          <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.5px', background: 'linear-gradient(to right, #2563eb, #1d4ed8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: 'var(--font-title)' }}>
+        <div className="navbar-inner">
+          {/* Logo */}
+          <Link href="/" className="navbar-logo" onClick={() => setMobileMenuOpen(false)}>
+            <div className="navbar-logo-icon">
+              <Activity size={18} color="white" />
+            </div>
             GROWFFIY
-          </span>
-        </div>
-
-        <nav style={{ display: 'flex', gap: '28px', alignItems: 'center' }}>
-          <a href="#features" style={{ fontWeight: 500, color: '#475569', fontSize: '13px' }}>System Features</a>
-          <a href="#strategy" style={{ fontWeight: 500, color: '#475569', fontSize: '13px' }}>Strategy Rules</a>
-          <a href="#live-data" style={{ fontWeight: 500, color: '#475569', fontSize: '13px' }}>Live Board</a>
-          <a href="#pricing" style={{ fontWeight: 500, color: '#475569', fontSize: '13px' }}>Pricing</a>
-          <a href="#faq" style={{ fontWeight: 500, color: '#475569', fontSize: '13px' }}>FAQs</a>
-          <Link href="/login">
-            <Button style={{ borderRadius: '99px', padding: '6px 18px', fontSize: '12px', background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' }}>Portal Access</Button>
           </Link>
-        </nav>
-      </header>
 
-      {/* Hero Section with Animations */}
-      <section style={{
-        padding: '180px 24px 100px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        background: 'radial-gradient(circle at 50% -120px, rgba(37, 99, 235, 0.12) 0%, rgba(248, 250, 252, 0) 70%)',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        {/* Floating Background Icons */}
-        <div style={{ position: 'absolute', top: '20%', left: '8%', opacity: 0.05, color: '#2563eb', pointerEvents: 'none' }} className="animate-float-slow">
-          <Activity size={72} />
-        </div>
-        <div style={{ position: 'absolute', top: '25%', right: '10%', opacity: 0.04, color: '#10b981', pointerEvents: 'none' }} className="animate-float-delayed">
-          <ShieldCheck size={64} />
-        </div>
-        <div style={{ position: 'absolute', bottom: '15%', left: '12%', opacity: 0.05, color: '#fbbf24', pointerEvents: 'none' }} className="animate-float">
-          <Zap size={56} />
-        </div>
-        <div style={{ position: 'absolute', bottom: '20%', right: '8%', opacity: 0.04, color: '#6366f1', pointerEvents: 'none' }} className="animate-float-slow">
-          <Activity size={80} />
-        </div>
-
-        <div style={{ maxWidth: '950px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '28px' }}>
-          <div style={{ display: 'inline-flex', alignSelf: 'center', gap: '8px', alignItems: 'center', padding: '6px 18px', borderRadius: '99px', backgroundColor: '#eff6ff', border: '1px solid #cbd5e1', color: '#2563eb', fontWeight: 600, fontSize: '12px', letterSpacing: '0.5px' }} className="animate-fade-in-up animate-pulse-ring">
-            <Sparkles size={14} /> INSTITUTIONAL QUANT WORKSPACE
+          {/* Desktop Nav links */}
+          <div className="navbar-nav">
+            <a href="#features" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Features</a>
+            <a href="#strategy" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Strategy</a>
+            <a href="#pricing" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Pricing</a>
+            <a href="#faq" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>FAQ</a>
+            <Link href="/login" className="btn-nav">Get Started →</Link>
           </div>
-          
-          <h1 style={{ fontSize: '60px', fontWeight: 800, letterSpacing: '-1.8px', color: '#0f172a', lineHeight: '1.1', fontFamily: 'var(--font-title)' }} className="animate-fade-in-up delay-100">
-            Fully Automated Intraday Breakouts <br />
-            <span style={{ background: 'linear-gradient(to right, #2563eb, #6366f1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              Built Around Strict 1% Risk Rules
-            </span>
-          </h1>
 
-          <p style={{ fontSize: '19px', color: '#475569', lineHeight: '1.6', maxWidth: '800px', margin: '0 auto' }} className="animate-fade-in-up delay-200">
-            Growffiy maps directly with your Zerodha Kite broker token to execute pre-open momentum breakout strategies. Protects capital using calculated quantity limits with zero manual adjustments.
-          </p>
+          {/* Hamburger Button (mobile only) */}
+          <button
+            className="hamburger-btn"
+            onClick={() => setMobileMenuOpen(o => !o)}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X size={22} color="#0f172a" /> : <Menu size={22} color={scrolled ? '#0f172a' : '#0f172a'} />}
+          </button>
+        </div>
 
-          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '20px' }} className="animate-fade-in-up delay-300">
-            <Link href="/login">
-              <Button style={{ padding: '14px 32px', borderRadius: '30px', fontSize: '15px' }}>
-                Access Trading Portal <ArrowRight size={16} />
-              </Button>
+        {/* Mobile Dropdown Menu */}
+        {mobileMenuOpen && (
+          <div className="mobile-nav">
+            <a href="#features" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Features</a>
+            <a href="#strategy" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Strategy</a>
+            <a href="#pricing" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
+            <a href="#faq" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
+            <Link href="/login" className="mobile-nav-cta" onClick={() => setMobileMenuOpen(false)}>
+              Get Started →
             </Link>
-            <a href="#strategy">
-              <Button variant="secondary" style={{ padding: '14px 32px', borderRadius: '30px', fontSize: '15px', backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#334155' }}>
-                View Strategy Details
-              </Button>
-            </a>
           </div>
-        </div>
-      </section>
+        )}
+      </nav>
 
-      {/* Core Execution Features */}
-      <section id="features" style={{ padding: '100px 40px', maxWidth: '1200px', margin: '0 auto', borderTop: '1px solid #e2e8f0' }}>
-        <div style={{ textAlign: 'center', marginBottom: '64px' }}>
-          <h2 style={{ fontSize: '38px', fontWeight: 800, color: '#0f172a', fontFamily: 'var(--font-title)', letterSpacing: '-0.5px' }}>
-            Engine Features & Core Parameters
-          </h2>
-          <p style={{ color: '#475569', marginTop: '8px' }}>Institutional trading parameters configured for client accounts.</p>
-        </div>
+      {/* ════════════════════════════════════════
+          HERO SECTION
+      ════════════════════════════════════════ */}
+      <section className="hero">
+        <div className="hero-bg-grid" />
+        <div className="hero-blob-1" />
+        <div className="hero-blob-2" />
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px' }}>
-          <Card hoverable={true}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: 'rgba(37, 99, 235, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', marginBottom: '24px' }}>
-              <Zap size={24} fill="#2563eb" />
-            </div>
-            <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px', color: '#0f172a' }}>Pre-Open Scan Algorithm</h3>
-            <p style={{ color: '#475569', lineHeight: '1.6', fontSize: '14px' }}>
-              Scans all Nifty 200 stocks at 09:08 AM before the market opens to identify top gapping down candidates with potential momentum.
+        <div className="hero-inner">
+          {/* LEFT */}
+          <div className="hero-left">
+
+            <h1 className="hero-h1">
+              Automate Your<br />
+              <span className="text-gradient">Stock Market</span><br />
+              Trades Smarter
+            </h1>
+
+            <p className="hero-sub">
+              Growffiy connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.
             </p>
-          </Card>
 
-          <Card hoverable={true}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981', marginBottom: '24px' }}>
-              <ShieldCheck size={24} />
-            </div>
-            <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px', color: '#0f172a' }}>1% Capital Risk Guard</h3>
-            <p style={{ color: '#475569', lineHeight: '1.6', fontSize: '14px' }}>
-              Auto-calculates quantity sizes where the distance between entry and stop-loss represents strictly 1.00% of your account size.
-            </p>
-          </Card>
-
-          <Card hoverable={true}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: 'rgba(245, 158, 11, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b', marginBottom: '24px' }}>
-              <Award size={24} />
-            </div>
-            <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px', color: '#0f172a' }}>MIS Bracket execution</h3>
-            <p style={{ color: '#475569', lineHeight: '1.6', fontSize: '14px' }}>
-              Orders are placed as Intraday MIS. Automated brackets immediately submit both Target and Stop-Loss orders to Zerodha.
-            </p>
-          </Card>
-        </div>
-      </section>
-
-      {/* Detailed Strategy Parameters */}
-      <section id="strategy" style={{ padding: '100px 40px', backgroundColor: '#ffffff', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Breakout Strategy Specifications</span>
-            <h2 style={{ fontSize: '38px', fontWeight: 800, color: '#0f172a', fontFamily: 'var(--font-title)', marginTop: '12px' }}>
-              Pre-Open Momentum Breakout Model
-            </h2>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '48px', alignItems: 'center' }}>
-            {/* Strategy Logic Flow Details */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div style={{ display: 'flex', gap: '16px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'rgba(37, 99, 235, 0.1)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0 }}>1</div>
-                <div>
-                  <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px', color: '#0f172a' }}>Stock Scanner Selection</h4>
-                  <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>System identifies top loser stocks from Nifty 200 list on gap down opening.</p>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '16px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'rgba(37, 99, 235, 0.1)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0 }}>2</div>
-                <div>
-                  <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px', color: '#0f172a' }}>Calculate Entry Price Trigger</h4>
-                  <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>Waits for the first 5-minute candle to close (09:15 - 09:20 AM). Entry price is set at: <code style={{ backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', color: '#2563eb' }}>5-Min High + 0.1% buffer</code>.</p>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '16px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'rgba(37, 99, 235, 0.1)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0 }}>3</div>
-                <div>
-                  <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px', color: '#0f172a' }}>Brackets limits & Targets</h4>
-                  <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>Stop loss is set at <code style={{ color: '#ef4444' }}>Entry Price - 0.5%</code>. Profit Target is set at <code style={{ color: '#10b981' }}>Entry Price + 1.5%</code>, representing a 1:3 Risk Reward ratio.</p>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '16px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'rgba(37, 99, 235, 0.1)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0 }}>4</div>
-                <div>
-                  <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px', color: '#0f172a' }}>Automatic Risk Quantity Formula</h4>
-                  <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>Shares quantity size is calculated dynamically: <code style={{ backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>Quantity = Risk Amount / Per Share Risk</code>.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Visual Formula Details Panel */}
-            <Card style={{ padding: '32px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc' }}>
-              <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#2563eb', display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <Info size={16} /> Strategy Parameters Example
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-                  <span style={{ color: '#475569' }}>Client Capital Allocation</span>
-                  <strong>₹5,00,000.00</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-                  <span style={{ color: '#475569' }}>Max Trade Risk (1%)</span>
-                  <strong>₹5,000.00</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-                  <span style={{ color: '#475569' }}>Selected Stock 5-Min High</span>
-                  <strong>₹1,000.00</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-                  <span style={{ color: '#475569' }}>Entry Trigger (High + 0.1%)</span>
-                  <strong style={{ color: '#2563eb' }}>₹1,001.00</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-                  <span style={{ color: '#475569' }}>Stop-Loss (Entry - 0.5%)</span>
-                  <strong style={{ color: '#ef4444' }}>₹996.00</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-                  <span style={{ color: '#475569' }}>Profit Target (Entry + 1.5%)</span>
-                  <strong style={{ color: '#10b981' }}>₹1,016.00</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-                  <span style={{ color: '#475569' }}>Per Share Risk</span>
-                  <strong>₹5.00</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#475569' }}>Position Size (Quantity)</span>
-                  <strong style={{ color: '#2563eb' }}>1,000 Shares</strong>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Live Ticking Ticker Simulator */}
-      <section id="live-data" style={{ padding: '100px 40px', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '1px' }}>Simulated Real-Time Board</span>
-          <h2 style={{ fontSize: '38px', fontWeight: 800, color: '#0f172a', fontFamily: 'var(--font-title)', marginTop: '8px' }}>
-            Nifty 200 Top Loser Scans
-          </h2>
-          <p style={{ color: '#475569', marginTop: '8px' }}>Simulates ticks streaming through WebSocket connection.</p>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '32px', alignItems: 'start' }}>
-          {/* Live quotes board */}
-          <Card style={{ padding: '24px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Quotes Feed Board</span>
-              <span style={{ fontSize: '11px', color: '#2563eb', fontWeight: 500 }} className="badge bg-success-light">WebSocket Connected</span>
-            </h3>
-            <div className="table-responsive">
-              <table style={{ borderCollapse: 'collapse', textAlign: 'left', width: '100%' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <th style={{ background: 'none', border: 'none', color: '#475569', padding: '12px 8px' }}>Symbol</th>
-                    <th style={{ background: 'none', border: 'none', color: '#475569', padding: '12px 8px' }}>LTP (₹)</th>
-                    <th style={{ background: 'none', border: 'none', color: '#475569', padding: '12px 8px' }}>Chg (%)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {simStocks.map((stock) => (
-                    <tr key={stock.symbol} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                      <td style={{ fontWeight: 600, padding: '16px 8px', color: '#0f172a' }}>{stock.symbol}</td>
-                      <td style={{ fontWeight: 600, padding: '16px 8px' }}>₹{stock.ltp.toFixed(2)}</td>
-                      <td style={{ fontWeight: 600, padding: '16px 8px', color: stock.change >= 0 ? '#10b981' : '#ef4444' }}>
-                        {stock.change >= 0 ? `+${stock.change}%` : `${stock.change}%`}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-
-          {/* Aggregate P&L curve */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <Card style={{ padding: '32px' }} className="animate-float">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <span style={{ fontSize: '13px', color: '#475569' }}>Cumulative P&L today</span>
-                <span style={{ fontSize: '20px', fontWeight: 800, color: '#10b981' }}>+₹{simPnl.toLocaleString()}</span>
-              </div>
-              <PerformanceChart
-                data={[642000, 641000, 644000, 642500, 643800, 644200, simPnl]}
-                labels={['09:30', '10:30', '11:30', '12:30', '13:30', '14:30', 'Now']}
-                strokeColor="#10b981"
-                fillColorStart="rgba(16, 185, 129, 0.15)"
-                fillColorEnd="rgba(16, 185, 129, 0)"
-              />
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Purely Informational Pricing Sections */}
-      <section id="pricing" style={{ padding: '100px 24px', maxWidth: '1200px', margin: '0 auto', borderTop: '1px solid #e2e8f0' }}>
-        <div style={{ textAlign: 'center', marginBottom: '64px' }}>
-          <h2 style={{ fontSize: '38px', fontWeight: 800, color: '#0f172a', fontFamily: 'var(--font-title)', letterSpacing: '-0.5px' }}>
-            Transparent Subscription Details
-          </h2>
-          <p style={{ color: '#475569', marginTop: '8px' }}>Pricing parameters for automated execution. Credentials mapped only by admin.</p>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px', alignItems: 'stretch' }}>
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              style={{
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-                borderRadius: '16px',
-                backgroundColor: '#ffffff',
-                border: `2.5px solid ${plan.popular ? '#2563eb' : '#cbd5e1'}`,
-                boxShadow: plan.popular ? '0 10px 30px rgba(37, 99, 235, 0.05)' : '0 4px 6px rgba(0,0,0,0.01)',
-                padding: '36px',
-                transition: 'all 0.3s ease',
-              }}
-            >
-              {plan.popular && (
-                <span style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#2563eb', color: '#ffffff', fontSize: '11px', fontWeight: 700, padding: '4px 14px', borderRadius: '20px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Recommended
-                </span>
-              )}
-
-              <p style={{ color: '#475569', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px' }}>{plan.tag}</p>
-              <h3 style={{ fontSize: '22px', fontWeight: 700, color: '#0f172a', marginTop: '8px' }}>{plan.name}</h3>
-              
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', margin: '24px 0' }}>
-                <span style={{ fontSize: '42px', fontWeight: 800, color: '#0f172a', fontFamily: 'var(--font-title)' }}>₹{plan.price.toLocaleString()}</span>
-                <span style={{ color: '#475569' }}>/ {plan.duration}</span>
-              </div>
-
-              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '14px', flex: 1, marginBottom: '36px' }}>
-                {plan.features.map((feature) => (
-                  <li key={feature} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#334155' }}>
-                    <div style={{ width: '18px', height: '18px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
-                      <Check size={12} />
-                    </div>
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Link href="/login" style={{ width: '100%' }}>
-                <Button
-                  style={{ width: '100%', borderRadius: '25px', padding: '12px' }}
-                  variant={plan.popular ? 'primary' : 'secondary'}
-                >
-                  Access Trading Portal
-                </Button>
+            <div className="hero-btns">
+              <Link href="/login" className="btn-primary">
+                Start Trading Now <ArrowRight size={15} />
               </Link>
+              <a href="#strategy" className="btn-secondary">
+                View Strategy
+              </a>
             </div>
-          ))}
+
+            {/* Stats strip */}
+            <div style={{ display: 'flex', gap: 32, marginTop: 8 }}>
+              {[
+                { val: '₹12.4Cr+', lbl: 'Capital Managed', color: '#10b981' },
+                { val: '1,200+', lbl: 'Trades Executed', color: '#0f172a' },
+                { val: '68%', lbl: 'Win Rate', color: '#0ea5e9' },
+              ].map((s, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <span style={{ fontFamily: 'var(--font-title)', fontSize: 22, fontWeight: 800, color: s.color }}>{s.val}</span>
+                  <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.lbl}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* RIGHT */}
+          <div className="hero-right" style={{ position: 'relative' }}>
+            {/* Badge top-right */}
+            <div style={{
+              position: 'absolute', top: 80, right: -50, zIndex: 10,
+              background: 'white', borderRadius: 16, padding: '14px 18px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.10)', border: '1px solid #e8edf5',
+              animation: 'floatCard2 6s ease-in-out infinite',
+            }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Today&apos;s P&amp;L</div>
+              <div style={{ fontFamily: 'var(--font-title)', fontSize: 20, fontWeight: 800, color: '#10b981' }}>+₹{pnl.toLocaleString()}</div>
+              <div style={{ fontSize: 11, color: '#10b981', fontWeight: 600, marginTop: 2 }}>▲ 3.24% today</div>
+            </div>
+
+            {/* Badge bottom-left */}
+            <div style={{
+              position: 'absolute', bottom: 150, left: -50, zIndex: 10,
+              background: 'white', borderRadius: 16, padding: '14px 18px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.10)', border: '1px solid #e8edf5',
+              animation: 'floatCard1 5s ease-in-out infinite',
+            }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Risk Per Trade</div>
+              <div style={{ fontFamily: 'var(--font-title)', fontSize: 20, fontWeight: 800, color: '#0f172a' }}>1.00%</div>
+              <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 600, marginTop: 2 }}>Capital Protected</div>
+            </div>
+
+            {/* Main Chart Card */}
+            <div style={{
+              background: 'white', borderRadius: 24,
+              padding: '24px 24px 20px',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04)',
+              border: '1px solid #e8edf5', overflow: 'hidden', position: 'relative',
+            }}>
+              <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                background: isUp(stocks[0].change)
+                  ? 'linear-gradient(90deg,#10b981,#0ea5e9)'
+                  : 'linear-gradient(90deg,#ef4444,#f59e0b)',
+              }} />
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>NSE: RELIANCE</div>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      fontSize: 10, fontWeight: 700, color: '#10b981',
+                      background: '#f0fdf4', borderRadius: 99, padding: '2px 8px',
+                    }}>
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#10b981', display: 'inline-block', animation: 'pulseDot 1.5s ease-in-out infinite' }} />
+                      LIVE
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Reliance Industries Ltd.</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontFamily: 'var(--font-title)', fontSize: 24, fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>
+                    ₹{stocks[0].ltp.toFixed(2)}
+                  </div>
+                  <div style={{
+                    fontSize: 12, fontWeight: 700, marginTop: 4,
+                    color: isUp(stocks[0].change) ? '#10b981' : '#ef4444',
+                    display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end',
+                  }}>
+                    <span style={{
+                      width: 7, height: 7, borderRadius: '50%',
+                      background: isUp(stocks[0].change) ? '#10b981' : '#ef4444',
+                      display: 'inline-block', animation: 'pulseDot 1.5s ease-in-out infinite',
+                    }} />
+                    {isUp(stocks[0].change) ? '+' : ''}{stocks[0].change.toFixed(2)}%
+                  </div>
+                </div>
+              </div>
+
+              <PerformanceChart
+                data={heroData}
+                labels={heroLabels}
+                height={200}
+                strokeColor={isUp(stocks[0].change) ? '#10b981' : '#ef4444'}
+                fillColorStart={isUp(stocks[0].change) ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.10)'}
+                fillColorEnd="rgba(255,255,255,0)"
+              />
+
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                borderTop: '1px solid #f1f5f9', paddingTop: 10, marginTop: 6, fontSize: 11,
+              }}>
+                <span style={{ color: '#94a3b8' }}>
+                  H: <strong style={{ color: '#16181fff' }}>₹{stocks[0].high}</strong>
+                  {'  '}L: <strong style={{ color: '#0f172a' }}>₹{stocks[0].low}</strong>
+                  {'  '}Vol: <strong style={{ color: '#0f172a' }}>{stocks[0].volume}</strong>
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#10b981', fontWeight: 700 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block', animation: 'pulseDot 1.5s ease-in-out infinite' }} />
+                  Live · 2s ticks
+                </span>
+              </div>
+            </div>
+
+            {/* 3 mini quote chips */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginTop: 12 }}>
+              {stocks.slice(1, 4).map(s => (
+                <div key={s.symbol} style={{
+                  background: 'white', borderRadius: 12, padding: '10px 12px',
+                  border: '1px solid #e8edf5', boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', marginBottom: 3 }}>{s.symbol}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>₹{s.ltp.toFixed(0)}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: isUp(s.change) ? '#10b981' : '#ef4444', marginTop: 2 }}>
+                    {isUp(s.change) ? '▲' : '▼'} {Math.abs(s.change).toFixed(2)}%
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Interactive FAQ Section */}
-      <section id="faq" style={{ padding: '100px 24px', maxWidth: '800px', margin: '0 auto', borderTop: '1px solid #e2e8f0' }}>
-        <div style={{ textAlign: 'center', marginBottom: '50px' }}>
-          <h2 style={{ fontSize: '36px', fontWeight: 800, color: '#0f172a', fontFamily: 'var(--font-title)', letterSpacing: '-0.5px' }}>
-            Frequently Asked Questions
-          </h2>
-          <p style={{ color: '#475569', marginTop: '8px' }}>Common inquiries regarding automation, pricing, and APIs.</p>
-        </div>
+      {/* ════════════════════════════════════════
+          FEATURES SECTION
+      ════════════════════════════════════════ */}
+      <section id="features" className="section" style={{ background: 'white' }}>
+        <div className="section-inner">
+          <div className="text-center">
+            <div className="section-tag">
+              <Sparkles size={14} /> Platform Features
+            </div>
+            <h2 className="section-title">
+              Everything You Need to{' '}
+              <span className="text-gradient">Trade Algorithmically</span>
+            </h2>
+            <p className="section-sub">
+              Institutional-grade automation features built for Indian retail traders — no coding required.
+            </p>
+          </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {faqs.map((faq, idx) => {
-            const isOpen = activeFaq === idx;
-            return (
-              <div
-                key={idx}
-                style={{
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '12px',
-                  backgroundColor: '#ffffff',
-                  overflow: 'hidden',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <button
-                  onClick={() => setActiveFaq(isOpen ? null : idx)}
-                  style={{
-                    width: '100%',
-                    padding: '20px 24px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    background: 'none',
-                    border: 'none',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                    fontSize: '15px',
-                    color: '#0f172a',
-                  }}
-                >
-                  <span>{faq.q}</span>
-                  {isOpen ? <ChevronUp size={18} color="#475569" /> : <ChevronDown size={18} color="#475569" />}
-                </button>
-                {isOpen && (
-                  <div style={{ padding: '0 24px 20px', color: '#475569', fontSize: '14px', lineHeight: '1.6', borderTop: '1px solid #e2e8f0', paddingTop: '16px', backgroundColor: '#fafbfc' }}>
-                    {faq.a}
+          <div className="features-grid">
+            {features.map((f, i) => (
+              <div key={i} className="feature-card">
+                <div className={`feature-icon ${f.cls}`}>{f.icon}</div>
+                <h3 className="feature-title">{f.title}</h3>
+                <p className="feature-desc">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════
+          STRATEGY SECTION
+      ════════════════════════════════════════ */}
+      <section id="strategy" className="section" style={{ background: '#f8fafc' }}>
+        <div className="section-inner">
+          <div className="strategy-grid">
+            {/* Left: Steps */}
+            <div>
+              <div className="section-tag"><Target size={14} /> Strategy Logic</div>
+              <h2 className="section-title">
+                Pre-Open Momentum <span className="text-gradient-green">Breakout Model</span>
+              </h2>
+              <p className="section-sub" style={{ marginBottom: 32 }}>
+                A time-tested intraday strategy that captures momentum from gap-down stocks in the first 5 minutes of the trading session.
+              </p>
+
+              <div className="strategy-steps">
+                {[
+                  { n: 1, title: 'Stock Scanner (09:08 AM)', desc: 'Engine scans all Nifty 200 stocks and identifies top gap-down candidates based on pre-market price vs previous close.' },
+                  { n: 2, title: 'First Candle Close (09:15–09:20 AM)', desc: 'System waits for the first 5-minute candle to form and marks its High as the trigger level.' },
+                  { n: 3, title: 'SLM Order Placement', desc: 'Buy SLM order placed at 5-Min High + 0.1% buffer. Stop-loss at Entry − 0.5%. Target at Entry + 1.5% (1:3 R:R).' },
+                  { n: 4, title: 'Auto Position Sizing', desc: 'Quantity = (Capital × 1%) ÷ (Entry − SL). Maximum trade risk is strictly capped at 1% of allocated capital.' },
+                ].map(s => (
+                  <div key={s.n} className="step-item">
+                    <div className="step-num">{s.n}</div>
+                    <div>
+                      <div className="step-title">{s.title}</div>
+                      <div className="step-desc">{s.desc}</div>
+                    </div>
                   </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Params Card */}
+            <div>
+              <div className="params-card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                  <div style={{ padding: '8px', borderRadius: 10, background: 'linear-gradient(135deg,rgba(14,165,233,0.12),rgba(99,102,241,0.12))', color: '#0ea5e9' }}>
+                    <BarChart2 size={18} />
+                  </div>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>Live Strategy Parameters</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 11, background: '#d1fae5', color: '#059669', padding: '3px 10px', borderRadius: 99, fontWeight: 700 }}>● Active</span>
+                </div>
+
+                {[
+                  { k: 'Capital Allocation', v: '₹5,00,000', cls: '' },
+                  { k: 'Max Risk Per Trade (1%)', v: '₹5,000', cls: 'params-val-blue' },
+                  { k: '5-Min Candle High (Example)', v: '₹1,000.00', cls: '' },
+                  { k: 'Entry Trigger (+0.1%)', v: '₹1,001.00', cls: 'params-val-blue' },
+                  { k: 'Stop-Loss (Entry − 0.5%)', v: '₹996.00', cls: 'params-val-red' },
+                  { k: 'Profit Target (Entry + 1.5%)', v: '₹1,016.00', cls: 'params-val-green' },
+                  { k: 'Risk : Reward Ratio', v: '1 : 3', cls: 'params-val-green' },
+                  { k: 'Position Size (Qty)', v: '1,000 Shares', cls: 'params-val-blue' },
+                ].map((r, i) => (
+                  <div key={i} className="params-row">
+                    <span className="params-key">{r.k}</span>
+                    <span className={r.cls || 'params-val'}>{r.v}</span>
+                  </div>
+                ))}
+
+                {/* Mini chart */}
+                <div style={{ marginTop: 20, padding: '16px', background: '#f8fafc', borderRadius: 12 }}>
+                  <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Simulated Trade P&L Curve
+                  </div>
+                  <PerformanceChart
+                    data={[640000, 641500, 639000, 643000, 645000, 643800, 647000, 649000, pnl]}
+                    labels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Mon', 'Tue', 'Now']}
+                    height={120}
+                    strokeColor="#10b981"
+                    fillColorStart="rgba(16,185,129,0.15)"
+                    fillColorEnd="rgba(255,255,255,0)"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      {/* ════════════════════════════════════════
+          PRICING SECTION
+      ════════════════════════════════════════ */}
+      <section id="pricing" className="section" style={{ background: '#f8fafc' }}>
+        <div className="section-inner">
+          <div className="text-center">
+            <div className="section-tag"><Sparkles size={14} /> Subscription Plans</div>
+            <h2 className="section-title">
+              Simple, Transparent <span className="text-gradient">Pricing</span>
+            </h2>
+            <p className="section-sub">
+              No hidden fees. Cancel anytime. All plans include full platform access.
+            </p>
+          </div>
+
+          <div className="pricing-grid">
+            {plans.map(plan => (
+              <div key={plan.name} className={`pricing-card${plan.popular ? ' popular' : ''}`}>
+                {plan.popular && <div className="popular-badge">Most Popular</div>}
+                <div className="pricing-tag">{plan.tag}</div>
+                <div className="pricing-name">{plan.name}</div>
+                <div className="pricing-amount">
+                  <span className="pricing-currency">₹</span>
+                  <span className="pricing-price">{plan.price.toLocaleString()}</span>
+                  <span className="pricing-per">/ {plan.per}</span>
+                </div>
+                <ul className="pricing-features">
+                  {plan.features.map(f => (
+                    <li key={f} className="pricing-feature-item">
+                      <div className="check-icon"><Check size={11} /></div>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/login" style={{ display: 'block' }}>
+                  <button style={{
+                    width: '100%', padding: '13px', borderRadius: 99, fontWeight: 700,
+                    fontSize: 14, cursor: 'pointer', transition: 'all 0.3s', border: 'none',
+                    background: plan.popular ? 'linear-gradient(135deg,#0ea5e9,#6366f1)' : 'white',
+                    color: plan.popular ? 'white' : '#334155',
+                    boxShadow: plan.popular ? '0 6px 20px rgba(14,165,233,0.3)' : 'none',
+                    border: plan.popular ? 'none' : '1.5px solid #e2e8f0',
+                  }}>
+                    Access Portal →
+                  </button>
+                </Link>
+              </div>
+            ))}
+          </div>
+
+          {/* Trust badges */}
+          <div style={{
+            marginTop: 48, display: 'flex', justifyContent: 'center', gap: 32, flexWrap: 'wrap'
+          }}>
+            {['🔒 SSL Secured Portal', '✅ Zerodha Certified', '📱 Telegram Alerts', '⚡ 99.9% Uptime'].map(b => (
+              <span key={b} style={{
+                fontSize: 13, color: '#64748b', fontWeight: 600,
+                background: 'white', padding: '8px 20px', borderRadius: 99,
+                border: '1px solid #e2e8f0'
+              }}>{b}</span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════
+          FAQ SECTION
+      ════════════════════════════════════════ */}
+      <section id="faq" className="section faq-section">
+        <div className="section-inner">
+          <div className="text-center">
+            <div className="section-tag">Got Questions?</div>
+            <h2 className="section-title">Frequently Asked <span className="text-gradient">Questions</span></h2>
+            <p className="section-sub">Everything you need to know about Growffiy's trading automation.</p>
+          </div>
+          <div className="faq-list">
+            {faqs.map((faq, i) => (
+              <div key={i} className={`faq-item${activeFaq === i ? ' open' : ''}`}>
+                <button className="faq-q" onClick={() => setActiveFaq(activeFaq === i ? null : i)}>
+                  <span>{faq.q}</span>
+                  {activeFaq === i ? <ChevronUp size={18} color="#64748b" /> : <ChevronDown size={18} color="#64748b" />}
+                </button>
+                {activeFaq === i && (
+                  <div className="faq-a">{faq.a}</div>
                 )}
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Light slate footer */}
-      <footer style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '80px 40px 40px', borderTop: '1px solid #e2e8f0', fontSize: '13px' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '48px' }}>
-          
-          {/* Footer Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '48px' }}>
-            {/* Brand & Pitch */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Activity size={20} color="#2563eb" />
-                <span style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', fontFamily: 'var(--font-title)' }}>GROWFFIY</span>
-              </div>
-              <p style={{ lineHeight: '1.6', color: '#475569' }}>
-                Advanced automated algorithmic trading middleware mapping directly with your Zerodha Kite broker token keys. Engineered for mathematical discipline and speed.
-              </p>
-            </div>
-
-            {/* Platform Links */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <h4 style={{ color: '#0f172a', fontWeight: 700, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Workspace</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <a href="#features" style={{ color: '#475569' }}>Features</a>
-                <a href="#strategy" style={{ color: '#475569' }}>Breakout Specs</a>
-                <a href="#live-data" style={{ color: '#475569' }}>WebSocket Live</a>
-                <Link href="/login" style={{ color: '#2563eb', fontWeight: 600 }}>Client Portal Login</Link>
-              </div>
-            </div>
-
-            {/* Legal & Compliance */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <h4 style={{ color: '#0f172a', fontWeight: 700, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Compliance</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <Link href="/privacy" style={{ color: '#475569' }}>Privacy & Keys Policy</Link>
-                <Link href="/terms" style={{ color: '#475569' }}>Terms & Risk Disclosure</Link>
-                <Link href="/contact" style={{ color: '#475569' }}>Contact Technical Desk</Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Regulatory Risk Disclosure Note */}
-          <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '11px', color: '#64748b', lineHeight: '1.6' }}>
-            <p>
-              <strong>REGULATORY RISK WARNING:</strong> Algorithmic and automated trading involves high financial risks. Growffiy is a software utility designed to automate trade placements based on predefined math conditions; it is not a SEBI registered investment advisor, stock broker, or portfolio manager. All returns, charts, and performance metrics shown are simulated in sandbox environments and do not represent guaranteed future results.
-            </p>
-            <p style={{ textAlign: 'center', marginTop: '12px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
-              © 2026 Growffiy Inc. All rights reserved. Managed with institutional security standards.
-            </p>
-          </div>
-        </div>
-      </footer>
+      {/* ════════════════════════════════════════
+          FOOTER
+      ════════════════════════════════════════ */}
+      <Footer />
     </div>
   );
 }

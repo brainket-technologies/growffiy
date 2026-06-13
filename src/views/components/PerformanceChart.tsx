@@ -17,19 +17,22 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
   fillColorStart = 'rgba(59, 130, 246, 0.2)',
   fillColorEnd = 'rgba(59, 130, 246, 0)',
 }) => {
-  const minVal = Math.min(...data, 0);
-  const maxVal = Math.max(...data, 100);
+  const rawMin = Math.min(...data);
+  const rawMax = Math.max(...data);
+  const padding = (rawMax - rawMin) * 0.12 || rawMax * 0.05 || 5;
+  const minVal = rawMin - padding;
+  const maxVal = rawMax + padding;
   const valueRange = maxVal - minVal;
 
   const pointsCount = data.length;
   const paddingLeft = 40;
   const paddingRight = 20;
   const paddingTop = 20;
-  const paddingBottom = 30;
+  const paddingBottom = 32;
 
   // Render responsive SVG grid
   return (
-    <div style={{ width: '100%', height: `${height}px`, position: 'relative' }}>
+    <div style={{ width: '100%', height: `${height}px`, position: 'relative', overflow: 'hidden' }}>
       <svg width="100%" height="100%" style={{ overflow: 'visible' }}>
         <defs>
           <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
@@ -181,7 +184,7 @@ const ChartRenderer: React.FC<RendererProps> = ({
         <text
           key={idx}
           x={getX(idx)}
-          y={height - 5}
+          y={height - paddingBottom / 2 + 2}
           fontSize="10"
           fill="#94a3b8"
           textAnchor="middle"

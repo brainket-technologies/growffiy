@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card } from '../../views/components/Card';
 import { Button } from '../../views/components/Button';
 import { Activity, ArrowLeft, Mail, Phone, MapPin, CheckCircle2 } from 'lucide-react';
+import Footer from '../../views/components/Footer';
 
 export default function ContactPage() {
   const [name, setName] = useState('');
@@ -130,5 +131,6 @@ export default function ContactPage() {
         </div>
       </div>
     </div>
+    <Footer />
   );
 }

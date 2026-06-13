@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { algoEngine } from '../../../models/algoEngine';
+import { algoEngine } from '../../../../models/algoEngine';
 
 export async function POST(request: Request) {
   try {
