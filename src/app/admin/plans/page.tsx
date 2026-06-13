@@ -132,6 +132,24 @@ export default function AdminPlansPage() {
     }
   };
 
+  const togglePlanStatus = async (plan: any) => {
+    const nextStatus = plan.status === 'active' ? 'inactive' : 'active';
+    try {
+      const res = await api.put(`/api/plans/${plan.id}`, {
+        name: plan.name,
+        price: plan.price,
+        durationDays: plan.durationDays,
+        features: plan.features,
+        status: nextStatus
+      });
+      if (res.success) {
+        fetchPlans();
+      }
+    } catch (err) {
+      console.error('Failed to toggle plan status:', err);
+    }
+  };
+
   const openEditModal = (plan: any) => {
     setSelectedPlan(plan);
     setName(plan.name);
@@ -386,7 +404,12 @@ export default function AdminPlansPage() {
                       </div>
                     </td>
                     <td>
-                      <span className={`badge ${plan.status === 'active' ? 'badge-success' : 'badge-danger'}`}>
+                      <span
+                        onClick={() => togglePlanStatus(plan)}
+                        className={`badge ${plan.status === 'active' ? 'badge-success' : 'badge-danger'}`}
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        title="Click to toggle status"
+                      >
                         {plan.status}
                       </span>
                     </td>
