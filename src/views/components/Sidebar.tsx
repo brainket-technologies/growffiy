@@ -34,6 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
     { name: 'Strategies', path: '/admin/strategies', icon: TrendingUp },
     { name: 'Live Trading', path: '/admin/trades', icon: Activity },
     { name: 'Reports', path: '/admin/reports', icon: FileText },
+    { name: 'Subscription Plans', path: '/admin/plans', icon: CreditCard },
     { name: 'Transactions', path: '/admin/payments', icon: CreditCard },
     { name: 'Settings', path: '/admin/settings', icon: Settings },
     { name: 'Audit Logs', path: '/admin/audit-logs', icon: ShieldCheck },

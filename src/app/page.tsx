@@ -91,7 +91,7 @@ export default function GrowffiyLanding() {
     { icon: <Lock size={22} />, cls: 'feature-icon-rose', title: 'Emergency Kill Switch', desc: 'One-click kill switch immediately cancels all pending orders and halts the trading engine.' },
   ];
 
-  const plans = [
+  const [plans, setPlans] = useState<any[]>([
     {
       tag: 'Standard Access', name: 'Monthly Plan', price: 4999, per: '30 Days', popular: false,
       features: ['Pre-Open Momentum Strategy', '1% Capital Risk Guard', 'Zerodha Kite API Integration', 'Live Performance Dashboard', 'Email Support (48hr SLA)'],
@@ -104,7 +104,29 @@ export default function GrowffiyLanding() {
       tag: 'Best Value', name: 'Yearly Plan', price: 39999, per: '365 Days', popular: false,
       features: ['Everything in Quarterly', 'Dedicated Account Manager', 'Custom Strategy Parameters', 'Emergency Kill Switch Access', '24/7 Phone Support'],
     },
-  ];
+  ]);
+
+  useEffect(() => {
+    fetch('/api/plans')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.plans && data.plans.length > 0) {
+          const activePlans = data.plans.filter((p: any) => p.status === 'active');
+          if (activePlans.length > 0) {
+            const mapped = activePlans.map((p: any) => ({
+              tag: p.name.toLowerCase().includes('monthly') ? 'Standard Access' : p.name.toLowerCase().includes('quarterly') ? 'Most Popular' : 'Best Value',
+              name: p.name,
+              price: p.price,
+              per: `${p.durationDays} Days`,
+              popular: p.name.toLowerCase().includes('quarterly'),
+              features: p.features
+            }));
+            setPlans(mapped);
+          }
+        }
+      })
+      .catch(err => console.error('Failed to fetch subscription plans on landing page:', err));
+  }, []);
 
   const faqs = [
     { q: 'How does the Pre-Open Momentum Breakout strategy work?', a: 'At 09:08 AM, the engine scans the Nifty 200 for stocks showing the largest gap-down opening. Once the first 5-minute candle closes (09:15–09:20 AM), it marks the candle high and places a Buy SLM order at High + 0.1% buffer, stop-loss at Entry − 0.5%, and target at Entry + 1.5%.' },
