@@ -2,12 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { Activity, ArrowRight, TrendingUp, Shield, Zap, BarChart2 } from 'lucide-react';
+import { api } from '../../lib/api';
+import { API_ENDPOINTS } from '../../lib/constants';
 
 export default function LoginPage() {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -31,23 +34,41 @@ export default function LoginPage() {
     }
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('growffiy_logged_in_user_id', userId);
-      localStorage.setItem('growffiy_remember_me', String(rememberMe));
-      if (rememberMe) {
-        localStorage.setItem('growffiy_saved_user_id', userId);
-      } else {
-        localStorage.removeItem('growffiy_saved_user_id');
+    try {
+      const res = await api.post(API_ENDPOINTS.AUTH_LOGIN, {
+        userId,
+        password,
+        role: 'client'
+      });
+
+      if (!res.success) {
+        setError(res.error || 'Invalid user credentials');
+        setLoading(false);
+        return;
       }
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('growffiy_logged_in_user_id', userId);
+        localStorage.setItem('growffiy_remember_me', String(rememberMe));
+        if (rememberMe) {
+          localStorage.setItem('growffiy_saved_user_id', userId);
+        } else {
+          localStorage.removeItem('growffiy_saved_user_id');
+        }
+      }
+      
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 500);
+    } catch (err: any) {
+      setError(err.message || 'Server error occurred during login');
+      setLoading(false);
     }
-    
-    setTimeout(() => {
-      window.location.href = '/dashboard';
-    }, 800);
   };
 
   return (
@@ -277,6 +298,21 @@ export default function LoginPage() {
 
             {/* Form */}
             <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              {error && (
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: 10,
+                  backgroundColor: '#fef2f2',
+                  border: '1.5px solid #fee2e2',
+                  color: '#b91c1c',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  lineHeight: 1.5,
+                  textAlign: 'left'
+                }}>
+                  ⚠️ {error}
+                </div>
+              )}
               <div>
                 <label style={{
                   display: 'block', fontSize: 12, fontWeight: 700, color: '#334155',

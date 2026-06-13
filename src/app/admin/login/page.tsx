@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Activity, ShieldCheck, Eye, EyeOff, Lock, User, AlertTriangle, Server, Database, BarChart2 } from 'lucide-react';
-import { THEME_COLORS } from '../../../lib/constants';
+import { THEME_COLORS, API_ENDPOINTS } from '../../../lib/constants';
+import { api } from '../../../lib/api';
 
 export default function AdminLoginPage() {
   const [userId, setUserId] = useState('');
@@ -10,6 +11,7 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -21,17 +23,35 @@ export default function AdminLoginPage() {
     }
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('growffiy_logged_in_user_id', userId);
+    try {
+      const res = await api.post(API_ENDPOINTS.AUTH_LOGIN, {
+        userId,
+        password,
+        role: 'admin'
+      });
+
+      if (!res.success) {
+        setError(res.error || 'Invalid administrator credentials');
+        setLoading(false);
+        return;
+      }
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('growffiy_logged_in_user_id', userId);
+      }
+      
+      setTimeout(() => {
+        window.location.href = '/admin';
+      }, 500);
+    } catch (err: any) {
+      setError(err.message || 'Server error occurred during admin login');
+      setLoading(false);
     }
-    
-    setTimeout(() => {
-      window.location.href = '/admin';
-    }, 1000);
   };
 
   return (
@@ -240,6 +260,21 @@ export default function AdminLoginPage() {
           </div>
 
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {error && (
+              <div style={{
+                padding: '12px 14px',
+                borderRadius: 10,
+                backgroundColor: '#fef2f2',
+                border: '1.5px solid #fee2e2',
+                color: '#b91c1c',
+                fontSize: '13px',
+                fontWeight: 600,
+                lineHeight: 1.5,
+                textAlign: 'left'
+              }}>
+                ⚠️ {error}
+              </div>
+            )}
             {/* Admin ID field */}
             <div>
               <label style={{

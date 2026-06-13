@@ -26,6 +26,7 @@ export const API_ENDPOINTS = {
   AUDIT_LOGS: '/api/admin/audit-logs',
   TOGGLE_TRADING: '/api/trading/toggle',
   SETTINGS: '/api/admin/settings',
+  AUTH_LOGIN: '/api/auth/login',
 };
 
 export const USER_ROLES = {
