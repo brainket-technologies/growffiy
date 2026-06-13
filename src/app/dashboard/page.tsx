@@ -8,20 +8,30 @@ import { User, Award, ShieldCheck, Activity } from 'lucide-react';
 
 export default function ClientDashboardOverview() {
   const { trades, clients, colors } = useAppViewModel();
-  const [activeUser, setActiveUser] = React.useState({ name: 'Aman Sharma', id: 'aman_sharma' });
+  const [activeUser, setActiveUser] = React.useState<any>(null);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedId = localStorage.getItem('growffiy_logged_in_user_id');
-      if (storedId) {
-        const cleanName = storedId
-          .split(/[_-]/)
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(' ');
-        setActiveUser({ name: cleanName, id: storedId });
+      if (!storedId) {
+        window.location.href = '/login';
+        return;
       }
+      const cleanName = storedId
+        .split(/[_-]/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      setActiveUser({ name: cleanName, id: storedId });
     }
   }, []);
+
+  if (!activeUser) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', color: '#64748b', fontFamily: 'sans-serif' }}>
+        Authenticating session...
+      </div>
+    );
+  }
 
   // Find dynamic configuration matches for this client from active clients database list
   const matchedClient = clients.find(c => 

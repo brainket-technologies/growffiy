@@ -16,6 +16,31 @@ export default function AdminLayout({
   const pathname = usePathname();
   const isAdminLogin = pathname === '/admin/login';
 
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
+      if (isAdminLogin) {
+        setIsAdminAuthenticated(true);
+        return;
+      }
+      if (!activeUser) {
+        window.location.href = '/admin/login';
+      } else {
+        setIsAdminAuthenticated(true);
+      }
+    }
+  }, [isAdminLogin]);
+
+  if (!isAdminAuthenticated) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: THEME_COLORS.BG_PRIMARY, color: '#64748b', fontFamily: 'sans-serif' }}>
+        Authenticating admin session...
+      </div>
+    );
+  }
+
   if (isAdminLogin) {
     return (
       <AppProvider>
