@@ -95,8 +95,10 @@ export async function POST(request: Request) {
 
       // Trigger welcome email notification asynchronously if mail option is turned on
       try {
-        const originUrl = request.headers.get('origin') || 'https://growffiy.vercel.app';
-        const loginUrl = `${originUrl}/login`;
+        const originUrl = request.headers.get('origin') || request.headers.get('host') || 'http://localhost:3000';
+        // Normalize HTTP protocol wrapper for host fallback if origin is missing
+        const formattedOrigin = originUrl.startsWith('http') ? originUrl : `https://${originUrl}`;
+        const loginUrl = `${formattedOrigin}/login`;
         // Non-blocking fire and forget welcome email
         sendClientWelcomeEmail({
           email: newUser.email,

@@ -16,7 +16,9 @@ export async function sendClientWelcomeEmail({
   passwordHashOrPlain,
   loginUrl
 }: SendClientCredentialsOptions) {
-  const finalLoginUrl = loginUrl || (typeof window !== 'undefined' ? `${window.location.origin}/login` : 'https://growffiy.vercel.app/login');
+  const finalLoginUrl = loginUrl || 
+    (typeof window !== 'undefined' ? `${window.location.origin}/login` : 
+    (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/login` : 'http://localhost:3000/login'));
   try {
     // 1. Fetch settings from DB
     const dbSettings = await prisma.appSettings.findMany();
