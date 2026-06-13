@@ -5,12 +5,12 @@ import { useAppViewModel } from '../../../viewmodels/AppContext';
 import { Card } from '../../../views/components/Card';
 import { Button } from '../../../views/components/Button';
 import { Modal } from '../../../views/components/Modal';
-import { Plus, CheckCircle2, Eye, Trash2, ShieldAlert } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Eye, Trash2 } from 'lucide-react';
 
 export default function ClientsPage() {
-  const { clients, addClient, updateClient, deleteClient } = useAppViewModel();
+  const { clients, addClient, deleteClient } = useAppViewModel();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [generatedCreds, setGeneratedCreds] = useState<{ userId: string; password: string } | null>(null);
 
   // Add Form State
@@ -20,18 +20,6 @@ export default function ClientsPage() {
   const [zerodhaApiKey, setZerodhaApiKey] = useState('');
   const [zerodhaApiSecret, setZerodhaApiSecret] = useState('');
   const [capital, setCapital] = useState('50000');
-
-  // Edit Form State
-  const [editClient, setEditClient] = useState<any | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editEmail, setEditEmail] = useState('');
-  const [editUserId, setEditUserId] = useState('');
-  const [editPassword, setEditPassword] = useState('');
-  const [editZerodhaClientId, setEditZerodhaClientId] = useState('');
-  const [editZerodhaApiKey, setEditZerodhaApiKey] = useState('');
-  const [editZerodhaApiSecret, setEditZerodhaApiSecret] = useState('');
-  const [editCapital, setEditCapital] = useState('');
-  const [editTradingStatus, setEditTradingStatus] = useState('inactive');
 
   const handleAddClient = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,42 +42,6 @@ export default function ClientsPage() {
       setZerodhaApiSecret('');
       setCapital('50000');
     }
-  };
-
-  const handleUpdateClient = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editClient) return;
-
-    const success = await updateClient(editClient.id, {
-      name: editName,
-      email: editEmail,
-      userId: editUserId,
-      password: editPassword,
-      zerodhaClientId: editZerodhaClientId,
-      zerodhaApiKey: editZerodhaApiKey,
-      zerodhaApiSecret: editZerodhaApiSecret,
-      capital: Number(editCapital),
-      tradingStatus: editTradingStatus,
-    });
-
-    if (success) {
-      setIsEditModalOpen(false);
-      setEditClient(null);
-    }
-  };
-
-  const openEditModal = (client: any) => {
-    setEditClient(client);
-    setEditName(client.user?.name || client.name || '');
-    setEditEmail(client.user?.email || client.email || '');
-    setEditUserId(client.user?.userId || client.userId || '');
-    setEditPassword(client.user?.password || '');
-    setEditZerodhaClientId(client.zerodhaClientId || '');
-    setEditZerodhaApiKey(client.zerodhaApiKey || '');
-    setEditZerodhaApiSecret(client.zerodhaApiSecret || '');
-    setEditCapital(String(client.capital));
-    setEditTradingStatus(client.tradingStatus);
-    setIsEditModalOpen(true);
   };
 
   const toggleClientStatus = async (id: string, currentStatus: string) => {
@@ -150,7 +102,6 @@ export default function ClientsPage() {
                       <td style={{ fontWeight: 600 }}>₹{Number(client.capital).toLocaleString()}</td>
                       <td>
                         <span
-                          onClick={() => toggleClientStatus(client.id, client.tradingStatus)}
                           className={`badge ${isTrading ? 'badge-success' : 'badge-red'}`}
                           style={{ cursor: 'pointer' }}
                         >
@@ -158,22 +109,21 @@ export default function ClientsPage() {
                         </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          <button
-                            onClick={() => openEditModal(client)}
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                          <Link
+                            href={`/admin/clients/${client.id}`}
                             style={{
-                              background: 'none',
-                              border: 'none',
                               color: 'var(--primary)',
                               cursor: 'pointer',
                               padding: '6px',
                               borderRadius: '6px',
-                              transition: 'background-color 0.2s',
+                              display: 'inline-flex',
+                              alignItems: 'center',
                             }}
                             title="View / Edit Client Details"
                           >
                             <Eye size={18} />
-                          </button>
+                          </Link>
                           <button
                             onClick={() => deleteClient(client.id)}
                             style={{
@@ -275,121 +225,6 @@ export default function ClientsPage() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
             <Button type="button" variant="secondary" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
             <Button type="submit">Create Client</Button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Edit/View Client Details Modal */}
-      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Client Profile Details & Settings">
-        <form onSubmit={handleUpdateClient} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          
-          <h4 style={{ fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-light)', paddingBottom: '6px' }}>
-            Personal Account Credentials
-          </h4>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Login User ID</label>
-              <input
-                type="text"
-                required
-                value={editUserId}
-                onChange={(e) => setEditUserId(e.target.value)}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Login Password</label>
-              <input
-                type="text"
-                required
-                value={editPassword}
-                onChange={(e) => setEditPassword(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Full Name</label>
-              <input
-                type="text"
-                required
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Email Address</label>
-              <input
-                type="email"
-                required
-                value={editEmail}
-                onChange={(e) => setEditEmail(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <h4 style={{ fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-light)', paddingBottom: '6px', marginTop: '8px' }}>
-            Zerodha Kite Terminal API
-          </h4>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Zerodha Client ID</label>
-            <input
-              type="text"
-              required
-              value={editZerodhaClientId}
-              onChange={(e) => setEditZerodhaClientId(e.target.value)}
-            />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Kite API Key</label>
-              <input
-                type="text"
-                required
-                value={editZerodhaApiKey}
-                onChange={(e) => setEditZerodhaApiKey(e.target.value)}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Kite API Secret</label>
-              <input
-                type="text"
-                required
-                value={editZerodhaApiSecret}
-                onChange={(e) => setEditZerodhaApiSecret(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Allocated Capital (INR)</label>
-              <input
-                type="number"
-                required
-                value={editCapital}
-                onChange={(e) => setEditCapital(e.target.value)}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Trading Status</label>
-              <select
-                value={editTradingStatus}
-                onChange={(e) => setEditTradingStatus(e.target.value)}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none' }}
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
-            <Button type="button" variant="secondary" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-            <Button type="submit">Save Updates</Button>
           </div>
         </form>
       </Modal>

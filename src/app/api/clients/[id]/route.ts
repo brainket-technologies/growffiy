@@ -2,6 +2,30 @@ import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/db';
 import { inMemoryClients } from '../route';
 
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id },
+        include: { user: true },
+      });
+      if (!client) {
+        return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
+      }
+      return NextResponse.json({ success: true, client });
+    } catch {
+      const client = inMemoryClients.find((c) => c.id === id);
+      if (client) {
+        return NextResponse.json({ success: true, client, isDemoMode: true });
+      }
+      return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
+    }
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  }
+}
+
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
