@@ -124,27 +124,6 @@ export default function AdminLoginPage() {
     <div className="admin-login-wrap">
       {/* ── LEFT PANEL ── */}
       <div className="admin-left-panel">
-        {/* Background pattern */}
-        <div style={{
-          position: 'absolute', inset: 0, opacity: 0.08,
-          backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 30px, rgba(37,99,235,0.2) 30px, rgba(37,99,235,0.2) 31px),
-                            repeating-linear-gradient(90deg, transparent, transparent 30px, rgba(37,99,235,0.2) 30px, rgba(37,99,235,0.2) 31px)`,
-        }} />
-
-        {/* Decorative orbs */}
-        <div style={{
-          position: 'absolute', top: '-10%', right: '-10%',
-          width: 380, height: 380, borderRadius: '50%',
-          background: `radial-gradient(circle, rgba(37,99,235,0.25) 0%, transparent 70%)`,
-          pointerEvents: 'none',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: '-10%', left: '-10%',
-          width: 340, height: 340, borderRadius: '50%',
-          background: `radial-gradient(circle, rgba(99,102,241,0.20) 0%, transparent 70%)`,
-          pointerEvents: 'none',
-        }} />
-
         {/* Logo */}
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -178,8 +157,8 @@ export default function AdminLoginPage() {
         {/* Main headline */}
         <div style={{ position: 'relative', zIndex: 1 }}>
           <h1 style={{
-            fontSize: 36, fontWeight: 900, color: 'white',
-            letterSpacing: '-1px', lineHeight: 1.1, marginBottom: 16,
+            fontSize: 40, fontWeight: 900, color: 'white',
+            letterSpacing: '-1.2px', lineHeight: 1.15, marginBottom: 16,
           }}>
             System Control
             <br />
@@ -190,45 +169,9 @@ export default function AdminLoginPage() {
               Center
             </span>
           </h1>
-          <p style={{ fontSize: 15, color: '#94a3b8', lineHeight: 1.7, marginBottom: 40 }}>
-            Restricted access. Authorized personnel only. All sessions are logged and monitored.
+          <p style={{ fontSize: 15, color: '#94a3b8', lineHeight: 1.7, margin: 0, maxWidth: 360 }}>
+            Restricted access. Authorized personnel only. All sessions are logged and monitored for system compliance.
           </p>
-
-          {/* System stats */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {[
-              { icon: <Server size={16} color={THEME_COLORS.PRIMARY} />, label: 'System Status', value: 'All Systems Operational', color: '#10b981' },
-              { icon: <Database size={16} color={THEME_COLORS.PRIMARY} />, label: 'Active Clients', value: 'Live Connection', color: '#94a3b8' },
-              { icon: <BarChart2 size={16} color={THEME_COLORS.PRIMARY} />, label: 'Today\'s Trades', value: 'Secured Session', color: '#94a3b8' },
-            ].map((item, i) => (
-              <div key={i} style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '14px 18px',
-                borderRadius: 14,
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-              }}>
-                <div style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: 'rgba(37, 99, 235, 0.12)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  {item.icon}
-                </div>
-                <div>
-                  <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{item.label}</div>
-                  <div style={{ fontSize: 13, color: item.color, fontWeight: 700 }}>{item.value}</div>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
 
         {/* Warning */}
