@@ -86,17 +86,17 @@ export default function AdminLoginPage() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <div style={{
           width: 30, height: 30, borderRadius: 8,
-          background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+          background: `linear-gradient(135deg, ${THEME_COLORS.PRIMARY}, #6366f1)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <Activity size={15} color="white" />
         </div>
-        <span style={{ fontSize: 17, fontWeight: 900, color: '#fbbf24', letterSpacing: '-0.5px' }}>GROWFFIY</span>
+        <span style={{ fontSize: 17, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.5px' }}>GROWFFIY</span>
       </div>
       <div style={{
-        fontSize: 10, fontWeight: 700, color: '#f59e0b',
-        background: 'rgba(245,158,11,0.1)',
-        border: '1px solid rgba(245,158,11,0.2)',
+        fontSize: 10, fontWeight: 700, color: THEME_COLORS.PRIMARY,
+        background: 'rgba(37,99,235,0.1)',
+        border: '1px solid rgba(37,99,235,0.2)',
         padding: '4px 10px', borderRadius: 99, letterSpacing: '0.8px',
       }}>ADMIN CONSOLE</div>
     </div>
@@ -107,21 +107,21 @@ export default function AdminLoginPage() {
         {/* Background pattern */}
         <div style={{
           position: 'absolute', inset: 0, opacity: 0.03,
-          backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 30px, rgba(245,158,11,0.5) 30px, rgba(245,158,11,0.5) 31px),
-                            repeating-linear-gradient(90deg, transparent, transparent 30px, rgba(245,158,11,0.5) 30px, rgba(245,158,11,0.5) 31px)`,
+          backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 30px, rgba(37,99,235,0.5) 30px, rgba(37,99,235,0.5) 31px),
+                            repeating-linear-gradient(90deg, transparent, transparent 30px, rgba(37,99,235,0.5) 30px, rgba(37,99,235,0.5) 31px)`,
         }} />
 
         {/* Decorative orbs */}
         <div style={{
           position: 'absolute', top: -80, right: -80,
           width: 320, height: 320, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%)',
+          background: `radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%)`,
           pointerEvents: 'none',
         }} />
         <div style={{
           position: 'absolute', bottom: -60, left: -60,
           width: 280, height: 280, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(239,68,68,0.12) 0%, transparent 70%)',
+          background: `radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)`,
           pointerEvents: 'none',
         }} />
 
@@ -130,14 +130,14 @@ export default function AdminLoginPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 40, height: 40, borderRadius: 10,
-              background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+              background: `linear-gradient(135deg, ${THEME_COLORS.PRIMARY}, #6366f1)`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <Activity size={20} color="white" />
             </div>
             <span style={{
               fontSize: 22, fontWeight: 900, letterSpacing: '-0.5px',
-              background: 'linear-gradient(to right, #fbbf24, #f87171)',
+              background: `linear-gradient(to right, ${THEME_COLORS.PRIMARY}, #818cf8)`,
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             }}>
               GROWFFIY
@@ -146,10 +146,10 @@ export default function AdminLoginPage() {
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             marginTop: 12, padding: '4px 12px', borderRadius: 99,
-            background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)',
+            background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.2)',
           }}>
-            <ShieldCheck size={12} color="#f59e0b" />
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', letterSpacing: 1 }}>
+            <ShieldCheck size={12} color={THEME_COLORS.PRIMARY} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: THEME_COLORS.PRIMARY, letterSpacing: 1 }}>
               ADMIN CONSOLE
             </span>
           </div>
@@ -164,7 +164,7 @@ export default function AdminLoginPage() {
             System Control
             <br />
             <span style={{
-              background: 'linear-gradient(to right, #fbbf24, #f87171)',
+              background: `linear-gradient(to right, ${THEME_COLORS.PRIMARY}, #818cf8)`,
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             }}>
               Center
@@ -177,9 +177,9 @@ export default function AdminLoginPage() {
           {/* System stats */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {[
-              { icon: <Server size={16} color="#f59e0b" />, label: 'System Status', value: 'All Systems Operational', color: '#22c55e' },
-              { icon: <Database size={16} color="#f59e0b" />, label: 'Active Clients', value: '—', color: '#94a3b8' },
-              { icon: <BarChart2 size={16} color="#f59e0b" />, label: 'Today\'s Trades', value: '—', color: '#94a3b8' },
+              { icon: <Server size={16} color={THEME_COLORS.PRIMARY} />, label: 'System Status', value: 'All Systems Operational', color: '#22c55e' },
+              { icon: <Database size={16} color={THEME_COLORS.PRIMARY} />, label: 'Active Clients', value: '—', color: '#94a3b8' },
+              { icon: <BarChart2 size={16} color={THEME_COLORS.PRIMARY} />, label: 'Today\'s Trades', value: '—', color: '#94a3b8' },
             ].map((item, i) => (
               <div key={i} style={{
                 display: 'flex', alignItems: 'center', gap: 12,
@@ -188,7 +188,7 @@ export default function AdminLoginPage() {
               }}>
                 <div style={{
                   width: 34, height: 34, borderRadius: 8,
-                  background: 'rgba(245,158,11,0.08)',
+                  background: 'rgba(37,99,235,0.08)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   {item.icon}
@@ -251,7 +251,7 @@ export default function AdminLoginPage() {
               <div style={{ position: 'relative' }}>
                 <div style={{
                   position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-                  color: focusedField === 'userId' ? '#f59e0b' : '#9ca3af',
+                  color: focusedField === 'userId' ? THEME_COLORS.PRIMARY : '#9ca3af',
                   transition: 'color 0.2s',
                 }}>
                   <User size={16} />
@@ -268,12 +268,12 @@ export default function AdminLoginPage() {
                     width: '100%',
                     padding: '13px 14px 13px 44px',
                     borderRadius: 12,
-                    border: `1.5px solid ${focusedField === 'userId' ? '#f59e0b' : '#e2e8f0'}`,
+                    border: `1.5px solid ${focusedField === 'userId' ? THEME_COLORS.PRIMARY : '#e2e8f0'}`,
                     background: 'white',
                     color: '#0f172a',
                     fontSize: 14,
                     outline: 'none',
-                    boxShadow: focusedField === 'userId' ? '0 0 0 3px rgba(245,158,11,0.1)' : 'none',
+                    boxShadow: focusedField === 'userId' ? '0 0 0 3px rgba(37,99,235,0.1)' : 'none',
                     transition: 'all 0.2s',
                     boxSizing: 'border-box',
                   }}
@@ -292,7 +292,7 @@ export default function AdminLoginPage() {
               <div style={{ position: 'relative' }}>
                 <div style={{
                   position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-                  color: focusedField === 'password' ? '#f59e0b' : '#9ca3af',
+                  color: focusedField === 'password' ? THEME_COLORS.PRIMARY : '#9ca3af',
                   transition: 'color 0.2s',
                 }}>
                   <Lock size={16} />
@@ -309,12 +309,12 @@ export default function AdminLoginPage() {
                     width: '100%',
                     padding: '13px 44px 13px 44px',
                     borderRadius: 12,
-                    border: `1.5px solid ${focusedField === 'password' ? '#f59e0b' : '#e2e8f0'}`,
+                    border: `1.5px solid ${focusedField === 'password' ? THEME_COLORS.PRIMARY : '#e2e8f0'}`,
                     background: 'white',
                     color: '#0f172a',
                     fontSize: 14,
                     outline: 'none',
-                    boxShadow: focusedField === 'password' ? '0 0 0 3px rgba(245,158,11,0.1)' : 'none',
+                    boxShadow: focusedField === 'password' ? '0 0 0 3px rgba(37,99,235,0.1)' : 'none',
                     transition: 'all 0.2s',
                     boxSizing: 'border-box',
                   }}
@@ -343,8 +343,8 @@ export default function AdminLoginPage() {
                 borderRadius: 12,
                 border: 'none',
                 background: loading
-                  ? 'linear-gradient(135deg, #d97706, #dc2626)'
-                  : 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                  ? `linear-gradient(135deg, ${THEME_COLORS.PRIMARY}, #1d4ed8)`
+                  : `linear-gradient(135deg, ${THEME_COLORS.PRIMARY}, #1d4ed8)`,
                 color: 'white',
                 fontSize: 15,
                 fontWeight: 700,
