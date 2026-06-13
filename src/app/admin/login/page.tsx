@@ -174,23 +174,6 @@ export default function AdminLoginPage() {
           </p>
         </div>
 
-        {/* Warning */}
-        <div style={{
-          position: 'relative',
-          zIndex: 1,
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 12,
-          padding: '16px',
-          borderRadius: 14,
-          background: 'rgba(239, 68, 68, 0.06)',
-          border: '1px solid rgba(239, 68, 68, 0.15)',
-        }}>
-          <AlertTriangle size={16} color="#f87171" style={{ flexShrink: 0, marginTop: 1 }} />
-          <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, margin: 0 }}>
-            Unauthorized access attempts are logged and reported to security teams. By logging in, you agree to the admin terms of use.
-          </p>
-        </div>
       </div>
 
       {/* ── RIGHT PANEL ── */}
