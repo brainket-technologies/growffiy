@@ -7,10 +7,40 @@ import { PerformanceChart } from '../../views/components/PerformanceChart';
 import { User, Award, ShieldCheck, Activity } from 'lucide-react';
 
 export default function ClientDashboardOverview() {
-  const { trades, colors } = useAppViewModel();
+  const { trades, clients, colors } = useAppViewModel();
+  const [activeUser, setActiveUser] = React.useState({ name: 'Aman Sharma', id: 'aman_sharma' });
 
-  // Filter trades placed on behalf of this client (e.g. Aman Sharma)
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedId = localStorage.getItem('growffiy_logged_in_user_id');
+      if (storedId) {
+        const cleanName = storedId
+          .split(/[_-]/)
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        setActiveUser({ name: cleanName, id: storedId });
+      }
+    }
+  }, []);
+
+  // Find dynamic configuration matches for this client from active clients database list
+  const matchedClient = clients.find(c => 
+    c.zerodhaClientId?.toLowerCase() === activeUser.id.toLowerCase() || 
+    c.user?.userId?.toLowerCase() === activeUser.id.toLowerCase() ||
+    c.user?.name?.toLowerCase() === activeUser.name.toLowerCase()
+  );
+
+  // Fallbacks: if matchedClient is found, use its details, otherwise fallback to static presets
+  const capital = matchedClient ? Number(matchedClient.capital) : 250000;
+  const activeStrategy = matchedClient?.strategyId ? 
+    (matchedClient.strategyId.split(/[_-]/).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')) : 
+    'Pre-Open Breakout';
+
+  // Filter trades placed on behalf of this client dynamically
   const clientTrades = trades.filter(t => {
+    if (matchedClient) {
+      return t.clientId === matchedClient.id;
+    }
     const name = t.client?.user?.name || t.clientName || '';
     return name.toLowerCase().includes('aman') || t.clientId === 'c1';
   });
@@ -21,7 +51,7 @@ export default function ClientDashboardOverview() {
     price: 12999,
     startDate: '10 May 2026',
     expiryDate: '10 Aug 2026',
-    status: 'active',
+    status: matchedClient?.subscriptionStatus || 'active',
   };
 
   const clientPnlData = [12000, 24000, 18000, 31000, 42000, 48000, totalPnl];
@@ -29,15 +59,15 @@ export default function ClientDashboardOverview() {
 
   const stats = [
     { name: 'Today P&L', value: totalPnl >= 0 ? `+₹${totalPnl.toFixed(2)}` : `-₹${Math.abs(totalPnl).toFixed(2)}`, color: totalPnl >= 0 ? colors.SUCCESS : colors.DANGER },
-    { name: 'Allocated Capital', value: '₹2,50,000.00', color: colors.PRIMARY },
-    { name: 'Active Strategy', value: 'Pre-Open Breakout', color: colors.INFO },
+    { name: 'Allocated Capital', value: `₹${capital.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: colors.PRIMARY },
+    { name: 'Active Strategy', value: activeStrategy, color: colors.INFO },
   ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div>
         <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
-          Welcome back, Aman Sharma
+          Welcome back, {activeUser.name}
         </h1>
         <p style={{ color: 'var(--text-secondary)' }}>Monitor automated breakout execution and subscription billing logs.</p>
       </div>

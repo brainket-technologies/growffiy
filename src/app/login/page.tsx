@@ -12,6 +12,12 @@ export default function LoginPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
+    // Store user ID in localStorage for simulation of live user profile database
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('growffiy_logged_in_user_id', userId);
+    }
+    
     setTimeout(() => {
       window.location.href = '/dashboard';
     }, 800);
