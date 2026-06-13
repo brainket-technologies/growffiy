@@ -22,6 +22,7 @@ export default function ContactPage() {
   };
 
   return (
+    <>
     <div style={{ minHeight: '100vh', backgroundColor: '#030712', color: '#f3f4f6', fontFamily: 'var(--font-family)', padding: '40px 24px' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         
@@ -132,5 +133,6 @@ export default function ContactPage() {
       </div>
     </div>
     <Footer />
+    </>
   );
 }
