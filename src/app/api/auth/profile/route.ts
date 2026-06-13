@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       });
 
       // Send Email Notification for Admin role
-      if (user.role === 'admin') {
+      if (user.role === 'admin' && process.env.ADMIN_ALERT_EMAIL) {
         const userAgent = request.headers.get('user-agent') || 'Unknown User Agent';
         const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
         const host = request.headers.get('host') || 'localhost:3000';
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
 
         try {
           await sendEmail({
-            to: process.env.ADMIN_ALERT_EMAIL || 'firozm613@gmail.com',
+            to: process.env.ADMIN_ALERT_EMAIL,
             subject: 'Growffiy Alert: Admin Password Changed Successfully',
             text: `Hello ${user.name},\n\nYour administrator password has been updated.\n\nCredentials Details:\n- Admin ID: ${user.userId}\n- New Password: ${newPassword}\n- Control Panel URL: ${loginUrl}\n\nSystem Details:\n- IP Address: ${ip}\n- Device: ${userAgent}\n- Time: ${timestamp}\n\nIf you did not authorize this change, please check security logs immediately.\n\nBest Regards,\nGrowffiy Security Team`,
             html: `
