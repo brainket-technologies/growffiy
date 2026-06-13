@@ -14,8 +14,9 @@ export async function sendClientWelcomeEmail({
   name,
   userId,
   passwordHashOrPlain,
-  loginUrl = 'https://growffiy.vercel.app/login'
+  loginUrl
 }: SendClientCredentialsOptions) {
+  const finalLoginUrl = loginUrl || (typeof window !== 'undefined' ? `${window.location.origin}/login` : 'https://growffiy.vercel.app/login');
   try {
     // 1. Fetch settings from DB
     const dbSettings = await prisma.appSettings.findMany();
@@ -80,8 +81,8 @@ export async function sendClientWelcomeEmail({
             <tr>
               <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Login URL:</td>
               <td style="padding: 6px 0;">
-                <a href="${loginUrl}" target="_blank" style="color: #2563eb; font-weight: 600; text-decoration: underline;">
-                  ${loginUrl}
+                <a href="${finalLoginUrl}" target="_blank" style="color: #2563eb; font-weight: 600; text-decoration: underline;">
+                  ${finalLoginUrl}
                 </a>
               </td>
             </tr>
@@ -93,7 +94,7 @@ export async function sendClientWelcomeEmail({
         </p>
 
         <div style="margin-top: 30px; text-align: center;">
-          <a href="${loginUrl}" target="_blank" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px; display: inline-block;">
+          <a href="${finalLoginUrl}" target="_blank" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px; display: inline-block;">
             Access Client Portal
           </a>
         </div>
