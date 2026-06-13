@@ -67,7 +67,7 @@ export default function AdminLoginPage() {
       }
       .admin-left-panel {
         flex: 0 0 45%;
-        background: linear-gradient(145deg, #0f172a 0%, #1a0a2e 50%, #0f172a 100%);
+        background: linear-gradient(135deg, #0b1329 0%, #111c44 50%, #080d1a 100%);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -126,22 +126,22 @@ export default function AdminLoginPage() {
       <div className="admin-left-panel">
         {/* Background pattern */}
         <div style={{
-          position: 'absolute', inset: 0, opacity: 0.03,
-          backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 30px, rgba(37,99,235,0.5) 30px, rgba(37,99,235,0.5) 31px),
-                            repeating-linear-gradient(90deg, transparent, transparent 30px, rgba(37,99,235,0.5) 30px, rgba(37,99,235,0.5) 31px)`,
+          position: 'absolute', inset: 0, opacity: 0.08,
+          backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 30px, rgba(37,99,235,0.2) 30px, rgba(37,99,235,0.2) 31px),
+                            repeating-linear-gradient(90deg, transparent, transparent 30px, rgba(37,99,235,0.2) 30px, rgba(37,99,235,0.2) 31px)`,
         }} />
 
         {/* Decorative orbs */}
         <div style={{
-          position: 'absolute', top: -80, right: -80,
-          width: 320, height: 320, borderRadius: '50%',
-          background: `radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%)`,
+          position: 'absolute', top: '-10%', right: '-10%',
+          width: 380, height: 380, borderRadius: '50%',
+          background: `radial-gradient(circle, rgba(37,99,235,0.25) 0%, transparent 70%)`,
           pointerEvents: 'none',
         }} />
         <div style={{
-          position: 'absolute', bottom: -60, left: -60,
-          width: 280, height: 280, borderRadius: '50%',
-          background: `radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)`,
+          position: 'absolute', bottom: '-10%', left: '-10%',
+          width: 340, height: 340, borderRadius: '50%',
+          background: `radial-gradient(circle, rgba(99,102,241,0.20) 0%, transparent 70%)`,
           pointerEvents: 'none',
         }} />
 
@@ -190,31 +190,40 @@ export default function AdminLoginPage() {
               Center
             </span>
           </h1>
-          <p style={{ fontSize: 15, color: '#64748b', lineHeight: 1.7, marginBottom: 40 }}>
+          <p style={{ fontSize: 15, color: '#94a3b8', lineHeight: 1.7, marginBottom: 40 }}>
             Restricted access. Authorized personnel only. All sessions are logged and monitored.
           </p>
 
           {/* System stats */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {[
-              { icon: <Server size={16} color={THEME_COLORS.PRIMARY} />, label: 'System Status', value: 'All Systems Operational', color: '#22c55e' },
-              { icon: <Database size={16} color={THEME_COLORS.PRIMARY} />, label: 'Active Clients', value: '—', color: '#94a3b8' },
-              { icon: <BarChart2 size={16} color={THEME_COLORS.PRIMARY} />, label: 'Today\'s Trades', value: '—', color: '#94a3b8' },
+              { icon: <Server size={16} color={THEME_COLORS.PRIMARY} />, label: 'System Status', value: 'All Systems Operational', color: '#10b981' },
+              { icon: <Database size={16} color={THEME_COLORS.PRIMARY} />, label: 'Active Clients', value: 'Live Connection', color: '#94a3b8' },
+              { icon: <BarChart2 size={16} color={THEME_COLORS.PRIMARY} />, label: 'Today\'s Trades', value: 'Secured Session', color: '#94a3b8' },
             ].map((item, i) => (
               <div key={i} style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '12px 16px', borderRadius: 12,
-                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '14px 18px',
+                borderRadius: 14,
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
               }}>
                 <div style={{
-                  width: 34, height: 34, borderRadius: 8,
-                  background: 'rgba(37,99,235,0.08)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: 'rgba(37, 99, 235, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}>
                   {item.icon}
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: '#475569', fontWeight: 600, marginBottom: 2 }}>{item.label}</div>
+                  <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{item.label}</div>
                   <div style={{ fontSize: 13, color: item.color, fontWeight: 700 }}>{item.value}</div>
                 </div>
               </div>
@@ -224,15 +233,19 @@ export default function AdminLoginPage() {
 
         {/* Warning */}
         <div style={{
-          position: 'relative', zIndex: 1,
-          display: 'flex', alignItems: 'flex-start', gap: 10,
-          padding: '14px 16px', borderRadius: 12,
-          background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)',
+          position: 'relative',
+          zIndex: 1,
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 12,
+          padding: '16px',
+          borderRadius: 14,
+          background: 'rgba(239, 68, 68, 0.06)',
+          border: '1px solid rgba(239, 68, 68, 0.15)',
         }}>
-          <AlertTriangle size={15} color="#ef4444" style={{ flexShrink: 0, marginTop: 1 }} />
+          <AlertTriangle size={16} color="#f87171" style={{ flexShrink: 0, marginTop: 1 }} />
           <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, margin: 0 }}>
-            Unauthorized access attempts are logged and reported to security teams. By logging in, you agree to
-            the admin terms of use.
+            Unauthorized access attempts are logged and reported to security teams. By logging in, you agree to the admin terms of use.
           </p>
         </div>
       </div>
