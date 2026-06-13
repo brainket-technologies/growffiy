@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/db';
+import { sendEmail } from '../../../../lib/mailer';
 
 export async function POST(request: Request) {
   try {
@@ -34,6 +35,80 @@ export async function POST(request: Request) {
         where: { id: user.id },
         data: { password: newPassword }
       });
+
+      // Send Email Notification for Admin role
+      if (user.role === 'admin') {
+        const userAgent = request.headers.get('user-agent') || 'Unknown User Agent';
+        const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
+        const host = request.headers.get('host') || 'localhost:3000';
+        const protocol = host.includes('localhost') ? 'http' : 'https';
+        const loginUrl = `${protocol}://${host}/admin/login`;
+        const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+
+        try {
+          await sendEmail({
+            to: user.email,
+            subject: 'Growffiy Alert: Admin Password Changed Successfully',
+            text: `Hello ${user.name},\n\nYour administrator password has been updated.\n\nCredentials Details:\n- Admin ID: ${user.userId}\n- New Password: ${newPassword}\n- Control Panel URL: ${loginUrl}\n\nSystem Details:\n- IP Address: ${ip}\n- Device: ${userAgent}\n- Time: ${timestamp}\n\nIf you did not authorize this change, please check security logs immediately.\n\nBest Regards,\nGrowffiy Security Team`,
+            html: `
+              <div style="font-family: sans-serif; padding: 24px; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+                <div style="text-align: center; margin-bottom: 24px;">
+                  <h2 style="color: #2563eb; font-weight: 800; margin: 0; font-size: 24px; letter-spacing: -0.5px;">GROWFFIY SECURITY</h2>
+                  <span style="font-size: 10px; font-weight: 700; color: #ef4444; background-color: #fef2f2; padding: 4px 12px; border-radius: 99px; text-transform: uppercase; margin-top: 8px; display: inline-block;">Critical Security Notice</span>
+                </div>
+                
+                <p>Hello <strong>${user.name}</strong>,</p>
+                <p>The password for your Growffiy Administrator account has been updated successfully.</p>
+                
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 20px 0;">
+                  <h4 style="margin: 0 0 12px 0; color: #0f172a; font-size: 14px;">Updated Credentials Details:</h4>
+                  <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+                    <tr>
+                      <td style="padding: 6px 0; color: #64748b; width: 120px;"><strong>Admin ID:</strong></td>
+                      <td style="padding: 6px 0; color: #0f172a;"><code>${user.userId}</code></td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 6px 0; color: #64748b;"><strong>New Password:</strong></td>
+                      <td style="padding: 6px 0; color: #0f172a;"><code>${newPassword}</code></td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 6px 0; color: #64748b;"><strong>Login URL:</strong></td>
+                      <td style="padding: 6px 0;"><a href="${loginUrl}" style="color: #2563eb; text-decoration: underline; font-weight: 600;">${loginUrl}</a></td>
+                    </tr>
+                  </table>
+                </div>
+
+                <div style="background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: 12px; padding: 16px; margin: 20px 0; font-size: 12px;">
+                  <h4 style="margin: 0 0 8px 0; color: #991b1b; font-size: 13px;">💻 System & Session Details:</h4>
+                  <table style="width: 100%; border-collapse: collapse; color: #7f1d1d;">
+                    <tr>
+                      <td style="padding: 4px 0; width: 120px;"><strong>IP Address:</strong></td>
+                      <td style="padding: 4px 0;"><code>${ip}</code></td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 4px 0;"><strong>Browser/Device:</strong></td>
+                      <td style="padding: 4px 0; word-break: break-all;"><code>${userAgent}</code></td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 4px 0;"><strong>Timestamp:</strong></td>
+                      <td style="padding: 4px 0;"><code>${timestamp}</code></td>
+                    </tr>
+                  </table>
+                </div>
+
+                <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin-top: 24px;">
+                  If you did not initiate this password change, please contact system security support immediately and lock your account.
+                </p>
+                <div style="margin-top: 32px; border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center; font-size: 11px; color: #94a3b8;">
+                  © 2026 Growffiy Inc. All admin activities are monitored.
+                </div>
+              </div>
+            `
+          });
+        } catch (mailErr) {
+          console.error('Failed to send admin security notification email:', mailErr);
+        }
+      }
 
       return NextResponse.json({ success: true, message: 'Password updated successfully' });
     }
