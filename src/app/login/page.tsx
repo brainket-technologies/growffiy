@@ -17,12 +17,9 @@ export default function LoginPage() {
       const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
       const isSessionPersistent = localStorage.getItem('growffiy_remember_me') === 'true';
       
-      // If user checked Remember Me, keep session active
-      if (activeUser && isSessionPersistent) {
+      // If user is logged in, auto navigate to dashboard
+      if (activeUser) {
         window.location.href = '/dashboard';
-      } else if (activeUser && !isSessionPersistent) {
-        // If they did not check Remember Me, clear active session on fresh page load (simulation)
-        localStorage.removeItem('growffiy_logged_in_user_id');
       }
 
       // Pre-fill user ID if remembered

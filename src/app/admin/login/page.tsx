@@ -239,6 +239,9 @@ export default function AdminLoginPage() {
                   onChange={(e) => setUserId(e.target.value)}
                   onFocus={() => setFocusedField('userId')}
                   onBlur={() => setFocusedField(null)}
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  autoCorrect="off"
                   style={{
                     width: '100%',
                     padding: '13px 14px 13px 44px',
@@ -280,6 +283,7 @@ export default function AdminLoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}
+                  autoComplete="new-password"
                   style={{
                     width: '100%',
                     padding: '13px 44px 13px 44px',
