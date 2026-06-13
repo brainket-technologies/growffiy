@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card } from '../../../views/components/Card';
-import { CreditCard, Plus, RefreshCw, Check, Calendar } from 'lucide-react';
+import { CreditCard, Plus, RefreshCw, Check, Calendar, Edit2, Trash2, Search, Filter } from 'lucide-react';
 import { Modal } from '../../../views/components/Modal';
 import { Button } from '../../../views/components/Button';
 import { api } from '../../../lib/api';
@@ -11,7 +11,17 @@ import { THEME_COLORS } from '../../../lib/constants';
 export default function AdminPlansPage() {
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Search and Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [durationFilter, setDurationFilter] = useState('all');
+
+  // Modals Open State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
 
   // Form Fields State
   const [name, setName] = useState('');
@@ -45,7 +55,6 @@ export default function AdminPlansPage() {
     setFormLoading(true);
     setFormError(null);
 
-    // Split features by new line or comma
     const featuresList = features
       .split('\n')
       .map(f => f.trim())
@@ -62,12 +71,7 @@ export default function AdminPlansPage() {
 
       if (res.success) {
         setIsCreateModalOpen(false);
-        // Reset form
-        setName('');
-        setPrice('');
-        setDurationDays('30');
-        setFeatures('');
-        setStatus('active');
+        resetForm();
         fetchPlans();
       }
     } catch (err: any) {
@@ -76,6 +80,102 @@ export default function AdminPlansPage() {
       setFormLoading(false);
     }
   };
+
+  const handleEditPlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPlan) return;
+    setFormLoading(true);
+    setFormError(null);
+
+    const featuresList = features
+      .split('\n')
+      .map(f => f.trim())
+      .filter(f => f.length > 0);
+
+    try {
+      const res = await api.put(`/api/plans/${selectedPlan.id}`, {
+        name,
+        price: parseFloat(price),
+        durationDays: parseInt(durationDays, 10),
+        features: featuresList,
+        status
+      });
+
+      if (res.success) {
+        setIsEditModalOpen(false);
+        resetForm();
+        fetchPlans();
+      }
+    } catch (err: any) {
+      setFormError(err.message || 'Failed to update subscription plan');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleDeletePlan = async () => {
+    if (!selectedPlan) return;
+    setFormLoading(true);
+    setFormError(null);
+
+    try {
+      const res = await api.delete(`/api/plans/${selectedPlan.id}`);
+      if (res.success) {
+        setIsDeleteModalOpen(false);
+        setSelectedPlan(null);
+        fetchPlans();
+      }
+    } catch (err: any) {
+      setFormError(err.message || 'Failed to delete subscription plan');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const openEditModal = (plan: any) => {
+    setSelectedPlan(plan);
+    setName(plan.name);
+    setPrice(String(plan.price));
+    setDurationDays(String(plan.durationDays));
+    setFeatures(Array.isArray(plan.features) ? plan.features.join('\n') : '');
+    setStatus(plan.status);
+    setIsEditModalOpen(true);
+  };
+
+  const openDeleteModal = (plan: any) => {
+    setSelectedPlan(plan);
+    setFormError(null);
+    setIsDeleteModalOpen(true);
+  };
+
+  const resetForm = () => {
+    setName('');
+    setPrice('');
+    setDurationDays('30');
+    setFeatures('');
+    setStatus('active');
+    setSelectedPlan(null);
+    setFormError(null);
+  };
+
+  // Filter plans in-memory
+  const filteredPlans = plans.filter(plan => {
+    const nameStr = (plan.name || '').toLowerCase();
+    const featuresStr = (Array.isArray(plan.features) ? plan.features.join(' ') : '').toLowerCase();
+    const query = searchQuery.toLowerCase();
+
+    const matchesSearch = nameStr.includes(query) || featuresStr.includes(query);
+
+    const matchesStatus = statusFilter === 'all' 
+      ? true 
+      : plan.status === statusFilter;
+
+    const matchesDuration = durationFilter === 'all'
+      ? true
+      : String(plan.durationDays) === durationFilter;
+
+    return matchesSearch && matchesStatus && matchesDuration;
+  });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', fontFamily: 'sans-serif' }}>
@@ -112,7 +212,10 @@ export default function AdminPlansPage() {
           <p style={{ color: 'var(--text-secondary)' }}>Configure billing duration tiers and automated subscription pricing levels.</p>
         </div>
         <button
-          onClick={() => setIsCreateModalOpen(true)}
+          onClick={() => {
+            resetForm();
+            setIsCreateModalOpen(true);
+          }}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -137,19 +240,105 @@ export default function AdminPlansPage() {
       <Card>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
-            Active Subscription Plans ({plans.length})
+            All Active & Configured Plans ({filteredPlans.length})
           </h3>
+        </div>
+
+        {/* Search and Filter Row */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '12px', 
+          marginBottom: '24px', 
+          alignItems: 'center',
+          flexWrap: 'nowrap',
+          background: 'var(--bg-secondary)',
+          padding: '12px 16px',
+          borderRadius: '12px',
+          border: '1px solid var(--border-light)'
+        }}>
+          {/* Search Box */}
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={16} style={{ 
+              position: 'absolute', 
+              left: '12px', 
+              top: '50%', 
+              transform: 'translateY(-50%)', 
+              color: 'var(--text-subtle)' 
+            }} />
+            <input
+              type="text"
+              placeholder="Search plans by name or feature..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px 8px 36px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                outline: 'none',
+                fontSize: '13px',
+                backgroundColor: '#ffffff',
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+            <Filter size={14} /> Filters:
+          </div>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+              outline: 'none',
+              fontSize: '13px',
+              background: '#ffffff',
+              cursor: 'pointer',
+              minWidth: '120px',
+              width: 'auto'
+            }}
+          >
+            <option value="all">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+
+          {/* Duration Filter */}
+          <select
+            value={durationFilter}
+            onChange={(e) => setDurationFilter(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+              outline: 'none',
+              fontSize: '13px',
+              background: '#ffffff',
+              cursor: 'pointer',
+              minWidth: '130px',
+              width: 'auto'
+            }}
+          >
+            <option value="all">All Durations</option>
+            <option value="30">30 Days</option>
+            <option value="90">90 Days</option>
+            <option value="365">365 Days</option>
+          </select>
         </div>
 
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
             <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading billing plans...
           </div>
-        ) : plans.length === 0 ? (
+        ) : filteredPlans.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
             <CreditCard size={40} style={{ opacity: 0.3, marginBottom: '16px' }} />
             <p style={{ fontWeight: 600, fontSize: '15px' }}>No subscription plans found</p>
-            <p style={{ fontSize: '13px', marginTop: '6px' }}>Click the "Add New Plan" button to add your first billing tier.</p>
+            <p style={{ fontSize: '13px', marginTop: '6px' }}>Click the "Add New Plan" button or adjust filters.</p>
           </div>
         ) : (
           <div className="table-responsive">
@@ -161,10 +350,11 @@ export default function AdminPlansPage() {
                   <th>Duration (Days)</th>
                   <th>Included Features</th>
                   <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {plans.map((plan) => (
+                {filteredPlans.map((plan) => (
                   <tr key={plan.id}>
                     <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{plan.name}</td>
                     <td style={{ fontWeight: 700, color: 'var(--primary)' }}>
@@ -172,7 +362,7 @@ export default function AdminPlansPage() {
                     </td>
                     <td style={{ fontWeight: 500 }}>{plan.durationDays} Days</td>
                     <td>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxWidth: '400px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxWidth: '360px' }}>
                         {plan.features && Array.isArray(plan.features) ? (
                           plan.features.map((feat: string, idx: number) => (
                             <span
@@ -199,6 +389,44 @@ export default function AdminPlansPage() {
                       <span className={`badge ${plan.status === 'active' ? 'badge-success' : 'badge-danger'}`}>
                         {plan.status}
                       </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '8px' }}>
+                        <button
+                          onClick={() => openEditModal(plan)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--primary)',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            borderRadius: '4px',
+                            transition: 'background 0.2s'
+                          }}
+                          title="Edit Plan"
+                        >
+                          <Edit2 size={15} />
+                        </button>
+                        <button
+                          onClick={() => openDeleteModal(plan)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--danger)',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            borderRadius: '4px',
+                            transition: 'background 0.2s'
+                          }}
+                          title="Delete Plan"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -293,6 +521,119 @@ export default function AdminPlansPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* EDIT PLAN MODAL */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit Subscription Plan"
+      >
+        <form onSubmit={handleEditPlan} style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '10px 0' }}>
+          {formError && (
+            <div style={{ padding: '10px 12px', borderRadius: '8px', backgroundColor: '#fef2f2', border: '1px solid #fee2e2', color: '#b91c1c', fontSize: '12px', fontWeight: 500 }}>
+              ⚠️ {formError}
+            </div>
+          )}
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Plan Name</label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Monthly Starter Plan"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="plan-input-field"
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Price (INR)</label>
+              <input
+                type="number"
+                required
+                min="0"
+                placeholder="4999"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="plan-input-field"
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Duration (Days)</label>
+              <input
+                type="number"
+                required
+                min="1"
+                placeholder="30"
+                value={durationDays}
+                onChange={(e) => setDurationDays(e.target.value)}
+                className="plan-input-field"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Features List (One feature per line)</label>
+            <textarea
+              required
+              rows={4}
+              placeholder="Pre-Open Momentum Strategy&#10;1% Capital Risk Guard&#10;Kite API Integration"
+              value={features}
+              onChange={(e) => setFeatures(e.target.value)}
+              className="plan-input-field"
+              style={{ fontFamily: 'inherit', resize: 'vertical' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Status</label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="plan-input-field"
+              style={{ background: 'white' }}
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+            <Button variant="secondary" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+            <Button variant="primary" type="submit" disabled={formLoading}>
+              {formLoading ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Delete Subscription Plan"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '10px 0' }}>
+          {formError && (
+            <div style={{ padding: '10px 12px', borderRadius: '8px', backgroundColor: '#fef2f2', border: '1px solid #fee2e2', color: '#b91c1c', fontSize: '12px', fontWeight: 500 }}>
+              ⚠️ {formError}
+            </div>
+          )}
+          
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+            Are you sure you want to delete the plan <strong>{selectedPlan?.name}</strong>? This action cannot be undone.
+          </p>
+          
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+            <Button variant="secondary" onClick={() => setIsDeleteModalOpen(false)}>Cancel</Button>
+            <Button variant="danger" onClick={handleDeletePlan} disabled={formLoading}>
+              {formLoading ? 'Deleting...' : 'Yes, Delete Plan'}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
