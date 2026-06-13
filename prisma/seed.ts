@@ -1,6 +1,15 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaNeon } from '@prisma/adapter-neon';
+import dotenv from 'dotenv';
+import ws from 'ws';
 
-const prisma = new PrismaClient();
+dotenv.config();
+
+// Enable WebSockets in node environment for Neon Serverless Driver
+global.WebSocket = ws as any;
+
+const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL! });
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('Seeding default strategy and admin user...');
