@@ -59,7 +59,9 @@ export default function LoginPage() {
         @keyframes fadeInUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
 
         .login-wrap {
-          min-height: 100vh;
+          height: 100vh;
+          max-height: 100vh;
+          overflow: hidden;
           display: grid;
           grid-template-columns: 1.1fr 1fr;
           font-family: 'Inter', sans-serif;
