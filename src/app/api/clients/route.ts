@@ -53,15 +53,26 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, userId, password, zerodhaClientId, capital, riskPercentage, strategyId } = body;
+    const { name, email, userId, password, zerodhaClientId, zerodhaApiKey, zerodhaApiSecret, capital, riskPercentage, strategyId } = body;
+
+    // Auto-generate credentials for the client
+    const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const generatedUserId = userId || `${cleanName}${Math.floor(100 + Math.random() * 900)}`;
+
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let generatedPassword = '';
+    for (let i = 0; i < 8; i++) {
+      generatedPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const finalPassword = password || `grw_${generatedPassword}`;
 
     try {
       const newUser = await prisma.user.create({
         data: {
           name,
           email,
-          userId,
-          password: password || 'password123', // Demo placeholder hashing
+          userId: generatedUserId,
+          password: finalPassword, // Client logs in with this generated password
           role: 'client',
         },
       });
@@ -70,6 +81,8 @@ export async function POST(request: Request) {
         data: {
           userId: newUser.id,
           zerodhaClientId,
+          zerodhaApiKey,
+          zerodhaApiSecret,
           capital: Number(capital),
           riskPercentage: Number(riskPercentage || 1.00),
           strategyId,
@@ -79,13 +92,22 @@ export async function POST(request: Request) {
         include: { user: true },
       });
 
-      return NextResponse.json({ success: true, client: newClient });
+      return NextResponse.json({
+        success: true,
+        client: newClient,
+        generatedCredentials: {
+          userId: generatedUserId,
+          password: finalPassword
+        }
+      });
     } catch {
       // In-memory fallback logic
       const newClientMock = {
         id: `c_${Date.now()}`,
-        user: { name, email, userId, status: 'active' },
+        user: { name, email, userId: generatedUserId, status: 'active' },
         zerodhaClientId,
+        zerodhaApiKey,
+        zerodhaApiSecret,
         capital: Number(capital),
         riskPercentage: Number(riskPercentage || 1.00),
         tradingStatus: 'inactive',
@@ -93,7 +115,15 @@ export async function POST(request: Request) {
         strategyId: strategyId || 'pre-open-breakout',
       };
       inMemoryClients.push(newClientMock);
-      return NextResponse.json({ success: true, client: newClientMock, isDemoMode: true });
+      return NextResponse.json({
+        success: true,
+        client: newClientMock,
+        isDemoMode: true,
+        generatedCredentials: {
+          userId: generatedUserId,
+          password: finalPassword
+        }
+      });
     }
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

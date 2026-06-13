@@ -25,7 +25,7 @@ interface AppState {
 }
 
 interface AppContextType extends AppState {
-  addClient: (data: any) => Promise<boolean>;
+  addClient: (data: any) => Promise<any>;
   updateClient: (id: string, data: any) => Promise<boolean>;
   deleteClient: (id: string) => Promise<boolean>;
   toggleTrading: (active: boolean) => Promise<boolean>;
@@ -117,11 +117,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (res.success) {
         setClients(prev => [...prev, res.client]);
         await refreshAllData();
-        return true;
+        return { success: true, client: res.client, credentials: res.generatedCredentials };
       }
-      return false;
+      return { success: false };
     } catch {
-      return false;
+      return { success: false };
     }
   };
 

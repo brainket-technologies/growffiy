@@ -15,28 +15,33 @@ export default function ClientsPage() {
   // Form State
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [userId, setUserId] = useState('');
   const [zerodhaClientId, setZerodhaClientId] = useState('');
+  const [zerodhaApiKey, setZerodhaApiKey] = useState('');
+  const [zerodhaApiSecret, setZerodhaApiSecret] = useState('');
   const [capital, setCapital] = useState('50000');
+  const [generatedCreds, setGeneratedCreds] = useState<{ userId: string; password: string } | null>(null);
 
   const selectedClient = clients.find((c) => c.id === (selectedClientId || clients[0]?.id));
 
   const handleAddClient = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await addClient({
+    const result = await addClient({
       name,
       email,
-      userId,
       zerodhaClientId,
+      zerodhaApiKey,
+      zerodhaApiSecret,
       capital: Number(capital),
       riskPercentage: 1.00,
     });
-    if (success) {
+    if (result && result.success) {
+      setGeneratedCreds(result.credentials);
       setIsAddModalOpen(false);
       setName('');
       setEmail('');
-      setUserId('');
       setZerodhaClientId('');
+      setZerodhaApiKey('');
+      setZerodhaApiSecret('');
       setCapital('50000');
     }
   };
@@ -233,24 +238,39 @@ export default function ClientsPage() {
             />
           </div>
 
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Zerodha Client ID</label>
+            <input
+              type="text"
+              required
+              value={zerodhaClientId}
+              onChange={(e) => setZerodhaClientId(e.target.value)}
+              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)', outline: 'none' }}
+              placeholder="e.g. AB1234"
+            />
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block' }}>
+              * Client login User ID & Password will be automatically generated.
+            </span>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>User ID</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Kite API Key</label>
               <input
                 type="text"
                 required
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
+                value={zerodhaApiKey}
+                onChange={(e) => setZerodhaApiKey(e.target.value)}
                 style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)', outline: 'none' }}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Zerodha Client ID</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Kite API Secret</label>
               <input
                 type="text"
                 required
-                value={zerodhaClientId}
-                onChange={(e) => setZerodhaClientId(e.target.value)}
+                value={zerodhaApiSecret}
+                onChange={(e) => setZerodhaApiSecret(e.target.value)}
                 style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)', outline: 'none' }}
               />
             </div>
@@ -272,6 +292,32 @@ export default function ClientsPage() {
             <Button type="submit">Create Client</Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Credentials Show Modal */}
+      <Modal isOpen={!!generatedCreds} onClose={() => setGeneratedCreds(null)} title="Client Credentials Generated">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '10px 0' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+            Client account has been successfully created. Share these credentials with the client so they can log in to their dashboard panel:
+          </p>
+          <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Login User ID</span>
+              <code style={{ display: 'block', backgroundColor: '#f1f5f9', padding: '8px 12px', borderRadius: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', border: '1px solid #e2e8f0' }}>
+                {generatedCreds?.userId}
+              </code>
+            </div>
+            <div>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Password</span>
+              <code style={{ display: 'block', backgroundColor: '#f1f5f9', padding: '8px 12px', borderRadius: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', border: '1px solid #e2e8f0' }}>
+                {generatedCreds?.password}
+              </code>
+            </div>
+          </div>
+          <Button onClick={() => setGeneratedCreds(null)} style={{ marginTop: '8px' }}>
+            Close & Continue
+          </Button>
+        </div>
       </Modal>
     </div>
   );
