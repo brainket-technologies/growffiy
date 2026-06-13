@@ -55,17 +55,18 @@
 /* Cards */
 .card {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01), 0 10px 15px -3px rgba(15, 23, 42, 0.03);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
 }
 .cardHover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.06), 0 10px 10px -5px rgba(15, 23, 42, 0.04);
+  border-color: rgba(37, 99, 235, 0.2);
 }
 
 /* Modals */
@@ -76,7 +77,7 @@
   right: 0;
   bottom: 0;
   background-color: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -86,17 +87,17 @@
 
 .modalContent {
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 20px;
   width: 90%;
   max-width: 500px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
   overflow: hidden;
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modalHeader {
-  padding: 16px 24px;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -104,9 +105,9 @@
 
 .modalTitle {
   font-family: var(--font-title);
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 600;
-  color: #1e293b;
+  color: #0f172a;
 }
 
 .modalClose {
@@ -127,7 +128,7 @@
 
 .modalFooter {
   padding: 16px 24px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #f1f5f9;
   background-color: #f8fafc;
   display: flex;
   justify-content: flex-end;
@@ -146,6 +147,7 @@
   flex-direction: column;
   color: #ffffff;
   z-index: 100;
+  box-shadow: 4px 0 24px rgba(15, 23, 42, 0.08);
 }
 
 .sidebarBrand {
@@ -153,7 +155,7 @@
   display: flex;
   align-items: center;
   padding: 0 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .brandText {
@@ -181,7 +183,7 @@
   gap: 12px;
   padding: 12px 16px;
   color: var(--sidebar-text);
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: 500;
   transition: all 0.2s ease;
 }
@@ -192,13 +194,17 @@
 
 .sidebarItemActive {
   color: var(--sidebar-text-active);
-  background-color: var(--sidebar-active-bg);
-  box-shadow: inset 4px 0 0 0 var(--sidebar-active-border);
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.15) 0%, rgba(37, 99, 235, 0.02) 100%);
+  border-left: 3px solid var(--sidebar-active-border);
+  border-radius: 0 10px 10px 0;
+  margin-left: -16px;
+  padding-left: 29px;
+  box-shadow: none;
 }
 
 .sidebarFooter {
   padding: 20px 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -218,8 +224,10 @@
 /* Header */
 .header {
   height: var(--header-height);
-  background-color: #ffffff;
-  border-bottom: 1px solid var(--border-color);
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
   position: fixed;
   top: 0;
   left: var(--sidebar-width);
