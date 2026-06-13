@@ -6,6 +6,8 @@ import { Button } from '../../../views/components/Button';
 import { Shield, Server, RefreshCw, Key, Eye, EyeOff, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight, Mail, CreditCard, Sliders, Globe, Info } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { Modal } from '../../../views/components/Modal';
+import { API_ENDPOINTS } from '../../../lib/constants';
+
 
 type TabType = 'payments' | 'smtp' | 'risk';
 
@@ -44,7 +46,7 @@ export default function SettingsPage() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await api.get('/api/admin/settings');
+        const res = await api.get(API_ENDPOINTS.SETTINGS);
         if (res.success && res.settings) {
           setRazorpayTestKeyId(res.settings.razorpay_test_key_id || '');
           setRazorpayTestKeySecret(res.settings.razorpay_test_key_secret || '');
@@ -78,7 +80,7 @@ export default function SettingsPage() {
     setNotification(null);
 
     try {
-      const res = await api.put('/api/admin/settings', {
+      const res = await api.put(API_ENDPOINTS.SETTINGS, {
         razorpay_test_key_id: razorpayTestKeyId,
         razorpay_test_key_secret: razorpayTestKeySecret,
         razorpay_live_key_id: razorpayLiveKeyId,
@@ -289,7 +291,7 @@ export default function SettingsPage() {
                     const nextMode = razorpayMode === 'test' ? 'live' : 'test';
                     setRazorpayMode(nextMode);
                     try {
-                      await api.put('/api/admin/settings', { razorpay_mode: nextMode });
+                      await api.put(API_ENDPOINTS.SETTINGS, { razorpay_mode: nextMode });
                     } catch (err) {
                       console.error('Instant Razorpay toggle error:', err);
                     }
@@ -543,7 +545,7 @@ export default function SettingsPage() {
                     const nextStatus = smtpStatus === 'true' ? 'false' : 'true';
                     setSmtpStatus(nextStatus);
                     try {
-                      await api.put('/api/admin/settings', { smtp_status: nextStatus });
+                      await api.put(API_ENDPOINTS.SETTINGS, { smtp_status: nextStatus });
                     } catch (err) {
                       console.error('Instant SMTP toggle error:', err);
                     }
