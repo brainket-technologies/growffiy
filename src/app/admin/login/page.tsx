@@ -70,8 +70,9 @@ export default function AdminLoginPage() {
         background: linear-gradient(135deg, #0b1329 0%, #111c44 50%, #080d1a 100%);
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
-        padding: 48px 56px;
+        justify-content: center;
+        gap: 120px;
+        padding: 48px 64px;
         position: relative;
         overflow: hidden;
       }
