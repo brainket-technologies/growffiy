@@ -1,13 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Activity, ArrowRight, TrendingUp, Shield, Zap, BarChart2 } from 'lucide-react';
-import Footer from '../../views/components/Footer';
 
 export default function LoginPage() {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // If client is already logged in, auto navigate to dashboard
+    if (typeof window !== 'undefined') {
+      const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
+      if (activeUser) {
+        window.location.href = '/dashboard';
+      }
+    }
+  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -333,9 +342,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-
-      <Footer />
-
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>
   );
