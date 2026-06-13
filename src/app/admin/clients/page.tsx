@@ -6,12 +6,19 @@ import { Card } from '../../../views/components/Card';
 import { Button } from '../../../views/components/Button';
 import { Modal } from '../../../views/components/Modal';
 import Link from 'next/link';
-import { Plus, Eye, Trash2 } from 'lucide-react';
+import { Plus, Eye, Trash2, Search, Filter, Download } from 'lucide-react';
 
 export default function ClientsPage() {
-  const { clients, addClient, deleteClient } = useAppViewModel();
+  const { clients, addClient, deleteClient, updateClient } = useAppViewModel();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [generatedCreds, setGeneratedCreds] = useState<{ userId: string; password: string } | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; id: string; nextStatus: string } | null>(null);
+
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [connectionFilter, setConnectionFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [capitalFilter, setCapitalFilter] = useState('all');
 
   // Add Form State
   const [name, setName] = useState('');
@@ -46,7 +53,74 @@ export default function ClientsPage() {
 
   const toggleClientStatus = async (id: string, currentStatus: string) => {
     const nextStatus = currentStatus === 'active' ? 'inactive' : 'active';
-    await updateClient(id, { tradingStatus: nextStatus });
+    setConfirmModal({ isOpen: true, id, nextStatus });
+  };
+
+  // Filter clients logic
+  const filteredClients = clients.filter(client => {
+    const nameStr = (client.user?.name || client.name || '').toLowerCase();
+    const emailStr = (client.user?.email || client.email || '').toLowerCase();
+    const idStr = (client.zerodhaClientId || '').toLowerCase();
+    const capitalStr = String(client.capital);
+    const query = searchQuery.toLowerCase();
+
+    const matchesSearch = 
+      nameStr.includes(query) || 
+      emailStr.includes(query) || 
+      idStr.includes(query) || 
+      capitalStr.includes(query);
+    
+    const matchesConnection = connectionFilter === 'all' 
+      ? true 
+      : connectionFilter === 'connected' 
+        ? !!client.accessToken 
+        : !client.accessToken;
+
+    const matchesStatus = statusFilter === 'all'
+      ? true
+      : client.tradingStatus === statusFilter;
+
+    const matchesCapital = capitalFilter === 'all'
+      ? true
+      : capitalFilter === 'under_50k'
+        ? Number(client.capital) < 50000
+        : capitalFilter === '50k_100k'
+          ? Number(client.capital) >= 50000 && Number(client.capital) <= 100000
+          : Number(client.capital) > 100000;
+
+    return matchesSearch && matchesConnection && matchesStatus && matchesCapital;
+  });
+
+  const totalCount = clients.length;
+  const activeCount = clients.filter(c => c.tradingStatus === 'active').length;
+  const inactiveCount = clients.filter(c => c.tradingStatus === 'inactive').length;
+  const connectedCount = clients.filter(c => !!c.accessToken).length;
+
+  const handleExportToExcel = () => {
+    const headers = ['Name', 'Email', 'Zerodha Client ID', 'Capital (INR)', 'Connection Status', 'Trading Status'];
+    const rows = filteredClients.map(client => [
+      client.user?.name || client.name,
+      client.user?.email || client.email,
+      client.zerodhaClientId || '',
+      client.capital,
+      client.accessToken ? 'Connected' : 'Disconnected',
+      client.tradingStatus
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `clients_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -59,17 +133,147 @@ export default function ClientsPage() {
           </h1>
           <p style={{ color: 'var(--text-secondary)' }}>Configure API configurations, trading allocations, and active status.</p>
         </div>
-        <Button onClick={() => setIsAddModalOpen(true)}>
-          <Plus size={16} /> Add New Client
-        </Button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <Button variant="secondary" onClick={handleExportToExcel} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Download size={16} /> Export Excel
+          </Button>
+          <Button onClick={() => setIsAddModalOpen(true)}>
+            <Plus size={16} /> Add New Client
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats Summary Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+        <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid var(--primary)' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Clients</span>
+          <span style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>{totalCount}</span>
+        </Card>
+        <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid var(--accent)' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Clients</span>
+          <span style={{ fontSize: '28px', fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-title)' }}>{activeCount}</span>
+        </Card>
+        <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid var(--text-subtle)' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Inactive Clients</span>
+          <span style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-secondary)', fontFamily: 'var(--font-title)' }}>{inactiveCount}</span>
+        </Card>
+        <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid #f59e0b' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Connected Sessions</span>
+          <span style={{ fontSize: '28px', fontWeight: 800, color: '#d97706', fontFamily: 'var(--font-title)' }}>{connectedCount}</span>
+        </Card>
       </div>
 
       {/* Main Clients Table */}
       <Card>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
-            All Active & Configured Clients ({clients.length})
+            All Active & Configured Clients ({filteredClients.length})
           </h3>
+        </div>
+
+        {/* Search and Filter Inputs Row */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '12px', 
+          marginBottom: '24px', 
+          alignItems: 'center',
+          flexWrap: 'nowrap',
+          background: 'var(--bg-secondary)',
+          padding: '12px 16px',
+          borderRadius: '12px',
+          border: '1px solid var(--border-light)'
+        }}>
+          {/* Search Box */}
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={16} style={{ 
+              position: 'absolute', 
+              left: '12px', 
+              top: '50%', 
+              transform: 'translateY(-50%)', 
+              color: 'var(--text-subtle)' 
+            }} />
+            <input
+              type="text"
+              placeholder="Search by name, email, or client ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px 8px 36px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                outline: 'none',
+                fontSize: '13px',
+                backgroundColor: '#ffffff',
+              }}
+            />
+          </div>
+
+          {/* Filter Dropdowns on same line */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+            <Filter size={14} /> Filters:
+          </div>
+          
+          <select
+            value={connectionFilter}
+            onChange={(e) => setConnectionFilter(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+              outline: 'none',
+              fontSize: '13px',
+              background: '#ffffff',
+              cursor: 'pointer',
+              minWidth: '130px',
+              width: 'auto'
+            }}
+          >
+            <option value="all">All Connections</option>
+            <option value="connected">Connected</option>
+            <option value="disconnected">Disconnected</option>
+          </select>
+          
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+              outline: 'none',
+              fontSize: '13px',
+              background: '#ffffff',
+              cursor: 'pointer',
+              minWidth: '120px',
+              width: 'auto'
+            }}
+          >
+            <option value="all">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+
+          <select
+            value={capitalFilter}
+            onChange={(e) => setCapitalFilter(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+              outline: 'none',
+              fontSize: '13px',
+              background: '#ffffff',
+              cursor: 'pointer',
+              minWidth: '130px',
+              width: 'auto'
+            }}
+          >
+            <option value="all">All Capitals</option>
+            <option value="under_50k">&lt; ₹50,000</option>
+            <option value="50k_100k">₹50,000 - ₹1,00,000</option>
+            <option value="above_100k">&gt; ₹1,00,000</option>
+          </select>
         </div>
 
         <div className="table-responsive">
@@ -80,19 +284,20 @@ export default function ClientsPage() {
                 <th>Email</th>
                 <th>Zerodha Client ID</th>
                 <th>Capital (INR)</th>
+                <th>Kite Session</th>
                 <th>Trading Status</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {clients.length === 0 ? (
+              {filteredClients.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                    No client accounts registered. Click "Add New Client" to connect a Zerodha terminal.
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                    No client accounts match the search or filter criteria.
                   </td>
                 </tr>
               ) : (
-                clients.map((client) => {
+                filteredClients.map((client) => {
                   const isTrading = client.tradingStatus === 'active';
                   return (
                     <tr key={client.id}>
@@ -101,9 +306,15 @@ export default function ClientsPage() {
                       <td style={{ fontFamily: 'monospace', fontWeight: 500 }}>{client.zerodhaClientId || '--'}</td>
                       <td style={{ fontWeight: 600 }}>₹{Number(client.capital).toLocaleString()}</td>
                       <td>
+                        <span className={`badge ${client.accessToken ? 'badge-green' : 'badge-red'}`}>
+                          {client.accessToken ? 'Connected' : 'Disconnected'}
+                        </span>
+                      </td>
+                      <td>
                         <span
                           className={`badge ${isTrading ? 'badge-success' : 'badge-red'}`}
                           style={{ cursor: 'pointer' }}
+                          onClick={() => toggleClientStatus(client.id, client.tradingStatus)}
                         >
                           {client.tradingStatus}
                         </span>
@@ -252,6 +463,31 @@ export default function ClientsPage() {
           <Button onClick={() => setGeneratedCreds(null)} style={{ marginTop: '8px' }}>
             Close & Continue
           </Button>
+        </div>
+      </Modal>
+      {/* Confirm Status Change Modal */}
+      <Modal 
+        isOpen={!!confirmModal?.isOpen} 
+        onClose={() => setConfirmModal(null)} 
+        title="Confirm Status Change"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '10px 0' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+            Are you sure you want to change the trading status of this client to <strong style={{ textTransform: 'uppercase', color: 'var(--text-heading)' }}>{confirmModal?.nextStatus}</strong>?
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+            <Button variant="secondary" onClick={() => setConfirmModal(null)}>Cancel</Button>
+            <Button 
+              onClick={async () => {
+                if (confirmModal) {
+                  await updateClient(confirmModal.id, { tradingStatus: confirmModal.nextStatus });
+                  setConfirmModal(null);
+                }
+              }}
+            >
+              Yes, Change Status
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>

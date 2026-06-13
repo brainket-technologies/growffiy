@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/db';
+import { sendClientWelcomeEmail } from '../../../lib/mail';
 
 // In-memory fallback array to guarantee immediate functionality without live DB
 let inMemoryClients: any[] = [
@@ -92,6 +93,22 @@ export async function POST(request: Request) {
         include: { user: true },
       });
 
+      // Trigger welcome email notification asynchronously if mail option is turned on
+      try {
+        const originUrl = request.headers.get('origin') || 'https://growffiy.vercel.app';
+        const loginUrl = `${originUrl}/login`;
+        // Non-blocking fire and forget welcome email
+        sendClientWelcomeEmail({
+          email: newUser.email,
+          name: newUser.name,
+          userId: newUser.userId,
+          passwordHashOrPlain: finalPassword,
+          loginUrl
+        }).catch(err => console.error('Background welcome email error:', err));
+      } catch (mailErr) {
+        console.error('Mail dispatch setup error:', mailErr);
+      }
+
       return NextResponse.json({
         success: true,
         client: newClient,
@@ -100,7 +117,8 @@ export async function POST(request: Request) {
           password: finalPassword
         }
       });
-    } catch {
+    } catch (e: any) {
+      console.error('Database client creation failed:', e);
       // In-memory fallback logic
       const newClientMock = {
         id: `c_${Date.now()}`,

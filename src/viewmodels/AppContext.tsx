@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { THEME_COLORS } from '../lib/constants';
+import { THEME_COLORS, API_ENDPOINTS } from '../lib/constants';
+import { api } from '../lib/api';
 
 interface AppState {
   clients: any[];
@@ -30,6 +31,7 @@ interface AppContextType extends AppState {
   deleteClient: (id: string) => Promise<boolean>;
   toggleTrading: (active: boolean) => Promise<boolean>;
   refreshAllData: () => Promise<void>;
+  logToAuditLogs: (action: string, details: string, type?: string) => Promise<void>;
 }
 
 const defaultStats = {
@@ -62,10 +64,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const refreshAllData = useCallback(async () => {
     try {
       const [clientsRes, tradesRes, stocksRes, statsRes] = await Promise.all([
-        fetch('/api/clients').then(r => r.json()),
-        fetch('/api/trades').then(r => r.json()),
-        fetch('/api/stocks').then(r => r.json()),
-        fetch('/api/admin/dashboard').then(r => r.json()),
+        api.get(API_ENDPOINTS.CLIENTS),
+        api.get(API_ENDPOINTS.TRADES),
+        api.get(API_ENDPOINTS.STOCKS),
+        api.get(API_ENDPOINTS.DASHBOARD),
       ]);
 
       if (clientsRes.success) setClients(clientsRes.clients);
@@ -88,9 +90,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const interval = setInterval(async () => {
       try {
         const [stocksRes, tradesRes, statsRes] = await Promise.all([
-          fetch('/api/stocks').then(r => r.json()),
-          fetch('/api/trades').then(r => r.json()),
-          fetch('/api/admin/dashboard').then(r => r.json()),
+          api.get(API_ENDPOINTS.STOCKS),
+          api.get(API_ENDPOINTS.TRADES),
+          api.get(API_ENDPOINTS.DASHBOARD),
         ]);
         if (stocksRes.success) {
           setStocks(stocksRes.stocks);
@@ -106,76 +108,174 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => clearInterval(interval);
   }, [refreshAllData]);
 
+  const logToAuditLogs = async (action: string, details: string, type: string = 'action') => {
+    try {
+      const payload = { action, user: 'Firoz Mohammad', details, type };
+      await api.post(API_ENDPOINTS.AUDIT_LOGS, payload);
+      
+      if (typeof window !== 'undefined') {
+        const timeStr = new Date().toLocaleString('en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const localLogs = JSON.parse(localStorage.getItem('growffiy_audit_logs') || '[]');
+        localLogs.unshift({ ...payload, time: timeStr });
+        localStorage.setItem('growffiy_audit_logs', JSON.stringify(localLogs.slice(0, 50)));
+      }
+    } catch (err) {
+      console.error('Audit log registration failed:', err);
+    }
+  };
+
   const addClient = async (clientData: any) => {
     try {
-      const res = await fetch('/api/clients', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(clientData),
-      }).then(r => r.json());
+      const res = await api.post(API_ENDPOINTS.CLIENTS, clientData);
 
       if (res.success) {
         setClients(prev => [...prev, res.client]);
+        await logToAuditLogs(
+          'Client Added',
+          `Created client profile for ${clientData.name} (Capital: ₹${Number(clientData.capital).toLocaleString()}) | Endpoint: POST ${API_ENDPOINTS.CLIENTS} | Payload: ${JSON.stringify(clientData)} | Response: ${JSON.stringify(res.client)}`,
+          'action'
+        );
         await refreshAllData();
         return { success: true, client: res.client, credentials: res.generatedCredentials };
       }
+      
+      await logToAuditLogs(
+        'Client Add Failed',
+        `Failed to add client profile for ${clientData.name || 'Unknown'}: Server returned failure | Endpoint: POST ${API_ENDPOINTS.CLIENTS} | Payload: ${JSON.stringify(clientData)}`,
+        'security'
+      );
       return { success: false };
-    } catch {
+    } catch (err: any) {
+      await logToAuditLogs(
+        'Client Add Error',
+        `Network error when adding client profile: ${err.message || 'Unknown error'} | Endpoint: POST ${API_ENDPOINTS.CLIENTS} | Payload: ${JSON.stringify(clientData)}`,
+        'security'
+      );
       return { success: false };
     }
   };
 
   const updateClient = async (id: string, updateData: any) => {
+    let clientName = 'Client';
     try {
-      const res = await fetch(`/api/clients/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData),
-      }).then(r => r.json());
+      const existingClient = clients.find(c => c.id === id);
+      clientName = existingClient?.user?.name || existingClient?.name || 'Client';
+
+      const res = await api.put(`${API_ENDPOINTS.CLIENTS}/${id}`, updateData);
 
       if (res.success) {
         setClients(prev => prev.map(c => c.id === id ? res.client : c));
+
+        let action = 'Client Updated';
+        let details = `Updated configuration for client ${clientName}`;
+        let type = 'action';
+
+        if (updateData.tradingStatus !== undefined) {
+          action = 'Trading Status Changed';
+          details = `Trading status of client ${clientName} changed to ${updateData.tradingStatus.toUpperCase()} | Endpoint: PUT ${API_ENDPOINTS.CLIENTS}/${id} | Payload: ${JSON.stringify(updateData)} | Response: ${JSON.stringify(res.client)}`;
+          await logToAuditLogs(action, details, type);
+
+          if (updateData.tradingStatus === 'inactive') {
+            await logToAuditLogs(
+              'Kite Token Disconnected',
+              `Disconnected active Kite session token for ${clientName} due to Inactive Trading Status | Endpoint: PUT ${API_ENDPOINTS.CLIENTS}/${id} | Payload: {"accessToken": null} | Response: ${JSON.stringify(res.client)}`,
+              'security'
+            );
+          }
+        } else if (updateData.accessToken !== undefined) {
+          action = updateData.accessToken ? 'Kite Token Refreshed' : 'Kite Token Disconnected';
+          details = updateData.accessToken 
+            ? `Successfully refreshed Kite session token for ${clientName} | Endpoint: PUT ${API_ENDPOINTS.CLIENTS}/${id} | Payload: ${JSON.stringify(updateData)} | Response: ${JSON.stringify(res.client)}` 
+            : `Disconnected active Kite session token for ${clientName} | Endpoint: PUT ${API_ENDPOINTS.CLIENTS}/${id} | Payload: ${JSON.stringify(updateData)} | Response: ${JSON.stringify(res.client)}`;
+          type = updateData.accessToken ? 'system' : 'security';
+          await logToAuditLogs(action, details, type);
+        } else {
+          details = `${details} | Endpoint: PUT ${API_ENDPOINTS.CLIENTS}/${id} | Payload: ${JSON.stringify(updateData)} | Response: ${JSON.stringify(res.client)}`;
+          await logToAuditLogs(action, details, type);
+        }
+
         await refreshAllData();
         return true;
       }
+      
+      await logToAuditLogs(
+        'Client Update Failed',
+        `Failed to update client configuration for ${clientName} | Endpoint: PUT ${API_ENDPOINTS.CLIENTS}/${id} | Payload: ${JSON.stringify(updateData)}`,
+        'security'
+      );
       return false;
-    } catch {
+    } catch (err: any) {
+      await logToAuditLogs(
+        'Client Update Error',
+        `Network error when updating client ${clientName}: ${err.message || 'Unknown error'} | Endpoint: PUT ${API_ENDPOINTS.CLIENTS}/${id} | Payload: ${JSON.stringify(updateData)}`,
+        'security'
+      );
       return false;
     }
   };
 
   const deleteClient = async (id: string) => {
+    let clientName = 'Client';
     try {
-      const res = await fetch(`/api/clients/${id}`, {
-        method: 'DELETE',
-      }).then(r => r.json());
+      const existingClient = clients.find(c => c.id === id);
+      clientName = existingClient?.user?.name || existingClient?.name || 'Client';
+
+      const res = await api.delete(`${API_ENDPOINTS.CLIENTS}/${id}`);
 
       if (res.success) {
         setClients(prev => prev.filter(c => c.id !== id));
+        await logToAuditLogs(
+          'Client Deleted',
+          `Removed client profile for ${clientName} | Endpoint: DELETE ${API_ENDPOINTS.CLIENTS}/${id} | Payload: {} | Response: ${JSON.stringify(res)}`,
+          'security'
+        );
         await refreshAllData();
         return true;
       }
+      
+      await logToAuditLogs(
+        'Client Delete Failed',
+        `Failed to delete client profile for ${clientName} | Endpoint: DELETE ${API_ENDPOINTS.CLIENTS}/${id}`,
+        'security'
+      );
       return false;
-    } catch {
+    } catch (err: any) {
+      await logToAuditLogs(
+        'Client Delete Error',
+        `Network error when deleting client ${clientName}: ${err.message || 'Unknown error'} | Endpoint: DELETE ${API_ENDPOINTS.CLIENTS}/${id}`,
+        'security'
+      );
       return false;
     }
   };
 
   const toggleTrading = async (active: boolean) => {
     try {
-      const res = await fetch('/api/trading/toggle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ active }),
-      }).then(r => r.json());
+      const res = await api.post(API_ENDPOINTS.TOGGLE_TRADING, { active });
 
       if (res.success) {
         setIsTradingActive(res.isTradingActive);
+        await logToAuditLogs(
+          active ? 'Auto Trading Started' : 'Auto Trading Stopped',
+          `${active ? 'Algorithmic terminal engine powered on' : 'Algorithmic terminal engine powered off'} | Endpoint: POST ${API_ENDPOINTS.TOGGLE_TRADING} | Payload: ${JSON.stringify({ active })} | Response: ${JSON.stringify(res)}`,
+          'info'
+        );
         await refreshAllData();
         return true;
       }
+      
+      await logToAuditLogs(
+        'Auto Trading Toggle Failed',
+        `Failed to toggle algorithmic engine to ${active ? 'ON' : 'OFF'}`,
+        'system'
+      );
       return false;
-    } catch {
+    } catch (err: any) {
+      await logToAuditLogs(
+        'Auto Trading Toggle Error',
+        `Network error when toggling algorithmic engine: ${err.message || 'Unknown error'}`,
+        'system'
+      );
       return false;
     }
   };
@@ -196,6 +296,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteClient,
         toggleTrading,
         refreshAllData,
+        logToAuditLogs,
       }}
     >
       {children}

@@ -1,22 +1,59 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/db';
 import { inMemoryClients } from '../route';
+import { KiteClient } from '../../../../lib/kite';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     try {
-      const client = await prisma.client.findUnique({
+      let client = await prisma.client.findUnique({
         where: { id },
         include: { user: true },
       });
       if (!client) {
         return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
       }
-      return NextResponse.json({ success: true, client });
+
+      let profileData: any = null;
+      let marginData: any = null;
+
+      // If client has access token and status is active, check token validity
+      if (client.accessToken && client.tradingStatus === 'active' && client.zerodhaApiKey) {
+        try {
+          const profile = await KiteClient.getProfile(client.zerodhaApiKey, client.accessToken);
+          if (profile.status === 'error' || profile.error_type === 'TokenException' || profile.message === 'Invalid token') {
+            // Token has expired or is invalid. Set status to inactive and clear token.
+            client = await prisma.client.update({
+              where: { id },
+              data: {
+                accessToken: null,
+                zerodhaSession: null,
+                tradingStatus: 'inactive'
+              },
+              include: { user: true }
+            });
+          } else if (profile.status === 'success' && profile.data) {
+            profileData = profile.data;
+            try {
+              const margins = await KiteClient.getMargins(client.zerodhaApiKey, client.accessToken);
+              if (margins.status === 'success' && margins.data) {
+                marginData = margins.data;
+              }
+            } catch (marginErr) {
+              console.error('Failed to fetch margins:', marginErr);
+            }
+          }
+        } catch (checkErr) {
+          console.error('Failed to verify Kite token session:', checkErr);
+        }
+      }
+
+      return NextResponse.json({ success: true, client, profile: profileData, margin: marginData });
     } catch {
-      const client = inMemoryClients.find((c) => c.id === id);
+      let client = inMemoryClients.find((c) => c.id === id);
       if (client) {
+        // Fallback checks for demo mode
         return NextResponse.json({ success: true, client, isDemoMode: true });
       }
       return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
@@ -42,7 +79,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       riskPercentage, 
       tradingStatus,
       subscriptionStatus,
-      strategyId 
+      strategyId,
+      accessToken
     } = body;
 
     try {
@@ -66,6 +104,17 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         }
       });
 
+      // Invalidate Zerodha session if we are disconnecting or changing status to inactive
+      if (tradingStatus === 'inactive' || accessToken === null) {
+        if (client.accessToken && client.zerodhaApiKey) {
+          try {
+            await KiteClient.logout(client.zerodhaApiKey, client.accessToken);
+          } catch (logoutErr) {
+            console.error('Failed to invalidate Zerodha token session on disconnect:', logoutErr);
+          }
+        }
+      }
+
       const updatedClient = await prisma.client.update({
         where: { id },
         data: {
@@ -77,6 +126,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
           strategyId: strategyId !== undefined ? strategyId : undefined,
           capital: capital ? Number(capital) : undefined,
           riskPercentage: riskPercentage ? Number(riskPercentage) : undefined,
+          accessToken: (tradingStatus === 'inactive' || accessToken === null) ? null : (accessToken !== undefined ? accessToken : undefined),
+          zerodhaSession: (tradingStatus === 'inactive' || accessToken === null) ? null : undefined,
         },
         include: { user: true },
       });
@@ -103,6 +154,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
           strategyId: strategyId ?? current.strategyId,
           capital: capital ? Number(capital) : current.capital,
           riskPercentage: riskPercentage ? Number(riskPercentage) : current.riskPercentage,
+          accessToken: (tradingStatus === 'inactive' || accessToken === null) ? null : (accessToken !== undefined ? accessToken : current.accessToken),
+          zerodhaSession: (tradingStatus === 'inactive' || accessToken === null) ? null : current.zerodhaSession,
         };
         return NextResponse.json({ success: true, client: inMemoryClients[clientIndex], isDemoMode: true });
       }

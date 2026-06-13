@@ -18,6 +18,15 @@ export const APP_ROUTES = {
   USER_SUPPORT: '/dashboard/support',
 };
 
+export const API_ENDPOINTS = {
+  CLIENTS: '/api/clients',
+  TRADES: '/api/trades',
+  STOCKS: '/api/stocks',
+  DASHBOARD: '/api/admin/dashboard',
+  AUDIT_LOGS: '/api/admin/audit-logs',
+  TOGGLE_TRADING: '/api/trading/toggle',
+};
+
 export const USER_ROLES = {
   ADMIN: 'admin',
   CLIENT: 'client',

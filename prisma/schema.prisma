@@ -39,6 +39,7 @@ model Client {
   zerodhaApiKey      String?   @map("zerodha_api_key")
   zerodhaApiSecret   String?   @map("zerodha_api_secret")
   accessToken        String?   @map("access_token")
+  zerodhaSession     String?   @map("zerodha_session")
   capital            Decimal   @db.Decimal(12, 2)
   riskPercentage     Decimal   @default(1.00) @map("risk_percentage") @db.Decimal(5, 2)
   strategyId         String?   @map("strategy_id")
