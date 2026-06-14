@@ -281,13 +281,11 @@ const INSTRUMENT_TO_SYMBOL: { [key: number]: string } = {
 
 class AlgoEngineService {
   private stocksState: StockQuote[] = [...INITIAL_STOCKS];
-  private intervalId: NodeJS.Timeout | null = null;
   private isTradingActive: boolean = false;
   private ws: WebSocket | null = null;
   private lastUpdate: { [symbol: string]: number } = {};
 
   constructor() {
-    this.startSimulation();
     this.initializeKiteLiveFeed();
   }
 
@@ -316,7 +314,7 @@ class AlgoEngineService {
         console.log(`Using database configuration for Client: ${client.zerodhaClientId}`);
         this.connectKiteWebSocket(client.zerodhaApiKey, client.accessToken);
       } else {
-        console.log('No Zerodha details found in .env or database. Running simulated fallback ticker.');
+        console.log('No Zerodha details found in .env or database. WebSocket ticker standby.');
       }
     } catch (err) {
       console.error('Failed to configure Kite Connect socket feed:', err);
@@ -413,7 +411,7 @@ class AlgoEngineService {
     }
   }
 
-  private updateStockFromTick(symbol: string, ltp: number, open: number, high: number, low: number, close: number, volume: number) {
+  private async updateStockFromTick(symbol: string, ltp: number, open: number, high: number, low: number, close: number, volume: number) {
     this.lastUpdate[symbol] = Date.now();
     this.stocksState = this.stocksState.map(stock => {
       if (stock.symbol === symbol) {
@@ -436,9 +434,13 @@ class AlgoEngineService {
       }
       return stock;
     });
+
+    if (this.isTradingActive) {
+      await this.monitorTrades();
+    }
   }
 
-  private updateStockLtp(symbol: string, ltp: number) {
+  private async updateStockLtp(symbol: string, ltp: number) {
     this.lastUpdate[symbol] = Date.now();
     this.stocksState = this.stocksState.map(stock => {
       if (stock.symbol === symbol) {
@@ -455,46 +457,10 @@ class AlgoEngineService {
       }
       return stock;
     });
-  }
 
-  // Fallback simulator for symbols not recently updated via WebSocket
-  private startSimulation() {
-    if (this.intervalId) return;
-
-    this.intervalId = setInterval(async () => {
-      const now = Date.now();
-      this.stocksState = this.stocksState.map(stock => {
-        // Skip simulation if the stock was updated via WebSocket in the last 10 seconds
-        if (this.lastUpdate[stock.symbol] && (now - this.lastUpdate[stock.symbol] < 10000)) {
-          return stock;
-        }
-
-        const pctChange = (Math.random() - 0.5) * 0.002;
-        const newLtp = parseFloat((stock.ltp * (1 + pctChange)).toFixed(2));
-        
-        const newHigh = newLtp > stock.high ? newLtp : stock.high;
-        const newLow = newLtp < stock.low ? newLtp : stock.low;
-        const change = parseFloat((newLtp - stock.prevClose).toFixed(2));
-        const changePercent = parseFloat(((change / stock.prevClose) * 100).toFixed(2));
-
-        return {
-          ...stock,
-          ltp: newLtp,
-          high: newHigh,
-          low: newLow,
-          change,
-          changePercent,
-          iep: newLtp,
-          final: newLtp,
-          volume: stock.volume + Math.floor(Math.random() * 20),
-          finalQuantity: stock.finalQuantity + Math.floor(Math.random() * 20)
-        };
-      });
-
-      if (this.isTradingActive) {
-        await this.monitorTrades();
-      }
-    }, 3000);
+    if (this.isTradingActive) {
+      await this.monitorTrades();
+    }
   }
 
   public getStocks(): StockQuote[] {

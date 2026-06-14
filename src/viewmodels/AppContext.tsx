@@ -112,50 +112,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Poll fast tick data every 3 seconds for live charts and trades monitoring
   // Simulate high-frequency WebSocket tick data locally in the browser (every 400ms)
-  useEffect(() => {
-    const tickInterval = setInterval(() => {
-      setStocks(prevStocks => {
-        if (!prevStocks || prevStocks.length === 0) return prevStocks;
-        return prevStocks.map(stock => {
-          // Random price tick movement (-0.15% to +0.15%)
-          const pctChange = (Math.random() - 0.5) * 0.003;
-          const newLtp = parseFloat((stock.ltp * (1 + pctChange)).toFixed(2));
-          const change = parseFloat((newLtp - stock.prevClose).toFixed(2));
-          const changePercent = parseFloat(((change / stock.prevClose) * 100).toFixed(2));
-          return {
-            ...stock,
-            ltp: newLtp,
-            iep: newLtp,
-            final: newLtp,
-            high: newLtp > stock.high ? newLtp : stock.high,
-            low: newLtp < stock.low ? newLtp : stock.low,
-            change,
-            changePercent,
-            volume: stock.volume + Math.floor(Math.random() * 20),
-            finalQuantity: (stock.finalQuantity || stock.volume) + Math.floor(Math.random() * 20),
-          };
-        });
-      });
-    }, 400);
-
-    return () => clearInterval(tickInterval);
-  }, []);
-
-  // Poll database updates (trades & dashboard stats) every 5 seconds
+  // Poll database updates (stocks, trades & dashboard stats) every 2 seconds
   useEffect(() => {
     refreshAllData();
     const interval = setInterval(async () => {
       try {
-        const [tradesRes, statsRes] = await Promise.all([
+        const [tradesRes, statsRes, stocksRes] = await Promise.all([
           api.get(API_ENDPOINTS.TRADES),
           api.get(API_ENDPOINTS.DASHBOARD),
+          api.get(API_ENDPOINTS.STOCKS),
         ]);
         if (tradesRes.success) setTrades(tradesRes.trades);
         if (statsRes.success) setDashboardStats(statsRes.stats);
+        if (stocksRes.success) {
+          setStocks(stocksRes.stocks);
+          setIsTradingActive(stocksRes.isTradingActive);
+        }
       } catch (err) {
         console.error('Ticking poll error:', err);
       }
-    }, 5000);
+    }, 2000);
 
     return () => clearInterval(interval);
   }, [refreshAllData]);
