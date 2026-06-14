@@ -5,6 +5,7 @@ import { useAppViewModel } from '../../../viewmodels/AppContext';
 import { Card } from '../../../views/components/Card';
 import { Loader } from '../../../views/components/Loader';
 import { Calendar, Tag, CreditCard, ShieldCheck } from 'lucide-react';
+import { API_ENDPOINTS } from '../../../lib/constants';
 
 export default function ClientPaymentHistory() {
   const { activeUser } = useAppViewModel();
@@ -24,7 +25,7 @@ export default function ClientPaymentHistory() {
   useEffect(() => {
     if (!activeUser) return;
 
-    fetch(`/api/payments/history?userId=${activeUser.id}`)
+    fetch(`${API_ENDPOINTS.PAYMENTS_HISTORY}?userId=${activeUser.id}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -34,6 +35,7 @@ export default function ClientPaymentHistory() {
       .catch(err => console.error('Failed to load transaction history:', err))
       .finally(() => setLoading(false));
   }, [activeUser]);
+
 
   if (loading || !activeUser) {
     return <Loader title="Loading history" text="Fetching transaction logs and invoice metadata..." fullscreen={false} />;

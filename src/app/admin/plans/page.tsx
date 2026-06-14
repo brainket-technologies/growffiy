@@ -6,7 +6,7 @@ import { CreditCard, Plus, RefreshCw, Check, Calendar, Edit2, Trash2, Search, Fi
 import { Modal } from '../../../views/components/Modal';
 import { Button } from '../../../views/components/Button';
 import { api } from '../../../lib/api';
-import { THEME_COLORS } from '../../../lib/constants';
+import { THEME_COLORS, API_ENDPOINTS } from '../../../lib/constants';
 
 export default function AdminPlansPage() {
   const [plans, setPlans] = useState<any[]>([]);
@@ -37,7 +37,7 @@ export default function AdminPlansPage() {
       setLoading(true);
     }
     try {
-      const res = await api.get('/api/plans');
+      const res = await api.get(API_ENDPOINTS.PLANS);
       if (res.success) {
         setPlans(res.plans || []);
       }
@@ -65,7 +65,7 @@ export default function AdminPlansPage() {
       .filter(f => f.length > 0);
 
     try {
-      const res = await api.post('/api/plans', {
+      const res = await api.post(API_ENDPOINTS.PLANS, {
         name,
         price: parseFloat(price),
         durationDays: parseInt(durationDays, 10),
@@ -97,7 +97,7 @@ export default function AdminPlansPage() {
       .filter(f => f.length > 0);
 
     try {
-      const res = await api.put(`/api/plans/${selectedPlan.id}`, {
+      const res = await api.put(`${API_ENDPOINTS.PLANS}/${selectedPlan.id}`, {
         name,
         price: parseFloat(price),
         durationDays: parseInt(durationDays, 10),
@@ -123,7 +123,7 @@ export default function AdminPlansPage() {
     setFormError(null);
 
     try {
-      const res = await api.delete(`/api/plans/${selectedPlan.id}`);
+      const res = await api.delete(`${API_ENDPOINTS.PLANS}/${selectedPlan.id}`);
       if (res.success) {
         setIsDeleteModalOpen(false);
         setSelectedPlan(null);
@@ -145,7 +145,7 @@ export default function AdminPlansPage() {
     );
 
     try {
-      const res = await api.put(`/api/plans/${plan.id}`, {
+      const res = await api.put(`${API_ENDPOINTS.PLANS}/${plan.id}`, {
         name: plan.name,
         price: plan.price,
         durationDays: plan.durationDays,

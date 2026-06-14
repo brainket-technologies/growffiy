@@ -148,7 +148,7 @@ export default function ClientDetailsPage() {
 
   const showSetupGuide = (shouldConnect: boolean = false) => {
     const redirectUrl = typeof window !== 'undefined' 
-      ? `${window.location.origin}/api/callback/zerodha` 
+      ? `${window.location.origin}${API_ENDPOINTS.CALLBACK_ZERODHA}` 
       : '';
 
     const guideContent = (

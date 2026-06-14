@@ -5,6 +5,7 @@ import { useAppViewModel } from '../../../viewmodels/AppContext';
 import { Card } from '../../../views/components/Card';
 import { Loader } from '../../../views/components/Loader';
 import { LifeBuoy, Send, CheckCircle2, AlertCircle, MessageSquare } from 'lucide-react';
+import { API_ENDPOINTS } from '../../../lib/constants';
 
 export default function ClientSupportPage() {
   const { colors, activeUser } = useAppViewModel();
@@ -17,6 +18,24 @@ export default function ClientSupportPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  const [supportEmail, setSupportEmail] = useState('support@growffiy.com');
+  const [supportPhone, setSupportPhone] = useState('+91 98765 43210');
+  const [supportTimings, setSupportTimings] = useState('Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)');
+
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch(API_ENDPOINTS.SETTINGS_PUBLIC);
+      const data = await res.json();
+      if (data.success) {
+        setSupportEmail(data.supportEmail || 'support@growffiy.com');
+        setSupportPhone(data.supportPhone || '+91 98765 43210');
+        setSupportTimings(data.supportTimings || 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)');
+      }
+    } catch (err) {
+      console.error('Failed to fetch settings:', err);
+    }
+  };
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedId = localStorage.getItem('growffiy_logged_in_user_id');
@@ -25,12 +44,14 @@ export default function ClientSupportPage() {
         return;
       }
     }
+    fetchSettings();
   }, []);
+
 
   const loadTickets = async () => {
     if (!activeUser) return;
     try {
-      const res = await fetch(`/api/support/tickets?userId=${activeUser.id}`);
+      const res = await fetch(`${API_ENDPOINTS.SUPPORT_TICKETS}?userId=${activeUser.id}`);
       const data = await res.json();
       if (data.success) {
         setTickets(data.tickets || []);
@@ -57,7 +78,7 @@ export default function ClientSupportPage() {
     setSuccessMsg(null);
 
     try {
-      const res = await fetch('/api/support/tickets', {
+      const res = await fetch(API_ENDPOINTS.SUPPORT_TICKETS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -68,6 +89,7 @@ export default function ClientSupportPage() {
         })
       });
       const data = await res.json();
+
 
       if (res.ok && data.success) {
         setSuccessMsg('Support ticket created successfully! We will get back to you soon.');
@@ -98,84 +120,110 @@ export default function ClientSupportPage() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '24px', alignItems: 'start' }}>
-        {/* Create Ticket */}
-        <Card>
-          <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '20px', fontFamily: 'var(--font-title)' }}>
-            Raise Support Ticket
-          </h3>
-          {errorMsg && (
-            <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: 'var(--danger-light)', color: 'var(--danger)', fontSize: '13px', marginBottom: '16px', fontWeight: 500 }}>
-              {errorMsg}
-            </div>
-          )}
-          {successMsg && (
-            <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontSize: '13px', marginBottom: '16px', fontWeight: 500 }}>
-              {successMsg}
-            </div>
-          )}
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-body)', display: 'block', marginBottom: '6px' }}>Help Category</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '14px', backgroundColor: 'white' }}
+        {/* Left Column: Create Ticket & Contact details */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <Card>
+            <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '20px', fontFamily: 'var(--font-title)' }}>
+              Raise Support Ticket
+            </h3>
+            {errorMsg && (
+              <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: 'var(--danger-light)', color: 'var(--danger)', fontSize: '13px', marginBottom: '16px', fontWeight: 500 }}>
+                {errorMsg}
+              </div>
+            )}
+            {successMsg && (
+              <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontSize: '13px', marginBottom: '16px', fontWeight: 500 }}>
+                {successMsg}
+              </div>
+            )}
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-body)', display: 'block', marginBottom: '6px' }}>Help Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '14px', backgroundColor: 'white' }}
+                >
+                  <option value="General">General Inquiry</option>
+                  <option value="Tech Support">Technical (API/Execution)</option>
+                  <option value="Billing">Billing & Subscription</option>
+                  <option value="Demat Issues">Demat Link Issues</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-body)', display: 'block', marginBottom: '6px' }}>Subject</label>
+                <input
+                  type="text"
+                  placeholder="Brief summary of the issue..."
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  required
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '14px' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-body)', display: 'block', marginBottom: '6px' }}>Detailed Message</label>
+                <textarea
+                  rows={5}
+                  placeholder="Explain the issue in detail, including trade symbols or error logs if any..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  required
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '14px', resize: 'vertical' }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={creating}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  backgroundColor: 'var(--primary)',
+                  color: 'white',
+                  border: 'none',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  opacity: creating ? 0.7 : 1
+                }}
               >
-                <option value="General">General Inquiry</option>
-                <option value="Tech Support">Technical (API/Execution)</option>
-                <option value="Billing">Billing & Subscription</option>
-                <option value="Demat Issues">Demat Link Issues</option>
-              </select>
-            </div>
+                <Send size={16} />
+                {creating ? 'Submitting...' : 'Submit Ticket'}
+              </button>
+            </form>
+          </Card>
 
-            <div>
-              <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-body)', display: 'block', marginBottom: '6px' }}>Subject</label>
-              <input
-                type="text"
-                placeholder="Brief summary of the issue..."
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                required
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '14px' }}
-              />
+          <Card>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px' }}>
+              <LifeBuoy color="var(--primary)" size={20} />
+              <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
+                Direct Support Info
+              </h3>
             </div>
-
-            <div>
-              <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-body)', display: 'block', marginBottom: '6px' }}>Detailed Message</label>
-              <textarea
-                rows={5}
-                placeholder="Explain the issue in detail, including trade symbols or error logs if any..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                required
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '14px', resize: 'vertical' }}
-              />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <Mail size={16} color="var(--text-muted)" />
+                <span style={{ fontSize: '14px', color: 'var(--text-body)' }}>{supportEmail}</span>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <Phone size={16} color="var(--text-muted)" />
+                <span style={{ fontSize: '14px', color: 'var(--text-body)' }}>{supportPhone}</span>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <MessageSquare size={16} color="var(--text-muted)" />
+                <span style={{ fontSize: '14px', color: 'var(--text-body)' }}>{supportTimings}</span>
+              </div>
             </div>
+          </Card>
+        </div>
 
-            <button
-              type="submit"
-              disabled={creating}
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '8px',
-                backgroundColor: 'var(--primary)',
-                color: 'white',
-                border: 'none',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                opacity: creating ? 0.7 : 1
-              }}
-            >
-              <Send size={16} />
-              {creating ? 'Submitting...' : 'Submit Ticket'}
-            </button>
-          </form>
-        </Card>
 
         {/* Ticket List */}
         <Card>

@@ -28,6 +28,13 @@ export const API_ENDPOINTS = {
   SETTINGS: '/api/admin/settings',
   AUTH_LOGIN: '/api/auth/login',
   AUTH_PROFILE: '/api/auth/profile',
+  SUPPORT_TICKETS: '/api/support/tickets',
+  SETTINGS_PUBLIC: '/api/settings/public',
+  PLANS: '/api/plans',
+  PAYMENTS_ORDER: '/api/payments/order',
+  PAYMENTS_VERIFY: '/api/payments/verify',
+  PAYMENTS_HISTORY: '/api/payments/history',
+  CALLBACK_ZERODHA: '/api/callback/zerodha',
 };
 
 export const USER_ROLES = {

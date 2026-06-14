@@ -10,6 +10,7 @@ import {
   BarChart2, Lock, Bell, Target, Cpu,
   Check, Phone, Mail, MapPin
 } from 'lucide-react';
+import { API_ENDPOINTS } from '../lib/constants';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Stock {
@@ -95,7 +96,7 @@ export default function GrowffiyLanding() {
   const [plansLoading, setPlansLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/plans', { cache: 'no-store' })
+    fetch(API_ENDPOINTS.PLANS, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         if (data.success && data.plans) {

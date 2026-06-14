@@ -5,6 +5,8 @@ import { useAppViewModel } from '../../../viewmodels/AppContext';
 import { Card } from '../../../views/components/Card';
 import { Loader } from '../../../views/components/Loader';
 import { Check, ShieldCheck, Sparkles, CreditCard, HelpCircle, Zap, Shield, Gift, ChevronDown, ChevronUp } from 'lucide-react';
+import { API_ENDPOINTS } from '../../../lib/constants';
+
 
 export default function ClientSubscriptionPlans() {
   const { colors, activeUser } = useAppViewModel();
@@ -27,7 +29,7 @@ export default function ClientSubscriptionPlans() {
     }
 
     // Load available plans from DB
-    fetch('/api/plans')
+    fetch(API_ENDPOINTS.PLANS)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -58,14 +60,14 @@ export default function ClientSubscriptionPlans() {
 
     try {
       // 1. Get Razorpay Public Key ID
-      const settingsRes = await fetch('/api/settings/public');
+      const settingsRes = await fetch(API_ENDPOINTS.SETTINGS_PUBLIC);
       const settingsData = await settingsRes.json();
       if (!settingsData.success || !settingsData.razorpayKeyId) {
         throw new Error('Razorpay payment gateway not configured by Admin.');
       }
 
       // 2. Create Razorpay order ID in backend
-      const orderRes = await fetch('/api/payments/order', {
+      const orderRes = await fetch(API_ENDPOINTS.PAYMENTS_ORDER, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -97,7 +99,7 @@ export default function ClientSubscriptionPlans() {
         handler: async function (response: any) {
           try {
             setLoadingPlans(true);
-            const verifyRes = await fetch('/api/payments/verify', {
+            const verifyRes = await fetch(API_ENDPOINTS.PAYMENTS_VERIFY, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({

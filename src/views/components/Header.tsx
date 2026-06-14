@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Bell, HelpCircle, User, ChevronDown, Lock, UserCheck, LogOut, X, RefreshCw } from 'lucide-react';
 import styles from './components.module.css';
 import { api } from '../../lib/api';
+import { API_ENDPOINTS } from '../../lib/constants';
 
 interface HeaderProps {
   title: string;
@@ -41,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
     if (profileModalOpen && typeof window !== 'undefined') {
       const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
       if (activeUser) {
-        api.get(`/api/auth/profile?userId=${activeUser}`)
+        api.get(`${API_ENDPOINTS.AUTH_PROFILE}?userId=${activeUser}`)
           .then(res => {
             if (res.success && res.user) {
               setProfileName(res.user.name);
@@ -93,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
 
     try {
       const activeUserId = localStorage.getItem('growffiy_logged_in_user_id') || 'admin';
-      const res = await api.post('/api/auth/profile', {
+      const res = await api.post(API_ENDPOINTS.AUTH_PROFILE, {
         userId: activeUserId,
         name: profileName,
         email: profileEmail
@@ -131,7 +132,7 @@ export const Header: React.FC<HeaderProps> = ({
 
     try {
       const activeUserId = localStorage.getItem('growffiy_logged_in_user_id') || 'admin';
-      const res = await api.post('/api/auth/profile', {
+      const res = await api.post(API_ENDPOINTS.AUTH_PROFILE, {
         userId: activeUserId,
         currentPassword,
         newPassword
