@@ -439,30 +439,7 @@ export default function PreOpenScannerPage() {
           )}
         </Card>
 
-        {/* Strategy Parameters */}
-        <Card>
-          <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '16px', fontFamily: 'var(--font-title)' }}>
-            Breakout Rules
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '12px' }}>
-            <div>
-              <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Scanner Filter</p>
-              <p style={{ color: 'var(--text-secondary)' }}>Identify stocks with maximum Gap Down open inside selected category segment.</p>
-            </div>
-            <div>
-              <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Signal Entry</p>
-              <p style={{ color: 'var(--text-secondary)' }}>Buy SLM above the 5-Minute high candle with +0.1% buffer.</p>
-            </div>
-            <div>
-              <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Stop Loss</p>
-              <p style={{ color: 'var(--text-secondary)' }}>Hard stop loss set at -0.5% below Entry Price.</p>
-            </div>
-            <div>
-              <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Target</p>
-              <p style={{ color: 'var(--text-secondary)' }}>Target set at +1.5% profit, matching a 1:3 Risk/Reward ratio.</p>
-            </div>
-          </div>
-        </Card>
+
       </div>
     </div>
   );
