@@ -21,6 +21,9 @@ export async function GET() {
     settings['smtp_status'] = 'false'; // 'true' (on) or 'false' (off)
     settings['default_risk'] = '1.00';
     settings['slippage'] = '0.10';
+    settings['support_email'] = 'support@growffiy.com';
+    settings['support_phone'] = '+91 98765 43210';
+    settings['support_timings'] = 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)';
 
 
     dbSettings.forEach((s) => {
@@ -45,7 +48,10 @@ export async function GET() {
         smtp_encryption: 'tls',
         smtp_status: 'false',
         default_risk: '1.00',
-        slippage: '0.10'
+        slippage: '0.10',
+        support_email: 'support@growffiy.com',
+        support_phone: '+91 98765 43210',
+        support_timings: 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)'
       } 
     });
   }
@@ -68,7 +74,10 @@ export async function PUT(request: Request) {
       smtp_encryption,
       smtp_status,
       default_risk, 
-      slippage 
+      slippage,
+      support_email,
+      support_phone,
+      support_timings
     } = body;
 
     const updates = {
@@ -86,7 +95,11 @@ export async function PUT(request: Request) {
       smtp_status,
       default_risk,
       slippage,
+      support_email,
+      support_phone,
+      support_timings
     };
+
 
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) {

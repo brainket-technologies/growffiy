@@ -9,7 +9,7 @@ import { Modal } from '../../../views/components/Modal';
 import { API_ENDPOINTS } from '../../../lib/constants';
 
 
-type TabType = 'payments' | 'smtp' | 'risk';
+type TabType = 'payments' | 'smtp' | 'risk' | 'support';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('payments');
@@ -34,6 +34,11 @@ export default function SettingsPage() {
   const [defaultRisk, setDefaultRisk] = useState('1.00');
   const [slippage, setSlippage] = useState('0.10');
 
+  // Support contact info
+  const [supportEmail, setSupportEmail] = useState('support@growffiy.com');
+  const [supportPhone, setSupportPhone] = useState('+91 98765 43210');
+  const [supportTimings, setSupportTimings] = useState('Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)');
+
   // UI Status
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -42,6 +47,7 @@ export default function SettingsPage() {
   const [showSmtpPassword, setShowSmtpPassword] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [infoModal, setInfoModal] = useState<{ title: string; content: React.ReactNode } | null>(null);
+
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -64,6 +70,10 @@ export default function SettingsPage() {
 
           setDefaultRisk(res.settings.default_risk || '1.00');
           setSlippage(res.settings.slippage || '0.10');
+
+          setSupportEmail(res.settings.support_email || 'support@growffiy.com');
+          setSupportPhone(res.settings.support_phone || '+91 98765 43210');
+          setSupportTimings(res.settings.support_timings || 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)');
         }
       } catch (err: any) {
         console.error('Error fetching settings:', err);
@@ -95,7 +105,11 @@ export default function SettingsPage() {
         smtp_status: smtpStatus,
         default_risk: defaultRisk,
         slippage: slippage,
+        support_email: supportEmail,
+        support_phone: supportPhone,
+        support_timings: supportTimings,
       });
+
 
       if (res.success) {
         setNotification({
@@ -234,7 +248,30 @@ export default function SettingsPage() {
           <Sliders size={16} />
           Risk Parameters
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('support')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '14px 4px',
+            fontSize: '14px',
+            fontWeight: 600,
+            border: 'none',
+            borderBottom: activeTab === 'support' ? '2px solid var(--primary)' : '2px solid transparent',
+            color: activeTab === 'support' ? 'var(--primary)' : 'var(--text-secondary)',
+            background: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+        >
+          <LifeBuoy size={16} />
+          Support Info
+        </button>
       </div>
+
 
       <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         
@@ -777,7 +814,88 @@ export default function SettingsPage() {
             </div>
           </Card>
         )}
+
+        {/* Support View Tab */}
+        {activeTab === 'support' && (
+          <Card style={{ padding: '24px 28px' }}>
+            <div style={{ marginBottom: '28px', borderBottom: '1px solid var(--border-light)', paddingBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
+                Direct Support Information
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Configure the support contact details that are displayed to all clients on their help and support desks.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Support Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={supportEmail}
+                  onChange={(e) => setSupportEmail(e.target.value)}
+                  placeholder="support@growffiy.com"
+                  style={{ height: '38px', fontSize: '13px' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Support Phone Number
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={supportPhone}
+                  onChange={(e) => setSupportPhone(e.target.value)}
+                  placeholder="+91 98765 43210"
+                  style={{ height: '38px', fontSize: '13px' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Live Chat Timings / Note
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={supportTimings}
+                  onChange={(e) => setSupportTimings(e.target.value)}
+                  placeholder="Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)"
+                  style={{ height: '38px', fontSize: '13px' }}
+                />
+              </div>
+            </div>
+
+            {/* Submit Action inside Box */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '24px' }}>
+              <Button
+                type="submit"
+                disabled={saving}
+                style={{
+                  padding: '10px 28px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
+                  color: 'white',
+                  boxShadow: 'var(--shadow-blue)'
+                }}
+              >
+                {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
+                Save & Apply Settings
+              </Button>
+            </div>
+          </Card>
+        )}
       </form>
+
 
       {/* Info Help Modal */}
       {infoModal && (

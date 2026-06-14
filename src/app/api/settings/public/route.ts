@@ -19,9 +19,13 @@ export async function GET() {
     return NextResponse.json({ 
       success: true, 
       razorpayKeyId: keyId,
-      mode 
+      mode,
+      supportEmail: settings['support_email'] || 'support@growffiy.com',
+      supportPhone: settings['support_phone'] || '+91 98765 43210',
+      supportTimings: settings['support_timings'] || 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)'
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+

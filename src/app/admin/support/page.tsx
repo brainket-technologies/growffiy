@@ -11,6 +11,24 @@ export default function SupportPage() {
   const [submittingReply, setSubmittingReply] = useState<string | null>(null);
   const [replies, setReplies] = useState<{ [key: string]: string }>({});
 
+  const [supportEmail, setSupportEmail] = useState('support@growffiy.com');
+  const [supportPhone, setSupportPhone] = useState('+91 98765 43210');
+  const [supportTimings, setSupportTimings] = useState('Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)');
+
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch('/api/settings/public');
+      const data = await res.json();
+      if (data.success) {
+        setSupportEmail(data.supportEmail || 'support@growffiy.com');
+        setSupportPhone(data.supportPhone || '+91 98765 43210');
+        setSupportTimings(data.supportTimings || 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)');
+      }
+    } catch (err) {
+      console.error('Failed to fetch settings:', err);
+    }
+  };
+
   const fetchTickets = async () => {
     try {
       const res = await fetch('/api/support/tickets?all=true');
@@ -26,8 +44,10 @@ export default function SupportPage() {
   };
 
   useEffect(() => {
+    fetchSettings();
     fetchTickets();
   }, []);
+
 
   const handleSendReply = async (ticketId: string) => {
     const replyText = replies[ticketId];
@@ -248,18 +268,19 @@ export default function SupportPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <Mail size={16} color="var(--text-secondary)" />
-                <span style={{ fontSize: '14px' }}>support@growffiy.com</span>
+                <span style={{ fontSize: '14px' }}>{supportEmail}</span>
               </div>
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <Phone size={16} color="var(--text-secondary)" />
-                <span style={{ fontSize: '14px' }}>+91 98765 43210</span>
+                <span style={{ fontSize: '14px' }}>{supportPhone}</span>
               </div>
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <MessageSquare size={16} color="var(--text-secondary)" />
-                <span style={{ fontSize: '14px' }}>Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)</span>
+                <span style={{ fontSize: '14px' }}>{supportTimings}</span>
               </div>
             </div>
           </Card>
+
 
           <Card>
             <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
