@@ -11,6 +11,7 @@ export default function PreOpenScannerPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(30);
+  const [denom, setDenom] = useState<'lakhs' | 'crores' | 'billions'>('crores');
 
   // Infinite Scroll Handler
   React.useEffect(() => {
@@ -25,6 +26,19 @@ export default function PreOpenScannerPage() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [scannerResults.length]);
+
+  const getDenomConfig = () => {
+    switch (denom) {
+      case 'lakhs':
+        return { factor: 100, label: 'Lakhs' };
+      case 'billions':
+        return { factor: 0.01, label: 'Billions' };
+      case 'crores':
+      default:
+        return { factor: 1, label: 'Crores' };
+    }
+  };
+  const { factor, label } = getDenomConfig();
 
   const runManualScan = () => {
     setIsScanning(true);
@@ -60,49 +74,83 @@ export default function PreOpenScannerPage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '24px', alignItems: 'start' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         {/* Scanner Results List */}
-        <Card>
-          <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '20px', fontFamily: 'var(--font-title)' }}>
-            Top Breakout Candidates (Nifty 200 Scanner)
-          </h3>
-          <div className="table-responsive">
-            <table>
+        <Card style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 600, fontFamily: 'var(--font-title)', margin: 0 }}>
+              Top Breakout Candidates (Nifty 200 Scanner)
+            </h3>
+            
+            {/* Change Denomination Options */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+              <span>Change denomination</span>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                <input type="radio" name="denom" value="lakhs" checked={denom === 'lakhs'} onChange={() => setDenom('lakhs')} style={{ cursor: 'pointer' }} />
+                Lakhs
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                <input type="radio" name="denom" value="crores" checked={denom === 'crores'} onChange={() => setDenom('crores')} style={{ cursor: 'pointer' }} />
+                Crores
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                <input type="radio" name="denom" value="billions" checked={denom === 'billions'} onChange={() => setDenom('billions')} style={{ cursor: 'pointer' }} />
+                Billions
+              </label>
+            </div>
+          </div>
+
+          <div className="table-responsive" style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1100px' }}>
               <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Symbol</th>
-                  <th>LTP (₹)</th>
-                  <th>Open Price (₹)</th>
-                  <th>Prev Close (₹)</th>
-                  <th>Gap Down/Up (%)</th>
-                  <th>% Chg</th>
+                <tr style={{ borderBottom: '1.5px solid var(--border-light)', backgroundColor: '#f8fafc' }}>
+                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)' }}>SYMBOL</th>
+                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)' }}>PREV. CLOSE</th>
+                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)' }}>IEP</th>
+                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)' }}>CHNG</th>
+                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)' }}>%CHNG</th>
+                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)' }}>FINAL</th>
+                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)' }}>FINAL QUANTITY</th>
+                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)' }}>VALUE (₹ {label})</th>
+                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)' }}>FFM CAP (₹ {label})</th>
+                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)' }}>NM 52W H</th>
+                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)' }}>NM 52W L</th>
                 </tr>
               </thead>
               <tbody>
-                {visibleStocks.map((stock, idx) => {
-                  const gapDownPct = ((stock.open - stock.prevClose) / stock.prevClose) * 100;
-                  const isGapPositive = gapDownPct >= 0;
-                  const isChgPositive = stock.changePercent >= 0;
+                {visibleStocks.map((stock) => {
+                  const chng = stock.iep - stock.prevClose;
+                  const isPositive = chng >= 0;
+                  const valueVal = (stock.value || 0) * factor;
+                  const ffmCapVal = (stock.ffmCap || 0) * factor;
+
                   return (
-                    <tr key={stock.symbol}>
-                      <td style={{ fontWeight: 600, color: 'var(--color-info)' }}>#{idx + 1}</td>
-                      <td style={{ fontWeight: 600 }}>{stock.symbol}</td>
-                      <td>₹{stock.ltp.toFixed(2)}</td>
-                      <td>₹{stock.open.toFixed(2)}</td>
-                      <td>₹{stock.prevClose.toFixed(2)}</td>
+                    <tr key={stock.symbol} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                      <td style={{ fontWeight: 700, padding: '12px 10px', fontSize: '13px' }}>{stock.symbol}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px' }}>{stock.prevClose.toFixed(2)}</td>
+                      <td style={{ fontWeight: 700, padding: '12px 10px', fontSize: '13px' }}>{stock.iep.toFixed(2)}</td>
                       <td style={{ 
-                        color: gapDownPct === 0 ? '#94a3b8' : isGapPositive ? '#10b981' : '#ef4444', 
-                        fontWeight: 600 
+                        padding: '12px 10px', 
+                        fontSize: '13px', 
+                        fontWeight: 600,
+                        color: chng === 0 ? '#94a3b8' : isPositive ? '#10b981' : '#ef4444' 
                       }}>
-                        {isGapPositive ? '+' : ''}{gapDownPct.toFixed(2)}%
+                        {isPositive ? '+' : ''}{chng.toFixed(2)}
                       </td>
                       <td style={{ 
-                        color: stock.changePercent === 0 ? '#94a3b8' : isChgPositive ? '#10b981' : '#ef4444', 
-                        fontWeight: 600 
+                        padding: '12px 10px', 
+                        fontSize: '13px', 
+                        fontWeight: 700,
+                        color: stock.changePercent === 0 ? '#94a3b8' : isPositive ? '#10b981' : '#ef4444' 
                       }}>
-                        {isChgPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                        {isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
                       </td>
+                      <td style={{ fontWeight: 700, padding: '12px 10px', fontSize: '13px' }}>{stock.final.toFixed(2)}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px' }}>{(stock.finalQuantity || 0).toLocaleString('en-IN')}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px' }}>{valueVal.toFixed(2)}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px' }}>{ffmCapVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px' }}>{(stock.nm52wH || stock.high).toFixed(2)}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px' }}>{(stock.nm52wL || stock.low).toFixed(2)}</td>
                     </tr>
                   );
                 })}
@@ -111,7 +159,7 @@ export default function PreOpenScannerPage() {
           </div>
           {visibleCount < scannerResults.length && (
             <div style={{ textAlign: 'center', padding: '16px', color: 'var(--text-muted)', fontSize: '12px', fontWeight: 500 }}>
-              Scroll down to load more Nifty 200 breakout candidates...
+              Scroll down to load more F&O breakout candidates...
             </div>
           )}
         </Card>

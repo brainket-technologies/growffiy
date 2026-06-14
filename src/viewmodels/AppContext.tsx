@@ -125,11 +125,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return {
             ...stock,
             ltp: newLtp,
+            iep: newLtp,
+            final: newLtp,
             high: newLtp > stock.high ? newLtp : stock.high,
             low: newLtp < stock.low ? newLtp : stock.low,
             change,
             changePercent,
             volume: stock.volume + Math.floor(Math.random() * 20),
+            finalQuantity: (stock.finalQuantity || stock.volume) + Math.floor(Math.random() * 20),
           };
         });
       });
