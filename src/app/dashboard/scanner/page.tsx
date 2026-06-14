@@ -1,0 +1,463 @@
+'use client';
+
+import React, { useState } from 'react';
+import { useAppViewModel } from '../../../viewmodels/AppContext';
+import { Card } from '../../../views/components/Card';
+import { Button } from '../../../views/components/Button';
+import { Zap, CheckCircle2, FileSpreadsheet, Loader2 } from 'lucide-react';
+
+type CategoryType = 'NIFTY 50' | 'Nifty Bank' | 'Emerge' | 'Securities in F&O' | 'Others' | 'All';
+
+export default function ClientPreOpenScannerPage() {
+  const { scannerResults, loading, isSyncing, isWsConnected } = useAppViewModel();
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanMessage, setScanMessage] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(30);
+  const [denom, setDenom] = useState<'lakhs' | 'crores' | 'billions'>('crores');
+  const [category, setCategory] = useState<CategoryType>('Securities in F&O');
+  const [symbolQuery, setSymbolQuery] = useState('');
+  const [sortField, setSortField] = useState<string>('changePercent');
+  const [sortAsc, setSortAsc] = useState<boolean>(false);
+
+  // Infinite Scroll Handler
+  React.useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 120
+      ) {
+        setVisibleCount(prev => Math.min(prev + 30, scannerResults.length));
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [scannerResults.length]);
+
+  const getDenomConfig = () => {
+    switch (denom) {
+      case 'lakhs':
+        return { factor: 100, label: 'Lakhs' };
+      case 'billions':
+        return { factor: 0.01, label: 'Billions' };
+      case 'crores':
+      default:
+        return { factor: 1, label: 'Crores' };
+    }
+  };
+  const { factor, label } = getDenomConfig();
+
+  const runManualScan = () => {
+    setIsScanning(true);
+    setScanMessage(null);
+    setTimeout(() => {
+      setIsScanning(false);
+      setScanMessage(`Scanner complete. Selected ${scannerResults[0]?.symbol || 'None'} as trade breakout candidate.`);
+    }, 1500);
+  };
+
+  const filterByCategory = (stock: any, cat: CategoryType) => {
+    const nifty50 = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'AXISBANK', 'KOTAKBANK', 'BHARTIARTL', 'ITC', 'HINDUNILVR', 'LT', 'SUNPHARMA', 'NTPC', 'MARUTI', 'JSWSTEEL', 'TATAMOTORS', 'BAJFINANCE', 'ONGC', 'COALINDIA', 'POWERGRID', 'ADANIENT', 'ADANIPORTS'];
+    const niftyBank = ['HDFCBANK', 'ICICIBANK', 'SBIN', 'AXISBANK', 'KOTAKBANK', 'FEDERALBNK', 'BANDHANBNK', 'YESBANK', 'PNB', 'CANBK'];
+    const emerge = ['RVNL', 'ZEEL', 'GMRINFRA', 'NATIONALUM', 'BHEL', 'BIOCON', 'DELTACORP', 'IDEA'];
+    
+    if (cat === 'NIFTY 50') {
+      return nifty50.includes(stock.symbol);
+    }
+    if (cat === 'Nifty Bank') {
+      return niftyBank.includes(stock.symbol);
+    }
+    if (cat === 'Emerge') {
+      return emerge.includes(stock.symbol);
+    }
+    if (cat === 'Securities in F&O') {
+      return true;
+    }
+    if (cat === 'Others') {
+      return !nifty50.includes(stock.symbol) && !niftyBank.includes(stock.symbol) && !emerge.includes(stock.symbol);
+    }
+    return true;
+  };
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortField(field);
+      const defaultAsc = ['symbol'].includes(field);
+      setSortAsc(defaultAsc);
+    }
+  };
+
+  const filteredStocks = scannerResults.filter(stock => {
+    const matchesCat = filterByCategory(stock, category);
+    const matchesSymbol = stock.symbol.toLowerCase().includes(symbolQuery.trim().toLowerCase());
+    return matchesCat && matchesSymbol;
+  });
+
+  const sortedStocks = [...filteredStocks].sort((a, b) => {
+    let valA: any = 0;
+    let valB: any = 0;
+
+    if (sortField === 'symbol') {
+      valA = a.symbol;
+      valB = b.symbol;
+      return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    }
+
+    if (sortField === 'chng') {
+      valA = a.iep - a.prevClose;
+      valB = b.iep - b.prevClose;
+    } else {
+      valA = a[sortField] ?? 0;
+      valB = b[sortField] ?? 0;
+    }
+
+    if (valA < valB) return sortAsc ? -1 : 1;
+    if (valA > valB) return sortAsc ? 1 : -1;
+    return 0;
+  });
+
+  const visibleStocks = sortedStocks.slice(0, visibleCount);
+
+  // Derive Advance / Decline counts dynamically from the filtered list
+  const advances = filteredStocks.filter(s => s.iep - s.prevClose > 0).length;
+  const declines = filteredStocks.filter(s => s.iep - s.prevClose < 0).length;
+  const unchanged = filteredStocks.filter(s => s.iep - s.prevClose === 0).length;
+
+  const handleClear = () => {
+    setCategory('Securities in F&O');
+    setSymbolQuery('');
+    setDenom('crores');
+    setSortField('changePercent');
+    setSortAsc(false);
+  };
+
+  const downloadCSV = () => {
+    const headers = ['SYMBOL', 'PREV. CLOSE', 'IEP', 'CHNG', '%CHNG', 'FINAL', 'FINAL QUANTITY', `VALUE (₹ ${label})`, `FFM CAP (₹ ${label})`, 'NM 52W H', 'NM 52W L'];
+    const rows = sortedStocks.map(stock => {
+      const chng = stock.iep - stock.prevClose;
+      const isPositive = chng >= 0;
+      const valueVal = (stock.value || 0) * factor;
+      const ffmCapVal = (stock.ffmCap || 0) * factor;
+      return [
+        stock.symbol,
+        stock.prevClose.toFixed(2),
+        stock.iep.toFixed(2),
+        `${isPositive ? '+' : ''}${chng.toFixed(2)}`,
+        `${isPositive ? '+' : ''}${stock.changePercent.toFixed(2)}%`,
+        stock.final.toFixed(2),
+        stock.finalQuantity || 0,
+        valueVal.toFixed(2),
+        ffmCapVal.toFixed(2),
+        (stock.nm52wH || stock.high).toFixed(2),
+        (stock.nm52wL || stock.low).toFixed(2)
+      ];
+    });
+
+    const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `nse_pre_open_${category.toLowerCase().replace(/ /g, '_')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const renderSortIndicator = (field: string) => {
+    if (sortField !== field) return ' ↕';
+    return sortAsc ? ' ↑' : ' ↓';
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
+            Pre-Open Scanner
+          </h1>
+          <p style={{ color: 'var(--text-secondary)' }}>Automated scanner identifying top losers for breakout entry criteria.</p>
+        </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <Button variant="secondary" onClick={runManualScan} isLoading={isScanning}>
+            <Zap size={16} /> Run Scan Now
+          </Button>
+        </div>
+      </div>
+
+      {scanMessage && (
+        <div style={{ padding: '16px', borderRadius: '8px', backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success)', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
+          <CheckCircle2 size={18} />
+          <span>{scanMessage}</span>
+        </div>
+      )}
+
+      {/* Advance Decline Summary */}
+      <div style={{ fontSize: '13px', display: 'flex', gap: '16px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+        <span>Advances – <strong style={{ color: '#10b981' }}>{advances}</strong></span>
+        <span>Declines – <strong style={{ color: '#ef4444' }}>{declines}</strong></span>
+        <span>Unchanged – <strong style={{ color: '#94a3b8' }}>{unchanged}</strong></span>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <Card style={{ padding: '24px' }}>
+          {/* Filters Control Bar */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            flexWrap: 'wrap', 
+            gap: '16px', 
+            marginBottom: '20px',
+            paddingBottom: '16px',
+            borderBottom: '1px solid var(--border-light)' 
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '4px', overflow: 'hidden', height: '38px' }}>
+              <span style={{ padding: '0 12px', backgroundColor: '#f1f5f9', color: '#64748b', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', height: '100%', borderRight: '1px solid #cbd5e1' }}>
+                Category
+              </span>
+              <select 
+                value={category} 
+                onChange={(e) => setCategory(e.target.value as CategoryType)}
+                style={{ 
+                  border: 'none', 
+                  outline: 'none', 
+                  padding: '0 12px', 
+                  fontSize: '13px', 
+                  fontWeight: 600, 
+                  color: '#1e293b',
+                  backgroundColor: '#ffffff',
+                  cursor: 'pointer',
+                  height: '100%'
+                }}
+              >
+                <option value="NIFTY 50">NIFTY 50</option>
+                <option value="Nifty Bank">Nifty Bank</option>
+                <option value="Emerge">Emerge</option>
+                <option value="Securities in F&O">Securities in F&O</option>
+                <option value="Others">Others</option>
+                <option value="All">All</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '4px', overflow: 'hidden', height: '38px', minWidth: '220px' }}>
+              <span style={{ padding: '0 12px', backgroundColor: '#f1f5f9', color: '#64748b', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', height: '100%', borderRight: '1px solid #cbd5e1' }}>
+                Symbol
+              </span>
+              <input 
+                type="text" 
+                placeholder="Enter symbol" 
+                value={symbolQuery}
+                onChange={(e) => setSymbolQuery(e.target.value)}
+                style={{ 
+                  border: 'none', 
+                  outline: 'none', 
+                  padding: '0 12px', 
+                  fontSize: '13px', 
+                  color: '#1e293b',
+                  width: '100%',
+                  height: '100%'
+                }}
+              />
+            </div>
+
+            <button 
+              onClick={handleClear}
+              style={{
+                border: '1px solid #ea580c',
+                color: '#ea580c',
+                backgroundColor: 'transparent',
+                borderRadius: '4px',
+                padding: '0 20px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                height: '38px',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#fff7ed';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              Clear
+            </button>
+
+            <button 
+              onClick={downloadCSV}
+              style={{
+                border: 'none',
+                backgroundColor: 'transparent',
+                color: '#475569',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                marginLeft: 'auto',
+                height: '38px'
+              }}
+            >
+              <FileSpreadsheet size={18} style={{ color: '#16a34a' }} />
+              <span style={{ color: '#2563eb', textDecoration: 'underline' }}>Download (.csv)</span>
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 600, fontFamily: 'var(--font-title)', margin: 0 }}>
+                Top Breakout Candidates
+              </h3>
+              {isWsConnected ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '11px', fontWeight: 600 }}>
+                  <span style={{ 
+                    display: 'inline-block', 
+                    width: '6px', 
+                    height: '6px', 
+                    backgroundColor: '#10b981', 
+                    borderRadius: '50%', 
+                    boxShadow: '0 0 8px #10b981'
+                  }} />
+                  <span>Live Feed</span>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontSize: '11px', fontWeight: 500 }}>
+                  <span style={{ 
+                    display: 'inline-block', 
+                    width: '6px', 
+                    height: '6px', 
+                    backgroundColor: '#cbd5e1', 
+                    borderRadius: '50%'
+                  }} />
+                  <span>Standby</span>
+                </div>
+              )}
+              {(loading || isSyncing) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#0ea5e9', fontSize: '11px', fontWeight: 500 }}>
+                  <Loader2 size={13} style={{ animation: 'spin 1.2s linear infinite' }} />
+                  <span>Syncing ticks...</span>
+                </div>
+              )}
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+              <span>Change denomination</span>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                <input type="radio" name="denom" value="lakhs" checked={denom === 'lakhs'} onChange={() => setDenom('lakhs')} style={{ cursor: 'pointer' }} />
+                Lakhs
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                <input type="radio" name="denom" value="crores" checked={denom === 'crores'} onChange={() => setDenom('crores')} style={{ cursor: 'pointer' }} />
+                Crores
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                <input type="radio" name="denom" value="billions" checked={denom === 'billions'} onChange={() => setDenom('billions')} style={{ cursor: 'pointer' }} />
+                Billions
+              </label>
+            </div>
+          </div>
+
+          <div className="table-responsive" style={{ overflowX: 'auto', maxHeight: '600px', overflowY: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1100px' }}>
+              <thead>
+                <tr style={{ borderBottom: '1.5px solid var(--border-light)', backgroundColor: '#f8fafc' }}>
+                  <th onClick={() => handleSort('symbol')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>SYMBOL{renderSortIndicator('symbol')}</th>
+                  <th onClick={() => handleSort('prevClose')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>PREV. CLOSE{renderSortIndicator('prevClose')}</th>
+                  <th onClick={() => handleSort('iep')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>IEP{renderSortIndicator('iep')}</th>
+                  <th onClick={() => handleSort('chng')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>CHNG{renderSortIndicator('chng')}</th>
+                  <th onClick={() => handleSort('changePercent')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>%CHNG{renderSortIndicator('changePercent')}</th>
+                  <th onClick={() => handleSort('final')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>FINAL{renderSortIndicator('final')}</th>
+                  <th onClick={() => handleSort('finalQuantity')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>FINAL QUANTITY{renderSortIndicator('finalQuantity')}</th>
+                  <th onClick={() => handleSort('value')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>VALUE (₹ {label}){renderSortIndicator('value')}</th>
+                  <th onClick={() => handleSort('ffmCap')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>FFM CAP (₹ {label}){renderSortIndicator('ffmCap')}</th>
+                  <th onClick={() => handleSort('nm52wH')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>NM 52W H{renderSortIndicator('nm52wH')}</th>
+                  <th onClick={() => handleSort('nm52wL')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>NM 52W L{renderSortIndicator('nm52wL')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleStocks.map((stock) => {
+                  const chng = stock.iep - stock.prevClose;
+                  const isPositive = chng >= 0;
+                  const valueVal = (stock.value || 0) * factor;
+                  const ffmCapVal = (stock.ffmCap || 0) * factor;
+
+                  return (
+                    <tr key={stock.symbol} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                      <td style={{ fontWeight: 700, padding: '12px 10px', fontSize: '13px' }}>{stock.symbol}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{stock.prevClose.toFixed(2)}</td>
+                      <td style={{ fontWeight: 700, padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{stock.iep.toFixed(2)}</td>
+                      <td style={{ 
+                        padding: '12px 10px', 
+                        fontSize: '13px', 
+                        fontWeight: 600,
+                        textAlign: 'right',
+                        color: chng === 0 ? '#94a3b8' : isPositive ? '#10b981' : '#ef4444' 
+                      }}>
+                        {isPositive ? '+' : ''}{chng.toFixed(2)}
+                      </td>
+                      <td style={{ 
+                        padding: '12px 10px', 
+                        fontSize: '13px', 
+                        fontWeight: 700,
+                        textAlign: 'right',
+                        color: stock.changePercent === 0 ? '#94a3b8' : isPositive ? '#10b981' : '#ef4444' 
+                      }}>
+                        {isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                      </td>
+                      <td style={{ fontWeight: 700, padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{stock.final.toFixed(2)}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{(stock.finalQuantity || 0).toLocaleString('en-IN')}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{valueVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{ffmCapVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{(stock.nm52wH || stock.high).toFixed(2)}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{(stock.nm52wL || stock.low).toFixed(2)}</td>
+                    </tr>
+                  );
+                })}
+                {visibleStocks.length === 0 && (
+                  <tr>
+                    <td colSpan={11} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                      No breakout candidates match the selected filters.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          {visibleCount < filteredStocks.length && (
+            <div style={{ textAlign: 'center', padding: '16px', color: 'var(--text-muted)', fontSize: '12px', fontWeight: 500 }}>
+              Scroll down to load more breakout candidates...
+            </div>
+          )}
+        </Card>
+
+        {/* Strategy Parameters */}
+        <Card style={{ padding: '24px' }}>
+          <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '16px', fontFamily: 'var(--font-title)' }}>
+            Breakout Rules
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '12px' }}>
+            <div>
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Scanner Filter</p>
+              <p style={{ color: 'var(--text-secondary)' }}>Identify stocks with maximum Gap Down open inside selected category segment.</p>
+            </div>
+            <div>
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Signal Entry</p>
+              <p style={{ color: 'var(--text-secondary)' }}>Buy SLM above the 5-Minute high candle with +0.1% buffer.</p>
+            </div>
+            <div>
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Stop Loss</p>
+              <p style={{ color: 'var(--text-secondary)' }}>Hard stop loss set at -0.5% below Entry Price.</p>
+            </div>
+            <div>
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Target</p>
+              <p style={{ color: 'var(--text-secondary)' }}>Target set at +1.5% profit, matching a 1:3 Risk/Reward ratio.</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
