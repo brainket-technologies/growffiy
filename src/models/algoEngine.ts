@@ -13,124 +13,142 @@ export interface StockQuote {
   changePercent: number;
 }
 
-// Initial mock stock data for Nifty 200 simulation
-// Helper to generate 200 Nifty stocks
-const generateNifty200 = (): StockQuote[] => {
-  const baseStocks = [
-    { symbol: 'RELIANCE', name: 'Reliance Industries Ltd.', price: 2450 },
-    { symbol: 'TCS', name: 'Tata Consultancy Services Ltd.', price: 3210 },
-    { symbol: 'INFY', name: 'Infosys Limited', price: 1420 },
-    { symbol: 'HDFCBANK', name: 'HDFC Bank Limited', price: 1610 },
-    { symbol: 'ICICIBANK', name: 'ICICI Bank Limited', price: 935 },
-    { symbol: 'SBIN', name: 'State Bank of India', price: 572 },
-    { symbol: 'WIPRO', name: 'Wipro Limited', price: 412 },
-    { symbol: 'TATAMOTORS', name: 'Tata Motors Limited', price: 620 },
-    { symbol: 'ADANIENT', name: 'Adani Enterprises Ltd.', price: 2410 },
-    { symbol: 'ADANIPORTS', name: 'Adani Ports & SEZ Ltd.', price: 785 },
-    { symbol: 'ITC', name: 'ITC Limited', price: 440 },
-    { symbol: 'BHARTIARTL', name: 'Bharti Airtel Ltd.', price: 890 },
-    { symbol: 'HINDUNILVR', name: 'Hindustan Unilever Ltd.', price: 2520 },
-    { symbol: 'LT', name: 'Larsen & Toubro Ltd.', price: 2650 },
-    { symbol: 'AXISBANK', name: 'Axis Bank Ltd.', price: 960 },
-    { symbol: 'KOTAKBANK', name: 'Kotak Mahindra Bank Ltd.', price: 1820 },
-    { symbol: 'M&M', name: 'Mahindra & Mahindra Ltd.', price: 1540 },
-    { symbol: 'TITAN', name: 'Titan Company Ltd.', price: 2980 },
-    { symbol: 'ULTRACEMCO', name: 'UltraTech Cement Ltd.', price: 8200 },
-    { symbol: 'SUNPHARMA', name: 'Sun Pharmaceutical Industries Ltd.', price: 1120 },
-    { symbol: 'NTPC', name: 'NTPC Limited', price: 220 },
-    { symbol: 'TATASTEEL', name: 'Tata Steel Limited', price: 115 },
-    { symbol: 'POWERGRID', name: 'Power Grid Corporation of India Ltd.', price: 245 },
-    { symbol: 'NESTLEIND', name: 'Nestle India Ltd.', price: 22500 },
-    { symbol: 'COALINDIA', name: 'Coal India Ltd.', price: 230 },
-    { symbol: 'ONGC', name: 'Oil & Natural Gas Corporation Ltd.', price: 180 },
-    { symbol: 'ADANIPOWER', name: 'Adani Power Ltd.', price: 350 },
-    { symbol: 'JSWSTEEL', name: 'JSW Steel Ltd.', price: 780 },
-    { symbol: 'HINDALCO', name: 'Hindalco Industries Ltd.', price: 460 },
-    { symbol: 'GRASIM', name: 'Grasim Industries Ltd.', price: 1810 },
-    { symbol: 'HCLTECH', name: 'HCL Technologies Ltd.', price: 1160 },
-    { symbol: 'INDUSINDBK', name: 'IndusInd Bank Ltd.', price: 1390 },
-    { symbol: 'BAJAJ-AUTO', name: 'Bajaj Auto Ltd.', price: 4700 },
-    { symbol: 'DIVISLAB', name: 'Divi\'s Laboratories Ltd.', price: 3650 },
-    { symbol: 'BPCL', name: 'Bharat Petroleum Corporation Ltd.', price: 360 },
-    { symbol: 'CIPLA', name: 'Cipla Limited', price: 1020 },
-    { symbol: 'EICHERMOT', name: 'Eicher Motors Ltd.', price: 3300 },
-    { symbol: 'DRREDDY', name: 'Dr. Reddy\'s Laboratories Ltd.', price: 5200 },
-    { symbol: 'APOLLOHOSP', name: 'Apollo Hospitals Enterprise Ltd.', price: 4900 },
-    { symbol: 'BRITANNIA', name: 'Britannia Industries Ltd.', price: 4500 },
-    { symbol: 'SHRIRAMFIN', name: 'Shriram Finance Ltd.', price: 1750 },
-    { symbol: 'HEROMOTOCO', name: 'Hero MotoCorp Ltd.', price: 2900 },
-    { symbol: 'MARUTI', name: 'Maruti Suzuki India Ltd.', price: 9500 },
-    { symbol: 'TECHM', name: 'Tech Mahindra Ltd.', price: 1100 },
-    { symbol: 'UPL', name: 'UPL Limited', price: 580 },
-    { symbol: 'TATACONSUM', name: 'Tata Consumer Products Ltd.', price: 840 },
-    { symbol: 'BAJFINANCE', name: 'Bajaj Finance Ltd.', price: 7100 },
-    { symbol: 'BAJAJFINSV', name: 'Bajaj Finserv Ltd.', price: 1520 },
-    { symbol: 'ASIANPAINT', name: 'Asian Paints Ltd.', price: 3200 },
+// Helper to generate F&O Securities
+const generateFnOSecurities = (): StockQuote[] => {
+  const fnoStocks = [
+    { symbol: 'ASHOKLEY', name: 'Ashok Leyland Ltd.', price: 143.22, prevClose: 138.58 },
+    { symbol: 'HINDPETRO', name: 'Hindustan Petroleum Corp. Ltd.', price: 377.70, prevClose: 365.70 },
+    { symbol: 'TATASTEEL', name: 'Tata Steel Ltd.', price: 200.00, prevClose: 197.96 },
+    { symbol: 'VEDL', name: 'Vedanta Limited', price: 314.00, prevClose: 304.90 },
+    { symbol: 'HINDZINC', name: 'Hindustan Zinc Ltd.', price: 560.95, prevClose: 545.00 },
+    { symbol: 'RVNL', name: 'Rail Vikas Nigam Ltd.', price: 228.50, prevClose: 222.19 },
+    { symbol: 'YESBANK', name: 'Yes Bank Ltd.', price: 22.85, prevClose: 22.22 },
+    { symbol: 'MOTILALOFS', name: 'Motilal Oswal Financial Services Ltd.', price: 854.70, prevClose: 831.60 },
+    { symbol: 'PNB', name: 'Punjab National Bank', price: 124.50, prevClose: 121.20 },
+    { symbol: 'CANBK', name: 'Canara Bank', price: 118.90, prevClose: 115.30 },
+    { symbol: 'ZEEL', name: 'Zee Entertainment Enterprises Ltd.', price: 154.20, prevClose: 151.10 },
+    { symbol: 'GMRINFRA', name: 'GMR Airports Infrastructure Ltd.', price: 88.50, prevClose: 86.40 },
+    { symbol: 'SAIL', name: 'Steel Authority of India Ltd.', price: 148.90, prevClose: 145.20 },
+    { symbol: 'NATIONALUM', name: 'National Aluminium Co. Ltd.', price: 179.80, prevClose: 184.20 },
+    { symbol: 'NMDC', name: 'NMDC Limited', price: 232.40, prevClose: 227.10 },
+    { symbol: 'TATAPOWER', name: 'Tata Power Co. Ltd.', price: 432.10, prevClose: 421.40 },
+    { symbol: 'PFC', name: 'Power Finance Corporation Ltd.', price: 482.50, prevClose: 471.20 },
+    { symbol: 'RECLTD', name: 'REC Limited', price: 512.40, prevClose: 498.90 },
+    { symbol: 'BHEL', name: 'Bharat Heavy Electricals Ltd.', price: 284.10, prevClose: 276.50 },
+    { symbol: 'GAIL', name: 'GAIL (India) Ltd.', price: 212.30, prevClose: 206.90 },
+    { symbol: 'ONGC', name: 'Oil & Natural Gas Corporation Ltd.', price: 268.40, prevClose: 261.20 },
+    { symbol: 'COALINDIA', name: 'Coal India Ltd.', price: 472.50, prevClose: 459.80 },
+    { symbol: 'BEL', name: 'Bharat Electronics Ltd.', price: 292.10, prevClose: 284.60 },
+    { symbol: 'WIPRO', name: 'Wipro Ltd.', price: 462.40, prevClose: 452.10 },
+    { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd.', price: 1582.42, prevClose: 1618.00 },
+    { symbol: 'ICICIBANK', name: 'ICICI Bank Ltd.', price: 1112.50, prevClose: 1098.40 },
+    { symbol: 'SBIN', name: 'State Bank of India', price: 828.50, prevClose: 814.90 },
+    { symbol: 'RELIANCE', name: 'Reliance Industries Ltd.', price: 2912.40, prevClose: 2875.00 },
+    { symbol: 'TCS', name: 'Tata Consultancy Services Ltd.', price: 3824.50, prevClose: 3768.90 },
+    { symbol: 'INFY', name: 'Infosys Ltd.', price: 1482.40, prevClose: 1456.20 },
+    { symbol: 'AXISBANK', name: 'Axis Bank Ltd.', price: 1184.20, prevClose: 1162.30 },
+    { symbol: 'KOTAKBANK', name: 'Kotak Mahindra Bank Ltd.', price: 1724.50, prevClose: 1698.40 },
+    { symbol: 'TATAMOTORS', name: 'Tata Motors Ltd.', price: 962.40, prevClose: 945.10 },
+    { symbol: 'BAJFINANCE', name: 'Bajaj Finance Ltd.', price: 6982.50, prevClose: 6875.00 },
+    { symbol: 'BHARTIARTL', name: 'Bharti Airtel Ltd.', price: 1384.20, prevClose: 1356.40 },
+    { symbol: 'ITC', name: 'ITC Ltd.', price: 432.40, prevClose: 424.10 },
+    { symbol: 'HINDUNILVR', name: 'Hindustan Unilever Ltd.', price: 2482.50, prevClose: 2452.10 },
+    { symbol: 'LT', name: 'Larsen & Toubro Ltd.', price: 3582.40, prevClose: 3512.60 },
+    { symbol: 'SUNPHARMA', name: 'Sun Pharmaceutical Industries Ltd.', price: 1512.40, prevClose: 1489.20 },
+    { symbol: 'NTPC', name: 'NTPC Ltd.', price: 362.40, prevClose: 354.10 },
+    { symbol: 'MARUTI', name: 'Maruti Suzuki India Ltd.', price: 12100.00, prevClose: 11950.00 },
+    { symbol: 'JSWSTEEL', name: 'JSW Steel Ltd.', price: 892.40, prevClose: 876.10 },
+    { symbol: 'APOLLOTYRE', name: 'Apollo Tyres Ltd.', price: 472.50, prevClose: 461.20 },
+    { symbol: 'BIOCON', name: 'Biocon Ltd.', price: 312.40, prevClose: 306.20 },
+    { symbol: 'BANDHANBNK', name: 'Bandhan Bank Ltd.', price: 204.50, prevClose: 199.80 },
+    { symbol: 'DLF', name: 'DLF Ltd.', price: 824.50, prevClose: 806.20 },
+    { symbol: 'GLENMARK', name: 'Glenmark Pharmaceuticals Ltd.', price: 1124.50, prevClose: 1098.40 },
+    { symbol: 'METROPOLIS', name: 'Metropolis Healthcare Ltd.', price: 1824.50, prevClose: 1798.10 },
+    { symbol: 'SUNTV', name: 'Sun TV Network Ltd.', price: 624.50, prevClose: 611.20 },
+    { symbol: 'JUBLFOOD', name: 'Jubilant FoodWorks Ltd.', price: 482.40, prevClose: 471.20 },
+    { symbol: 'ESCORTS', name: 'Escorts Kubota Ltd.', price: 3824.50, prevClose: 3765.30 },
+    { symbol: 'IDEA', name: 'Vodafone Idea Ltd.', price: 15.20, prevClose: 14.80 },
+    { symbol: 'AMBUJACEM', name: 'Ambuja Cements Ltd.', price: 624.50, prevClose: 611.20 },
+    { symbol: 'ACC', name: 'ACC Ltd.', price: 2482.50, prevClose: 2432.10 },
+    { symbol: 'ADANIENT', name: 'Adani Enterprises Ltd.', price: 3212.40, prevClose: 3156.90 },
+    { symbol: 'ADANIPORTS', name: 'Adani Ports & SEZ Ltd.', price: 1312.40, prevClose: 1289.40 },
+    { symbol: 'AUROPHARMA', name: 'Aurobindo Pharma Ltd.', price: 1184.20, prevClose: 1162.30 },
+    { symbol: 'BALRAMCHIN', name: 'Balrampur Chini Mills Ltd.', price: 392.40, prevClose: 384.20 },
+    { symbol: 'BATAINDIA', name: 'Bata India Ltd.', price: 1432.40, prevClose: 1412.10 },
+    { symbol: 'BERGEPAINT', name: 'Berger Paints India Ltd.', price: 582.40, prevClose: 571.20 },
+    { symbol: 'BHARATFORG', name: 'Bharat Forge Ltd.', price: 1224.50, prevClose: 1204.10 },
+    { symbol: 'BOSCHLTD', name: 'Bosch Ltd.', price: 28100.00, prevClose: 27850.00 },
+    { symbol: 'CHAMBLFERT', name: 'Chambal Fertilisers & Chemicals Ltd.', price: 362.40, prevClose: 354.10 },
+    { symbol: 'CHOLAFIN', name: 'Cholamandalam Investment & Finance Co.', price: 1224.50, prevClose: 1204.10 },
+    { symbol: 'COFORGE', name: 'Coforge Ltd.', price: 5824.50, prevClose: 5742.10 },
+    { symbol: 'CONCOR', name: 'Container Corporation of India Ltd.', price: 982.40, prevClose: 964.10 },
+    { symbol: 'COROMANDEL', name: 'Coromandel International Ltd.', price: 1184.20, prevClose: 1162.10 },
+    { symbol: 'CUMMINSIND', name: 'Cummins India Ltd.', price: 2824.50, prevClose: 2768.90 },
+    { symbol: 'DABUR', name: 'Dabur India Ltd.', price: 582.40, prevClose: 571.20 },
+    { symbol: 'DEEPAKNTR', name: 'Deepak Nitrite Ltd.', price: 2424.50, prevClose: 2398.10 },
+    { symbol: 'DELTACORP', name: 'Delta Corp Ltd.', price: 142.40, prevClose: 139.80 },
+    { symbol: 'EXIDEIND', name: 'Exide Industries Ltd.', price: 432.40, prevClose: 421.20 },
+    { symbol: 'FEDERALBNK', name: 'The Federal Bank Ltd.', price: 168.40, prevClose: 164.20 },
+    { symbol: 'GODREJCP', name: 'Godrej Consumer Products Ltd.', price: 1224.50, prevClose: 1204.10 },
+    { symbol: 'GODREJPROP', name: 'Godrej Properties Ltd.', price: 2482.50, prevClose: 2432.10 },
+    { symbol: 'HAL', name: 'Hindustan Aeronautics Ltd.', price: 4282.50, prevClose: 4212.10 },
+    { symbol: 'HAVELLS', name: 'Havells India Ltd.', price: 1582.40, prevClose: 1556.10 },
+    { symbol: 'IBULHSGFIN', name: 'Indiabulls Housing Finance Ltd.', price: 184.20, prevClose: 179.80 },
+    { symbol: 'INDHOTEL', name: 'The Indian Hotels Co. Ltd.', price: 582.40, prevClose: 571.20 },
+    { symbol: 'IOC', name: 'Indian Oil Corporation Ltd.', price: 168.40, prevClose: 164.20 },
+    { symbol: 'IPCALAB', name: 'IPCA Laboratories Ltd.', price: 1184.20, prevClose: 1162.10 },
+    { symbol: 'JSWENERGY', name: 'JSW Energy Ltd.', price: 582.40, prevClose: 571.20 },
+    { symbol: 'L&TFH', name: 'L&T Finance Holdings Ltd.', price: 168.40, prevClose: 164.20 },
+    { symbol: 'LICHSGFIN', name: 'LIC Housing Finance Ltd.', price: 682.40, prevClose: 671.20 },
+    { symbol: 'LTIM', name: 'LTIMindtree Ltd.', price: 4882.50, prevClose: 4812.10 },
+    { symbol: 'LUPIN', name: 'Lupin Ltd.', price: 1582.40, prevClose: 1556.10 },
+    { symbol: 'MANAPPURAM', name: 'Manappuram Finance Ltd.', price: 184.20, prevClose: 179.80 },
+    { symbol: 'MGL', name: 'Mahanagar Gas Ltd.', price: 1382.40, prevClose: 1356.10 },
+    { symbol: 'MPHASIS', name: 'Mphasis Ltd.', price: 2482.50, prevClose: 2432.10 },
+    { symbol: 'MRF', name: 'MRF Ltd.', price: 124500.00, prevClose: 123800.00 },
+    { symbol: 'MUTHOOTFIN', name: 'Muthoot Finance Ltd.', price: 1682.40, prevClose: 1656.10 },
+    { symbol: 'PEL', name: 'Piramal Enterprises Ltd.', price: 882.40, prevClose: 871.20 },
+    { symbol: 'PETRONET', name: 'Petronet LNG Ltd.', price: 282.40, prevClose: 276.10 },
+    { symbol: 'PIDILITIND', name: 'Pidilite Industries Ltd.', price: 2882.50, prevClose: 2832.10 },
+    { symbol: 'POLYCAB', name: 'Polycab India Ltd.', price: 6282.50, prevClose: 6189.30 },
+    { symbol: 'POWERGRID', name: 'Power Grid Corporation of India Ltd.', price: 312.40, prevClose: 306.10 },
+    { symbol: 'RAMCOCEM', name: 'The Ramco Cements Ltd.', price: 882.40, prevClose: 871.20 },
+    { symbol: 'SRF', name: 'SRF Ltd.', price: 2382.40, prevClose: 2356.10 },
+    { symbol: 'TATACHEM', name: 'Tata Chemicals Ltd.', price: 1082.40, prevClose: 1056.10 },
+    { symbol: 'TATACOMM', name: 'Tata Communications Ltd.', price: 1882.40, prevClose: 1856.10 },
+    { symbol: 'TECHM', name: 'Tech Mahindra Ltd.', price: 1382.40, prevClose: 1356.10 },
+    { symbol: 'TRENT', name: 'Trent Ltd.', price: 4582.40, prevClose: 4512.60 },
+    { symbol: 'TVSTRUCT', name: 'TVS Motor Company Ltd.', price: 2182.40, prevClose: 2156.10 },
+    { symbol: 'UBL', name: 'United Breweries Ltd.', price: 1882.40, prevClose: 1856.10 },
+    { symbol: 'ULTRACEMCO', name: 'UltraTech Cement Ltd.', price: 9882.50, prevClose: 9789.30 },
+    { symbol: 'VOLTAS', name: 'Voltas Ltd.', price: 1282.40, prevClose: 1256.10 },
+    { symbol: 'WHIRLPOOL', name: 'Whirlpool of India Ltd.', price: 1582.40, prevClose: 1556.10 },
   ];
-  
+
   const generated: StockQuote[] = [];
-  
-  baseStocks.forEach(s => {
-    const changePercent = parseFloat(((Math.random() - 0.5) * 4).toFixed(2));
-    const change = parseFloat(((s.price * changePercent) / 100).toFixed(2));
-    const open = parseFloat((s.price * (1 - (Math.random() - 0.5) * 0.01)).toFixed(2));
-    const prevClose = parseFloat((s.price).toFixed(2));
+
+  fnoStocks.forEach(s => {
+    const pctChange = parseFloat((((s.price - s.prevClose) / s.prevClose) * 100).toFixed(2));
+    const change = parseFloat((s.price - s.prevClose).toFixed(2));
     
     generated.push({
       symbol: s.symbol,
       name: s.name,
       ltp: s.price,
-      open,
-      high: Math.max(s.price, open) * 1.01,
-      low: Math.min(s.price, open) * 0.99,
-      prevClose,
+      open: s.price,
+      high: Math.max(s.price, s.prevClose) * 1.002,
+      low: Math.min(s.price, s.prevClose) * 0.998,
+      prevClose: s.prevClose,
       volume: Math.floor(Math.random() * 5000000) + 100000,
       change,
-      changePercent
+      changePercent: pctChange
     });
   });
-  
-  const sectors = ['CHEM', 'PHARMA', 'INFRA', 'POWER', 'STEEL', 'BANK', 'AUTO', 'FOOD', 'TECH', 'FIN'];
-  const groups = ['TATA', 'BIRLA', 'ADANI', 'RELIANCE', 'JINDAL', 'MAHINDRA', 'BAJAJ', 'GODREJ', 'HDFC', 'ICICI'];
-  
-  let index = 0;
-  while (generated.length < 200) {
-    const group = groups[index % groups.length];
-    const sector = sectors[Math.floor(Math.random() * sectors.length)];
-    const id = 100 + index;
-    const symbol = `${group}-${sector}${id}`;
-    
-    if (generated.some(s => s.symbol === symbol)) {
-      index++;
-      continue;
-    }
-    
-    const price = Math.floor(Math.random() * 2500) + 50;
-    const changePercent = parseFloat(((Math.random() - 0.5) * 4).toFixed(2));
-    const change = parseFloat(((price * changePercent) / 100).toFixed(2));
-    const open = parseFloat((price * (1 - (Math.random() - 0.5) * 0.01)).toFixed(2));
-    const prevClose = parseFloat((price).toFixed(2));
-    
-    generated.push({
-      symbol,
-      name: `${group} ${sector} Industries Ltd.`,
-      ltp: price,
-      open,
-      high: Math.max(price, open) * 1.01,
-      low: Math.min(price, open) * 0.99,
-      prevClose,
-      volume: Math.floor(Math.random() * 3000000) + 10000,
-      change,
-      changePercent
-    });
-    
-    index++;
-  }
-  
+
   return generated;
 };
 
-const INITIAL_STOCKS: StockQuote[] = generateNifty200();
+const INITIAL_STOCKS: StockQuote[] = generateFnOSecurities();
 
 class AlgoEngineService {
   private stocksState: StockQuote[] = [...INITIAL_STOCKS];
