@@ -468,27 +468,41 @@ const INITIAL_STOCKS: StockQuote[] = uniqueSymbols.map(symbol => {
   const name = STOCK_NAMES[symbol] || symbol;
   const basePrice = BASE_PRICES[symbol] || 100.0;
   const ffShares = FREE_FLOAT_SHARES[symbol] || 50.0;
-  const baseVolume = Math.round(ffShares * 15000);
-  const ffmCap = basePrice * ffShares;
-  const value = (baseVolume * basePrice) / 10000000;
+  
+  // Generate a deterministic realistic pre-market fluctuation (-3.5% to +3.5%)
+  const hash = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const changePercent = parseFloat(((hash % 71) / 10 - 3.5).toFixed(2));
+  
+  const prevClose = basePrice;
+  const iep = parseFloat((prevClose * (1 + changePercent / 100)).toFixed(2));
+  const change = parseFloat((iep - prevClose).toFixed(2));
+  const ltp = iep;
+  const open = iep;
+  const high = parseFloat((Math.max(iep, prevClose) * 1.01).toFixed(2));
+  const low = parseFloat((Math.min(iep, prevClose) * 0.99).toFixed(2));
+  
+  const baseVolume = Math.round(ffShares * (12000 + (hash % 8000))); // varied volume
+  const ffmCap = ltp * ffShares;
+  const value = (baseVolume * ltp) / 10000000;
+  
   return {
     symbol,
     name,
-    ltp: basePrice,
-    open: basePrice,
-    high: basePrice,
-    low: basePrice,
-    prevClose: basePrice,
+    ltp,
+    open,
+    high,
+    low,
+    prevClose,
     volume: baseVolume,
-    change: 0,
-    changePercent: 0,
-    iep: basePrice,
-    final: basePrice,
+    change,
+    changePercent,
+    iep,
+    final: ltp,
     finalQuantity: baseVolume,
     value,
     ffmCap,
-    nm52wH: basePrice * 1.2,
-    nm52wL: basePrice * 0.8
+    nm52wH: parseFloat((basePrice * 1.25).toFixed(2)),
+    nm52wL: parseFloat((basePrice * 0.75).toFixed(2))
   };
 });
 
