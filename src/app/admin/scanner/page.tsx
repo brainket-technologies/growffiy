@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useAppViewModel } from '../../../viewmodels/AppContext';
 import { Card } from '../../../views/components/Card';
 import { Button } from '../../../views/components/Button';
-import { Zap, Play, CheckCircle2, Download, X, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { Zap, CheckCircle2, FileSpreadsheet, Loader2, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 type CategoryType = 'NIFTY 50' | 'Nifty Bank' | 'Emerge' | 'Securities in F&O' | 'Others' | 'All';
 
@@ -18,6 +18,7 @@ export default function PreOpenScannerPage() {
   const [symbolQuery, setSymbolQuery] = useState('');
   const [sortField, setSortField] = useState<string>('changePercent');
   const [sortAsc, setSortAsc] = useState<boolean>(false);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'gainers' | 'losers'>('all');
 
   // Infinite Scroll Handler
   React.useEffect(() => {
@@ -70,12 +71,12 @@ export default function PreOpenScannerPage() {
       return emerge.includes(stock.symbol);
     }
     if (cat === 'Securities in F&O') {
-      return true; // F&O includes all generated simulator stocks
+      return true;
     }
     if (cat === 'Others') {
       return !nifty50.includes(stock.symbol) && !niftyBank.includes(stock.symbol) && !emerge.includes(stock.symbol);
     }
-    return true; // 'All'
+    return true;
   };
 
   const handleSort = (field: string) => {
@@ -91,7 +92,15 @@ export default function PreOpenScannerPage() {
   const filteredStocks = scannerResults.filter(stock => {
     const matchesCat = filterByCategory(stock, category);
     const matchesSymbol = stock.symbol.toLowerCase().includes(symbolQuery.trim().toLowerCase());
-    return matchesCat && matchesSymbol;
+    
+    // Live filter logic (Gainers / Losers)
+    const matchesFilter = activeFilter === 'all' 
+      ? true 
+      : activeFilter === 'gainers' 
+        ? (stock.iep - stock.prevClose > 0)
+        : (stock.iep - stock.prevClose < 0);
+
+    return matchesCat && matchesSymbol && matchesFilter;
   });
 
   const sortedStocks = [...filteredStocks].sort((a, b) => {
@@ -119,10 +128,14 @@ export default function PreOpenScannerPage() {
 
   const visibleStocks = sortedStocks.slice(0, visibleCount);
 
-  // Derive Advance / Decline counts dynamically from the filtered list
-  const advances = filteredStocks.filter(s => s.iep - s.prevClose > 0).length;
-  const declines = filteredStocks.filter(s => s.iep - s.prevClose < 0).length;
-  const unchanged = filteredStocks.filter(s => s.iep - s.prevClose === 0).length;
+  // Derive Advance / Decline counts dynamically from the base pre-open list
+  const advances = scannerResults.filter(s => s.iep - s.prevClose > 0).length;
+  const declines = scannerResults.filter(s => s.iep - s.prevClose < 0).length;
+  const unchanged = scannerResults.filter(s => s.iep - s.prevClose === 0).length;
+
+  // Derive top pre-open performers
+  const topGainer = [...scannerResults].sort((a, b) => b.changePercent - a.changePercent)[0];
+  const topLoser = [...scannerResults].sort((a, b) => a.changePercent - b.changePercent)[0];
 
   const handleClear = () => {
     setCategory('Securities in F&O');
@@ -130,6 +143,7 @@ export default function PreOpenScannerPage() {
     setDenom('crores');
     setSortField('changePercent');
     setSortAsc(false);
+    setActiveFilter('all');
   };
 
   const downloadCSV = () => {
@@ -193,11 +207,66 @@ export default function PreOpenScannerPage() {
         </div>
       )}
 
-      {/* Advance Decline Summary */}
-      <div style={{ fontSize: '13px', display: 'flex', gap: '16px', color: 'var(--text-secondary)', fontWeight: 500 }}>
-        <span>Advances – <strong style={{ color: '#10b981' }}>{advances}</strong></span>
-        <span>Declines – <strong style={{ color: '#ef4444' }}>{declines}</strong></span>
-        <span>Unchanged – <strong style={{ color: '#94a3b8' }}>{unchanged}</strong></span>
+      {/* Top Performance & Breadth Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+        {/* Top Gainer Card */}
+        {topGainer && (
+          <Card style={{ padding: '16px', borderLeft: '4px solid #10b981' }}>
+            <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <TrendingUp size={15} color="#10b981" /> Today's Top Gainer (Pre-Open)
+            </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>{topGainer.symbol}</h3>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>IEP Price: ₹{topGainer.iep.toFixed(2)}</span>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontSize: '16px', fontWeight: 800, color: '#10b981', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                  <ArrowUpRight size={16} /> +{topGainer.changePercent.toFixed(2)}%
+                </span>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Chg: +₹{topGainer.change.toFixed(2)}</span>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Top Loser Card */}
+        {topLoser && (
+          <Card style={{ padding: '16px', borderLeft: '4px solid #ef4444' }}>
+            <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <TrendingDown size={15} color="#ef4444" /> Today's Top Loser (Pre-Open)
+            </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>{topLoser.symbol}</h3>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>IEP Price: ₹{topLoser.iep.toFixed(2)}</span>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontSize: '16px', fontWeight: 800, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                  <ArrowDownRight size={16} /> {topLoser.changePercent.toFixed(2)}%
+                </span>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Chg: ₹{topLoser.change.toFixed(2)}</span>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Advance Decline Breadth Card */}
+        <Card style={{ padding: '16px' }}>
+          <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500 }}>Pre-Open Session Breadth</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+            <div style={{ display: 'flex', gap: '12px', fontSize: '12.5px', fontWeight: 600 }}>
+              <span style={{ color: '#10b981' }}>Adv: {advances}</span>
+              <span style={{ color: '#ef4444' }}>Dec: {declines}</span>
+              <span style={{ color: '#64748b' }}>Unch: {unchanged}</span>
+            </div>
+            <div style={{ display: 'flex', width: '100px', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{ flex: advances || 1, backgroundColor: '#10b981' }} />
+              <div style={{ flex: unchanged || 1, backgroundColor: '#cbd5e1' }} />
+              <div style={{ flex: declines || 1, backgroundColor: '#ef4444' }} />
+            </div>
+          </div>
+        </Card>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -262,6 +331,28 @@ export default function PreOpenScannerPage() {
                   height: '100%'
                 }}
               />
+            </div>
+
+            {/* Filter Buttons */}
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button
+                onClick={() => setActiveFilter('all')}
+                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'all' ? 'var(--color-info-bg)' : '#ffffff', color: activeFilter === 'all' ? 'var(--color-info)' : '#475569' }}
+              >
+                All Pre-Open
+              </button>
+              <button
+                onClick={() => setActiveFilter('gainers')}
+                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'gainers' ? '#e6f4ea' : '#ffffff', color: activeFilter === 'gainers' ? '#10b981' : '#475569' }}
+              >
+                Top Gainers
+              </button>
+              <button
+                onClick={() => setActiveFilter('losers')}
+                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'losers' ? '#fde8e8' : '#ffffff', color: activeFilter === 'losers' ? '#ef4444' : '#475569' }}
+              >
+                Top Losers
+              </button>
             </div>
 
             {/* Clear Button */}
@@ -438,8 +529,6 @@ export default function PreOpenScannerPage() {
             </div>
           )}
         </Card>
-
-
       </div>
     </div>
   );
