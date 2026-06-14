@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Activity, ShieldCheck, Eye, EyeOff, Lock, User, AlertTriangle, Server, Database, BarChart2 } from 'lucide-react';
 import { THEME_COLORS, API_ENDPOINTS } from '../../../lib/constants';
 import { api } from '../../../lib/api';
+import { Loader } from '../../../views/components/Loader';
 
 export default function AdminLoginPage() {
   const [userId, setUserId] = useState('');
@@ -12,6 +13,7 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -20,12 +22,20 @@ export default function AdminLoginPage() {
       if (activeUser) {
         if (activeUserRole === 'admin') {
           window.location.href = '/admin';
+          return;
         } else if (activeUserRole === 'client') {
           window.location.href = '/dashboard';
+          return;
         }
       }
+      setCheckingAuth(false);
     }
   }, []);
+
+  if (checkingAuth) {
+    return <Loader title="Verifying admin session" text="Checking credentials and authentication status..." />;
+  }
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

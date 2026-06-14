@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Activity, ArrowRight, TrendingUp, Shield, Zap, BarChart2 } from 'lucide-react';
+import { Loader } from '../../views/components/Loader';
 import { api } from '../../lib/api';
 import { API_ENDPOINTS } from '../../lib/constants';
+
 
 export default function LoginPage() {
   const [userId, setUserId] = useState('');
@@ -11,12 +13,12 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
       const activeUserRole = localStorage.getItem('growffiy_logged_in_user_role');
-      const isSessionPersistent = localStorage.getItem('growffiy_remember_me') === 'true';
       
       // If user is logged in, auto navigate to their correct portal dashboard
       if (activeUser) {
@@ -28,9 +30,14 @@ export default function LoginPage() {
           return;
         }
       }
-
+      setCheckingAuth(false);
     }
   }, []);
+
+  if (checkingAuth) {
+    return <Loader title="Verifying session" text="Checking authentication status..." />;
+  }
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
