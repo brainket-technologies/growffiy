@@ -4,7 +4,9 @@ import React, { useState } from 'react';
 import { useAppViewModel } from '../../../viewmodels/AppContext';
 import { Card } from '../../../views/components/Card';
 import { Button } from '../../../views/components/Button';
-import { Zap, Play, CheckCircle2 } from 'lucide-react';
+import { Zap, Play, CheckCircle2, Download, X, FileSpreadsheet } from 'lucide-react';
+
+type CategoryType = 'NIFTY 50' | 'Nifty Bank' | 'Emerge' | 'Securities in F&O' | 'Others' | 'All';
 
 export default function PreOpenScannerPage() {
   const { scannerResults, isTradingActive, toggleTrading } = useAppViewModel();
@@ -12,6 +14,8 @@ export default function PreOpenScannerPage() {
   const [scanMessage, setScanMessage] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(30);
   const [denom, setDenom] = useState<'lakhs' | 'crores' | 'billions'>('crores');
+  const [category, setCategory] = useState<CategoryType>('Securities in F&O');
+  const [symbolQuery, setSymbolQuery] = useState('');
 
   // Infinite Scroll Handler
   React.useEffect(() => {
@@ -49,7 +53,80 @@ export default function PreOpenScannerPage() {
     }, 1500);
   };
 
-  const visibleStocks = scannerResults.slice(0, visibleCount);
+  const filterByCategory = (stock: any, cat: CategoryType) => {
+    const nifty50 = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'AXISBANK', 'KOTAKBANK', 'BHARTIARTL', 'ITC', 'HINDUNILVR', 'LT', 'SUNPHARMA', 'NTPC', 'MARUTI', 'JSWSTEEL', 'TATAMOTORS', 'BAJFINANCE', 'ONGC', 'COALINDIA', 'POWERGRID', 'ADANIENT', 'ADANIPORTS'];
+    const niftyBank = ['HDFCBANK', 'ICICIBANK', 'SBIN', 'AXISBANK', 'KOTAKBANK', 'FEDERALBNK', 'BANDHANBNK', 'YESBANK', 'PNB', 'CANBK'];
+    const emerge = ['RVNL', 'ZEEL', 'GMRINFRA', 'NATIONALUM', 'BHEL', 'BIOCON', 'DELTACORP', 'IDEA'];
+    
+    if (cat === 'NIFTY 50') {
+      return nifty50.includes(stock.symbol);
+    }
+    if (cat === 'Nifty Bank') {
+      return niftyBank.includes(stock.symbol);
+    }
+    if (cat === 'Emerge') {
+      return emerge.includes(stock.symbol);
+    }
+    if (cat === 'Securities in F&O') {
+      return true; // F&O includes all generated simulator stocks
+    }
+    if (cat === 'Others') {
+      return !nifty50.includes(stock.symbol) && !niftyBank.includes(stock.symbol) && !emerge.includes(stock.symbol);
+    }
+    return true; // 'All'
+  };
+
+  const filteredStocks = scannerResults.filter(stock => {
+    const matchesCat = filterByCategory(stock, category);
+    const matchesSymbol = stock.symbol.toLowerCase().includes(symbolQuery.trim().toLowerCase());
+    return matchesCat && matchesSymbol;
+  });
+
+  const visibleStocks = filteredStocks.slice(0, visibleCount);
+
+  // Derive Advance / Decline counts dynamically from the filtered list
+  const advances = filteredStocks.filter(s => s.iep - s.prevClose > 0).length;
+  const declines = filteredStocks.filter(s => s.iep - s.prevClose < 0).length;
+  const unchanged = filteredStocks.filter(s => s.iep - s.prevClose === 0).length;
+
+  const handleClear = () => {
+    setCategory('Securities in F&O');
+    setSymbolQuery('');
+    setDenom('crores');
+  };
+
+  const downloadCSV = () => {
+    const headers = ['SYMBOL', 'PREV. CLOSE', 'IEP', 'CHNG', '%CHNG', 'FINAL', 'FINAL QUANTITY', `VALUE (₹ ${label})`, `FFM CAP (₹ ${label})`, 'NM 52W H', 'NM 52W L'];
+    const rows = filteredStocks.map(stock => {
+      const chng = stock.iep - stock.prevClose;
+      const isPositive = chng >= 0;
+      const valueVal = (stock.value || 0) * factor;
+      const ffmCapVal = (stock.ffmCap || 0) * factor;
+      return [
+        stock.symbol,
+        stock.prevClose.toFixed(2),
+        stock.iep.toFixed(2),
+        `${isPositive ? '+' : ''}${chng.toFixed(2)}`,
+        `${isPositive ? '+' : ''}${stock.changePercent.toFixed(2)}%`,
+        stock.final.toFixed(2),
+        stock.finalQuantity || 0,
+        valueVal.toFixed(2),
+        ffmCapVal.toFixed(2),
+        (stock.nm52wH || stock.high).toFixed(2),
+        (stock.nm52wL || stock.low).toFixed(2)
+      ];
+    });
+
+    const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `nse_pre_open_${category.toLowerCase().replace(/ /g, '_')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -74,12 +151,127 @@ export default function PreOpenScannerPage() {
         </div>
       )}
 
+      {/* Advance Decline Summary */}
+      <div style={{ fontSize: '13px', display: 'flex', gap: '16px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+        <span>Advances – <strong style={{ color: '#10b981' }}>{advances}</strong></span>
+        <span>Declines – <strong style={{ color: '#ef4444' }}>{declines}</strong></span>
+        <span>Unchanged – <strong style={{ color: '#94a3b8' }}>{unchanged}</strong></span>
+      </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         {/* Scanner Results List */}
         <Card style={{ padding: '24px' }}>
+          {/* Filters Control Bar */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            flexWrap: 'wrap', 
+            gap: '16px', 
+            marginBottom: '20px',
+            paddingBottom: '16px',
+            borderBottom: '1px solid var(--border-light)' 
+          }}>
+            {/* Category Dropdown */}
+            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '4px', overflow: 'hidden', height: '38px' }}>
+              <span style={{ padding: '0 12px', backgroundColor: '#f1f5f9', color: '#64748b', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', height: '100%', borderRight: '1px solid #cbd5e1' }}>
+                Category
+              </span>
+              <select 
+                value={category} 
+                onChange={(e) => setCategory(e.target.value as CategoryType)}
+                style={{ 
+                  border: 'none', 
+                  outline: 'none', 
+                  padding: '0 12px', 
+                  fontSize: '13px', 
+                  fontWeight: 600, 
+                  color: '#1e293b',
+                  backgroundColor: '#ffffff',
+                  cursor: 'pointer',
+                  height: '100%'
+                }}
+              >
+                <option value="NIFTY 50">NIFTY 50</option>
+                <option value="Nifty Bank">Nifty Bank</option>
+                <option value="Emerge">Emerge</option>
+                <option value="Securities in F&O">Securities in F&O</option>
+                <option value="Others">Others</option>
+                <option value="All">All</option>
+              </select>
+            </div>
+
+            {/* Symbol Search */}
+            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '4px', overflow: 'hidden', height: '38px', minWidth: '220px' }}>
+              <span style={{ padding: '0 12px', backgroundColor: '#f1f5f9', color: '#64748b', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', height: '100%', borderRight: '1px solid #cbd5e1' }}>
+                Symbol
+              </span>
+              <input 
+                type="text" 
+                placeholder="Enter symbol" 
+                value={symbolQuery}
+                onChange={(e) => setSymbolQuery(e.target.value)}
+                style={{ 
+                  border: 'none', 
+                  outline: 'none', 
+                  padding: '0 12px', 
+                  fontSize: '13px', 
+                  color: '#1e293b',
+                  width: '100%',
+                  height: '100%'
+                }}
+              />
+            </div>
+
+            {/* Clear Button */}
+            <button 
+              onClick={handleClear}
+              style={{
+                border: '1px solid #ea580c',
+                color: '#ea580c',
+                backgroundColor: 'transparent',
+                borderRadius: '4px',
+                padding: '0 20px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                height: '38px',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#fff7ed';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              Clear
+            </button>
+
+            {/* CSV Download Button */}
+            <button 
+              onClick={downloadCSV}
+              style={{
+                border: 'none',
+                backgroundColor: 'transparent',
+                color: '#475569',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                marginLeft: 'auto',
+                height: '38px'
+              }}
+            >
+              <FileSpreadsheet size={18} style={{ color: '#16a34a' }} />
+              <span style={{ color: '#2563eb', textDecoration: 'underline' }}>Download (.csv)</span>
+            </button>
+          </div>
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
             <h3 style={{ fontSize: '15px', fontWeight: 600, fontFamily: 'var(--font-title)', margin: 0 }}>
-              Top Breakout Candidates (Nifty 200 Scanner)
+              Top Breakout Candidates
             </h3>
             
             {/* Change Denomination Options */}
@@ -154,12 +346,19 @@ export default function PreOpenScannerPage() {
                     </tr>
                   );
                 })}
+                {visibleStocks.length === 0 && (
+                  <tr>
+                    <td colSpan={11} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                      No breakout candidates match the selected filters.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
-          {visibleCount < scannerResults.length && (
+          {visibleCount < filteredStocks.length && (
             <div style={{ textAlign: 'center', padding: '16px', color: 'var(--text-muted)', fontSize: '12px', fontWeight: 500 }}>
-              Scroll down to load more F&O breakout candidates...
+              Scroll down to load more breakout candidates...
             </div>
           )}
         </Card>
@@ -172,7 +371,7 @@ export default function PreOpenScannerPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '12px' }}>
             <div>
               <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Scanner Filter</p>
-              <p style={{ color: 'var(--text-secondary)' }}>Identify stocks with maximum Gap Down open inside Nifty 200.</p>
+              <p style={{ color: 'var(--text-secondary)' }}>Identify stocks with maximum Gap Down open inside selected category segment.</p>
             </div>
             <div>
               <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Signal Entry</p>
