@@ -26,7 +26,7 @@ const generateFnOSecurities = (): StockQuote[] => {
   const fnoStocks = [
     { symbol: 'ASHOKLEY', name: 'Ashok Leyland Ltd.', price: 143.22, prevClose: 138.58, finalQuantity: 298391, value: 4.27, ffmCap: 40862.88, nm52wH: 215.42, nm52wL: 114.96 },
     { symbol: 'HINDPETRO', name: 'Hindustan Petroleum Corp. Ltd.', price: 377.70, prevClose: 365.70, finalQuantity: 68320, value: 2.58, ffmCap: 36168.91, nm52wH: 508.45, nm52wL: 316.20 },
-    { symbol: 'TATASTEEL', name: 'Tata Steel Ltd.', price: 200.00, prevClose: 197.96, finalQuantity: 257382, value: 5.15, ffmCap: 164843.23, nm52wH: 224.40, nm52wL: 149.80 },
+    { symbol: 'TATASTEEL', name: 'Tata Steel Ltd.', price: 204.00, prevClose: 197.96, finalQuantity: 257382, value: 5.15, ffmCap: 164843.23, nm52wH: 224.40, nm52wL: 149.80 },
     { symbol: 'VEDL', name: 'Vedanta Limited', price: 314.00, prevClose: 304.90, finalQuantity: 232537, value: 7.30, ffmCap: 53204.73, nm52wH: 795.00, nm52wL: 268.70 },
     { symbol: 'HINDZINC', name: 'Hindustan Zinc Ltd.', price: 560.95, prevClose: 545.00, finalQuantity: 43127, value: 2.42, ffmCap: 24249.68, nm52wH: 733.00, nm52wL: 413.50 },
     { symbol: 'RVNL', name: 'Rail Vikas Nigam Ltd.', price: 228.50, prevClose: 222.19, finalQuantity: 42686, value: 0.98, ffmCap: 12934.71, nm52wH: 435.70, nm52wL: 221.55 },
