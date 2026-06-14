@@ -5,6 +5,7 @@ import { Card } from '../../../views/components/Card';
 import { Loader } from '../../../views/components/Loader';
 import { CreditCard, ArrowUpRight, ArrowDownLeft, Calendar } from 'lucide-react';
 import { API_ENDPOINTS } from '../../../lib/constants';
+import { api } from '../../../lib/api';
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<any[]>([]);
@@ -12,10 +13,9 @@ export default function PaymentsPage() {
 
   const fetchPayments = async () => {
     try {
-      const res = await fetch(`${API_ENDPOINTS.PAYMENTS_HISTORY}?all=true`);
-      const data = await res.json();
-      if (data.success) {
-        setPayments(data.payments || []);
+      const res = await api.get(`${API_ENDPOINTS.PAYMENTS_HISTORY}?all=true`);
+      if (res.success) {
+        setPayments(res.payments || []);
       }
     } catch (err) {
       console.error('Failed to fetch payments:', err);
