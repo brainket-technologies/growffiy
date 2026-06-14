@@ -275,9 +275,12 @@ export default function ClientDashboardOverview() {
                     <strong>{matchedClient.riskPercentage ? `${Number(matchedClient.riskPercentage).toFixed(2)}%` : '1.00%'}</strong>
                   </div>
                 </>
-
-
+              )}
+            </div>
+          </div>
+        </Card>
       </div>
+
 
       {/* Client Trades List */}
       <Card>
