@@ -92,15 +92,7 @@ export default function PreOpenScannerPage() {
   const filteredStocks = scannerResults.filter(stock => {
     const matchesCat = filterByCategory(stock, category);
     const matchesSymbol = stock.symbol.toLowerCase().includes(symbolQuery.trim().toLowerCase());
-    
-    // Live filter logic (Gainers / Losers)
-    const matchesFilter = activeFilter === 'all' 
-      ? true 
-      : activeFilter === 'gainers' 
-        ? (stock.iep - stock.prevClose > 0)
-        : (stock.iep - stock.prevClose < 0);
-
-    return matchesCat && matchesSymbol && matchesFilter;
+    return matchesCat && matchesSymbol;
   });
 
   const sortedStocks = [...filteredStocks].sort((a, b) => {
@@ -217,8 +209,11 @@ export default function PreOpenScannerPage() {
             </span>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
               <div>
-                <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>{topGainer.symbol}</h3>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>IEP Price: ₹{topGainer.iep.toFixed(2)}</span>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 6px 0' }}>{topGainer.symbol}</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>IEP Price: <strong>₹{topGainer.iep.toFixed(2)}</strong></span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Prev Close: <strong>₹{topGainer.prevClose.toFixed(2)}</strong></span>
+                </div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <span style={{ fontSize: '16px', fontWeight: 800, color: '#10b981', display: 'flex', alignItems: 'center', gap: '2px' }}>
@@ -238,8 +233,11 @@ export default function PreOpenScannerPage() {
             </span>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
               <div>
-                <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>{topLoser.symbol}</h3>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>IEP Price: ₹{topLoser.iep.toFixed(2)}</span>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 6px 0' }}>{topLoser.symbol}</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>IEP Price: <strong>₹{topLoser.iep.toFixed(2)}</strong></span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Prev Close: <strong>₹{topLoser.prevClose.toFixed(2)}</strong></span>
+                </div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <span style={{ fontSize: '16px', fontWeight: 800, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '2px' }}>
