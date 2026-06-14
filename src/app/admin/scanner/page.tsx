@@ -339,16 +339,16 @@ export default function PreOpenScannerPage() {
               <thead>
                 <tr style={{ borderBottom: '1.5px solid var(--border-light)', backgroundColor: '#f8fafc' }}>
                   <th onClick={() => handleSort('symbol')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>SYMBOL{renderSortIndicator('symbol')}</th>
-                  <th onClick={() => handleSort('prevClose')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>PREV. CLOSE{renderSortIndicator('prevClose')}</th>
-                  <th onClick={() => handleSort('iep')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>IEP{renderSortIndicator('iep')}</th>
-                  <th onClick={() => handleSort('chng')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>CHNG{renderSortIndicator('chng')}</th>
-                  <th onClick={() => handleSort('changePercent')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>%CHNG{renderSortIndicator('changePercent')}</th>
-                  <th onClick={() => handleSort('final')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>FINAL{renderSortIndicator('final')}</th>
-                  <th onClick={() => handleSort('finalQuantity')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>FINAL QUANTITY{renderSortIndicator('finalQuantity')}</th>
-                  <th onClick={() => handleSort('value')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>VALUE (₹ {label}){renderSortIndicator('value')}</th>
-                  <th onClick={() => handleSort('ffmCap')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>FFM CAP (₹ {label}){renderSortIndicator('ffmCap')}</th>
-                  <th onClick={() => handleSort('nm52wH')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>NM 52W H{renderSortIndicator('nm52wH')}</th>
-                  <th onClick={() => handleSort('nm52wL')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>NM 52W L{renderSortIndicator('nm52wL')}</th>
+                  <th onClick={() => handleSort('prevClose')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>PREV. CLOSE{renderSortIndicator('prevClose')}</th>
+                  <th onClick={() => handleSort('iep')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>IEP{renderSortIndicator('iep')}</th>
+                  <th onClick={() => handleSort('chng')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>CHNG{renderSortIndicator('chng')}</th>
+                  <th onClick={() => handleSort('changePercent')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>%CHNG{renderSortIndicator('changePercent')}</th>
+                  <th onClick={() => handleSort('final')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>FINAL{renderSortIndicator('final')}</th>
+                  <th onClick={() => handleSort('finalQuantity')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>FINAL QUANTITY{renderSortIndicator('finalQuantity')}</th>
+                  <th onClick={() => handleSort('value')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>VALUE (₹ {label}){renderSortIndicator('value')}</th>
+                  <th onClick={() => handleSort('ffmCap')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>FFM CAP (₹ {label}){renderSortIndicator('ffmCap')}</th>
+                  <th onClick={() => handleSort('nm52wH')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>NM 52W H{renderSortIndicator('nm52wH')}</th>
+                  <th onClick={() => handleSort('nm52wL')} style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>NM 52W L{renderSortIndicator('nm52wL')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -361,12 +361,13 @@ export default function PreOpenScannerPage() {
                   return (
                     <tr key={stock.symbol} style={{ borderBottom: '1px solid var(--border-light)' }}>
                       <td style={{ fontWeight: 700, padding: '12px 10px', fontSize: '13px' }}>{stock.symbol}</td>
-                      <td style={{ padding: '12px 10px', fontSize: '13px' }}>{stock.prevClose.toFixed(2)}</td>
-                      <td style={{ fontWeight: 700, padding: '12px 10px', fontSize: '13px' }}>{stock.iep.toFixed(2)}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{stock.prevClose.toFixed(2)}</td>
+                      <td style={{ fontWeight: 700, padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{stock.iep.toFixed(2)}</td>
                       <td style={{ 
                         padding: '12px 10px', 
                         fontSize: '13px', 
                         fontWeight: 600,
+                        textAlign: 'right',
                         color: chng === 0 ? '#94a3b8' : isPositive ? '#10b981' : '#ef4444' 
                       }}>
                         {isPositive ? '+' : ''}{chng.toFixed(2)}
@@ -375,16 +376,17 @@ export default function PreOpenScannerPage() {
                         padding: '12px 10px', 
                         fontSize: '13px', 
                         fontWeight: 700,
+                        textAlign: 'right',
                         color: stock.changePercent === 0 ? '#94a3b8' : isPositive ? '#10b981' : '#ef4444' 
                       }}>
                         {isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
                       </td>
-                      <td style={{ fontWeight: 700, padding: '12px 10px', fontSize: '13px' }}>{stock.final.toFixed(2)}</td>
-                      <td style={{ padding: '12px 10px', fontSize: '13px' }}>{(stock.finalQuantity || 0).toLocaleString('en-IN')}</td>
-                      <td style={{ padding: '12px 10px', fontSize: '13px' }}>{valueVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td style={{ padding: '12px 10px', fontSize: '13px' }}>{ffmCapVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td style={{ padding: '12px 10px', fontSize: '13px' }}>{(stock.nm52wH || stock.high).toFixed(2)}</td>
-                      <td style={{ padding: '12px 10px', fontSize: '13px' }}>{(stock.nm52wL || stock.low).toFixed(2)}</td>
+                      <td style={{ fontWeight: 700, padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{stock.final.toFixed(2)}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{(stock.finalQuantity || 0).toLocaleString('en-IN')}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{valueVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{ffmCapVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{(stock.nm52wH || stock.high).toFixed(2)}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{(stock.nm52wL || stock.low).toFixed(2)}</td>
                     </tr>
                   );
                 })}
