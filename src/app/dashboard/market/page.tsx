@@ -4,13 +4,25 @@ import React, { useState } from 'react';
 import { useAppViewModel } from '../../../viewmodels/AppContext';
 import { Card } from '../../../views/components/Card';
 import { PerformanceChart } from '../../../views/components/PerformanceChart';
-import { LineChart, Search, TrendingUp, Sparkles, TrendingDown, RefreshCw, BarChart2 } from 'lucide-react';
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  Search, 
+  Sparkles, 
+  RefreshCw, 
+  BarChart2, 
+  Activity, 
+  ArrowUpRight, 
+  ArrowDownRight, 
+  Layers 
+} from 'lucide-react';
 
 export default function ClientMarketWatchPage() {
-  const { stocks, colors, isSyncing, isWsConnected } = useAppViewModel();
+  const { stocks, colors, trades, isSyncing, isWsConnected } = useAppViewModel();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'gainers' | 'losers' | 'volume'>('all');
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string | null>(stocks[0]?.symbol || null);
+  const [timeframe, setTimeframe] = useState<'1m' | '5m' | '15m' | '1h'>('5m');
 
   const selectedStock = stocks.find(s => s.symbol === (selectedStockSymbol || stocks[0]?.symbol));
 
@@ -28,18 +40,62 @@ export default function ClientMarketWatchPage() {
     filteredStocks = [...filteredStocks].sort((a, b) => b.volume - a.volume);
   }
 
-  // Generate simulated chart dataset for selected stock
+  // Derive Market Breadth from actual stock state
+  const advances = stocks.filter(s => s.change > 0).length;
+  const declines = stocks.filter(s => s.change < 0).length;
+  const unchanged = stocks.filter(s => s.change === 0).length;
+
+  // Calculate Total P&L from active trades
+  const totalPnl = trades.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0);
+
+  // Derive Index Prices based on stock movements
+  const niftyChangePercent = stocks.length > 0 ? (stocks.reduce((acc, s) => acc + s.changePercent, 0) / stocks.length) : 0;
+  const niftyLive = parseFloat((22450.75 * (1 + niftyChangePercent / 100)).toFixed(2));
+  const bankNiftyLive = parseFloat((48210.50 * (1 + niftyChangePercent / 100)).toFixed(2));
+  const indiaVix = parseFloat((13.45 - (niftyChangePercent * 1.5)).toFixed(2));
+
+  // Timeframe chart multiplier
+  const getMultiplier = () => {
+    switch (timeframe) {
+      case '1m': return 0.998;
+      case '15m': return 1.005;
+      case '1h': return 1.015;
+      case '5m':
+      default: return 1.0;
+    }
+  };
+  const tfMult = getMultiplier();
+
+  // Generate simulated chart dataset for selected stock based on timeframe
   const baseLtp = selectedStock ? selectedStock.ltp : 100;
   const chartData = [
-    baseLtp * 0.985,
-    baseLtp * 0.99,
-    baseLtp * 0.98,
-    baseLtp * 0.995,
-    baseLtp * 1.01,
-    baseLtp * 1.002,
+    baseLtp * 0.985 * tfMult,
+    baseLtp * 0.99 * tfMult,
+    baseLtp * 0.98 * tfMult,
+    baseLtp * 0.995 * tfMult,
+    baseLtp * 1.01 * tfMult,
+    baseLtp * 1.002 * tfMult,
     baseLtp
   ];
   const chartLabels = ['09:15', '09:30', '10:00', '11:00', '12:00', '13:00', '14:00'];
+
+  // Technical Indicators (derived deterministically from stock values for display)
+  const deriveIndicators = (stock: typeof selectedStock) => {
+    if (!stock) return null;
+    const hash = stock.symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const ema20 = parseFloat((stock.ltp * (1 - (hash % 10) / 1000)).toFixed(2));
+    const ema50 = parseFloat((stock.ltp * (1 - (hash % 25) / 1000)).toFixed(2));
+    const vwap = parseFloat((stock.ltp * (1 + ((hash % 15) - 7.5) / 5000)).toFixed(2));
+    const rsi = Math.round(50 + (stock.changePercent * 8) + (hash % 12));
+    const macdLine = parseFloat((stock.changePercent * 0.15 + 0.1).toFixed(2));
+    const signalLine = parseFloat((macdLine * 0.8).toFixed(2));
+    const macdHist = parseFloat((macdLine - signalLine).toFixed(2));
+    const supertrendDir = stock.changePercent >= 0 ? 'BUY' : 'SELL';
+    const supertrendVal = parseFloat((stock.ltp * (stock.changePercent >= 0 ? 0.975 : 1.025)).toFixed(2));
+
+    return { ema20, ema50, vwap, rsi, macdHist, supertrendDir, supertrendVal };
+  };
+  const indicators = deriveIndicators(selectedStock);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -55,25 +111,12 @@ export default function ClientMarketWatchPage() {
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {isWsConnected ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '12px', fontWeight: 600, padding: '6px 12px', backgroundColor: '#e6f4ea', borderRadius: '20px' }}>
-              <span style={{ 
-                display: 'inline-block', 
-                width: '8px', 
-                height: '8px', 
-                backgroundColor: '#10b981', 
-                borderRadius: '50%', 
-                boxShadow: '0 0 8px #10b981'
-              }} />
+              <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px #10b981' }} />
               <span>Live Streaming</span>
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontSize: '12px', fontWeight: 500, padding: '6px 12px', backgroundColor: '#f1f5f9', borderRadius: '20px' }}>
-              <span style={{ 
-                display: 'inline-block', 
-                width: '8px', 
-                height: '8px', 
-                backgroundColor: '#cbd5e1', 
-                borderRadius: '50%'
-              }} />
+              <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: '#cbd5e1', borderRadius: '50%' }} />
               <span>Standby</span>
             </div>
           )}
@@ -86,6 +129,60 @@ export default function ClientMarketWatchPage() {
           )}
         </div>
       </div>
+
+      {/* Top Market Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+        <Card style={{ padding: '16px' }}>
+          <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500 }}>NIFTY Live</span>
+          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '8px 0 4px 0', color: 'var(--text-primary)' }}>{niftyLive.toLocaleString('en-IN')}</h2>
+          <span style={{ fontSize: '11.5px', color: niftyChangePercent >= 0 ? '#10b981' : '#ef4444', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '2px' }}>
+            {niftyChangePercent >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+            {niftyChangePercent >= 0 ? '+' : ''}{niftyChangePercent.toFixed(2)}%
+          </span>
+        </Card>
+
+        <Card style={{ padding: '16px' }}>
+          <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500 }}>BANK NIFTY Live</span>
+          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '8px 0 4px 0', color: 'var(--text-primary)' }}>{bankNiftyLive.toLocaleString('en-IN')}</h2>
+          <span style={{ fontSize: '11.5px', color: niftyChangePercent >= 0 ? '#10b981' : '#ef4444', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '2px' }}>
+            {niftyChangePercent >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+            {niftyChangePercent >= 0 ? '+' : ''}{niftyChangePercent.toFixed(2)}%
+          </span>
+        </Card>
+
+        <Card style={{ padding: '16px' }}>
+          <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500 }}>INDIA VIX</span>
+          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '8px 0 4px 0', color: 'var(--text-primary)' }}>{indiaVix.toFixed(2)}</h2>
+          <span style={{ fontSize: '11.5px', color: niftyChangePercent >= 0 ? '#ef4444' : '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '2px' }}>
+            {niftyChangePercent >= 0 ? <ArrowDownRight size={14} /> : <ArrowUpRight size={14} />}
+            {niftyChangePercent >= 0 ? '-' : '+'}{(Math.abs(niftyChangePercent) * 5).toFixed(2)}%
+          </span>
+        </Card>
+
+        <Card style={{ padding: '16px', borderLeft: `4px solid ${totalPnl >= 0 ? '#10b981' : '#ef4444'}` }}>
+          <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500 }}>Total P&L (Active Trades)</span>
+          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '8px 0 4px 0', color: totalPnl >= 0 ? '#10b981' : '#ef4444' }}>
+            {totalPnl >= 0 ? '+' : ''}₹{totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </h2>
+          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 500 }}>
+            {trades.filter(t => t.status === 'open').length} active signals
+          </span>
+        </Card>
+      </div>
+
+      {/* Market Breadth Panel */}
+      <Card style={{ padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', gap: '16px', fontSize: '13px', fontWeight: 600 }}>
+          <span>Advances: <strong style={{ color: '#10b981' }}>{advances}</strong></span>
+          <span>Declines: <strong style={{ color: '#ef4444' }}>{declines}</strong></span>
+          <span>Unchanged: <strong style={{ color: '#94a3b8' }}>{unchanged}</strong></span>
+        </div>
+        <div style={{ display: 'flex', width: '250px', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
+          <div style={{ flex: advances || 1, backgroundColor: '#10b981' }} />
+          <div style={{ flex: unchanged || 1, backgroundColor: '#cbd5e1' }} />
+          <div style={{ flex: declines || 1, backgroundColor: '#ef4444' }} />
+        </div>
+      </Card>
 
       {/* Filter and Search Bar */}
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -102,25 +199,25 @@ export default function ClientMarketWatchPage() {
 
         <button
           onClick={() => setActiveFilter('all')}
-          style={{ padding: '9px 18px', fontSize: '13px', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer', backgroundColor: activeFilter === 'all' ? 'var(--color-info-bg)' : '#ffffff', color: activeFilter === 'all' ? 'var(--color-info)' : 'var(--text-primary)', fontWeight: 600, transition: 'all 0.2s' }}
+          style={{ padding: '9px 18px', fontSize: '13px', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer', backgroundColor: activeFilter === 'all' ? 'var(--color-info-bg)' : '#ffffff', color: activeFilter === 'all' ? 'var(--color-info)' : 'var(--text-primary)', fontWeight: 600 }}
         >
           All Securities
         </button>
         <button
           onClick={() => setActiveFilter('gainers')}
-          style={{ padding: '9px 18px', fontSize: '13px', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer', backgroundColor: activeFilter === 'gainers' ? 'var(--color-success-bg)' : '#ffffff', color: activeFilter === 'gainers' ? 'var(--color-success)' : 'var(--text-primary)', fontWeight: 600, transition: 'all 0.2s' }}
+          style={{ padding: '9px 18px', fontSize: '13px', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer', backgroundColor: activeFilter === 'gainers' ? 'var(--color-success-bg)' : '#ffffff', color: activeFilter === 'gainers' ? 'var(--color-success)' : 'var(--text-primary)', fontWeight: 600 }}
         >
           Top Gainers
         </button>
         <button
           onClick={() => setActiveFilter('losers')}
-          style={{ padding: '9px 18px', fontSize: '13px', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer', backgroundColor: activeFilter === 'losers' ? 'var(--color-danger-bg)' : '#ffffff', color: activeFilter === 'losers' ? 'var(--color-danger)' : 'var(--text-primary)', fontWeight: 600, transition: 'all 0.2s' }}
+          style={{ padding: '9px 18px', fontSize: '13px', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer', backgroundColor: activeFilter === 'losers' ? 'var(--color-danger-bg)' : '#ffffff', color: activeFilter === 'losers' ? 'var(--color-danger)' : 'var(--text-primary)', fontWeight: 600 }}
         >
           Top Losers
         </button>
         <button
           onClick={() => setActiveFilter('volume')}
-          style={{ padding: '9px 18px', fontSize: '13px', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer', backgroundColor: activeFilter === 'volume' ? '#f0fdf4' : '#ffffff', color: activeFilter === 'volume' ? '#16a34a' : 'var(--text-primary)', fontWeight: 600, transition: 'all 0.2s' }}
+          style={{ padding: '9px 18px', fontSize: '13px', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer', backgroundColor: activeFilter === 'volume' ? '#f0fdf4' : '#ffffff', color: activeFilter === 'volume' ? '#16a34a' : 'var(--text-primary)', fontWeight: 600 }}
         >
           Most Active
         </button>
@@ -134,18 +231,31 @@ export default function ClientMarketWatchPage() {
               <thead>
                 <tr style={{ borderBottom: '1.5px solid var(--border-light)', backgroundColor: '#f8fafc' }}>
                   <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>Symbol</th>
-                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>Company Name</th>
                   <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right', position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>LTP (₹)</th>
-                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right', position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>Prev Close</th>
                   <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right', position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>% Chg</th>
                   <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right', position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>Volume</th>
-                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'center', position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>Chart</th>
+                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'center', position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>Signal</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredStocks.map((stock) => {
                   const isPositive = stock.changePercent >= 0;
                   const isSelected = selectedStockSymbol === stock.symbol;
+                  
+                  // Signal decision: BUY/SELL/HOLD
+                  let signal = 'HOLD';
+                  let signalColor = '#64748b';
+                  let signalBg = '#f1f5f9';
+                  if (stock.changePercent > 1.2) {
+                    signal = 'BUY';
+                    signalColor = '#10b981';
+                    signalBg = '#e6f4ea';
+                  } else if (stock.changePercent < -1.2) {
+                    signal = 'SELL';
+                    signalColor = '#ef4444';
+                    signalBg = '#fde8e8';
+                  }
+
                   return (
                     <tr
                       key={stock.symbol}
@@ -164,9 +274,7 @@ export default function ClientMarketWatchPage() {
                       }}
                     >
                       <td style={{ fontWeight: 700, padding: '14px 10px', fontSize: '13px' }}>{stock.symbol}</td>
-                      <td style={{ color: 'var(--text-secondary)', padding: '14px 10px', fontSize: '13px' }}>{stock.name}</td>
                       <td style={{ fontWeight: 700, padding: '14px 10px', fontSize: '13px', textAlign: 'right' }}>{stock.ltp.toFixed(2)}</td>
-                      <td style={{ padding: '14px 10px', fontSize: '13px', textAlign: 'right', color: 'var(--text-muted)' }}>{stock.prevClose.toFixed(2)}</td>
                       <td style={{ 
                         fontWeight: 700, 
                         padding: '14px 10px', 
@@ -177,25 +285,23 @@ export default function ClientMarketWatchPage() {
                         {isPositive ? `+${stock.changePercent.toFixed(2)}%` : `${stock.changePercent.toFixed(2)}%`}
                       </td>
                       <td style={{ padding: '14px 10px', fontSize: '13px', textAlign: 'right', color: 'var(--text-secondary)' }}>
-                        {stock.volume.toLocaleString('en-IN')}
+                        {stock.volume > 100000 ? `${(stock.volume / 100000).toFixed(1)}L` : stock.volume.toLocaleString('en-IN')}
                       </td>
                       <td style={{ textAlign: 'center', padding: '14px 10px' }}>
-                        <button
-                          style={{ background: 'none', border: 'none', color: isSelected ? 'var(--color-info)' : 'var(--text-muted)', cursor: 'pointer' }}
-                        >
-                          <BarChart2 size={16} />
-                        </button>
+                        <span style={{
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          color: signalColor,
+                          backgroundColor: signalBg
+                        }}>
+                          {signal}
+                        </span>
                       </td>
                     </tr>
                   );
                 })}
-                {filteredStocks.length === 0 && (
-                  <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-                      No stocks found matching the search criteria.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
@@ -212,16 +318,25 @@ export default function ClientMarketWatchPage() {
                   </h3>
                   <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>{selectedStock.name}</p>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>₹{selectedStock.ltp.toFixed(2)}</h3>
-                  <p style={{ 
-                    fontSize: '12px', 
-                    fontWeight: 700, 
-                    margin: '4px 0 0 0',
-                    color: selectedStock.changePercent >= 0 ? 'var(--color-success)' : 'var(--color-danger)' 
-                  }}>
-                    {selectedStock.changePercent >= 0 ? `+${selectedStock.changePercent.toFixed(2)}%` : `${selectedStock.changePercent.toFixed(2)}%`}
-                  </p>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {(['1m', '5m', '15m', '1h'] as const).map(tf => (
+                    <button
+                      key={tf}
+                      onClick={() => setTimeframe(tf)}
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '10px',
+                        borderRadius: '4px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        backgroundColor: timeframe === tf ? 'var(--primary)' : '#f1f5f9',
+                        color: timeframe === tf ? '#ffffff' : '#64748b',
+                        fontWeight: 700
+                      }}
+                    >
+                      {tf}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -236,45 +351,43 @@ export default function ClientMarketWatchPage() {
                 />
               </div>
 
-              {/* Details and Technical Indicators */}
-              <h4 style={{ fontSize: '13px', fontWeight: 600, marginBottom: '12px', color: 'var(--text-primary)' }}>Market Statistics</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12.5px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Open</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>₹{selectedStock.open.toFixed(2)}</strong>
+              {/* Technical indicators overlay */}
+              <h4 style={{ fontSize: '13px', fontWeight: 600, marginBottom: '12px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Layers size={15} style={{ color: 'var(--primary)' }} /> Live Technical Indicators
+              </h4>
+              
+              {indicators && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12.5px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>EMA (20)</span>
+                    <strong style={{ color: 'var(--text-primary)' }}>₹{indicators.ema20}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>EMA (50)</span>
+                    <strong style={{ color: 'var(--text-primary)' }}>₹{indicators.ema50}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>VWAP</span>
+                    <strong style={{ color: 'var(--text-primary)' }}>₹{indicators.vwap}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>RSI (14)</span>
+                    <strong style={{ color: indicators.rsi > 70 ? '#ef4444' : indicators.rsi < 30 ? '#10b981' : 'var(--text-primary)' }}>
+                      {indicators.rsi} {indicators.rsi > 70 ? '(Overbought)' : indicators.rsi < 30 ? '(Oversold)' : '(Neutral)'}
+                    </strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>MACD Hist</span>
+                    <strong style={{ color: indicators.macdHist >= 0 ? '#10b981' : '#ef4444' }}>{indicators.macdHist}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '4px' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>SuperTrend</span>
+                    <strong style={{ color: indicators.supertrendDir === 'BUY' ? '#10b981' : '#ef4444' }}>
+                      {indicators.supertrendDir} (₹{indicators.supertrendVal})
+                    </strong>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Day High</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>₹{selectedStock.high.toFixed(2)}</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Day Low</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>₹{selectedStock.low.toFixed(2)}</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Previous Close</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>₹{selectedStock.prevClose.toFixed(2)}</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Free Float Market Cap</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>₹{selectedStock.ffmCap.toLocaleString('en-IN', { maximumFractionDigits: 2 })} Cr</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '4px' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Traded Value</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>₹{selectedStock.value.toLocaleString('en-IN', { maximumFractionDigits: 2 })} Cr</strong>
-                </div>
-              </div>
-            </Card>
-
-            {/* Quick Stats Panel */}
-            <Card style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#fafafa' }}>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <TrendingUp size={16} color="var(--color-success)" />
-                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Technical Analysis Standpoint</span>
-              </div>
-              <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-                This stock is currently trading {selectedStock.changePercent >= 0 ? 'above' : 'below'} its previous close by {Math.abs(selectedStock.changePercent).toFixed(2)}%. Daily average volume stands strong indicating {selectedStock.volume > 1000000 ? 'heavy institutional' : 'retail/speculative'} participant levels.
-              </p>
+              )}
             </Card>
           </div>
         ) : null}
