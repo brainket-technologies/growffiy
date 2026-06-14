@@ -30,7 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
     { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
     { name: 'Clients', path: '/admin/clients', icon: Users },
     { name: 'Market Watch', path: '/admin/market-watch', icon: LineChart },
-    { name: 'Scanner', path: '/admin/scanner', icon: Zap },
+    { name: 'Pre-Open Scanner', path: '/admin/scanner', icon: Zap },
     { name: 'Strategies', path: '/admin/strategies', icon: TrendingUp },
     { name: 'Live Trading', path: '/admin/trades', icon: Activity },
     { name: 'Reports', path: '/admin/reports', icon: FileText },
