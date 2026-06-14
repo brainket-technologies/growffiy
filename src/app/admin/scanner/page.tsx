@@ -423,27 +423,25 @@ export default function PreOpenScannerPage() {
                 Top Breakout Candidates
               </h3>
               {isWsConnected ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '11px', fontWeight: 600 }}>
+                <div style={{ display: 'flex', alignItems: 'center' }} title="Live Feed Connected">
                   <span style={{ 
                     display: 'inline-block', 
-                    width: '6px', 
-                    height: '6px', 
+                    width: '8px', 
+                    height: '8px', 
                     backgroundColor: '#10b981', 
                     borderRadius: '50%', 
                     boxShadow: '0 0 8px #10b981'
                   }} />
-                  <span>Live Feed</span>
                 </div>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontSize: '11px', fontWeight: 500 }}>
+                <div style={{ display: 'flex', alignItems: 'center' }} title="Standby Mode">
                   <span style={{ 
                     display: 'inline-block', 
-                    width: '6px', 
-                    height: '6px', 
+                    width: '8px', 
+                    height: '8px', 
                     backgroundColor: '#cbd5e1', 
                     borderRadius: '50%'
                   }} />
-                  <span>Standby</span>
                 </div>
               )}
               {(loading || isSyncing) && (
