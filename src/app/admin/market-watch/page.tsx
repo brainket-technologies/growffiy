@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { useAppViewModel } from '../../../viewmodels/AppContext';
 import { Card } from '../../../views/components/Card';
-import { PerformanceChart } from '../../../views/components/PerformanceChart';
 import { CandlestickChart } from '../../../views/components/CandlestickChart';
 import { 
   LineChart, 
@@ -22,7 +21,6 @@ export default function MarketWatchPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'gainers' | 'losers' | 'volume'>('all');
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string | null>(null);
-  const [chartModalStock, setChartModalStock] = useState<any | null>(null);
 
   const activeSymbol = selectedStockSymbol || stocks[0]?.symbol || null;
   const selectedStock = stocks.find(s => s.symbol === activeSymbol);
@@ -265,7 +263,7 @@ export default function MarketWatchPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setChartModalStock(stock);
+                            setSelectedStockSymbol(stock.symbol);
                           }}
                           style={{ 
                             background: 'var(--color-info-bg)', 
@@ -281,7 +279,7 @@ export default function MarketWatchPage() {
                           }}
                           onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
                           onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                          title="Open Candlestick Chart"
+                          title="View Candlestick Chart"
                         >
                           <LineChart size={14} />
                         </button>
@@ -294,108 +292,22 @@ export default function MarketWatchPage() {
           </div>
         </Card>
 
-        {/* Selected Stock Live Line Chart Panel */}
+        {/* Selected Stock Live Candlestick Chart Panel */}
         {selectedStock ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <Card>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <div>
-                  <h3 style={{ fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-title)' }}>
-                    {selectedStock.symbol}
-                  </h3>
-                  <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{selectedStock.name}</p>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <h3 style={{ fontSize: '18px', fontWeight: 700 }}>₹{selectedStock.ltp.toFixed(2)}</h3>
-                  <p style={{ fontSize: '11px', fontWeight: 600, color: selectedStock.changePercent >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                    {selectedStock.changePercent >= 0 ? `+${selectedStock.changePercent.toFixed(2)}%` : `${selectedStock.changePercent.toFixed(2)}%`}
-                  </p>
-                </div>
-              </div>
-
-              <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>
-                <PerformanceChart
-                  data={chartData}
-                  labels={chartLabels}
-                  strokeColor={selectedStock.changePercent >= 0 ? colors.SUCCESS : colors.DANGER}
-                  fillColorStart={selectedStock.changePercent >= 0 ? `${colors.SUCCESS}25` : `${colors.DANGER}25`}
-                  fillColorEnd={selectedStock.changePercent >= 0 ? `${colors.SUCCESS}00` : `${colors.DANGER}00`}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '12px' }}>
-                <div>Open: <strong style={{ float: 'right' }}>₹{selectedStock.open.toFixed(2)}</strong></div>
-                <div>Prev Close: <strong style={{ float: 'right' }}>₹{selectedStock.prevClose.toFixed(2)}</strong></div>
-                <div>High: <strong style={{ float: 'right' }}>₹{selectedStock.high.toFixed(2)}</strong></div>
-                <div>Low: <strong style={{ float: 'right' }}>₹{selectedStock.low.toFixed(2)}</strong></div>
-                <div style={{ gridColumn: 'span 2', borderTop: '1px solid var(--border-color)', paddingTop: '8px', marginTop: '4px' }}>
-                  Pre-Open (IEP): <strong style={{ float: 'right' }}>₹{selectedStock.iep.toFixed(2)}</strong>
-                </div>
-              </div>
-            </Card>
+            <CandlestickChart
+              symbol={selectedStock.symbol}
+              name={selectedStock.name}
+              open={selectedStock.open}
+              high={selectedStock.high}
+              low={selectedStock.low}
+              prevClose={selectedStock.prevClose}
+              ltp={selectedStock.ltp}
+              volume={selectedStock.volume}
+            />
           </div>
         ) : null}
       </div>
-
-      {/* Interactive Candlestick Chart Modal */}
-      {chartModalStock && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 9999,
-        }} onClick={() => setChartModalStock(null)}>
-          <div style={{
-            width: '90%',
-            maxWidth: '650px',
-            position: 'relative',
-          }} onClick={(e) => e.stopPropagation()}>
-            <button 
-              onClick={() => setChartModalStock(null)}
-              style={{
-                position: 'absolute',
-                top: '16px',
-                right: '20px',
-                background: 'var(--border-color)',
-                border: 'none',
-                color: 'var(--text-primary)',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                zIndex: 10,
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'opacity 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-            >
-              ✕
-            </button>
-            <CandlestickChart
-              symbol={chartModalStock.symbol}
-              name={chartModalStock.name}
-              open={chartModalStock.open}
-              high={chartModalStock.high}
-              low={chartModalStock.low}
-              prevClose={chartModalStock.prevClose}
-              ltp={chartModalStock.ltp}
-              volume={chartModalStock.volume}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
