@@ -1,16 +1,59 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '../../../views/components/Card';
-import { CreditCard, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Loader } from '../../../views/components/Loader';
+import { CreditCard, ArrowUpRight, ArrowDownLeft, Calendar } from 'lucide-react';
 
 export default function PaymentsPage() {
-  const transactionsList = [
-    { id: 'TXN-908234', client: 'Firoz Mohammad', plan: 'Hedge Fund Algo', amount: '₹14,999', date: '13 June 2026', type: 'Credit', status: 'Success' },
-    { id: 'TXN-908231', client: 'Aditya Birla', plan: 'Pre-Open Breakout', amount: '₹4,999', date: '12 June 2026', type: 'Credit', status: 'Success' },
-    { id: 'TXN-908219', client: 'Sumit Joshi', plan: 'Momentum Scalper', amount: '₹9,999', date: '10 June 2026', type: 'Credit', status: 'Success' },
-    { id: 'TXN-908204', client: 'System Broker', plan: 'Zerodha Wallet Refill', amount: '₹2,500', date: '08 June 2026', type: 'Debit', status: 'Success' },
-  ];
+  const [payments, setPayments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchPayments = async () => {
+    try {
+      const res = await fetch('/api/payments/history?all=true');
+      const data = await res.json();
+      if (data.success) {
+        setPayments(data.payments || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch payments:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPayments();
+  }, []);
+
+  const successfulPayments = payments.filter(
+    (p) =>
+      p.status?.toLowerCase() === 'captured' ||
+      p.status?.toLowerCase() === 'success' ||
+      p.status?.toLowerCase() === 'completed'
+  );
+
+  const totalRevenue = successfulPayments.reduce(
+    (sum, p) => sum + Number(p.amount || 0),
+    0
+  );
+
+  const formatDate = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      });
+    } catch {
+      return '--';
+    }
+  };
+
+  if (loading) {
+    return <Loader title="Loading billing logs" text="Fetching transaction records and gateway reports..." fullscreen={false} />;
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -27,8 +70,10 @@ export default function PaymentsPage() {
         <Card>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500 }}>Monthly Revenue</p>
-              <h3 style={{ fontSize: '24px', fontWeight: 700, marginTop: '8px', color: 'var(--text-primary)' }}>₹29,997</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500 }}>Total Platform Revenue</p>
+              <h3 style={{ fontSize: '24px', fontWeight: 700, marginTop: '8px', color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
+                ₹{totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </h3>
             </div>
             <div style={{ padding: '12px', borderRadius: '12px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
               <CreditCard size={24} />
@@ -40,7 +85,7 @@ export default function PaymentsPage() {
       {/* Transactions Table */}
       <Card>
         <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
-          Transaction Records
+          Transaction Records ({payments.length})
         </h3>
         <div className="table-responsive">
           <table>
@@ -56,33 +101,70 @@ export default function PaymentsPage() {
               </tr>
             </thead>
             <tbody>
-              {transactionsList.map((txn, idx) => (
-                <tr key={idx}>
-                  <td style={{ fontWeight: 600 }}>{txn.id}</td>
-                  <td>{txn.client}</td>
-                  <td>{txn.plan}</td>
-                  <td style={{ fontWeight: 600 }}>{txn.amount}</td>
-                  <td>{txn.date}</td>
-                  <td>
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontWeight: 600,
-                        fontSize: '12px',
-                        color: txn.type === 'Credit' ? 'var(--color-success)' : 'var(--color-danger)',
-                      }}
-                    >
-                      {txn.type === 'Credit' ? <ArrowUpRight size={14} /> : <ArrowDownLeft size={14} />}
-                      {txn.type}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="badge badge-success">{txn.status}</span>
+              {payments.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
+                    No transaction records found in database.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                payments.map((txn, idx) => {
+                  const isSuccess =
+                    txn.status?.toLowerCase() === 'captured' ||
+                    txn.status?.toLowerCase() === 'success' ||
+                    txn.status?.toLowerCase() === 'completed';
+                  return (
+                    <tr key={txn.id || idx}>
+                      <td style={{ fontWeight: 600 }}>
+                        {txn.razorpayPaymentId || txn.razorpayOrderId || txn.id.slice(0, 10)}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {txn.user?.name || 'Unknown Client'}
+                          </span>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                            {txn.user?.email || ''}
+                          </span>
+                        </div>
+                      </td>
+                      <td>{txn.plan?.name || 'Subscription Plan'}</td>
+                      <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                        ₹{Number(txn.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td>{formatDate(txn.createdAt)}</td>
+                      <td>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontWeight: 600,
+                            fontSize: '12px',
+                            color: 'var(--color-success)',
+                          }}
+                        >
+                          <ArrowUpRight size={14} />
+                          Credit
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className={`badge ${
+                            isSuccess
+                              ? 'badge-success'
+                              : txn.status?.toLowerCase() === 'failed'
+                              ? 'badge-danger'
+                              : 'badge-info'
+                          }`}
+                        >
+                          {txn.status?.toUpperCase() || 'PENDING'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
