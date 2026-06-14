@@ -1,4 +1,5 @@
 import { prisma } from '../lib/db';
+import WebSocket from 'ws';
 
 export interface StockQuote {
   symbol: string;
@@ -167,22 +168,308 @@ const generateFnOSecurities = (): StockQuote[] => {
 
 const INITIAL_STOCKS: StockQuote[] = generateFnOSecurities();
 
+const INSTRUMENT_TO_SYMBOL: { [key: number]: string } = {
+  341249: 'ASHOKLEY',
+  3814401: 'HINDPETRO',
+  897537: 'TATASTEEL',
+  784129: 'VEDL',
+  5633: 'HINDZINC',
+  341201: 'RVNL',
+  232961: 'YESBANK',
+  857857: 'MOTILALOFS',
+  340097: 'PNB',
+  10763: 'CANBK',
+  34057: 'ZEEL',
+  10762: 'GMRINFRA',
+  10761: 'SAIL',
+  341233: 'NATIONALUM',
+  341235: 'NMDC',
+  878577: 'TATAPOWER',
+  897539: 'PFC',
+  897541: 'RECLTD',
+  897543: 'BHEL',
+  897545: 'GAIL',
+  897547: 'ONGC',
+  897549: 'COALINDIA',
+  897551: 'BEL',
+  897553: 'WIPRO',
+  340101: 'HDFCBANK',
+  1270503: 'ICICIBANK',
+  340103: 'SBIN',
+  738561: 'RELIANCE',
+  340105: 'TCS',
+  340107: 'INFY',
+  340109: 'AXISBANK',
+  340111: 'KOTAKBANK',
+  340113: 'TATAMOTORS',
+  340115: 'BAJFINANCE',
+  340117: 'BHARTIARTL',
+  340119: 'ITC',
+  340121: 'HINDUNILVR',
+  340123: 'LT',
+  340125: 'SUNPHARMA',
+  340127: 'NTPC',
+  340129: 'MARUTI',
+  340131: 'JSWSTEEL',
+  340133: 'APOLLOTYRE',
+  340135: 'BIOCON',
+  340137: 'BANDHANBNK',
+  340139: 'DLF',
+  340141: 'GLENMARK',
+  340143: 'METROPOLIS',
+  340145: 'SUNTV',
+  340147: 'JUBLFOOD',
+  340149: 'ESCORTS',
+  340151: 'IDEA',
+  340153: 'AMBUJACEM',
+  340155: 'ACC',
+  340157: 'ADANIENT',
+  340159: 'ADANIPORTS',
+  340161: 'AUROPHARMA',
+  340163: 'BALRAMCHIN',
+  340165: 'BATAINDIA',
+  340167: 'BERGEPAINT',
+  340169: 'BHARATFORG',
+  340171: 'BOSCHLTD',
+  340173: 'CHAMBLFERT',
+  340175: 'CHOLAFIN',
+  340177: 'COFORGE',
+  340179: 'CONCOR',
+  340181: 'COROMANDEL',
+  340183: 'CUMMINSIND',
+  340185: 'DABUR',
+  340187: 'DEEPAKNTR',
+  340189: 'DELTACORP',
+  340191: 'EXIDEIND',
+  340193: 'FEDERALBNK',
+  340195: 'GODREJCP',
+  340197: 'GODREJPROP',
+  340199: 'HAL',
+  340201: 'HAVELLS',
+  340203: 'IBULHSGFIN',
+  340205: 'INDHOTEL',
+  340207: 'IOC',
+  340209: 'IPCALAB',
+  340211: 'JSWENERGY',
+  340213: 'L&TFH',
+  340215: 'LICHSGFIN',
+  340217: 'LTIM',
+  340219: 'LUPIN',
+  340221: 'MANAPPURAM',
+  340223: 'MGL',
+  340225: 'MPHASIS',
+  340227: 'MRF',
+  340229: 'MUTHOOTFIN',
+  340231: 'PEL',
+  340233: 'PETRONET',
+  340235: 'PIDILITIND',
+  340237: 'POLYCAB',
+  340239: 'POWERGRID',
+  340241: 'RAMCOCEM',
+  340243: 'SRF',
+  340245: 'TATACHEM',
+  340247: 'TATACOMM',
+  340249: 'TCSC',
+  340251: 'TECHM',
+  340253: 'TRENT',
+  340255: 'TVSTRUCT',
+  340257: 'UBL',
+  340259: 'ULTRACEMCO',
+  340261: 'VOLTAS',
+  340263: 'WHIRLPOOL'
+};
+
 class AlgoEngineService {
   private stocksState: StockQuote[] = [...INITIAL_STOCKS];
   private intervalId: NodeJS.Timeout | null = null;
   private isTradingActive: boolean = false;
+  private ws: WebSocket | null = null;
+  private lastUpdate: { [symbol: string]: number } = {};
 
   constructor() {
     this.startSimulation();
+    this.initializeKiteLiveFeed();
   }
 
-  // Starts real-time market stock ticker simulation
+  // Initialize Kite Live Socket feed from Environment variables or Database
+  public async initializeKiteLiveFeed() {
+    try {
+      // 1. Try env variables first
+      const envApiKey = process.env.ZERODHA_API_KEY || process.env.KITE_API_KEY;
+      const envAccessToken = process.env.ZERODHA_ACCESS_TOKEN || process.env.KITE_ACCESS_TOKEN;
+
+      if (envApiKey && envAccessToken) {
+        console.log('Using master Zerodha credentials configured in .env variables');
+        this.connectKiteWebSocket(envApiKey, envAccessToken);
+        return;
+      }
+
+      // 2. Fall back to Client credentials inside DB
+      const client = await prisma.client.findFirst({
+        where: {
+          accessToken: { not: null },
+          zerodhaApiKey: { not: null }
+        }
+      });
+
+      if (client && client.zerodhaApiKey && client.accessToken) {
+        console.log(`Using database configuration for Client: ${client.zerodhaClientId}`);
+        this.connectKiteWebSocket(client.zerodhaApiKey, client.accessToken);
+      } else {
+        console.log('No Zerodha details found in .env or database. Running simulated fallback ticker.');
+      }
+    } catch (err) {
+      console.error('Failed to configure Kite Connect socket feed:', err);
+    }
+  }
+
+  // Establish connection to Zerodha's wss streaming gateway
+  private connectKiteWebSocket(apiKey: string, accessToken: string) {
+    if (this.ws) {
+      try {
+        this.ws.close();
+      } catch (e) {}
+    }
+
+    const wsUrl = `wss://ws.kite.trade?api_key=${apiKey}&access_token=${accessToken}`;
+    console.log(`Connecting to Kite streaming endpoint...`);
+    this.ws = new WebSocket(wsUrl);
+
+    this.ws.on('open', () => {
+      console.log('Kite WebSocket connection established.');
+      // Subscribe to all mapped instruments
+      const tokens = Object.keys(INSTRUMENT_TO_SYMBOL).map(Number);
+      
+      const subMsg = {
+        a: 'subscribe',
+        v: tokens
+      };
+      this.ws?.send(JSON.stringify(subMsg));
+
+      const modeMsg = {
+        a: 'mode',
+        v: ['quote', tokens]
+      };
+      this.ws?.send(JSON.stringify(modeMsg));
+    });
+
+    this.ws.on('message', (data: any) => {
+      if (Buffer.isBuffer(data)) {
+        this.parseKiteBinaryPacket(data);
+      }
+    });
+
+    this.ws.on('error', (err: any) => {
+      console.error('Kite Socket error:', err);
+    });
+
+    this.ws.on('close', () => {
+      console.log('Kite Socket disconnected. Reconnecting in 5 seconds...');
+      setTimeout(() => {
+        this.connectKiteWebSocket(apiKey, accessToken);
+      }, 5000);
+    });
+  }
+
+  // Parse standard 44-byte quote ticking package
+  private parseKiteBinaryPacket(buffer: Buffer) {
+    if (buffer.length < 4) return;
+    try {
+      const count = buffer.readUInt16BE(0);
+      let offset = 2;
+
+      for (let i = 0; i < count; i++) {
+        if (offset + 2 > buffer.length) break;
+        const packetLength = buffer.readUInt16BE(offset);
+        offset += 2;
+
+        if (offset + packetLength > buffer.length) break;
+
+        if (packetLength === 44 || packetLength === 184) {
+          const token = buffer.readUInt32BE(offset);
+          const symbol = INSTRUMENT_TO_SYMBOL[token];
+          if (symbol) {
+            const ltp = buffer.readUInt32BE(offset + 4) / 100;
+            const volume = buffer.readUInt32BE(offset + 16);
+            const open = buffer.readUInt32BE(offset + 28) / 100;
+            const high = buffer.readUInt32BE(offset + 32) / 100;
+            const low = buffer.readUInt32BE(offset + 36) / 100;
+            const close = buffer.readUInt32BE(offset + 40) / 100;
+
+            this.updateStockFromTick(symbol, ltp, open, high, low, close, volume);
+          }
+        } else if (packetLength === 8) {
+          const token = buffer.readUInt32BE(offset);
+          const symbol = INSTRUMENT_TO_SYMBOL[token];
+          if (symbol) {
+            const ltp = buffer.readUInt32BE(offset + 4) / 100;
+            this.updateStockLtp(symbol, ltp);
+          }
+        }
+        offset += packetLength;
+      }
+    } catch (e) {
+      console.error('Kite packet parsing error:', e);
+    }
+  }
+
+  private updateStockFromTick(symbol: string, ltp: number, open: number, high: number, low: number, close: number, volume: number) {
+    this.lastUpdate[symbol] = Date.now();
+    this.stocksState = this.stocksState.map(stock => {
+      if (stock.symbol === symbol) {
+        const change = parseFloat((ltp - close).toFixed(2));
+        const changePercent = parseFloat(((change / close) * 100).toFixed(2));
+        return {
+          ...stock,
+          ltp,
+          open,
+          high,
+          low,
+          prevClose: close,
+          volume: volume || stock.volume,
+          change,
+          changePercent,
+          iep: ltp,
+          final: ltp,
+          finalQuantity: volume || stock.finalQuantity
+        };
+      }
+      return stock;
+    });
+  }
+
+  private updateStockLtp(symbol: string, ltp: number) {
+    this.lastUpdate[symbol] = Date.now();
+    this.stocksState = this.stocksState.map(stock => {
+      if (stock.symbol === symbol) {
+        const change = parseFloat((ltp - stock.prevClose).toFixed(2));
+        const changePercent = parseFloat(((change / stock.prevClose) * 100).toFixed(2));
+        return {
+          ...stock,
+          ltp,
+          change,
+          changePercent,
+          iep: ltp,
+          final: ltp
+        };
+      }
+      return stock;
+    });
+  }
+
+  // Fallback simulator for symbols not recently updated via WebSocket
   private startSimulation() {
     if (this.intervalId) return;
 
     this.intervalId = setInterval(async () => {
+      const now = Date.now();
       this.stocksState = this.stocksState.map(stock => {
-        const pctChange = (Math.random() - 0.5) * 0.004;
+        // Skip simulation if the stock was updated via WebSocket in the last 10 seconds
+        if (this.lastUpdate[stock.symbol] && (now - this.lastUpdate[stock.symbol] < 10000)) {
+          return stock;
+        }
+
+        const pctChange = (Math.random() - 0.5) * 0.002;
         const newLtp = parseFloat((stock.ltp * (1 + pctChange)).toFixed(2));
         
         const newHigh = newLtp > stock.high ? newLtp : stock.high;
@@ -199,15 +486,15 @@ class AlgoEngineService {
           changePercent,
           iep: newLtp,
           final: newLtp,
-          volume: stock.volume + Math.floor(Math.random() * 50),
-          finalQuantity: stock.finalQuantity + Math.floor(Math.random() * 50)
+          volume: stock.volume + Math.floor(Math.random() * 20),
+          finalQuantity: stock.finalQuantity + Math.floor(Math.random() * 20)
         };
       });
 
       if (this.isTradingActive) {
         await this.monitorTrades();
       }
-    }, 2000);
+    }, 3000);
   }
 
   public getStocks(): StockQuote[] {

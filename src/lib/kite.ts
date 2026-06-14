@@ -80,4 +80,19 @@ export class KiteClient {
     });
     return response.json();
   }
+
+  /**
+   * Fetches live quotes for the specified instruments.
+   */
+  public static async getQuotes(apiKey: string, accessToken: string, instruments: string[]) {
+    const query = instruments.map(ins => `i=${ins}`).join('&');
+    const response = await fetch(`${this.BASE_URL}/market/quotes?${query}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `token ${apiKey}:${accessToken}`,
+        'X-Kite-Version': this.KITE_VERSION,
+      },
+    });
+    return response.json();
+  }
 }
