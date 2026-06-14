@@ -10,6 +10,21 @@ export default function PreOpenScannerPage() {
   const { scannerResults, isTradingActive, toggleTrading } = useAppViewModel();
   const [isScanning, setIsScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(30);
+
+  // Infinite Scroll Handler
+  React.useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 120
+      ) {
+        setVisibleCount(prev => Math.min(prev + 30, scannerResults.length));
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [scannerResults.length]);
 
   const runManualScan = () => {
     setIsScanning(true);
@@ -19,6 +34,8 @@ export default function PreOpenScannerPage() {
       setScanMessage(`Scanner complete. Selected ${scannerResults[0]?.symbol || 'None'} as trade breakout candidate.`);
     }, 1500);
   };
+
+  const visibleStocks = scannerResults.slice(0, visibleCount);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -63,7 +80,7 @@ export default function PreOpenScannerPage() {
                 </tr>
               </thead>
               <tbody>
-                {scannerResults.map((stock, idx) => {
+                {visibleStocks.map((stock, idx) => {
                   const gapDownPct = ((stock.open - stock.prevClose) / stock.prevClose) * 100;
                   return (
                     <tr key={stock.symbol}>
@@ -84,6 +101,11 @@ export default function PreOpenScannerPage() {
               </tbody>
             </table>
           </div>
+          {visibleCount < scannerResults.length && (
+            <div style={{ textAlign: 'center', padding: '16px', color: 'var(--text-muted)', fontSize: '12px', fontWeight: 500 }}>
+              Scroll down to load more Nifty 200 breakout candidates...
+            </div>
+          )}
         </Card>
 
         {/* Strategy Parameters */}

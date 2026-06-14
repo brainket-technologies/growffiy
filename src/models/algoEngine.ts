@@ -14,18 +14,123 @@ export interface StockQuote {
 }
 
 // Initial mock stock data for Nifty 200 simulation
-const INITIAL_STOCKS: StockQuote[] = [
-  { symbol: 'RELIANCE', name: 'Reliance Industries Ltd.', ltp: 2450.00, open: 2465.00, high: 2475.00, low: 2440.00, prevClose: 2460.00, volume: 5200000, change: -10, changePercent: -0.41 },
-  { symbol: 'WIPRO', name: 'Wipro Limited', ltp: 412.50, open: 418.00, high: 419.50, low: 410.00, prevClose: 420.00, volume: 3800000, change: -7.50, changePercent: -1.79 },
-  { symbol: 'TCS', name: 'Tata Consultancy Services Ltd.', ltp: 3210.00, open: 3240.00, high: 3255.00, low: 3200.00, prevClose: 3250.00, volume: 1500000, change: -40, changePercent: -1.23 },
-  { symbol: 'INFY', name: 'Infosys Limited', ltp: 1420.00, open: 1445.00, high: 1450.00, low: 1412.00, prevClose: 1450.00, volume: 4200000, change: -30, changePercent: -2.07 },
-  { symbol: 'HDFCBANK', name: 'HDFC Bank Limited', ltp: 1610.00, open: 1615.00, high: 1625.00, low: 1605.00, prevClose: 1618.00, volume: 6500000, change: -8, changePercent: -0.49 },
-  { symbol: 'ICICIBANK', name: 'ICICI Bank Limited', ltp: 935.00, open: 945.00, high: 950.00, low: 930.00, prevClose: 948.00, volume: 5100000, change: -13, changePercent: -1.37 },
-  { symbol: 'SBIN', name: 'State Bank of India', ltp: 572.00, open: 585.00, high: 588.00, low: 569.00, prevClose: 586.00, volume: 8900000, change: -14, changePercent: -2.39 },
-  { symbol: 'TATAMOTORS', name: 'Tata Motors Limited', ltp: 620.00, open: 638.00, high: 641.00, low: 615.00, prevClose: 640.00, volume: 12000000, change: -20, changePercent: -3.12 },
-  { symbol: 'ADANIENT', name: 'Adani Enterprises Ltd.', ltp: 2410.00, open: 2470.00, high: 2475.00, low: 2390.00, prevClose: 2480.00, volume: 2200000, change: -70, changePercent: -2.82 },
-  { symbol: 'ADANIPORTS', name: 'Adani Ports & SEZ Ltd.', ltp: 785.00, open: 810.00, high: 815.00, low: 780.00, prevClose: 812.00, volume: 3500000, change: -27, changePercent: -3.33 },
-];
+// Helper to generate 200 Nifty stocks
+const generateNifty200 = (): StockQuote[] => {
+  const baseStocks = [
+    { symbol: 'RELIANCE', name: 'Reliance Industries Ltd.', price: 2450 },
+    { symbol: 'TCS', name: 'Tata Consultancy Services Ltd.', price: 3210 },
+    { symbol: 'INFY', name: 'Infosys Limited', price: 1420 },
+    { symbol: 'HDFCBANK', name: 'HDFC Bank Limited', price: 1610 },
+    { symbol: 'ICICIBANK', name: 'ICICI Bank Limited', price: 935 },
+    { symbol: 'SBIN', name: 'State Bank of India', price: 572 },
+    { symbol: 'WIPRO', name: 'Wipro Limited', price: 412 },
+    { symbol: 'TATAMOTORS', name: 'Tata Motors Limited', price: 620 },
+    { symbol: 'ADANIENT', name: 'Adani Enterprises Ltd.', price: 2410 },
+    { symbol: 'ADANIPORTS', name: 'Adani Ports & SEZ Ltd.', price: 785 },
+    { symbol: 'ITC', name: 'ITC Limited', price: 440 },
+    { symbol: 'BHARTIARTL', name: 'Bharti Airtel Ltd.', price: 890 },
+    { symbol: 'HINDUNILVR', name: 'Hindustan Unilever Ltd.', price: 2520 },
+    { symbol: 'LT', name: 'Larsen & Toubro Ltd.', price: 2650 },
+    { symbol: 'AXISBANK', name: 'Axis Bank Ltd.', price: 960 },
+    { symbol: 'KOTAKBANK', name: 'Kotak Mahindra Bank Ltd.', price: 1820 },
+    { symbol: 'M&M', name: 'Mahindra & Mahindra Ltd.', price: 1540 },
+    { symbol: 'TITAN', name: 'Titan Company Ltd.', price: 2980 },
+    { symbol: 'ULTRACEMCO', name: 'UltraTech Cement Ltd.', price: 8200 },
+    { symbol: 'SUNPHARMA', name: 'Sun Pharmaceutical Industries Ltd.', price: 1120 },
+    { symbol: 'NTPC', name: 'NTPC Limited', price: 220 },
+    { symbol: 'TATASTEEL', name: 'Tata Steel Limited', price: 115 },
+    { symbol: 'POWERGRID', name: 'Power Grid Corporation of India Ltd.', price: 245 },
+    { symbol: 'NESTLEIND', name: 'Nestle India Ltd.', price: 22500 },
+    { symbol: 'COALINDIA', name: 'Coal India Ltd.', price: 230 },
+    { symbol: 'ONGC', name: 'Oil & Natural Gas Corporation Ltd.', price: 180 },
+    { symbol: 'ADANIPOWER', name: 'Adani Power Ltd.', price: 350 },
+    { symbol: 'JSWSTEEL', name: 'JSW Steel Ltd.', price: 780 },
+    { symbol: 'HINDALCO', name: 'Hindalco Industries Ltd.', price: 460 },
+    { symbol: 'GRASIM', name: 'Grasim Industries Ltd.', price: 1810 },
+    { symbol: 'HCLTECH', name: 'HCL Technologies Ltd.', price: 1160 },
+    { symbol: 'INDUSINDBK', name: 'IndusInd Bank Ltd.', price: 1390 },
+    { symbol: 'BAJAJ-AUTO', name: 'Bajaj Auto Ltd.', price: 4700 },
+    { symbol: 'DIVISLAB', name: 'Divi\'s Laboratories Ltd.', price: 3650 },
+    { symbol: 'BPCL', name: 'Bharat Petroleum Corporation Ltd.', price: 360 },
+    { symbol: 'CIPLA', name: 'Cipla Limited', price: 1020 },
+    { symbol: 'EICHERMOT', name: 'Eicher Motors Ltd.', price: 3300 },
+    { symbol: 'DRREDDY', name: 'Dr. Reddy\'s Laboratories Ltd.', price: 5200 },
+    { symbol: 'APOLLOHOSP', name: 'Apollo Hospitals Enterprise Ltd.', price: 4900 },
+    { symbol: 'BRITANNIA', name: 'Britannia Industries Ltd.', price: 4500 },
+    { symbol: 'SHRIRAMFIN', name: 'Shriram Finance Ltd.', price: 1750 },
+    { symbol: 'HEROMOTOCO', name: 'Hero MotoCorp Ltd.', price: 2900 },
+    { symbol: 'MARUTI', name: 'Maruti Suzuki India Ltd.', price: 9500 },
+    { symbol: 'TECHM', name: 'Tech Mahindra Ltd.', price: 1100 },
+    { symbol: 'UPL', name: 'UPL Limited', price: 580 },
+    { symbol: 'TATACONSUM', name: 'Tata Consumer Products Ltd.', price: 840 },
+    { symbol: 'BAJFINANCE', name: 'Bajaj Finance Ltd.', price: 7100 },
+    { symbol: 'BAJAJFINSV', name: 'Bajaj Finserv Ltd.', price: 1520 },
+    { symbol: 'ASIANPAINT', name: 'Asian Paints Ltd.', price: 3200 },
+  ];
+  
+  const generated: StockQuote[] = [];
+  
+  baseStocks.forEach(s => {
+    const changePercent = parseFloat(((Math.random() - 0.5) * 4).toFixed(2));
+    const change = parseFloat(((s.price * changePercent) / 100).toFixed(2));
+    const open = parseFloat((s.price * (1 - (Math.random() - 0.5) * 0.01)).toFixed(2));
+    const prevClose = parseFloat((s.price).toFixed(2));
+    
+    generated.push({
+      symbol: s.symbol,
+      name: s.name,
+      ltp: s.price,
+      open,
+      high: Math.max(s.price, open) * 1.01,
+      low: Math.min(s.price, open) * 0.99,
+      prevClose,
+      volume: Math.floor(Math.random() * 5000000) + 100000,
+      change,
+      changePercent
+    });
+  });
+  
+  const sectors = ['CHEM', 'PHARMA', 'INFRA', 'POWER', 'STEEL', 'BANK', 'AUTO', 'FOOD', 'TECH', 'FIN'];
+  const groups = ['TATA', 'BIRLA', 'ADANI', 'RELIANCE', 'JINDAL', 'MAHINDRA', 'BAJAJ', 'GODREJ', 'HDFC', 'ICICI'];
+  
+  let index = 0;
+  while (generated.length < 200) {
+    const group = groups[index % groups.length];
+    const sector = sectors[Math.floor(Math.random() * sectors.length)];
+    const id = 100 + index;
+    const symbol = `${group}-${sector}${id}`;
+    
+    if (generated.some(s => s.symbol === symbol)) {
+      index++;
+      continue;
+    }
+    
+    const price = Math.floor(Math.random() * 2500) + 50;
+    const changePercent = parseFloat(((Math.random() - 0.5) * 4).toFixed(2));
+    const change = parseFloat(((price * changePercent) / 100).toFixed(2));
+    const open = parseFloat((price * (1 - (Math.random() - 0.5) * 0.01)).toFixed(2));
+    const prevClose = parseFloat((price).toFixed(2));
+    
+    generated.push({
+      symbol,
+      name: `${group} ${sector} Industries Ltd.`,
+      ltp: price,
+      open,
+      high: Math.max(price, open) * 1.01,
+      low: Math.min(price, open) * 0.99,
+      prevClose,
+      volume: Math.floor(Math.random() * 3000000) + 10000,
+      change,
+      changePercent
+    });
+    
+    index++;
+  }
+  
+  return generated;
+};
+
+const INITIAL_STOCKS: StockQuote[] = generateNifty200();
 
 class AlgoEngineService {
   private stocksState: StockQuote[] = [...INITIAL_STOCKS];
