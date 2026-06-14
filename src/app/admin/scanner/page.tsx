@@ -175,7 +175,7 @@ export default function PreOpenScannerPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
-            Pre-Open Breakout Scanner
+            Scanner
           </h1>
           <p style={{ color: 'var(--text-secondary)' }}>Automated scanner identifying top losers for breakout entry criteria.</p>
         </div>
