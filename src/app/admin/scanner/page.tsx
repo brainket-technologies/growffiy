@@ -75,13 +75,15 @@ export default function PreOpenScannerPage() {
                   <th>LTP (₹)</th>
                   <th>Open Price (₹)</th>
                   <th>Prev Close (₹)</th>
-                  <th>Gap Down (%)</th>
-                  <th>Chg (%)</th>
+                  <th>Gap Down/Up (%)</th>
+                  <th>% Chg</th>
                 </tr>
               </thead>
               <tbody>
                 {visibleStocks.map((stock, idx) => {
                   const gapDownPct = ((stock.open - stock.prevClose) / stock.prevClose) * 100;
+                  const isGapPositive = gapDownPct >= 0;
+                  const isChgPositive = stock.changePercent >= 0;
                   return (
                     <tr key={stock.symbol}>
                       <td style={{ fontWeight: 600, color: 'var(--color-info)' }}>#{idx + 1}</td>
@@ -89,11 +91,17 @@ export default function PreOpenScannerPage() {
                       <td>₹{stock.ltp.toFixed(2)}</td>
                       <td>₹{stock.open.toFixed(2)}</td>
                       <td>₹{stock.prevClose.toFixed(2)}</td>
-                      <td style={{ color: 'var(--color-danger)', fontWeight: 600 }}>
-                        {gapDownPct.toFixed(2)}%
+                      <td style={{ 
+                        color: gapDownPct === 0 ? '#94a3b8' : isGapPositive ? '#10b981' : '#ef4444', 
+                        fontWeight: 600 
+                      }}>
+                        {isGapPositive ? '+' : ''}{gapDownPct.toFixed(2)}%
                       </td>
-                      <td style={{ color: 'var(--color-danger)', fontWeight: 600 }}>
-                        {stock.changePercent}%
+                      <td style={{ 
+                        color: stock.changePercent === 0 ? '#94a3b8' : isChgPositive ? '#10b981' : '#ef4444', 
+                        fontWeight: 600 
+                      }}>
+                        {isChgPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
                       </td>
                     </tr>
                   );
