@@ -568,6 +568,10 @@ class AlgoEngineService {
     return this.stocksState;
   }
 
+  public getPreOpenStocks(): StockQuote[] {
+    return INITIAL_STOCKS.map(s => ({ ...s }));
+  }
+
   public toggleTrading(status: boolean) {
     this.isTradingActive = status;
   }

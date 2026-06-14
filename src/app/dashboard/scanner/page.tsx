@@ -21,7 +21,7 @@ import {
 import { Loader } from '../../../views/components/Loader';
 
 export default function ClientPreOpenScannerPage() {
-  const { stocks, loading, isSyncing, isWsConnected } = useAppViewModel();
+  const { preOpenStocks: stocks, loading, isSyncing, isWsConnected } = useAppViewModel();
   if (loading) {
     return <Loader title="Loading Pre-Open Market" text="Fetching indicative quotes and syncing pre-market feeds..." fullscreen={false} />;
   }

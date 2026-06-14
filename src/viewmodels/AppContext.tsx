@@ -9,6 +9,7 @@ interface AppState {
   clients: any[];
   trades: any[];
   stocks: any[];
+  preOpenStocks: any[];
   scannerResults: any[];
   isTradingActive: boolean;
   isSyncing: boolean;
@@ -56,6 +57,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [clients, setClients] = useState<any[]>([]);
   const [trades, setTrades] = useState<any[]>([]);
   const [stocks, setStocks] = useState<any[]>([]);
+  const [preOpenStocks, setPreOpenStocks] = useState<any[]>([]);
   const [isTradingActive, setIsTradingActive] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [isWsConnected, setIsWsConnected] = useState<boolean>(false);
@@ -87,8 +89,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
-  // Derive scanner results from live stocks (top losers)
-  const scannerResults = [...stocks]
+  // Derive scanner results from static pre-open stocks (top losers)
+  const scannerResults = [...preOpenStocks]
     .sort((a, b) => a.changePercent - b.changePercent);
 
   const refreshAllData = useCallback(async () => {
@@ -104,6 +106,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (tradesRes.success) setTrades(tradesRes.trades);
       if (stocksRes.success) {
         setStocks(stocksRes.stocks);
+        if (stocksRes.preOpenStocks) {
+          setPreOpenStocks(stocksRes.preOpenStocks);
+        }
         setIsTradingActive(stocksRes.isTradingActive);
         setIsWsConnected(stocksRes.isWsConnected || false);
       }
@@ -132,6 +137,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (statsRes.success) setDashboardStats(statsRes.stats);
         if (stocksRes.success) {
           setStocks(stocksRes.stocks);
+          if (stocksRes.preOpenStocks) {
+            setPreOpenStocks(stocksRes.preOpenStocks);
+          }
           setIsTradingActive(stocksRes.isTradingActive);
           setIsWsConnected(stocksRes.isWsConnected || false);
         }
@@ -324,6 +332,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         clients,
         trades,
         stocks,
+        preOpenStocks,
         scannerResults,
         isTradingActive,
         isSyncing,
