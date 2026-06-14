@@ -85,8 +85,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Derive scanner results from live stocks (top losers)
   const scannerResults = [...stocks]
-    .sort((a, b) => a.changePercent - b.changePercent)
-    .slice(0, 3);
+    .sort((a, b) => a.changePercent - b.changePercent);
 
   const refreshAllData = useCallback(async () => {
     try {

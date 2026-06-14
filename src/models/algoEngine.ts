@@ -85,8 +85,7 @@ class AlgoEngineService {
   // Scanner picks Top Losers for strategy selection
   public getScannerResults(): StockQuote[] {
     return [...this.stocksState]
-      .sort((a, b) => a.changePercent - b.changePercent)
-      .slice(0, 3); // Pick top 3 losers
+      .sort((a, b) => a.changePercent - b.changePercent); // Sorted by top losers
   }
 
   // Core execution: Runs Pre-Open scan and initiates trades
