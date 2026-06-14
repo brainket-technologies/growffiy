@@ -18,9 +18,13 @@ import {
   Coins, 
   Target 
 } from 'lucide-react';
+import { Loader } from '../../../views/components/Loader';
 
 export default function ClientPreOpenScannerPage() {
-  const { stocks, isSyncing, isWsConnected } = useAppViewModel();
+  const { stocks, loading, isSyncing, isWsConnected } = useAppViewModel();
+  if (loading) {
+    return <Loader title="Loading Pre-Open Market" text="Fetching indicative quotes and syncing pre-market feeds..." fullscreen={false} />;
+  }
   const [selectedFoTab, setSelectedFoTab] = useState<'oi' | 'longBuild' | 'shortBuild' | 'shortCover' | 'longUnwind'>('oi');
 
   // Derive Market Breadth from actual stock state

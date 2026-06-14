@@ -16,9 +16,14 @@ import {
   ArrowDownRight, 
   Layers 
 } from 'lucide-react';
+import { Loader } from '../../../views/components/Loader';
 
 export default function ClientMarketWatchPage() {
-  const { stocks, colors, trades, isSyncing, isWsConnected } = useAppViewModel();
+  const { stocks, colors, trades, loading, isSyncing, isWsConnected } = useAppViewModel();
+  
+  if (loading) {
+    return <Loader title="Loading Market Watch" text="Securing real-time streams and syncing live indices..." fullscreen={false} />;
+  }
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'gainers' | 'losers' | 'volume'>('all');
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string | null>(stocks[0]?.symbol || null);
