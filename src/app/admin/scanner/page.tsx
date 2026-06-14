@@ -336,19 +336,31 @@ export default function PreOpenScannerPage() {
             {/* Filter Buttons */}
             <div style={{ display: 'flex', gap: '6px' }}>
               <button
-                onClick={() => setActiveFilter('all')}
+                onClick={() => {
+                  setActiveFilter('all');
+                  setSortField('changePercent');
+                  setSortAsc(false);
+                }}
                 style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'all' ? 'var(--color-info-bg)' : '#ffffff', color: activeFilter === 'all' ? 'var(--color-info)' : '#475569' }}
               >
                 All Pre-Open
               </button>
               <button
-                onClick={() => setActiveFilter('gainers')}
+                onClick={() => {
+                  setActiveFilter('gainers');
+                  setSortField('changePercent');
+                  setSortAsc(false);
+                }}
                 style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'gainers' ? '#e6f4ea' : '#ffffff', color: activeFilter === 'gainers' ? '#10b981' : '#475569' }}
               >
                 Top Gainers
               </button>
               <button
-                onClick={() => setActiveFilter('losers')}
+                onClick={() => {
+                  setActiveFilter('losers');
+                  setSortField('changePercent');
+                  setSortAsc(true);
+                }}
                 style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'losers' ? '#fde8e8' : '#ffffff', color: activeFilter === 'losers' ? '#ef4444' : '#475569' }}
               >
                 Top Losers
