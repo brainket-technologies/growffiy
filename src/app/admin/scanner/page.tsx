@@ -4,12 +4,12 @@ import React, { useState } from 'react';
 import { useAppViewModel } from '../../../viewmodels/AppContext';
 import { Card } from '../../../views/components/Card';
 import { Button } from '../../../views/components/Button';
-import { Zap, Play, CheckCircle2, Download, X, FileSpreadsheet } from 'lucide-react';
+import { Zap, Play, CheckCircle2, Download, X, FileSpreadsheet, Loader2 } from 'lucide-react';
 
 type CategoryType = 'NIFTY 50' | 'Nifty Bank' | 'Emerge' | 'Securities in F&O' | 'Others' | 'All';
 
 export default function PreOpenScannerPage() {
-  const { scannerResults, isTradingActive, toggleTrading } = useAppViewModel();
+  const { scannerResults, isTradingActive, toggleTrading, loading } = useAppViewModel();
   const [isScanning, setIsScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(30);
@@ -312,9 +312,17 @@ export default function PreOpenScannerPage() {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: 600, fontFamily: 'var(--font-title)', margin: 0 }}>
-              Top Breakout Candidates
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 600, fontFamily: 'var(--font-title)', margin: 0 }}>
+                Top Breakout Candidates
+              </h3>
+              {loading && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#0ea5e9', fontSize: '11px', fontWeight: 500 }}>
+                  <Loader2 size={13} style={{ animation: 'spin 1.2s linear infinite' }} />
+                  <span>Syncing ticks...</span>
+                </div>
+              )}
+            </div>
             
             {/* Change Denomination Options */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500 }}>
