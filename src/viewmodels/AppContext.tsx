@@ -11,6 +11,8 @@ interface AppState {
   stocks: any[];
   scannerResults: any[];
   isTradingActive: boolean;
+  isSyncing: boolean;
+  isWsConnected: boolean;
   dashboardStats: {
     totalClients: number;
     activeClients: number;
@@ -55,6 +57,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [trades, setTrades] = useState<any[]>([]);
   const [stocks, setStocks] = useState<any[]>([]);
   const [isTradingActive, setIsTradingActive] = useState<boolean>(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [isWsConnected, setIsWsConnected] = useState<boolean>(false);
   const [dashboardStats, setDashboardStats] = useState(defaultStats);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -101,6 +105,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (stocksRes.success) {
         setStocks(stocksRes.stocks);
         setIsTradingActive(stocksRes.isTradingActive);
+        setIsWsConnected(stocksRes.isWsConnected || false);
       }
       if (statsRes.success) setDashboardStats(statsRes.stats);
     } catch (error) {
@@ -117,6 +122,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     refreshAllData();
     const interval = setInterval(async () => {
       try {
+        setIsSyncing(true);
         const [tradesRes, statsRes, stocksRes] = await Promise.all([
           api.get(API_ENDPOINTS.TRADES),
           api.get(API_ENDPOINTS.DASHBOARD),
@@ -127,9 +133,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (stocksRes.success) {
           setStocks(stocksRes.stocks);
           setIsTradingActive(stocksRes.isTradingActive);
+          setIsWsConnected(stocksRes.isWsConnected || false);
         }
       } catch (err) {
         console.error('Ticking poll error:', err);
+      } finally {
+        setIsSyncing(false);
       }
     }, 2000);
 
@@ -317,6 +326,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         stocks,
         scannerResults,
         isTradingActive,
+        isSyncing,
+        isWsConnected,
         dashboardStats,
         colors: THEME_COLORS,
         loading,

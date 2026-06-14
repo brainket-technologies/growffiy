@@ -508,6 +508,10 @@ class AlgoEngineService {
     }
   }
 
+  public isWsConnected(): boolean {
+    return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
+  }
+
   public getStocks(): StockQuote[] {
     return this.stocksState;
   }

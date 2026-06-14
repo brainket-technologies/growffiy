@@ -9,7 +9,7 @@ import { Zap, Play, CheckCircle2, Download, X, FileSpreadsheet, Loader2 } from '
 type CategoryType = 'NIFTY 50' | 'Nifty Bank' | 'Emerge' | 'Securities in F&O' | 'Others' | 'All';
 
 export default function PreOpenScannerPage() {
-  const { scannerResults, isTradingActive, toggleTrading, loading } = useAppViewModel();
+  const { scannerResults, isTradingActive, toggleTrading, loading, isSyncing, isWsConnected } = useAppViewModel();
   const [isScanning, setIsScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(30);
@@ -312,11 +312,35 @@ export default function PreOpenScannerPage() {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 600, fontFamily: 'var(--font-title)', margin: 0 }}>
                 Top Breakout Candidates
               </h3>
-              {loading && (
+              {isWsConnected ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '11px', fontWeight: 600 }}>
+                  <span style={{ 
+                    display: 'inline-block', 
+                    width: '6px', 
+                    height: '6px', 
+                    backgroundColor: '#10b981', 
+                    borderRadius: '50%', 
+                    boxShadow: '0 0 8px #10b981'
+                  }} />
+                  <span>Live Feed</span>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontSize: '11px', fontWeight: 500 }}>
+                  <span style={{ 
+                    display: 'inline-block', 
+                    width: '6px', 
+                    height: '6px', 
+                    backgroundColor: '#cbd5e1', 
+                    borderRadius: '50%'
+                  }} />
+                  <span>Standby</span>
+                </div>
+              )}
+              {(loading || isSyncing) && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#0ea5e9', fontSize: '11px', fontWeight: 500 }}>
                   <Loader2 size={13} style={{ animation: 'spin 1.2s linear infinite' }} />
                   <span>Syncing ticks...</span>
