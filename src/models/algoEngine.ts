@@ -18,6 +18,11 @@ export interface StockQuote {
   ffmCap: number; // in Crores
   nm52wH: number;
   nm52wL: number;
+  // Dynamic Index Tagging
+  isNifty50?: boolean;
+  isBankNifty?: boolean;
+  isFo?: boolean;
+  isEmerge?: boolean;
 }
 
 class AlgoEngineService {
@@ -65,13 +70,31 @@ class AlgoEngineService {
       const rawCookies = homeRes.headers.get('set-cookie') || '';
       const cookies = rawCookies.split(',').map(c => c.split(';')[0]).join('; ');
 
-      // 2. Query the pre-open endpoint using the cookies
-      const dataRes = await fetch(API_ENDPOINTS.NSE_PRE_OPEN, {
-        headers: {
-          ...headers,
-          'Cookie': cookies,
+      // Helper function to fetch specific index category symbols in parallel
+      const fetchIndexSymbols = async (key: string): Promise<string[]> => {
+        try {
+          const res = await fetch(`https://www.nseindia.com/api/market-data-pre-open?key=${key}`, {
+            headers: { ...headers, 'Cookie': cookies }
+          });
+          if (!res.ok) return [];
+          const json = await res.ok ? await res.json() : {};
+          if (json && Array.isArray(json.data)) {
+            return json.data.map((item: any) => item.metadata?.symbol).filter(Boolean);
+          }
+        } catch (e) {
+          console.error(`Failed to fetch symbols for index key ${key}:`, e);
         }
-      });
+        return [];
+      };
+
+      // 2. Query all endpoints in parallel (All, Nifty 50, Nifty Bank, F&O, Emerge)
+      const [dataRes, niftySymbols, bankNiftySymbols, foSymbols, emergeSymbols] = await Promise.all([
+        fetch(API_ENDPOINTS.NSE_PRE_OPEN, { headers: { ...headers, 'Cookie': cookies } }),
+        fetchIndexSymbols('NIFTY'),
+        fetchIndexSymbols('BANKNIFTY'),
+        fetchIndexSymbols('FO'),
+        fetchIndexSymbols('EMERGE')
+      ]);
 
       if (!dataRes.ok) {
         throw new Error(`NSE API responded with status ${dataRes.status}`);
@@ -118,7 +141,12 @@ class AlgoEngineService {
             value,
             ffmCap,
             nm52wH: parseFloat((prevClose * 1.25).toFixed(2)),
-            nm52wL: parseFloat((prevClose * 0.75).toFixed(2))
+            nm52wL: parseFloat((prevClose * 0.75).toFixed(2)),
+            // Dynamic flags
+            isNifty50: niftySymbols.includes(symbol),
+            isBankNifty: bankNiftySymbols.includes(symbol),
+            isFo: foSymbols.includes(symbol),
+            isEmerge: emergeSymbols.includes(symbol)
           };
         });
 

@@ -72,6 +72,15 @@ export default function PreOpenScannerPage() {
   };
 
   const filterByCategory = (stock: any, cat: CategoryType) => {
+    if (stock.isNifty50 !== undefined) {
+      if (cat === 'NIFTY 50') return stock.isNifty50;
+      if (cat === 'Nifty Bank') return stock.isBankNifty;
+      if (cat === 'Emerge') return stock.isEmerge;
+      if (cat === 'Securities in F&O') return stock.isFo;
+      if (cat === 'Others') return !stock.isNifty50 && !stock.isBankNifty && !stock.isEmerge && !stock.isFo;
+      return true;
+    }
+
     const nifty50 = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'AXISBANK', 'KOTAKBANK', 'BHARTIARTL', 'ITC', 'HINDUNILVR', 'LT', 'SUNPHARMA', 'NTPC', 'MARUTI', 'JSWSTEEL', 'TATAMOTORS', 'BAJFINANCE', 'ONGC', 'COALINDIA', 'POWERGRID', 'ADANIENT', 'ADANIPORTS'];
     const niftyBank = ['HDFCBANK', 'ICICIBANK', 'SBIN', 'AXISBANK', 'KOTAKBANK', 'FEDERALBNK', 'BANDHANBNK', 'YESBANK', 'PNB', 'CANBK'];
     const emerge = ['RVNL', 'ZEEL', 'GMRINFRA', 'NATIONALUM', 'BHEL', 'BIOCON', 'DELTACORP', 'IDEA'];
