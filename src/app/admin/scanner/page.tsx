@@ -121,14 +121,14 @@ export default function PreOpenScannerPage() {
 
   const visibleStocks = sortedStocks.slice(0, visibleCount);
 
-  // Derive Advance / Decline counts dynamically from the base pre-open list
-  const advances = scannerResults.filter(s => s.iep - s.prevClose > 0).length;
-  const declines = scannerResults.filter(s => s.iep - s.prevClose < 0).length;
-  const unchanged = scannerResults.filter(s => s.iep - s.prevClose === 0).length;
+  // Derive Advance / Decline counts dynamically from the filtered pre-open list
+  const advances = filteredStocks.filter(s => s.iep - s.prevClose > 0).length;
+  const declines = filteredStocks.filter(s => s.iep - s.prevClose < 0).length;
+  const unchanged = filteredStocks.filter(s => s.iep - s.prevClose === 0).length;
 
-  // Derive top pre-open performers
-  const topGainer = [...scannerResults].sort((a, b) => b.changePercent - a.changePercent)[0];
-  const topLoser = [...scannerResults].sort((a, b) => a.changePercent - b.changePercent)[0];
+  // Derive top pre-open performers from the filtered pre-open list
+  const topGainer = [...filteredStocks].sort((a, b) => b.changePercent - a.changePercent)[0];
+  const topLoser = [...filteredStocks].sort((a, b) => a.changePercent - b.changePercent)[0];
 
   const handleClear = () => {
     setCategory('F&O');
