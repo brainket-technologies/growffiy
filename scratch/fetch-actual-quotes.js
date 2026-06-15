@@ -251,7 +251,16 @@ async function main() {
 
   console.log("Fetched actual quotes count:", Object.keys(quotes).length);
   
-  const stockQuotes = {};
+  const stockQuotes = {
+    _meta: {
+      date: new Date().toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      }),
+      timestamp: Date.now()
+    }
+  };
 
   for (const [key, quote] of Object.entries(quotes)) {
     const symbol = key.split(':')[1];

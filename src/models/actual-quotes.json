@@ -998,5 +998,9 @@
     "low": 2951.2,
     "volume": 150000,
     "freeFloatShares": 10
+  },
+  "_meta": {
+    "date": "15 Jun 2026",
+    "timestamp": 1781502430763
   }
 }

@@ -595,17 +595,12 @@ class AlgoEngineService {
 
   public getPreOpenDate(): string {
     try {
-      const filePath = path.join(process.cwd(), 'src/models/actual-quotes.json');
-      if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath);
-        return stats.mtime.toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric'
-        });
+      const currentQuotes = getActualQuotes();
+      if (currentQuotes && currentQuotes._meta && currentQuotes._meta.date) {
+        return currentQuotes._meta.date;
       }
     } catch (e) {
-      console.error('Failed to get actual-quotes file date:', e);
+      console.error('Failed to get actual-quotes JSON date:', e);
     }
     return new Date().toLocaleDateString('en-GB', {
       day: '2-digit',
