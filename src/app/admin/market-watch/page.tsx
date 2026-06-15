@@ -17,7 +17,7 @@ import {
 type CategoryType = 'NIFTY 50' | 'Nifty Bank' | 'Emerge' | 'Securities in F&O' | 'Others' | 'All';
 
 export default function MarketWatchPage() {
-  const { stocks, loading, isSyncing, isWsConnected } = useAppViewModel();
+  const { stocks, loading, isSyncing, isWsConnected, clients, dashboardStats, isTradingActive } = useAppViewModel();
 
   const [category, setCategory] = useState<CategoryType>('Securities in F&O');
   const [symbolQuery, setSymbolQuery] = useState('');
@@ -113,10 +113,6 @@ export default function MarketWatchPage() {
   const declines = stocks.filter(s => s.changePercent < 0).length;
   const unchanged = stocks.filter(s => s.changePercent === 0).length;
 
-  // Derive top performers
-  const topGainer = [...stocks].sort((a, b) => b.changePercent - a.changePercent)[0];
-  const topLoser = [...stocks].sort((a, b) => a.changePercent - b.changePercent)[0];
-
   const handleClear = () => {
     setCategory('Securities in F&O');
     setSymbolQuery('');
@@ -175,55 +171,75 @@ export default function MarketWatchPage() {
         <p style={{ color: 'var(--text-secondary)' }}>Real-time streaming feeds from Zerodha Kite WebSocket.</p>
       </div>
 
-      {/* Top Gainer, Top Loser & Breadth Cards */}
+      {/* Top Engine, Performance & Breadth Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-        {/* Top Gainer Card */}
-        {topGainer && (
-          <Card style={{ padding: '16px', borderLeft: '4px solid #10b981' }}>
-            <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <TrendingUp size={15} color="#10b981" /> Today's Top Gainer
-            </span>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-              <div>
-                <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 6px 0' }}>{topGainer.symbol}</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>LTP: <strong>₹{topGainer.ltp.toFixed(2)}</strong></span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Prev Close: <strong>₹{topGainer.prevClose.toFixed(2)}</strong></span>
-                </div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '16px', fontWeight: 800, color: '#10b981', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                  <ArrowUpRight size={16} /> +{topGainer.changePercent.toFixed(2)}%
+        {/* Algo Engine Status Card */}
+        <Card style={{ padding: '16px', borderLeft: `4px solid ${isTradingActive ? '#10b981' : '#64748b'}` }}>
+          <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <TrendingUp size={15} color={isTradingActive ? "#10b981" : "#64748b"} /> Algo Engine Status
+          </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+            <div>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 6px 0', color: isTradingActive ? '#10b981' : 'var(--text-primary)' }}>
+                {isTradingActive ? 'Engine Active' : 'Engine Paused'}
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  Active Clients: <strong>{clients?.filter((c: any) => c.tradingStatus === 'active').length || 0} / {clients?.length || 0}</strong>
                 </span>
-                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Chg: +₹{topGainer.change.toFixed(2)}</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  Kite Session: <strong>{clients?.filter((c: any) => c.accessToken).length || 0} Connected</strong>
+                </span>
               </div>
             </div>
-          </Card>
-        )}
+            <div style={{ textAlign: 'right' }}>
+              <span style={{ 
+                display: 'inline-block', 
+                width: '10px', 
+                height: '10px', 
+                backgroundColor: isTradingActive ? '#10b981' : '#64748b', 
+                borderRadius: '50%',
+                boxShadow: isTradingActive ? '0 0 10px #10b981' : 'none'
+              }} />
+            </div>
+          </div>
+        </Card>
 
-        {/* Top Loser Card */}
-        {topLoser && (
-          <Card style={{ padding: '16px', borderLeft: '4px solid #ef4444' }}>
-            <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <TrendingDown size={15} color="#ef4444" /> Today's Top Loser
-            </span>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-              <div>
-                <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 6px 0' }}>{topLoser.symbol}</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>LTP: <strong>₹{topLoser.ltp.toFixed(2)}</strong></span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Prev Close: <strong>₹{topLoser.prevClose.toFixed(2)}</strong></span>
-                </div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '16px', fontWeight: 800, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                  <ArrowDownRight size={16} /> {topLoser.changePercent.toFixed(2)}%
+        {/* Algo Trading Performance Card */}
+        <Card style={{ padding: '16px', borderLeft: '4px solid #3b82f6' }}>
+          <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <TrendingDown size={15} color="#3b82f6" /> Today's Algo Performance
+          </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+            <div>
+              <h3 style={{ 
+                fontSize: '18px', 
+                fontWeight: 700, 
+                margin: '0 0 6px 0',
+                color: (dashboardStats?.totalPnl || 0) >= 0 ? '#10b981' : '#ef4444'
+              }}>
+                ₹{(dashboardStats?.totalPnl || 0).toLocaleString()}
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  Total Trades: <strong>{dashboardStats?.todayTrades || 0}</strong>
                 </span>
-                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Chg: ₹{topLoser.change.toFixed(2)}</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  Positions: <strong>{dashboardStats?.openTrades || 0} Open | {dashboardStats?.closedTrades || 0} Closed</strong>
+                </span>
               </div>
             </div>
-          </Card>
-        )}
+            <div style={{ textAlign: 'right' }}>
+              <span style={{ 
+                fontSize: '12.5px', 
+                fontWeight: 700, 
+                color: (dashboardStats?.totalPnl || 0) >= 0 ? '#10b981' : '#ef4444'
+              }}>
+                {(dashboardStats?.totalPnl || 0) >= 0 ? 'PROFIT' : 'LOSS'}
+              </span>
+            </div>
+          </div>
+        </Card>
 
         {/* Watchlist Breadth Card */}
         <Card style={{ padding: '16px' }}>
@@ -446,7 +462,7 @@ export default function MarketWatchPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1000px' }}>
               <thead>
                 <tr style={{ borderBottom: '1.5px solid var(--border-light)', backgroundColor: '#f8fafc' }}>
-                  <th onClick={() => handleSort('symbol')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>SYMBOL{renderSortIndicator('symbol')}</th>
+                  <th onClick={() => handleSort('symbol')} style={{ position: 'sticky', top: 0, left: 0, zIndex: 20, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', borderRight: '1px solid var(--border-light)' }}>SYMBOL{renderSortIndicator('symbol')}</th>
                   <th onClick={() => handleSort('prevClose')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>PREV. CLOSE{renderSortIndicator('prevClose')}</th>
                   <th onClick={() => handleSort('open')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>OPEN{renderSortIndicator('open')}</th>
                   <th onClick={() => handleSort('high')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>HIGH{renderSortIndicator('high')}</th>
@@ -477,7 +493,7 @@ export default function MarketWatchPage() {
                       onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = '#f8fafc'; }}
                       onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
                     >
-                      <td style={{ padding: '12px 10px', fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>{stock.symbol}</td>
+                      <td style={{ position: 'sticky', left: 0, zIndex: 5, backgroundColor: isSelected ? '#eff6ff' : '#ffffff', fontWeight: 700, padding: '12px 10px', fontSize: '13px', color: '#0f172a', borderRight: '1px solid var(--border-light)' }}>{stock.symbol}</td>
                       <td style={{ padding: '12px 10px', fontSize: '13px', color: '#475569', textAlign: 'right' }}>{stock.prevClose.toFixed(2)}</td>
                       <td style={{ padding: '12px 10px', fontSize: '13px', color: '#475569', textAlign: 'right' }}>{stock.open.toFixed(2)}</td>
                       <td style={{ padding: '12px 10px', fontSize: '13px', color: '#10b981', textAlign: 'right', fontWeight: 500 }}>{stock.high.toFixed(2)}</td>

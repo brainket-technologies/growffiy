@@ -1,6 +1,8 @@
 import { prisma } from '../lib/db';
 import WebSocket from 'ws';
-import actualQuotes from './actual-quotes.json';
+import fs from 'fs';
+import path from 'path';
+import fallbackActualQuotes from './actual-quotes.json';
 
 export interface StockQuote {
   symbol: string;
@@ -245,78 +247,95 @@ const INSTRUMENT_TO_SYMBOL: { [key: number]: string } = {
 };
 
 const uniqueSymbols = Array.from(new Set(Object.values(INSTRUMENT_TO_SYMBOL)));
-const INITIAL_STOCKS: StockQuote[] = uniqueSymbols.map(symbol => {
-  const name = STOCK_NAMES[symbol] || symbol;
-  const quote = (actualQuotes as any)[symbol];
-  const ffShares = quote?.freeFloatShares || 50.0;
 
-  if (quote) {
-    const prevClose = quote.prevClose;
-    const iep = quote.iep;
-    const change = quote.change;
-    const changePercent = quote.changePercent;
-    const ltp = iep;
-    const open = iep;
-    const high = quote.high;
-    const low = quote.low;
-    const volume = quote.volume || Math.round(ffShares * 15000);
-    const ffmCap = ltp * ffShares;
-    const value = (volume * ltp) / 10000000;
-
-    return {
-      symbol,
-      name,
-      ltp,
-      open,
-      high,
-      low,
-      prevClose,
-      volume,
-      change,
-      changePercent,
-      iep,
-      final: ltp,
-      finalQuantity: volume,
-      value,
-      ffmCap,
-      nm52wH: parseFloat((prevClose * 1.25).toFixed(2)),
-      nm52wL: parseFloat((prevClose * 0.75).toFixed(2))
-    };
-  } else {
-    const basePrice = 100.0;
-    const baseVolume = Math.round(ffShares * 15000);
-    const ffmCap = basePrice * ffShares;
-    const value = (baseVolume * basePrice) / 10000000;
-
-    return {
-      symbol,
-      name,
-      ltp: basePrice,
-      open: basePrice,
-      high: basePrice,
-      low: basePrice,
-      prevClose: basePrice,
-      volume: baseVolume,
-      change: 0,
-      changePercent: 0,
-      iep: basePrice,
-      final: basePrice,
-      finalQuantity: baseVolume,
-      value,
-      ffmCap,
-      nm52wH: basePrice * 1.2,
-      nm52wL: basePrice * 0.8
-    };
+function getActualQuotes(): any {
+  try {
+    const filePath = path.join(process.cwd(), 'src/models/actual-quotes.json');
+    if (fs.existsSync(filePath)) {
+      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    }
+  } catch (e) {
+    console.error('Failed to read actual-quotes.json dynamically:', e);
   }
-});
+  return fallbackActualQuotes;
+}
+
+function getInitialStocks(): StockQuote[] {
+  const currentQuotes = getActualQuotes();
+  return uniqueSymbols.map(symbol => {
+    const name = STOCK_NAMES[symbol] || symbol;
+    const quote = (currentQuotes as any)[symbol];
+    const ffShares = quote?.freeFloatShares || 50.0;
+
+    if (quote) {
+      const prevClose = quote.prevClose;
+      const iep = quote.iep;
+      const change = quote.change;
+      const changePercent = quote.changePercent;
+      const ltp = iep;
+      const open = iep;
+      const high = quote.high;
+      const low = quote.low;
+      const volume = quote.volume || Math.round(ffShares * 15000);
+      const ffmCap = ltp * ffShares;
+      const value = (volume * ltp) / 10000000;
+
+      return {
+        symbol,
+        name,
+        ltp,
+        open,
+        high,
+        low,
+        prevClose,
+        volume,
+        change,
+        changePercent,
+        iep,
+        final: ltp,
+        finalQuantity: volume,
+        value,
+        ffmCap,
+        nm52wH: parseFloat((prevClose * 1.25).toFixed(2)),
+        nm52wL: parseFloat((prevClose * 0.75).toFixed(2))
+      };
+    } else {
+      const basePrice = 100.0;
+      const baseVolume = Math.round(ffShares * 15000);
+      const ffmCap = basePrice * ffShares;
+      const value = (baseVolume * basePrice) / 10000000;
+
+      return {
+        symbol,
+        name,
+        ltp: basePrice,
+        open: basePrice,
+        high: basePrice,
+        low: basePrice,
+        prevClose: basePrice,
+        volume: baseVolume,
+        change: 0,
+        changePercent: 0,
+        iep: basePrice,
+        final: basePrice,
+        finalQuantity: baseVolume,
+        value,
+        ffmCap,
+        nm52wH: basePrice * 1.2,
+        nm52wL: basePrice * 0.8
+      };
+    }
+  });
+}
 
 class AlgoEngineService {
-  private stocksState: StockQuote[] = [...INITIAL_STOCKS];
+  private stocksState: StockQuote[] = [];
   private isTradingActive: boolean = false;
   private ws: WebSocket | null = null;
   private lastUpdate: { [symbol: string]: number } = {};
 
   constructor() {
+    this.stocksState = getInitialStocks();
     this.initializeKiteLiveFeed();
   }
 
@@ -444,6 +463,7 @@ class AlgoEngineService {
 
   private async updateStockFromTick(symbol: string, ltp: number, open: number, high: number, low: number, close: number, volume: number) {
     this.lastUpdate[symbol] = Date.now();
+    const actualQuotes = getActualQuotes();
     let exists = false;
     this.stocksState = this.stocksState.map(stock => {
       if (stock.symbol === symbol) {
@@ -508,6 +528,7 @@ class AlgoEngineService {
 
   private async updateStockLtp(symbol: string, ltp: number) {
     this.lastUpdate[symbol] = Date.now();
+    const actualQuotes = getActualQuotes();
     let exists = false;
     this.stocksState = this.stocksState.map(stock => {
       if (stock.symbol === symbol) {
@@ -569,7 +590,7 @@ class AlgoEngineService {
   }
 
   public getPreOpenStocks(): StockQuote[] {
-    return INITIAL_STOCKS.map(s => ({ ...s }));
+    return getInitialStocks();
   }
 
   public toggleTrading(status: boolean) {
