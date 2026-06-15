@@ -155,10 +155,46 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       border: '1px solid var(--border)', 
       padding: '24px', 
       fontFamily: 'var(--font-body), system-ui, sans-serif',
-      boxShadow: 'var(--shadow-md)'
+      boxShadow: 'var(--shadow-md)',
+      position: 'relative'
     }}>
+      {onClose && (
+        <button 
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: '#94a3b8',
+            display: 'inline-flex',
+            alignItems: 'center',
+            padding: '6px',
+            borderRadius: '50%',
+            transition: 'all 0.2s',
+            zIndex: 10
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#f1f5f9';
+            e.currentTarget.style.color = '#0f172a';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = '#94a3b8';
+          }}
+          title="Close Chart"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      )}
+
       {/* Header Info */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', gap: '12px', flexWrap: 'wrap', paddingRight: onClose ? '24px' : '0' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '150px', flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>{symbol}</span>
@@ -201,30 +237,6 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
               Vol: <strong style={{ color: 'var(--text-heading)' }}>{volume.toLocaleString()}</strong>
             </div>
           </div>
-          {onClose && (
-            <button 
-              onClick={onClose}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: '#94a3b8',
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '6px',
-                borderRadius: '50%',
-                transition: 'background 0.2s',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              title="Close Chart"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          )}
         </div>
       </div>
 
