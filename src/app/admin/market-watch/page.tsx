@@ -437,7 +437,7 @@ export default function MarketWatchPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '16px', marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 600, fontFamily: 'var(--font-title)', margin: 0 }}>
-                Nifty 200 Watchlist Candidates
+                Watchlist Stocks
               </h3>
               {isWsConnected ? (
                 <div style={{ display: 'flex', alignItems: 'center' }} title="Live Feed Connected">
