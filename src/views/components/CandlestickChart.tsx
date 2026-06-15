@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface CandlestickChartProps {
   symbol: string;
@@ -142,49 +142,89 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
   const changePercentVal = prevClose ? (changePercent / prevClose) * 100 : 0;
   const isUp = ltp >= prevClose;
 
+  // Define success/danger colors mapping correctly to theme tokens
+  const upColor = '#10b981';
+  const downColor = '#ef4444';
+
   return (
-    <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '20px', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ 
+      backgroundColor: '#ffffff', 
+      borderRadius: '16px', 
+      border: '1px solid var(--border)', 
+      padding: '24px', 
+      fontFamily: 'var(--font-body), system-ui, sans-serif',
+      boxShadow: 'var(--shadow-md)'
+    }}>
       {/* Header Info */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{symbol}</span>
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{name}</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+            <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>{symbol}</span>
+            <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>{name}</span>
           </div>
-          <div style={{ display: 'flex', gap: '16px', marginTop: '6px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-            <span>Open: <strong style={{ color: 'var(--text-primary)' }}>₹{open.toFixed(2)}</strong></span>
-            <span>High: <strong style={{ color: 'var(--text-primary)' }}>₹{high.toFixed(2)}</strong></span>
-            <span>Low: <strong style={{ color: 'var(--text-primary)' }}>₹{low.toFixed(2)}</strong></span>
-            <span>Prev Close: <strong style={{ color: 'var(--text-primary)' }}>₹{prevClose.toFixed(2)}</strong></span>
+          <div style={{ display: 'flex', gap: '10px', marginTop: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '11px', background: '#f1f5f9', color: '#475569', padding: '3px 8px', borderRadius: '4px', fontWeight: 600 }}>
+              Open: <span style={{ color: '#0f172a' }}>₹{open.toFixed(2)}</span>
+            </span>
+            <span style={{ fontSize: '11px', background: '#f1f5f9', color: '#475569', padding: '3px 8px', borderRadius: '4px', fontWeight: 600 }}>
+              High: <span style={{ color: '#0f172a' }}>₹{high.toFixed(2)}</span>
+            </span>
+            <span style={{ fontSize: '11px', background: '#f1f5f9', color: '#475569', padding: '3px 8px', borderRadius: '4px', fontWeight: 600 }}>
+              Low: <span style={{ color: '#0f172a' }}>₹{low.toFixed(2)}</span>
+            </span>
+            <span style={{ fontSize: '11px', background: '#f1f5f9', color: '#475569', padding: '3px 8px', borderRadius: '4px', fontWeight: 600 }}>
+              Prev: <span style={{ color: '#0f172a' }}>₹{prevClose.toFixed(2)}</span>
+            </span>
           </div>
         </div>
 
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: '26px', fontWeight: 900, color: 'var(--text-heading)', letterSpacing: '-0.5px', fontFamily: 'var(--font-title)' }}>
             ₹{ltp.toFixed(2)}
           </div>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: isUp ? 'var(--color-success)' : 'var(--color-danger)' }}>
+          <div style={{ 
+            display: 'inline-block',
+            fontSize: '12px', 
+            fontWeight: 700, 
+            color: isUp ? '#047857' : '#b91c1c',
+            backgroundColor: isUp ? '#d1fae5' : '#fee2e2',
+            padding: '2px 8px',
+            borderRadius: '9999px',
+            marginTop: '4px'
+          }}>
             {isUp ? '+' : ''}{changePercent.toFixed(2)} ({isUp ? '+' : ''}{changePercentVal.toFixed(2)}%)
           </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            Vol: {volume.toLocaleString()}
+          <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '4px', fontWeight: 500 }}>
+            Vol: <strong style={{ color: 'var(--text-heading)' }}>{volume.toLocaleString()}</strong>
           </div>
         </div>
       </div>
 
       {/* Floating Info Overlay (OHLC details on hover) */}
-      <div style={{ display: 'flex', gap: '12px', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '11px', minHeight: '28px', alignItems: 'center' }}>
+      <div style={{ 
+        display: 'flex', 
+        gap: '14px', 
+        backgroundColor: '#f8fafc', 
+        border: '1px solid #f1f5f9',
+        padding: '8px 16px', 
+        borderRadius: '8px', 
+        marginBottom: '16px', 
+        fontSize: '11.5px', 
+        minHeight: '34px', 
+        alignItems: 'center',
+        justifyContent: hoveredCandle ? 'space-between' : 'center'
+      }}>
         {hoveredCandle ? (
           <>
-            <span style={{ color: 'var(--text-secondary)' }}>Time: <strong style={{ color: 'var(--text-primary)' }}>{hoveredCandle.time}</strong></span>
-            <span style={{ color: 'var(--text-secondary)' }}>O: <strong style={{ color: 'var(--text-primary)' }}>{hoveredCandle.open}</strong></span>
-            <span style={{ color: 'var(--text-secondary)' }}>H: <strong style={{ color: 'var(--text-primary)' }}>{hoveredCandle.high}</strong></span>
-            <span style={{ color: 'var(--text-secondary)' }}>L: <strong style={{ color: 'var(--text-primary)' }}>{hoveredCandle.low}</strong></span>
-            <span style={{ color: 'var(--text-secondary)' }}>C: <strong style={{ color: hoveredCandle.close >= hoveredCandle.open ? 'var(--color-success)' : 'var(--color-danger)' }}>{hoveredCandle.close}</strong></span>
-            <span style={{ color: 'var(--text-secondary)' }}>V: <strong style={{ color: 'var(--text-primary)' }}>{hoveredCandle.volume.toLocaleString()}</strong></span>
+            <span>Time: <strong style={{ color: '#0f172a' }}>{hoveredCandle.time}</strong></span>
+            <span>O: <strong style={{ color: '#0f172a' }}>{hoveredCandle.open}</strong></span>
+            <span>H: <strong style={{ color: '#0f172a' }}>{hoveredCandle.high}</strong></span>
+            <span>L: <strong style={{ color: '#0f172a' }}>{hoveredCandle.low}</strong></span>
+            <span>C: <strong style={{ color: hoveredCandle.close >= hoveredCandle.open ? upColor : downColor }}>{hoveredCandle.close}</strong></span>
+            <span>V: <strong style={{ color: '#0f172a' }}>{hoveredCandle.volume.toLocaleString()}</strong></span>
           </>
         ) : (
-          <span style={{ color: 'var(--text-secondary)' }}>Hover over a candle to inspect OHLC values</span>
+          <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Hover over a candle to inspect OHLC values</span>
         )}
       </div>
 
@@ -202,14 +242,15 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
                   y1={y}
                   x2={width - paddingRight}
                   y2={y}
-                  stroke="#e2e8f0"
-                  strokeWidth="0.8"
+                  stroke="#f1f5f9"
+                  strokeWidth="1"
                   strokeDasharray="4 4"
                 />
                 <text
                   x={paddingLeft - 8}
-                  y={y + 4}
-                  fontSize="10"
+                  y={y + 3.5}
+                  fontSize="9.5"
+                  fontWeight="600"
                   fill="#94a3b8"
                   textAnchor="end"
                 >
@@ -223,7 +264,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
           {candles.map((candle, idx) => {
             const x = getX(idx);
             const y = getVolumeY(candle.volume);
-            const w = (chartWidth / candles.length) * 0.6;
+            const w = (chartWidth / candles.length) * 0.5;
             const candleIsUp = candle.close >= candle.open;
 
             return (
@@ -233,8 +274,8 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
                 y={y}
                 width={w}
                 height={paddingTop + chartHeight - y}
-                fill={candleIsUp ? 'var(--color-success)' : 'var(--color-danger)'}
-                opacity="0.15"
+                fill={candleIsUp ? upColor : downColor}
+                opacity="0.1"
               />
             );
           })}
@@ -248,12 +289,12 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
             const yClose = getY(candle.close);
 
             const candleIsUp = candle.close >= candle.open;
-            const color = candleIsUp ? 'var(--color-success)' : 'var(--color-danger)';
-            const w = (chartWidth / candles.length) * 0.7;
+            const color = candleIsUp ? upColor : downColor;
+            const w = (chartWidth / candles.length) * 0.65;
 
             const yTop = Math.min(yOpen, yClose);
             const yBottom = Math.max(yOpen, yClose);
-            const bodyHeight = Math.max(yBottom - yTop, 1.5);
+            const bodyHeight = Math.max(yBottom - yTop, 2.5);
 
             return (
               <g 
@@ -269,7 +310,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
                   x2={x}
                   y2={yLow}
                   stroke={color}
-                  strokeWidth="1.6"
+                  strokeWidth="1.8"
                 />
                 {/* Candle Body */}
                 <rect
@@ -280,7 +321,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
                   fill={color}
                   stroke={color}
                   strokeWidth="0.5"
-                  rx="1"
+                  rx="1.5"
                 />
                 {/* Invisible hover trigger zone */}
                 <rect
@@ -312,7 +353,8 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
                 <text
                   x={x}
                   y={paddingTop + chartHeight + 16}
-                  fontSize="10"
+                  fontSize="9.5"
+                  fontWeight="600"
                   fill="#94a3b8"
                   textAnchor="middle"
                 >
