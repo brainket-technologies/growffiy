@@ -9,6 +9,7 @@ interface CandlestickChartProps {
   prevClose: number;
   ltp: number;
   volume: number;
+  onClose?: () => void;
 }
 
 interface Candle {
@@ -29,6 +30,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
   prevClose,
   ltp,
   volume,
+  onClose,
 }) => {
   const [hoveredCandle, setHoveredCandle] = useState<Candle | null>(null);
 
@@ -156,47 +158,73 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       boxShadow: 'var(--shadow-md)'
     }}>
       {/* Header Info */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>{symbol}</span>
-            <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>{name}</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '150px', flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>{symbol}</span>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>{name}</span>
           </div>
-          <div style={{ display: 'flex', gap: '10px', marginTop: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '11px', background: '#f1f5f9', color: '#475569', padding: '3px 8px', borderRadius: '4px', fontWeight: 600 }}>
-              Open: <span style={{ color: '#0f172a' }}>₹{open.toFixed(2)}</span>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '10px', background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+              O: <span style={{ color: '#0f172a' }}>{open.toFixed(2)}</span>
             </span>
-            <span style={{ fontSize: '11px', background: '#f1f5f9', color: '#475569', padding: '3px 8px', borderRadius: '4px', fontWeight: 600 }}>
-              High: <span style={{ color: '#0f172a' }}>₹{high.toFixed(2)}</span>
+            <span style={{ fontSize: '10px', background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+              H: <span style={{ color: '#0f172a' }}>{high.toFixed(2)}</span>
             </span>
-            <span style={{ fontSize: '11px', background: '#f1f5f9', color: '#475569', padding: '3px 8px', borderRadius: '4px', fontWeight: 600 }}>
-              Low: <span style={{ color: '#0f172a' }}>₹{low.toFixed(2)}</span>
+            <span style={{ fontSize: '10px', background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+              L: <span style={{ color: '#0f172a' }}>{low.toFixed(2)}</span>
             </span>
-            <span style={{ fontSize: '11px', background: '#f1f5f9', color: '#475569', padding: '3px 8px', borderRadius: '4px', fontWeight: 600 }}>
-              Prev: <span style={{ color: '#0f172a' }}>₹{prevClose.toFixed(2)}</span>
+            <span style={{ fontSize: '10px', background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+              P: <span style={{ color: '#0f172a' }}>{prevClose.toFixed(2)}</span>
             </span>
           </div>
         </div>
 
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '26px', fontWeight: 900, color: 'var(--text-heading)', letterSpacing: '-0.5px', fontFamily: 'var(--font-title)' }}>
-            ₹{ltp.toFixed(2)}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-heading)', letterSpacing: '-0.3px', fontFamily: 'var(--font-title)' }}>
+              ₹{ltp.toFixed(2)}
+            </div>
+            <div style={{ 
+              display: 'inline-block',
+              fontSize: '10.5px', 
+              fontWeight: 700, 
+              color: isUp ? '#047857' : '#b91c1c',
+              backgroundColor: isUp ? '#d1fae5' : '#fee2e2',
+              padding: '1px 6px',
+              borderRadius: '9999px',
+              marginTop: '2px'
+            }}>
+              {isUp ? '+' : ''}{changePercent.toFixed(2)} ({isUp ? '+' : ''}{changePercentVal.toFixed(2)}%)
+            </div>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 500 }}>
+              Vol: <strong style={{ color: 'var(--text-heading)' }}>{volume.toLocaleString()}</strong>
+            </div>
           </div>
-          <div style={{ 
-            display: 'inline-block',
-            fontSize: '12px', 
-            fontWeight: 700, 
-            color: isUp ? '#047857' : '#b91c1c',
-            backgroundColor: isUp ? '#d1fae5' : '#fee2e2',
-            padding: '2px 8px',
-            borderRadius: '9999px',
-            marginTop: '4px'
-          }}>
-            {isUp ? '+' : ''}{changePercent.toFixed(2)} ({isUp ? '+' : ''}{changePercentVal.toFixed(2)}%)
-          </div>
-          <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '4px', fontWeight: 500 }}>
-            Vol: <strong style={{ color: 'var(--text-heading)' }}>{volume.toLocaleString()}</strong>
-          </div>
+          {onClose && (
+            <button 
+              onClick={onClose}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#94a3b8',
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '6px',
+                borderRadius: '50%',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              title="Close Chart"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 

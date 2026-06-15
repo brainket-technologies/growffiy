@@ -110,14 +110,31 @@ export default function MarketWatchPage() {
 
   // 2. Soft update: Update live stock values in-place without changing row order
   React.useEffect(() => {
-    if (stocks.length === 0 || sortedStocks.length === 0) return;
-
-    setSortedStocks(prev => 
-      prev.map(localStock => {
+    if (stocks.length === 0) return;
+    setSortedStocks(prev => {
+      if (prev.length === 0) {
+        // Initial load logic if prev is empty but we have stocks
+        const filtered = stocks.filter(stock => {
+          const matchesCat = filterByCategory(stock, category);
+          const matchesSymbol = stock.symbol.toLowerCase().includes(symbolQuery.trim().toLowerCase());
+          return matchesCat && matchesSymbol;
+        });
+        return [...filtered].sort((a, b) => {
+          let valA = sortField === 'symbol' ? a.symbol : (a[sortField] ?? 0);
+          let valB = sortField === 'symbol' ? b.symbol : (b[sortField] ?? 0);
+          if (sortField === 'symbol') {
+            return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+          }
+          if (valA < valB) return sortAsc ? -1 : 1;
+          if (valA > valB) return sortAsc ? 1 : -1;
+          return 0;
+        });
+      }
+      return prev.map(localStock => {
         const match = stocks.find(s => s.symbol === localStock.symbol);
         return match ? { ...localStock, ...match } : localStock;
-      })
-    );
+      });
+    });
   }, [stocks]);
 
   // Derive Advance / Decline counts dynamically from watch list
@@ -568,6 +585,7 @@ export default function MarketWatchPage() {
               prevClose={selectedStock.prevClose}
               ltp={selectedStock.ltp}
               volume={selectedStock.volume}
+              onClose={() => setSelectedStockSymbol(null)}
             />
           </div>
         ) : null}
