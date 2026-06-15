@@ -11,6 +11,9 @@ export async function GET(req: NextRequest) {
       await algoEngine.fetchLivePreOpenFromKite();
     }
 
+    // Call live HTTP poll updates if enabled in environment
+    await algoEngine.updateLiveQuotesFromKiteHTTP();
+
     const stocks = algoEngine.getStocks();
     const preOpenStocks = await algoEngine.getPreOpenStocks();
     const preOpenDate = algoEngine.getPreOpenDate();

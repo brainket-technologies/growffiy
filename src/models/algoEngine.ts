@@ -526,6 +526,86 @@ class AlgoEngineService {
     return this.preOpenCache;
   }
 
+  private lastHttpFetchTime = 0;
+
+  public async updateLiveQuotesFromKiteHTTP() {
+    if (process.env.USE_HTTP_POLLING !== 'true') {
+      return;
+    }
+
+    if (Date.now() - this.lastHttpFetchTime < 3000) {
+      return;
+    }
+
+    const creds = await this.ensureApiKeyAndToken();
+    if (!creds) {
+      console.log('No active Kite credentials found to fetch HTTP live quotes.');
+      return;
+    }
+
+    if (this.stocksState.length === 0 && this.preOpenCache.length > 0) {
+      this.stocksState = [...this.preOpenCache];
+    }
+
+    const symbols = this.stocksState.map(s => s.symbol);
+    if (symbols.length === 0) return;
+
+    try {
+      console.log(`Fetching HTTP live quotes for ${symbols.length} symbols from Kite API...`);
+      const queryParams = symbols.map(sym => `i=NSE:${sym}`).join('&');
+      const url = `https://api.kite.trade/quote?${queryParams}`;
+
+      const res = await fetch(url, {
+        headers: {
+          'Authorization': `token ${creds.apiKey}:${creds.accessToken}`,
+          'X-Kite-Version': '3'
+        }
+      });
+
+      if (!res.ok) {
+        throw new Error(`Kite HTTP quote fetch failed with status ${res.status}`);
+      }
+
+      const json = await res.json();
+      if (json && json.status === 'success' && json.data) {
+        this.stocksState = this.stocksState.map(stock => {
+          const key = `NSE:${stock.symbol}`;
+          const tick = json.data[key];
+          if (tick) {
+            const ltp = tick.last_price;
+            const close = tick.ohlc?.close || stock.prevClose || ltp;
+            const change = parseFloat((ltp - close).toFixed(2));
+            const changePercent = close ? parseFloat(((change / close) * 100).toFixed(2)) : 0;
+            const ffShares = 50.0;
+            const volumeVal = tick.volume || stock.volume || Math.round(ffShares * 15000);
+            return {
+              ...stock,
+              ltp,
+              open: tick.ohlc?.open || stock.open || ltp,
+              high: tick.ohlc?.high || stock.high || ltp,
+              low: tick.ohlc?.low || stock.low || ltp,
+              prevClose: close,
+              volume: volumeVal,
+              change,
+              changePercent,
+              iep: ltp,
+              final: ltp,
+              finalQuantity: volumeVal,
+              value: (volumeVal * ltp) / 10000000,
+              ffmCap: ltp * ffShares,
+            };
+          }
+          return stock;
+        });
+
+        this.lastHttpFetchTime = Date.now();
+        console.log('Successfully updated stocksState with live quotes from Kite HTTP API.');
+      }
+    } catch (err) {
+      console.error('Failed to update live quotes from Kite HTTP API:', err);
+    }
+  }
+
   public getPreOpenDate(): string {
     return this.preOpenCacheDate || new Date().toLocaleDateString('en-GB', {
       day: '2-digit',
