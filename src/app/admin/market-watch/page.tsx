@@ -28,8 +28,7 @@ export default function MarketWatchPage() {
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string | null>(null);
 
   // Derive active stock
-  const activeSymbol = selectedStockSymbol || stocks[0]?.symbol || null;
-  const selectedStock = stocks.find(s => s.symbol === activeSymbol);
+  const selectedStock = selectedStockSymbol ? stocks.find(s => s.symbol === selectedStockSymbol) : null;
 
   // Dynamic denomination config
   const getDenomConfig = () => {
@@ -272,7 +271,12 @@ export default function MarketWatchPage() {
         </Card>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2.2fr 1fr', gap: '24px', alignItems: 'start' }}>
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: selectedStock ? '2.2fr 1fr' : '1fr', 
+        gap: '24px', 
+        alignItems: 'start' 
+      }}>
         {/* Main List & Controls */}
         <Card style={{ padding: '24px', minWidth: 0 }}>
           {/* Filters Control Bar */}
@@ -491,7 +495,7 @@ export default function MarketWatchPage() {
                 {sortedStocks.map((stock) => {
                   const chng = stock.ltp - stock.prevClose;
                   const isPositive = chng >= 0;
-                  const isSelected = activeSymbol === stock.symbol;
+                  const isSelected = selectedStockSymbol === stock.symbol;
                   return (
                     <tr
                       key={stock.symbol}
