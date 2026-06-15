@@ -112,17 +112,17 @@ class AlgoEngineService {
         .map((nseItem: any) => {
           const symbol = nseItem.metadata.symbol;
           const name = nseItem.metadata.companyName || symbol;
-          const prevClose = nseItem.metadata.prevClose || 100.0;
-          const iep = nseItem.metadata.lastPrice || nseItem.metadata.iep || prevClose;
+          const prevClose = nseItem.metadata.previousClose || 100.0;
+          const iep = nseItem.metadata.iep || nseItem.metadata.lastPrice || prevClose;
           const change = nseItem.metadata.change || 0;
           const changePercent = nseItem.metadata.pChange || 0;
           const ltp = iep;
           const open = iep;
-          const high = nseItem.metadata.high || iep;
-          const low = nseItem.metadata.low || iep;
-          const volume = nseItem.detail?.quantity || nseItem.metadata.quantity || 0;
+          const high = nseItem.metadata.yearHigh || iep;
+          const low = nseItem.metadata.yearLow || iep;
+          const volume = nseItem.metadata.finalQuantity || nseItem.detail?.preOpenMarket?.totalTradedVolume || 0;
           const ffmCap = ltp * 50.0;
-          const value = (volume * ltp) / 10000000;
+          const value = (nseItem.metadata.totalTurnover || (volume * ltp)) / 10000000;
 
           return {
             symbol,
@@ -140,8 +140,8 @@ class AlgoEngineService {
             finalQuantity: volume,
             value,
             ffmCap,
-            nm52wH: parseFloat((prevClose * 1.25).toFixed(2)),
-            nm52wL: parseFloat((prevClose * 0.75).toFixed(2)),
+            nm52wH: nseItem.metadata.yearHigh || parseFloat((prevClose * 1.25).toFixed(2)),
+            nm52wL: nseItem.metadata.yearLow || parseFloat((prevClose * 0.75).toFixed(2)),
             // Dynamic flags
             isNifty50: niftySymbols.includes(symbol),
             isBankNifty: bankNiftySymbols.includes(symbol),
