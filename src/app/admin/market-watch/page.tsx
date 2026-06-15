@@ -14,12 +14,12 @@ import {
   Loader2
 } from 'lucide-react';
 
-type CategoryType = 'NIFTY 50' | 'Nifty Bank' | 'Emerge' | 'Securities in F&O' | 'Others' | 'All';
+type CategoryType = 'Nifty 50' | 'Bank Nifty' | 'F&O' | 'SME' | 'Others' | 'All';
 
 export default function MarketWatchPage() {
   const { stocks, loading, isSyncing, isWsConnected, clients, dashboardStats, isTradingActive } = useAppViewModel();
 
-  const [category, setCategory] = useState<CategoryType>('Securities in F&O');
+  const [category, setCategory] = useState<CategoryType>('F&O');
   const [symbolQuery, setSymbolQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'gainers' | 'losers'>('all');
   const [sortField, setSortField] = useState<string>('changePercent');
@@ -47,25 +47,11 @@ export default function MarketWatchPage() {
 
   // Category filtering matching preopen page
   const filterByCategory = (stock: any, cat: CategoryType) => {
-    const nifty50 = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'AXISBANK', 'KOTAKBANK', 'BHARTIARTL', 'ITC', 'HINDUNILVR', 'LT', 'SUNPHARMA', 'NTPC', 'MARUTI', 'JSWSTEEL', 'TATAMOTORS', 'BAJFINANCE', 'ONGC', 'COALINDIA', 'POWERGRID', 'ADANIENT', 'ADANIPORTS'];
-    const niftyBank = ['HDFCBANK', 'ICICIBANK', 'SBIN', 'AXISBANK', 'KOTAKBANK', 'FEDERALBNK', 'BANDHANBNK', 'YESBANK', 'PNB', 'CANBK'];
-    const emerge = ['RVNL', 'ZEEL', 'GMRINFRA', 'NATIONALUM', 'BHEL', 'BIOCON', 'DELTACORP', 'IDEA'];
-    
-    if (cat === 'NIFTY 50') {
-      return nifty50.includes(stock.symbol);
-    }
-    if (cat === 'Nifty Bank') {
-      return niftyBank.includes(stock.symbol);
-    }
-    if (cat === 'Emerge') {
-      return emerge.includes(stock.symbol);
-    }
-    if (cat === 'Securities in F&O') {
-      return true;
-    }
-    if (cat === 'Others') {
-      return !nifty50.includes(stock.symbol) && !niftyBank.includes(stock.symbol) && !emerge.includes(stock.symbol);
-    }
+    if (cat === 'Nifty 50') return !!stock.isNifty50;
+    if (cat === 'Bank Nifty') return !!stock.isBankNifty;
+    if (cat === 'SME') return !!stock.isSme;
+    if (cat === 'F&O') return !!stock.isFo;
+    if (cat === 'Others') return !stock.isNifty50 && !stock.isBankNifty && !stock.isSme && !stock.isFo;
     return true;
   };
 
@@ -114,7 +100,7 @@ export default function MarketWatchPage() {
   const unchanged = stocks.filter(s => s.changePercent === 0).length;
 
   const handleClear = () => {
-    setCategory('Securities in F&O');
+    setCategory('F&O');
     setSymbolQuery('');
     setDenom('crores');
     setSortField('changePercent');
@@ -292,10 +278,10 @@ export default function MarketWatchPage() {
                   height: '100%'
                 }}
               >
-                <option value="NIFTY 50">NIFTY 50</option>
-                <option value="Nifty Bank">Nifty Bank</option>
-                <option value="Emerge">Emerge</option>
-                <option value="Securities in F&O">Securities in F&O</option>
+                <option value="Nifty 50">Nifty 50</option>
+                <option value="Bank Nifty">Bank Nifty</option>
+                <option value="F&O">F&O</option>
+                <option value="SME">SME</option>
                 <option value="Others">Others</option>
                 <option value="All">All</option>
               </select>
