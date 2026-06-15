@@ -103,11 +103,11 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
           priceFormat: {
             type: 'volume',
           },
-          priceScaleId: '', // Overlay style
+          priceScaleId: 'volume', // Set explicit priceScaleId instead of empty string
         });
 
-        // Set prices scale positions
-        chart.priceScale('').applyOptions({
+        // Set volume scale positions
+        chart.priceScale('volume').applyOptions({
           scaleMargins: {
             top: 0.8, // Vol in bottom 20%
             bottom: 0,
