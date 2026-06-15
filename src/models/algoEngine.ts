@@ -24,258 +24,8 @@ export interface StockQuote {
   nm52wL: number;
 }
 
-const STOCK_NAMES: { [symbol: string]: string } = {
-  ASHOKLEY: 'Ashok Leyland Ltd.',
-  HINDPETRO: 'Hindustan Petroleum Corp. Ltd.',
-  TATASTEEL: 'Tata Steel Ltd.',
-  VEDL: 'Vedanta Limited',
-  HINDZINC: 'Hindustan Zinc Ltd.',
-  RVNL: 'Rail Vikas Nigam Ltd.',
-  YESBANK: 'Yes Bank Ltd.',
-  MOTILALOFS: 'Motilal Oswal Financial Services Ltd.',
-  PNB: 'Punjab National Bank',
-  CANBK: 'Canara Bank',
-  ZEEL: 'Zee Entertainment Enterprises Ltd.',
-  GMRINFRA: 'GMR Airports Infrastructure Ltd.',
-  SAIL: 'Steel Authority of India Ltd.',
-  NATIONALUM: 'National Aluminium Co. Ltd.',
-  NMDC: 'NMDC Limited',
-  TATAPOWER: 'Tata Power Co. Ltd.',
-  PFC: 'Power Finance Corporation Ltd.',
-  RECLTD: 'REC Limited',
-  BHEL: 'Bharat Heavy Electricals Ltd.',
-  GAIL: 'GAIL (India) Ltd.',
-  ONGC: 'Oil & Natural Gas Corporation Ltd.',
-  COALINDIA: 'Coal India Ltd.',
-  BEL: 'Bharat Electronics Ltd.',
-  WIPRO: 'Wipro Ltd.',
-  HDFCBANK: 'HDFC Bank Ltd.',
-  ICICIBANK: 'ICICI Bank Ltd.',
-  SBIN: 'State Bank of India',
-  RELIANCE: 'Reliance Industries Ltd.',
-  TCS: 'Tata Consultancy Services Ltd.',
-  INFY: 'Infosys Ltd.',
-  AXISBANK: 'Axis Bank Ltd.',
-  KOTAKBANK: 'Kotak Mahindra Bank Ltd.',
-  TATAMOTORS: 'Tata Motors Ltd.',
-  BAJFINANCE: 'Bajaj Finance Ltd.',
-  BHARTIARTL: 'Bharti Airtel Ltd.',
-  ITC: 'ITC Ltd.',
-  HINDUNILVR: 'Hindustan Unilever Ltd.',
-  LT: 'Larsen & Toubro Ltd.',
-  SUNPHARMA: 'Sun Pharmaceutical Industries Ltd.',
-  NTPC: 'NTPC Ltd.',
-  MARUTI: 'Maruti Suzuki India Ltd.',
-  JSWSTEEL: 'JSW Steel Ltd.',
-  APOLLOTYRE: 'Apollo Tyres Ltd.',
-  BIOCON: 'Biocon Ltd.',
-  BANDHANBNK: 'Bandhan Bank Ltd.',
-  DLF: 'DLF Ltd.',
-  GLENMARK: 'Glenmark Pharmaceuticals Ltd.',
-  METROPOLIS: 'Metropolis Healthcare Ltd.',
-  SUNTV: 'Sun TV Network Ltd.',
-  JUBLFOOD: 'Jubilant FoodWorks Ltd.',
-  ESCORTS: 'Escorts Kubota Ltd.',
-  IDEA: 'Vodafone Idea Ltd.',
-  AMBUJACEM: 'Ambuja Cements Ltd.',
-  ACC: 'ACC Ltd.',
-  ADANIENT: 'Adani Enterprises Ltd.',
-  ADANIPORTS: 'Adani Ports & SEZ Ltd.',
-  AUROPHARMA: 'Aurobindo Pharma Ltd.',
-  BALRAMCHIN: 'Balrampur Chini Mills Ltd.',
-  BATAINDIA: 'Bata India Ltd.',
-  BERGEPAINT: 'Berger Paints India Ltd.',
-  BHARATFORG: 'Bharat Forge Ltd.',
-  BOSCHLTD: 'Bosch Ltd.',
-  CHAMBLFERT: 'Chambal Fertilisers & Chemicals Ltd.',
-  CHOLAFIN: 'Cholamandalam Investment & Finance Co.',
-  COFORGE: 'Coforge Ltd.',
-  CONCOR: 'Container Corporation of India Ltd.',
-  COROMANDEL: 'Coromandel International Ltd.',
-  CUMMINSIND: 'Cummins India Ltd.',
-  DABUR: 'Dabur India Ltd.',
-  DEEPAKNTR: 'Deepak Nitrite Ltd.',
-  DELTACORP: 'Delta Corp Ltd.',
-  EXIDEIND: 'Exide Industries Ltd.',
-  FEDERALBNK: 'The Federal Bank Ltd.',
-  GODREJCP: 'Godrej Consumer Products Ltd.',
-  GODREJPROP: 'Godrej Properties Ltd.',
-  HAL: 'Hindustan Aeronautics Ltd.',
-  HAVELLS: 'Havells India Ltd.',
-  IBULHSGFIN: 'Indiabulls Housing Finance Ltd.',
-  INDHOTEL: 'The Indian Hotels Co. Ltd.',
-  IOC: 'Indian Oil Corporation Ltd.',
-  IPCALAB: 'IPCA Laboratories Ltd.',
-  JSWENERGY: 'JSW Energy Ltd.',
-  'L&TFH': 'L&T Finance Holdings Ltd.',
-  LICHSGFIN: 'LIC Housing Finance Ltd.',
-  LTIM: 'LTIMindtree Ltd.',
-  LUPIN: 'Lupin Ltd.',
-  MANAPPURAM: 'Manappuram Finance Ltd.',
-  MGL: 'Mahanagar Gas Ltd.',
-  MPHASIS: 'Mphasis Ltd.',
-  MRF: 'MRF Ltd.',
-  MUTHOOTFIN: 'Muthoot Finance Ltd.',
-  PEL: 'Piramal Enterprises Ltd.',
-  PETRONET: 'Petronet LNG Ltd.',
-  PIDILITIND: 'Pidilite Industries Ltd.',
-  POLYCAB: 'Polycab India Ltd.',
-  POWERGRID: 'Power Grid Corporation of India Ltd.',
-  RAMCOCEM: 'The Ramco Cements Ltd.',
-  SRF: 'SRF Ltd.',
-  TATACHEM: 'Tata Chemicals Ltd.',
-  TATACOMM: 'Tata Communications Ltd.',
-  TCSC: 'TCS Group Ltd.',
-  TECHM: 'Tech Mahindra Ltd.',
-  TRENT: 'Trent Ltd.',
-  TVSTRUCT: 'TVS Motor Company Ltd.',
-  UBL: 'United Breweries Ltd.',
-  ULTRACEMCO: 'UltraTech Cement Ltd.',
-  VOLTAS: 'Voltas Ltd.',
-  WHIRLPOOL: 'Whirlpool of India Ltd.'
-};
-
-const INSTRUMENT_TO_SYMBOL: { [key: number]: string } = {
-  5633: 'ACC',
-  6401: 'ADANIENT',
-  41729: 'APOLLOTYRE',
-  54273: 'ASHOKLEY',
-  70401: 'AUROPHARMA',
-  81153: 'BAJFINANCE',
-  87297: 'BALRAMCHIN',
-  94977: 'BATAINDIA',
-  98049: 'BEL',
-  103425: 'BERGEPAINT',
-  108033: 'BHARATFORG',
-  112129: 'BHEL',
-  163073: 'CHAMBLFERT',
-  173057: 'EXIDEIND',
-  175361: 'CHOLAFIN',
-  189185: 'COROMANDEL',
-  197633: 'DABUR',
-  245249: 'ESCORTS',
-  261889: 'FEDERALBNK',
-  325121: 'AMBUJACEM',
-  341249: 'HDFCBANK',
-  356865: 'HINDUNILVR',
-  359937: 'HINDPETRO',
-  364545: 'HINDZINC',
-  387073: 'INDHOTEL',
-  408065: 'INFY',
-  415745: 'IOC',
-  418049: 'IPCALAB',
-  424961: 'ITC',
-  486657: 'CUMMINSIND',
-  492033: 'KOTAKBANK',
-  502785: 'TRENT',
-  511233: 'LICHSGFIN',
-  523009: 'RAMCOCEM',
-  558337: 'BOSCHLTD',
-  579329: 'BANDHANBNK',
-  582913: 'MRF',
-  589569: 'HAL',
-  633601: 'ONGC',
-  681985: 'PIDILITIND',
-  738561: 'RELIANCE',
-  758529: 'SAIL',
-  779521: 'SBIN',
-  784129: 'VEDL',
-  837889: 'SRF',
-  857857: 'SUNPHARMA',
-  871681: 'TATACHEM',
-  877057: 'TATAPOWER',
-  895745: 'TATASTEEL',
-  951809: 'VOLTAS',
-  952577: 'TATACOMM',
-  969473: 'WIPRO',
-  975873: 'ZEEL',
-  1152769: 'MPHASIS',
-  1207553: 'GAIL',
-  1215745: 'CONCOR',
-  1270529: 'ICICIBANK',
-  1510401: 'AXISBANK',
-  1629185: 'NATIONALUM',
-  1895937: 'GLENMARK',
-  2170625: 'TVSTRUCT',
-  2445313: 'RVNL',
-  2452737: 'METROPOLIS',
-  2455041: 'POLYCAB',
-  2513665: 'HAVELLS',
-  2585345: 'GODREJCP',
-  2672641: 'LUPIN',
-  2714625: 'BHARTIARTL',
-  2730497: 'PNB',
-  2763265: 'CANBK',
-  2815745: 'MARUTI',
-  2905857: 'PETRONET',
-  2911489: 'BIOCON',
-  2939649: 'LT',
-  2952193: 'ULTRACEMCO',
-  2953217: 'TCS',
-  2955009: 'COFORGE',
-  2977281: 'NTPC',
-  3001089: 'JSWSTEEL',
-  3050241: 'YESBANK',
-  3431425: 'SUNTV',
-  3463169: 'GMRINFRA',
-  3465729: 'TECHM',
-  3660545: 'PFC',
-  3677697: 'IDEA',
-  3771393: 'DLF',
-  3826433: 'MOTILALOFS',
-  3834113: 'POWERGRID',
-  3851265: 'DELTACORP',
-  3861249: 'ADANIPORTS',
-  3924993: 'NMDC',
-  3930881: 'RECLTD',
-  4278529: 'UBL',
-  4488705: 'MGL',
-  4561409: 'LTIM',
-  4574465: 'JSWENERGY',
-  4576001: 'GODREJPROP',
-  4610817: 'WHIRLPOOL',
-  4632577: 'JUBLFOOD',
-  4879617: 'MANAPPURAM',
-  5105409: 'DEEPAKNTR',
-  5215745: 'COALINDIA',
-  6054401: 'MUTHOOTFIN',
-  6386689: 'L&TFH',
-  7712001: 'IBULHSGFIN',
-  194445057: 'PEL',
-  194504193: 'TATAMOTORS'
-};
-
-const uniqueSymbols = Array.from(new Set(Object.values(INSTRUMENT_TO_SYMBOL)));
-
 function getInitialStocks(): StockQuote[] {
-  return uniqueSymbols.map(symbol => {
-    const name = STOCK_NAMES[symbol] || symbol;
-    const ffShares = 50.0;
-    const basePrice = 100.0;
-    const baseVolume = Math.round(ffShares * 15000);
-    const ffmCap = basePrice * ffShares;
-    const value = (baseVolume * basePrice) / 10000000;
-
-    return {
-      symbol,
-      name,
-      ltp: basePrice,
-      open: basePrice,
-      high: basePrice,
-      low: basePrice,
-      prevClose: basePrice,
-      volume: baseVolume,
-      change: 0,
-      changePercent: 0,
-      iep: basePrice,
-      final: basePrice,
-      finalQuantity: baseVolume,
-      value,
-      ffmCap,
-      nm52wH: basePrice * 1.2,
-      nm52wL: basePrice * 0.8
-    };
-  });
+  return [];
 }
 
 class AlgoEngineService {
@@ -287,6 +37,10 @@ class AlgoEngineService {
   // Kite credentials for live API fetches
   private activeApiKey: string | null = null;
   private activeAccessToken: string | null = null;
+
+  // Dynamic instrument token mapping
+  private instrumentToSymbol: { [key: number]: string } = {};
+  private symbolToName: { [symbol: string]: string } = {};
 
   // In-memory pre-open cache
   private preOpenCache: StockQuote[] = [];
@@ -331,6 +85,41 @@ class AlgoEngineService {
     }
   }
 
+  private async ensureInstrumentMapping() {
+    if (Object.keys(this.instrumentToSymbol).length > 0) {
+      return;
+    }
+    try {
+      console.log('Fetching live instrument list from Zerodha Kite...');
+      const res = await fetch('https://api.kite.trade/instruments/NSE');
+      if (!res.ok) throw new Error(`Kite instruments API returned status ${res.status}`);
+      const text = await res.text();
+      const lines = text.split('\n');
+      const instMap: { [key: number]: string } = {};
+      const nameMap: { [symbol: string]: string } = {};
+      
+      for (const line of lines) {
+        const parts = line.split(',');
+        if (parts.length >= 4) {
+          const token = parseInt(parts[0], 10);
+          const symbol = parts[2].trim().replace(/"/g, '');
+          const name = parts[3].trim().replace(/"/g, '');
+          if (!isNaN(token) && symbol) {
+            instMap[token] = symbol;
+            if (name) {
+              nameMap[symbol] = name;
+            }
+          }
+        }
+      }
+      this.instrumentToSymbol = instMap;
+      this.symbolToName = nameMap;
+      console.log(`Successfully mapped ${Object.keys(this.instrumentToSymbol).length} Zerodha NSE instrument tokens dynamically.`);
+    } catch (e) {
+      console.error('Failed to load dynamic Zerodha instrument mapping:', e);
+    }
+  }
+
   // Establish connection to Zerodha's wss streaming gateway
   private connectKiteWebSocket(apiKey: string, accessToken: string) {
     this.activeApiKey = apiKey;
@@ -346,11 +135,34 @@ class AlgoEngineService {
     console.log(`Connecting to Kite streaming endpoint...`);
     this.ws = new WebSocket(wsUrl);
 
-    this.ws.on('open', () => {
+    this.ws.on('open', async () => {
       console.log('Kite WebSocket connection established.');
-      // Subscribe to all mapped instruments
-      const tokens = Object.keys(INSTRUMENT_TO_SYMBOL).map(Number);
+      
+      // Load instrument mapping dynamically
+      await this.ensureInstrumentMapping();
+      
+      // Get the symbols in our current pre-open cache or state
+      let symbols = this.preOpenCache.map(s => s.symbol);
+      if (symbols.length === 0) {
+        const dbData = await getPreOpenQuotesFromDb();
+        if (dbData && dbData.quotes.length > 0) {
+          symbols = dbData.quotes.map(s => s.symbol);
+        }
+      }
+      
+      const tokens: number[] = [];
+      for (const [tokenStr, sym] of Object.entries(this.instrumentToSymbol)) {
+        if (symbols.includes(sym)) {
+          tokens.push(Number(tokenStr));
+        }
+      }
+      
+      if (tokens.length === 0) {
+        console.warn('No instrument tokens found for active symbols. WebSocket subscription standby.');
+        return;
+      }
 
+      console.log(`Subscribing to ${tokens.length} live stock tokens on Kite WebSocket.`);
       const subMsg = {
         a: 'subscribe',
         v: tokens
@@ -398,7 +210,7 @@ class AlgoEngineService {
 
         if (packetLength === 44 || packetLength === 184) {
           const token = buffer.readUInt32BE(offset);
-          const symbol = INSTRUMENT_TO_SYMBOL[token];
+          const symbol = this.instrumentToSymbol[token];
           if (symbol) {
             const ltp = buffer.readUInt32BE(offset + 4) / 100;
             const volume = buffer.readUInt32BE(offset + 16);
@@ -411,7 +223,7 @@ class AlgoEngineService {
           }
         } else if (packetLength === 8) {
           const token = buffer.readUInt32BE(offset);
-          const symbol = INSTRUMENT_TO_SYMBOL[token];
+          const symbol = this.instrumentToSymbol[token];
           if (symbol) {
             const ltp = buffer.readUInt32BE(offset + 4) / 100;
             this.updateStockLtp(symbol, ltp);
@@ -426,14 +238,13 @@ class AlgoEngineService {
 
   private async updateStockFromTick(symbol: string, ltp: number, open: number, high: number, low: number, close: number, volume: number) {
     this.lastUpdate[symbol] = Date.now();
-    const actualQuotes = getActualQuotes();
     let exists = false;
     this.stocksState = this.stocksState.map(stock => {
       if (stock.symbol === symbol) {
         exists = true;
         const change = parseFloat((ltp - close).toFixed(2));
         const changePercent = close ? parseFloat(((change / close) * 100).toFixed(2)) : 0;
-        const ffShares = (actualQuotes as any)[symbol]?.freeFloatShares || 50.0;
+        const ffShares = 50.0;
         const volumeVal = volume || stock.volume || Math.round(ffShares * 15000);
         return {
           ...stock,
@@ -458,10 +269,10 @@ class AlgoEngineService {
     });
 
     if (!exists) {
-      const name = STOCK_NAMES[symbol] || symbol;
+      const name = this.symbolToName[symbol] || symbol;
       const change = parseFloat((ltp - close).toFixed(2));
       const changePercent = parseFloat(((change / close) * 100).toFixed(2));
-      const ffShares = (actualQuotes as any)[symbol]?.freeFloatShares || 50.0;
+      const ffShares = 50.0;
       const volumeVal = volume || Math.round(ffShares * 15000);
       this.stocksState.push({
         symbol,
@@ -491,14 +302,13 @@ class AlgoEngineService {
 
   private async updateStockLtp(symbol: string, ltp: number) {
     this.lastUpdate[symbol] = Date.now();
-    const actualQuotes = getActualQuotes();
     let exists = false;
     this.stocksState = this.stocksState.map(stock => {
       if (stock.symbol === symbol) {
         exists = true;
         const change = parseFloat((ltp - stock.prevClose).toFixed(2));
         const changePercent = stock.prevClose ? parseFloat(((change / stock.prevClose) * 100).toFixed(2)) : 0;
-        const ffShares = (actualQuotes as any)[symbol]?.freeFloatShares || 50.0;
+        const ffShares = 50.0;
         const volumeVal = stock.volume || Math.round(ffShares * 15000);
         return {
           ...stock,
@@ -515,8 +325,8 @@ class AlgoEngineService {
     });
 
     if (!exists) {
-      const name = STOCK_NAMES[symbol] || symbol;
-      const ffShares = (actualQuotes as any)[symbol]?.freeFloatShares || 50.0;
+      const name = this.symbolToName[symbol] || symbol;
+      const ffShares = 50.0;
       const volumeVal = Math.round(ffShares * 15000);
       this.stocksState.push({
         symbol,
@@ -675,7 +485,19 @@ class AlgoEngineService {
     }
 
     try {
-      const symbols = uniqueSymbols.map(s => `NSE:${s}`);
+      await this.ensureInstrumentMapping();
+      let targetSymbols = this.preOpenCache.map(s => s.symbol);
+      if (targetSymbols.length === 0) {
+        const dbData = await getPreOpenQuotesFromDb();
+        if (dbData && dbData.quotes.length > 0) {
+          targetSymbols = dbData.quotes.map(s => s.symbol);
+        }
+      }
+      if (targetSymbols.length === 0) {
+        targetSymbols = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'LT', 'ITC'];
+      }
+
+      const symbols = targetSymbols.map(s => `NSE:${s}`);
       const chunkSize = 50;
       const quotes: any = {};
 
@@ -699,8 +521,8 @@ class AlgoEngineService {
         }
       }
 
-      const freshStocks: StockQuote[] = uniqueSymbols.map(symbol => {
-        const name = STOCK_NAMES[symbol] || symbol;
+      const freshStocks: StockQuote[] = targetSymbols.map(symbol => {
+        const name = this.symbolToName[symbol] || symbol;
         const key = `NSE:${symbol}`;
         const quote = quotes[key];
         const ffShares = 50.0;
