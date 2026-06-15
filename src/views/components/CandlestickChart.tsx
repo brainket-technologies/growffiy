@@ -152,9 +152,12 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
             borderColor: '#cbd5e1',
             timeVisible: timeframe !== '1d',
             secondsVisible: false,
+            fixLeftEdge: true,
+            fixRightEdge: true,
           },
           rightPriceScale: {
             borderColor: '#cbd5e1',
+            autoScale: true,
           },
           crosshair: {
             mode: 1, // Magnet mode
@@ -187,7 +190,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
           priceFormat: {
             type: 'volume',
           },
-          priceScaleId: 'volume', // Set explicit priceScaleId instead of empty string
+          priceScaleId: 'volume', 
         });
 
         // Set volume scale positions
@@ -215,6 +218,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
           if (chartContainerRef.current && chartInstanceRef.current) {
             const w = chartContainerRef.current.getBoundingClientRect().width || 400;
             chartInstanceRef.current.resize(w, 300);
+            chartInstanceRef.current.timeScale().fitContent();
           }
         };
         window.addEventListener('resize', handleResize);
