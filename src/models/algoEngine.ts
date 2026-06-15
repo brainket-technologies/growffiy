@@ -333,9 +333,18 @@ class AlgoEngineService {
   private isTradingActive: boolean = false;
   private ws: WebSocket | null = null;
   private lastUpdate: { [symbol: string]: number } = {};
+  
+  // Kite credentials for live API fetches
+  private activeApiKey: string | null = null;
+  private activeAccessToken: string | null = null;
+
+  // In-memory pre-open cache
+  private preOpenCache: StockQuote[] = [];
+  private lastPreOpenFetchTime: number = 0;
 
   constructor() {
     this.stocksState = getInitialStocks();
+    this.preOpenCache = [...this.stocksState];
     this.initializeKiteLiveFeed();
   }
 
@@ -373,6 +382,9 @@ class AlgoEngineService {
 
   // Establish connection to Zerodha's wss streaming gateway
   private connectKiteWebSocket(apiKey: string, accessToken: string) {
+    this.activeApiKey = apiKey;
+    this.activeAccessToken = accessToken;
+
     if (this.ws) {
       try {
         this.ws.close();
@@ -589,8 +601,152 @@ class AlgoEngineService {
     return this.stocksState;
   }
 
+  private async getActiveCredentials() {
+    if (this.activeApiKey && this.activeAccessToken) {
+      return { apiKey: this.activeApiKey, accessToken: this.activeAccessToken };
+    }
+    const envApiKey = process.env.ZERODHA_API_KEY || process.env.KITE_API_KEY;
+    const envAccessToken = process.env.ZERODHA_ACCESS_TOKEN || process.env.KITE_ACCESS_TOKEN;
+    if (envApiKey && envAccessToken) {
+      this.activeApiKey = envApiKey;
+      this.activeAccessToken = envAccessToken;
+      return { apiKey: envApiKey, accessToken: envAccessToken };
+    }
+    const client = await prisma.client.findFirst({
+      where: {
+        accessToken: { not: null },
+        zerodhaApiKey: { not: null }
+      }
+    });
+    if (client && client.zerodhaApiKey && client.accessToken) {
+      this.activeApiKey = client.zerodhaApiKey;
+      this.activeAccessToken = client.accessToken;
+      return { apiKey: client.zerodhaApiKey, accessToken: client.accessToken };
+    }
+    return null;
+  }
+
+  public async fetchLivePreOpenFromKite(): Promise<StockQuote[]> {
+    const creds = await this.getActiveCredentials();
+    if (!creds) {
+      console.log('No active Zerodha credentials found for live pre-open fetch. Using in-memory cache.');
+      return this.preOpenCache.length > 0 ? this.preOpenCache : getInitialStocks();
+    }
+
+    try {
+      const symbols = uniqueSymbols.map(s => `NSE:${s}`);
+      const chunkSize = 50;
+      const quotes: any = {};
+
+      for (let i = 0; i < symbols.length; i += chunkSize) {
+        const chunk = symbols.slice(i, i + chunkSize);
+        const query = chunk.join('&i=');
+        const url = `https://api.kite.trade/quote?i=${query}`;
+
+        const res = await fetch(url, {
+          headers: {
+            'X-Kite-Version': '3',
+            'Authorization': `token ${creds.apiKey}:${creds.accessToken}`
+          }
+        });
+
+        const data = await res.json();
+        if (data.status === 'success') {
+          Object.assign(quotes, data.data);
+        } else {
+          console.error("Failed to fetch pre-open quotes chunk:", data.message);
+        }
+      }
+
+      const freshStocks: StockQuote[] = uniqueSymbols.map(symbol => {
+        const name = STOCK_NAMES[symbol] || symbol;
+        const key = `NSE:${symbol}`;
+        const quote = quotes[key];
+        const ffShares = fallbackActualQuotes[symbol as keyof typeof fallbackActualQuotes]?.freeFloatShares || 50.0;
+
+        if (quote) {
+          const prevClose = quote.ohlc.close || fallbackActualQuotes[symbol as keyof typeof fallbackActualQuotes]?.prevClose || 100.0;
+          // In pre-open session, the indicative equilibrium price is ohlc.open
+          const iep = quote.ohlc.open || prevClose;
+          const change = parseFloat((iep - prevClose).toFixed(2));
+          const changePercent = prevClose ? parseFloat(((change / prevClose) * 100).toFixed(2)) : 0;
+          const ltp = iep;
+          const open = iep;
+          const high = quote.ohlc.high || iep;
+          const low = quote.ohlc.low || iep;
+          const volume = quote.volume || Math.round(ffShares * 15000);
+          const ffmCap = ltp * ffShares;
+          const value = (volume * ltp) / 10000000;
+
+          return {
+            symbol,
+            name,
+            ltp,
+            open,
+            high,
+            low,
+            prevClose,
+            volume,
+            change,
+            changePercent,
+            iep,
+            final: ltp,
+            finalQuantity: volume,
+            value,
+            ffmCap,
+            nm52wH: parseFloat((prevClose * 1.25).toFixed(2)),
+            nm52wL: parseFloat((prevClose * 0.75).toFixed(2))
+          };
+        } else {
+          // Fallback to static if not found in live response
+          const staticQuote = fallbackActualQuotes[symbol as keyof typeof fallbackActualQuotes];
+          const basePrice = staticQuote?.iep || 100.0;
+          const baseVolume = staticQuote?.volume || Math.round(ffShares * 15000);
+          const ffmCap = basePrice * ffShares;
+          const value = (baseVolume * basePrice) / 10000000;
+
+          return {
+            symbol,
+            name,
+            ltp: basePrice,
+            open: basePrice,
+            high: basePrice,
+            low: basePrice,
+            prevClose: staticQuote?.prevClose || basePrice,
+            volume: baseVolume,
+            change: staticQuote?.change || 0,
+            changePercent: staticQuote?.changePercent || 0,
+            iep: basePrice,
+            final: basePrice,
+            finalQuantity: baseVolume,
+            value,
+            ffmCap,
+            nm52wH: basePrice * 1.2,
+            nm52wL: basePrice * 0.8
+          };
+        }
+      });
+
+      this.preOpenCache = freshStocks;
+      this.lastPreOpenFetchTime = Date.now();
+      return freshStocks;
+    } catch (err) {
+      console.error('Error fetching live pre-open quotes from Kite:', err);
+      return this.preOpenCache.length > 0 ? this.preOpenCache : getInitialStocks();
+    }
+  }
+
   public getPreOpenStocks(): StockQuote[] {
-    return getInitialStocks();
+    // Return cached stocks immediately to keep API response times minimal.
+    // If cache is empty, populate it on-demand.
+    if (this.preOpenCache.length === 0) {
+      this.preOpenCache = getInitialStocks();
+      this.fetchLivePreOpenFromKite().catch(console.error);
+    } else if (Date.now() - this.lastPreOpenFetchTime > 5 * 60 * 1000) {
+      // Refresh cache in the background if older than 5 minutes
+      this.fetchLivePreOpenFromKite().catch(console.error);
+    }
+    return this.preOpenCache;
   }
 
   public getPreOpenDate(): string {

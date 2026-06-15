@@ -10,7 +10,7 @@ import { Zap, CheckCircle2, FileSpreadsheet, Loader2, TrendingUp, TrendingDown, 
 type CategoryType = 'NIFTY 50' | 'Nifty Bank' | 'Emerge' | 'Securities in F&O' | 'Others' | 'All';
 
 export default function PreOpenScannerPage() {
-  const { scannerResults, isTradingActive, toggleTrading, loading, isSyncing, isWsConnected, preOpenDate } = useAppViewModel();
+  const { scannerResults, isTradingActive, toggleTrading, loading, isSyncing, isWsConnected, preOpenDate, refreshAllData } = useAppViewModel();
 
   if (loading) {
     return <Loader title="Loading Pre-Open Scanner" text="Fetching indicative quotes and syncing pre-market feeds..." fullscreen={false} />;
@@ -52,13 +52,23 @@ export default function PreOpenScannerPage() {
   };
   const { factor, label } = getDenomConfig();
 
-  const runManualScan = () => {
+  const runManualScan = async () => {
     setIsScanning(true);
     setScanMessage(null);
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/stocks?refresh=true');
+      const data = await res.json();
+      if (data.success) {
+        await refreshAllData();
+        setScanMessage(`Scanner complete. Fetched live pre-open quotes directly from Zerodha Kite and selected ${scannerResults[0]?.symbol || 'None'} as trade breakout candidate.`);
+      } else {
+        setScanMessage('Failed to scan: ' + (data.error || 'Server error'));
+      }
+    } catch (e: any) {
+      setScanMessage('Scan request failed: ' + (e.message || 'Unknown network error'));
+    } finally {
       setIsScanning(false);
-      setScanMessage(`Scanner complete. Selected ${scannerResults[0]?.symbol || 'None'} as trade breakout candidate.`);
-    }, 1500);
+    }
   };
 
   const filterByCategory = (stock: any, cat: CategoryType) => {
