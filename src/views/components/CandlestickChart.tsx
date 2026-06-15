@@ -101,7 +101,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       const isDaily = timeframe === '1d';
       const pointTime = isDaily
         ? new Date(now.getTime() - (count - 1 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-        : startTimestamp + (i * durationMinutes * 60);
+        : Math.floor(startTimestamp + (i * durationMinutes * 60));
 
       const isUp = cClose >= cOpen;
 
