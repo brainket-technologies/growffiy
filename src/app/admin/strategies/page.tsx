@@ -24,6 +24,7 @@ import {
   FileCode,
   AlertCircle
 } from 'lucide-react';
+import { Modal } from '../../../views/components/Modal';
 
 interface StrategyCondition {
   logical: 'AND' | 'OR';
@@ -141,6 +142,11 @@ export default function StrategiesPage() {
   const [filterType, setFilterType] = useState<string>('all');
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  // Custom delete state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
+  const [strategyToDelete, setStrategyToDelete] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
   // Form State
   const [formData, setFormData] = useState<StrategyConfig>(INITIAL_CONFIG);
   const [formErrors, setFormErrors] = useState<string>('');
@@ -256,20 +262,30 @@ export default function StrategiesPage() {
     }
   };
 
-  const handleDelete = async (strategyId: string) => {
-    if (!confirm('Are you sure you want to delete this strategy?')) return;
+  const handleDelete = (strategy: any) => {
+    setStrategyToDelete(strategy);
+    setIsDeleteModalOpen(true);
+  };
+
+  const executeDelete = async () => {
+    if (!strategyToDelete) return;
+    setIsDeleting(true);
     try {
-      const res = await fetch(`/api/admin/strategies/${strategyId}`, {
+      const res = await fetch(`/api/admin/strategies/${strategyToDelete.id}`, {
         method: 'DELETE'
       });
       const data = await res.json();
       if (data.success) {
+        setIsDeleteModalOpen(false);
+        setStrategyToDelete(null);
         setViewMode('list');
         setSelectedStrategy(null);
         loadData();
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -582,7 +598,7 @@ export default function StrategiesPage() {
                                 <Copy size={16} />
                               </button>
                               <button
-                                onClick={() => handleDelete(strat.id)}
+                                onClick={() => handleDelete(strat)}
                                 style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer' }}
                                 title="Delete"
                               >
@@ -1296,6 +1312,32 @@ export default function StrategiesPage() {
           )}
         </div>
       )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setStrategyToDelete(null);
+        }}
+        title="Delete Strategy"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '10px 0' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+            Are you sure you want to delete the strategy <strong>{strategyToDelete?.name}</strong>? This action cannot be undone. All client assignments and trade records linked to this strategy will be affected.
+          </p>
+          
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+            <Button variant="secondary" onClick={() => {
+              setIsDeleteModalOpen(false);
+              setStrategyToDelete(null);
+            }}>Cancel</Button>
+            <Button variant="danger" onClick={executeDelete} disabled={isDeleting}>
+              {isDeleting ? 'Deleting...' : 'Yes, Delete Strategy'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
     </div>
   );

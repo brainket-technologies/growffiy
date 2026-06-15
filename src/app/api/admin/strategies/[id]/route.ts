@@ -95,45 +95,48 @@ export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const id = params.id;
+  const id = params.id;
 
-    try {
-      // 1. Unassign any clients pointing to this strategy
-      await prisma.client.updateMany({
+  try {
+    // Use a transaction to atomically delete all children then the strategy
+    await prisma.$transaction(async (tx) => {
+      // 1. Unlink clients that reference this strategy
+      await tx.client.updateMany({
         where: { strategyId: id },
         data: { strategyId: null }
       });
 
-      // 2. Delete any trades associated with this strategy
-      await prisma.trade.deleteMany({
-        where: { strategyId: id }
-      });
+      // 2. Delete trades
+      await tx.trade.deleteMany({ where: { strategyId: id } });
 
-      // 3. Delete strategy conditions, assignments, logs, backtests
-      await prisma.strategyCondition.deleteMany({ where: { strategyId: id } });
-      await prisma.strategyAssignment.deleteMany({ where: { strategyId: id } });
-      await prisma.strategyLog.deleteMany({ where: { strategyId: id } });
-      await prisma.strategyBacktest.deleteMany({ where: { strategyId: id } });
+      // 3. Delete child strategy records
+      await tx.strategyCondition.deleteMany({ where: { strategyId: id } });
+      await tx.strategyAssignment.deleteMany({ where: { strategyId: id } });
+      await tx.strategyLog.deleteMany({ where: { strategyId: id } });
+      await tx.strategyBacktest.deleteMany({ where: { strategyId: id } });
 
-      // 4. Finally delete the strategy itself
-      await prisma.strategy.delete({
-        where: { id }
-      });
-      return NextResponse.json({ success: true });
-    } catch (dbErr: any) {
-      console.error('DB Delete failed, deleting in-memory:', dbErr);
-      const index = inMemoryStrategies.findIndex(s => s.id === id);
-      if (index !== -1) {
-        inMemoryStrategies.splice(index, 1);
-        return NextResponse.json({ success: true, isDemoMode: true });
-      }
-      return NextResponse.json({ success: false, error: dbErr.message || 'Strategy not found' }, { status: 404 });
+      // 4. Delete the strategy itself
+      await tx.strategy.delete({ where: { id } });
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (dbErr: any) {
+    console.error('DB Delete failed:', dbErr);
+
+    // Fallback: try to delete from in-memory store
+    const index = inMemoryStrategies.findIndex(s => s.id === id);
+    if (index !== -1) {
+      inMemoryStrategies.splice(index, 1);
+      return NextResponse.json({ success: true, isDemoMode: true });
     }
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+
+    return NextResponse.json(
+      { success: false, error: dbErr.message || 'Delete failed' },
+      { status: 500 }
+    );
   }
 }
+
 
 // Clone action via POST
 export async function POST(
