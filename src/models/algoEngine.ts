@@ -576,6 +576,96 @@ class AlgoEngineService {
     return null;
   }
 
+  public async fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': '*/*',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Referer': 'https://www.nseindia.com/market-data/pre-open-market-key-indices-all',
+    };
+
+    try {
+      console.log('Initiating pre-open fetch from official NSE India API...');
+      // 1. Visit home page to generate cookie session
+      const homeRes = await fetch('https://www.nseindia.com/', { headers });
+      const rawCookies = homeRes.headers.get('set-cookie') || '';
+      const cookies = rawCookies.split(',').map(c => c.split(';')[0]).join('; ');
+
+      // 2. Query the pre-open endpoint using the cookies
+      const dataRes = await fetch('https://www.nseindia.com/api/market-data-pre-open?key=ALL', {
+        headers: {
+          ...headers,
+          'Cookie': cookies,
+        }
+      });
+
+      if (!dataRes.ok) {
+        throw new Error(`NSE API responded with status ${dataRes.status}`);
+      }
+
+      const nseJson = await dataRes.json();
+      if (!nseJson || !Array.isArray(nseJson.data)) {
+        throw new Error('Invalid JSON format from NSE Pre-Open API');
+      }
+
+      console.log(`Successfully retrieved ${nseJson.data.length} pre-open quotes from NSE.`);
+
+      const freshStocks: StockQuote[] = nseJson.data
+        .filter((nseItem: any) => nseItem.metadata && nseItem.metadata.symbol)
+        .map((nseItem: any) => {
+          const symbol = nseItem.metadata.symbol;
+          const name = nseItem.metadata.companyName || symbol;
+          const prevClose = nseItem.metadata.prevClose || 100.0;
+          const iep = nseItem.metadata.lastPrice || nseItem.metadata.iep || prevClose;
+          const change = nseItem.metadata.change || 0;
+          const changePercent = nseItem.metadata.pChange || 0;
+          const ltp = iep;
+          const open = iep;
+          const high = nseItem.metadata.high || iep;
+          const low = nseItem.metadata.low || iep;
+          const volume = nseItem.detail?.quantity || nseItem.metadata.quantity || 0;
+          const ffmCap = ltp * 50.0;
+          const value = (volume * ltp) / 10000000;
+
+          return {
+            symbol,
+            name,
+            ltp,
+            open,
+            high,
+            low,
+            prevClose,
+            volume,
+            change,
+            changePercent,
+            iep,
+            final: ltp,
+            finalQuantity: volume,
+            value,
+            ffmCap,
+            nm52wH: parseFloat((prevClose * 1.25).toFixed(2)),
+            nm52wL: parseFloat((prevClose * 0.75).toFixed(2))
+          };
+        });
+
+      const dateStr = new Date().toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+
+      this.preOpenCache = freshStocks;
+      this.preOpenCacheDate = dateStr;
+      this.lastPreOpenFetchTime = Date.now();
+
+      await savePreOpenQuotesToDb(freshStocks, dateStr);
+      return freshStocks;
+    } catch (err) {
+      console.error('NSE API pre-open fetch failed, falling back to Kite API:', err);
+      return await this.fetchLivePreOpenFromKite();
+    }
+  }
+
   public async fetchLivePreOpenFromKite(): Promise<StockQuote[]> {
     const creds = await this.getActiveCredentials();
     if (!creds) {
