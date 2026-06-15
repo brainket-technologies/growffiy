@@ -462,9 +462,8 @@ export default function MarketWatchPage() {
                 </div>
               )}
               {isSyncing && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#0ea5e9', fontSize: '11px', fontWeight: 500 }}>
+                <div style={{ display: 'flex', alignItems: 'center', color: '#0ea5e9' }} title="Syncing ticks...">
                   <Loader2 size={13} style={{ animation: 'spin 1.2s linear infinite' }} />
-                  <span>Syncing ticks...</span>
                 </div>
               )}
             </div>
