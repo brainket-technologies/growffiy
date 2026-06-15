@@ -123,7 +123,8 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    // Create TradingView Chart
+    // Create TradingView Chart with safe width check
+    const width = chartContainerRef.current.getBoundingClientRect().width || 400;
     const chart = createChart(chartContainerRef.current, {
       layout: {
         background: { color: '#ffffff' },
@@ -156,7 +157,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
           style: 3, // Dashed line
         },
       },
-      width: chartContainerRef.current.clientWidth,
+      width: width,
       height: 300,
     });
 
@@ -197,17 +198,26 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
     // Fit content inside view
     chart.timeScale().fitContent();
 
-    // Handle Resize
+    // Handle Resize safely
     const handleResize = () => {
-      if (chartContainerRef.current) {
-        chart.resize(chartContainerRef.current.clientWidth, 300);
+      if (chartContainerRef.current && chartRef.current) {
+        const w = chartContainerRef.current.getBoundingClientRect().width || 400;
+        chart.resize(w, 300);
       }
     };
     window.addEventListener('resize', handleResize);
 
+    // Initial trigger for rendering correctness on first microtask
+    const timer = setTimeout(handleResize, 50);
+
     return () => {
       window.removeEventListener('resize', handleResize);
-      chart.remove();
+      clearTimeout(timer);
+      try {
+        chart.remove();
+      } catch (e) {
+        console.error('Error cleaning up chart:', e);
+      }
     };
   }, [timeframe, symbol]);
 
