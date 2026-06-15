@@ -140,17 +140,10 @@ export default function ClientPreOpenScannerPage() {
         </div>
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          {isWsConnected ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '12px', fontWeight: 600, padding: '6px 12px', backgroundColor: '#e6f4ea', borderRadius: '20px' }}>
-              <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px #10b981' }} />
-              <span>Kite Sync Connected</span>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontSize: '12px', fontWeight: 500, padding: '6px 12px', backgroundColor: '#f1f5f9', borderRadius: '20px' }}>
-              <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: '#cbd5e1', borderRadius: '50%' }} />
-              <span>Standby Mode</span>
-            </div>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '12px', fontWeight: 600, padding: '6px 12px', backgroundColor: '#e6f4ea', borderRadius: '20px' }}>
+            <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px #10b981' }} />
+            <span>NSE Data Live</span>
+          </div>
           {isSyncing && (
             <RefreshCw size={15} style={{ color: 'var(--primary)', animation: 'spin 1.5s linear infinite' }} />
           )}
