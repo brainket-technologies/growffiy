@@ -34,10 +34,94 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
   const [timeframe, setTimeframe] = useState<string>('5m');
   const chartContainerRef = useRef<HTMLDivElement>(null);
   
+  const chartInstanceRef = useRef<any>(null);
+  const candlestickSeriesRef = useRef<any>(null);
+  const volumeSeriesRef = useRef<any>(null);
+
+  // Helper to generate mock historical candles dynamically
+  const generateCandles = () => {
+    let seed = 0;
+    const compoundKey = symbol + timeframe;
+    for (let i = 0; i < compoundKey.length; i++) {
+      seed += compoundKey.charCodeAt(i);
+    }
+    const random = () => {
+      const x = Math.sin(seed++) * 10000;
+      return x - Math.floor(x);
+    };
+
+    const count = 50; 
+    const mainData: CandleData[] = [];
+    const volData: { time: number; value: number; color: string }[] = [];
+    let currentClose = prevClose;
+
+    const now = new Date();
+    let durationMinutes = 5;
+    if (timeframe === '1m') durationMinutes = 1;
+    if (timeframe === '15m') durationMinutes = 15;
+    if (timeframe === '30m') durationMinutes = 30;
+    if (timeframe === '1h') durationMinutes = 60;
+    if (timeframe === '1d') durationMinutes = 1440;
+
+    const startTimestamp = Math.floor(now.getTime() / 1000) - (count * durationMinutes * 60);
+
+    for (let i = 0; i < count; i++) {
+      const isLast = i === count - 1;
+      let cOpen = currentClose;
+      let cClose: number;
+      let cHigh: number;
+      let cLow: number;
+
+      if (isLast) {
+        cOpen = open;
+        cClose = ltp;
+        cHigh = Math.max(high, cOpen, cClose);
+        cLow = Math.min(low, cOpen, cClose);
+      } else {
+        const progress = i / (count - 1);
+        const trend = prevClose + (open - prevClose) * progress;
+        const volatility = Math.max((high - low) * 0.15, open * 0.005);
+
+        cClose = trend + (random() - 0.5) * volatility;
+        cHigh = Math.max(cOpen, cClose) + random() * volatility * 0.3;
+        cLow = Math.min(cOpen, cClose) - random() * volatility * 0.3;
+
+        // Clip bounds
+        const absoluteHigh = Math.max(high, prevClose, open, ltp);
+        const absoluteLow = Math.min(low, prevClose, open, ltp);
+
+        if (cHigh > absoluteHigh) cHigh = absoluteHigh;
+        if (cLow < absoluteLow) cLow = absoluteLow;
+        if (cClose > absoluteHigh) cClose = absoluteHigh;
+        if (cClose < absoluteLow) cClose = absoluteLow;
+
+        currentClose = cClose;
+      }
+
+      const pointTime = startTimestamp + (i * durationMinutes * 60);
+      const isUp = cClose >= cOpen;
+
+      mainData.push({
+        time: pointTime,
+        open: parseFloat(cOpen.toFixed(2)),
+        high: parseFloat(cHigh.toFixed(2)),
+        low: parseFloat(cLow.toFixed(2)),
+        close: parseFloat(cClose.toFixed(2)),
+      });
+
+      volData.push({
+        time: pointTime,
+        value: Math.round((volume / count) * (0.4 + random() * 1.2)),
+        color: isUp ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+      });
+    }
+
+    return { main: mainData, volumeData: volData };
+  };
+  
   // Use dynamically loaded lightweight-charts to prevent Next.js SSR document undefined crashes
   useEffect(() => {
     let active = true;
-    let chartInstance: any = null;
 
     const initChart = async () => {
       if (!chartContainerRef.current) return;
@@ -114,88 +198,9 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
           },
         });
 
-        chartInstance = chart;
-
-        // Helper to generate mock historical candles dynamically
-        const generateCandles = () => {
-          let seed = 0;
-          const compoundKey = symbol + timeframe;
-          for (let i = 0; i < compoundKey.length; i++) {
-            seed += compoundKey.charCodeAt(i);
-          }
-          const random = () => {
-            const x = Math.sin(seed++) * 10000;
-            return x - Math.floor(x);
-          };
-
-          const count = 50; 
-          const mainData: CandleData[] = [];
-          const volData: { time: number; value: number; color: string }[] = [];
-          let currentClose = prevClose;
-
-          const now = new Date();
-          let durationMinutes = 5;
-          if (timeframe === '1m') durationMinutes = 1;
-          if (timeframe === '15m') durationMinutes = 15;
-          if (timeframe === '30m') durationMinutes = 30;
-          if (timeframe === '1h') durationMinutes = 60;
-          if (timeframe === '1d') durationMinutes = 1440;
-
-          const startTimestamp = Math.floor(now.getTime() / 1000) - (count * durationMinutes * 60);
-
-          for (let i = 0; i < count; i++) {
-            const isLast = i === count - 1;
-            let cOpen = currentClose;
-            let cClose: number;
-            let cHigh: number;
-            let cLow: number;
-
-            if (isLast) {
-              cOpen = open;
-              cClose = ltp;
-              cHigh = Math.max(high, cOpen, cClose);
-              cLow = Math.min(low, cOpen, cClose);
-            } else {
-              const progress = i / (count - 1);
-              const trend = prevClose + (open - prevClose) * progress;
-              const volatility = Math.max((high - low) * 0.15, open * 0.005);
-
-              cClose = trend + (random() - 0.5) * volatility;
-              cHigh = Math.max(cOpen, cClose) + random() * volatility * 0.3;
-              cLow = Math.min(cOpen, cClose) - random() * volatility * 0.3;
-
-              // Clip bounds
-              const absoluteHigh = Math.max(high, prevClose, open, ltp);
-              const absoluteLow = Math.min(low, prevClose, open, ltp);
-
-              if (cHigh > absoluteHigh) cHigh = absoluteHigh;
-              if (cLow < absoluteLow) cLow = absoluteLow;
-              if (cClose > absoluteHigh) cClose = absoluteHigh;
-              if (cClose < absoluteLow) cClose = absoluteLow;
-
-              currentClose = cClose;
-            }
-
-            const pointTime = startTimestamp + (i * durationMinutes * 60);
-            const isUp = cClose >= cOpen;
-
-            mainData.push({
-              time: pointTime,
-              open: parseFloat(cOpen.toFixed(2)),
-              high: parseFloat(cHigh.toFixed(2)),
-              low: parseFloat(cLow.toFixed(2)),
-              close: parseFloat(cClose.toFixed(2)),
-            });
-
-            volData.push({
-              time: pointTime,
-              value: Math.round((volume / count) * (0.4 + random() * 1.2)),
-              color: isUp ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-            });
-          }
-
-          return { main: mainData, volumeData: volData };
-        };
+        chartInstanceRef.current = chart;
+        candlestickSeriesRef.current = candlestickSeries;
+        volumeSeriesRef.current = volumeSeries;
 
         // Load initial data
         const { main, volumeData } = generateCandles();
@@ -207,9 +212,9 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
 
         // Handle Resize safely
         const handleResize = () => {
-          if (chartContainerRef.current && chartInstance) {
+          if (chartContainerRef.current && chartInstanceRef.current) {
             const w = chartContainerRef.current.getBoundingClientRect().width || 400;
-            chartInstance.resize(w, 300);
+            chartInstanceRef.current.resize(w, 300);
           }
         };
         window.addEventListener('resize', handleResize);
@@ -226,15 +231,26 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
 
     return () => {
       active = false;
-      if (chartInstance) {
+      if (chartInstanceRef.current) {
         try {
-          chartInstance.remove();
+          chartInstanceRef.current.remove();
         } catch (e) {
           console.error('Clean up error:', e);
         }
+        chartInstanceRef.current = null;
+        candlestickSeriesRef.current = null;
+        volumeSeriesRef.current = null;
       }
     };
-  }, [timeframe, symbol, open, high, low, ltp, volume]);
+  }, [timeframe, symbol]);
+
+  // Update dynamic last tick data in real-time without recreating the chart instance
+  useEffect(() => {
+    if (!candlestickSeriesRef.current || !volumeSeriesRef.current) return;
+    const { main, volumeData } = generateCandles();
+    candlestickSeriesRef.current.setData(main);
+    volumeSeriesRef.current.setData(volumeData);
+  }, [open, high, low, ltp, volume]);
 
   const changePercent = ltp - prevClose;
   const changePercentVal = prevClose ? (changePercent / prevClose) * 100 : 0;
