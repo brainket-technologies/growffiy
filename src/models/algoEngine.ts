@@ -22,7 +22,7 @@ export interface StockQuote {
   isNifty50?: boolean;
   isBankNifty?: boolean;
   isFo?: boolean;
-  isEmerge?: boolean;
+  isSme?: boolean;
 }
 
 class AlgoEngineService {
@@ -77,7 +77,7 @@ class AlgoEngineService {
             headers: { ...headers, 'Cookie': cookies }
           });
           if (!res.ok) return [];
-          const json = await res.ok ? await res.json() : {};
+          const json = await res.json();
           if (json && Array.isArray(json.data)) {
             return json.data.map((item: any) => item.metadata?.symbol).filter(Boolean);
           }
@@ -87,13 +87,13 @@ class AlgoEngineService {
         return [];
       };
 
-      // 2. Query all endpoints in parallel (All, Nifty 50, Nifty Bank, F&O, Emerge)
-      const [dataRes, niftySymbols, bankNiftySymbols, foSymbols, emergeSymbols] = await Promise.all([
+      // 2. Query all endpoints in parallel (All, Nifty 50, Nifty Bank, F&O, SME)
+      const [dataRes, niftySymbols, bankNiftySymbols, foSymbols, smeSymbols] = await Promise.all([
         fetch(API_ENDPOINTS.NSE_PRE_OPEN, { headers: { ...headers, 'Cookie': cookies } }),
         fetchIndexSymbols('NIFTY'),
         fetchIndexSymbols('BANKNIFTY'),
         fetchIndexSymbols('FO'),
-        fetchIndexSymbols('EMERGE')
+        fetchIndexSymbols('SME')
       ]);
 
       if (!dataRes.ok) {
@@ -146,7 +146,7 @@ class AlgoEngineService {
             isNifty50: niftySymbols.includes(symbol),
             isBankNifty: bankNiftySymbols.includes(symbol),
             isFo: foSymbols.includes(symbol),
-            isEmerge: emergeSymbols.includes(symbol)
+            isSme: smeSymbols.includes(symbol)
           };
         });
 

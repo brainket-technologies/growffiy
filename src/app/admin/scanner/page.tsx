@@ -7,7 +7,7 @@ import { Button } from '../../../views/components/Button';
 import { Loader } from '../../../views/components/Loader';
 import { Zap, CheckCircle2, FileSpreadsheet, Loader2, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ShieldAlert } from 'lucide-react';
 
-type CategoryType = 'NIFTY 50' | 'Nifty Bank' | 'Emerge' | 'Securities in F&O' | 'Others' | 'All';
+type CategoryType = 'Nifty 50' | 'Bank Nifty' | 'F&O' | 'SME' | 'Others' | 'All';
 
 export default function PreOpenScannerPage() {
   const { scannerResults, isTradingActive, toggleTrading, loading, isSyncing, isWsConnected, preOpenDate, refreshAllData } = useAppViewModel();
@@ -19,7 +19,7 @@ export default function PreOpenScannerPage() {
   const [scanMessage, setScanMessage] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(30);
   const [denom, setDenom] = useState<'lakhs' | 'crores' | 'billions'>('crores');
-  const [category, setCategory] = useState<CategoryType>('Securities in F&O');
+  const [category, setCategory] = useState<CategoryType>('F&O');
   const [symbolQuery, setSymbolQuery] = useState('');
   const [sortField, setSortField] = useState<string>('changePercent');
   const [sortAsc, setSortAsc] = useState<boolean>(false);
@@ -73,11 +73,11 @@ export default function PreOpenScannerPage() {
 
   const filterByCategory = (stock: any, cat: CategoryType) => {
     if (stock.isNifty50 !== undefined) {
-      if (cat === 'NIFTY 50') return stock.isNifty50;
-      if (cat === 'Nifty Bank') return stock.isBankNifty;
-      if (cat === 'Emerge') return stock.isEmerge;
-      if (cat === 'Securities in F&O') return stock.isFo;
-      if (cat === 'Others') return !stock.isNifty50 && !stock.isBankNifty && !stock.isEmerge && !stock.isFo;
+      if (cat === 'Nifty 50') return stock.isNifty50;
+      if (cat === 'Bank Nifty') return stock.isBankNifty;
+      if (cat === 'SME') return stock.isSme;
+      if (cat === 'F&O') return stock.isFo;
+      if (cat === 'Others') return !stock.isNifty50 && !stock.isBankNifty && !stock.isSme && !stock.isFo;
       return true;
     }
 
@@ -85,16 +85,16 @@ export default function PreOpenScannerPage() {
     const niftyBank = ['HDFCBANK', 'ICICIBANK', 'SBIN', 'AXISBANK', 'KOTAKBANK', 'FEDERALBNK', 'BANDHANBNK', 'YESBANK', 'PNB', 'CANBK'];
     const emerge = ['RVNL', 'ZEEL', 'GMRINFRA', 'NATIONALUM', 'BHEL', 'BIOCON', 'DELTACORP', 'IDEA'];
     
-    if (cat === 'NIFTY 50') {
+    if (cat === 'Nifty 50') {
       return nifty50.includes(stock.symbol);
     }
-    if (cat === 'Nifty Bank') {
+    if (cat === 'Bank Nifty') {
       return niftyBank.includes(stock.symbol);
     }
-    if (cat === 'Emerge') {
+    if (cat === 'SME') {
       return emerge.includes(stock.symbol);
     }
-    if (cat === 'Securities in F&O') {
+    if (cat === 'F&O') {
       return true;
     }
     if (cat === 'Others') {
@@ -154,7 +154,7 @@ export default function PreOpenScannerPage() {
   const topLoser = [...scannerResults].sort((a, b) => a.changePercent - b.changePercent)[0];
 
   const handleClear = () => {
-    setCategory('Securities in F&O');
+    setCategory('F&O');
     setSymbolQuery('');
     setDenom('crores');
     setSortField('changePercent');
@@ -331,12 +331,12 @@ export default function PreOpenScannerPage() {
                   height: '100%'
                 }}
               >
-                <option value="NIFTY 50">NIFTY 50</option>
-                <option value="Nifty Bank">Nifty Bank</option>
-                <option value="Emerge">Emerge</option>
-                <option value="Securities in F&O">Securities in F&O</option>
-                <option value="Others">Others</option>
                 <option value="All">All</option>
+                <option value="Nifty 50">Nifty 50</option>
+                <option value="Bank Nifty">Bank Nifty</option>
+                <option value="F&O">F&O</option>
+                <option value="SME">SME</option>
+                <option value="Others">Others</option>
               </select>
             </div>
 
