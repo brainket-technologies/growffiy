@@ -149,7 +149,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
             background: { type: 'solid' as any, color: '#ffffff' },
             textColor: '#64748b',
             fontSize: 10,
-            fontFamily: 'Inter, system-ui, sans-serif',
+            fontFamily: 'var(--font-body), system-ui, sans-serif',
           },
           grid: {
             vertLines: { color: '#f1f5f9' },
@@ -403,7 +403,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       </div>
 
       {/* TradingView Chart Container */}
-      <div ref={chartContainerRef} style={{ width: '100%', height: '300px', overflow: 'hidden' }} />
+      <div id={`chart-${symbol}`} ref={chartContainerRef} style={{ width: '100%', height: '300px', overflow: 'hidden', position: 'relative' }} />
     </div>
   );
 };
