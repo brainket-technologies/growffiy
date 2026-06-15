@@ -10,6 +10,7 @@ interface AppState {
   trades: any[];
   stocks: any[];
   preOpenStocks: any[];
+  preOpenDate: string;
   scannerResults: any[];
   isTradingActive: boolean;
   isSyncing: boolean;
@@ -58,6 +59,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [trades, setTrades] = useState<any[]>([]);
   const [stocks, setStocks] = useState<any[]>([]);
   const [preOpenStocks, setPreOpenStocks] = useState<any[]>([]);
+  const [preOpenDate, setPreOpenDate] = useState<string>('');
   const [isTradingActive, setIsTradingActive] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [isWsConnected, setIsWsConnected] = useState<boolean>(false);
@@ -109,6 +111,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (stocksRes.preOpenStocks) {
           setPreOpenStocks(stocksRes.preOpenStocks);
         }
+        if (stocksRes.preOpenDate) {
+          setPreOpenDate(stocksRes.preOpenDate);
+        }
         setIsTradingActive(stocksRes.isTradingActive);
         setIsWsConnected(stocksRes.isWsConnected || false);
       }
@@ -140,10 +145,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (stocksRes.preOpenStocks) {
             setPreOpenStocks(stocksRes.preOpenStocks);
           }
+          if (stocksRes.preOpenDate) {
+            setPreOpenDate(stocksRes.preOpenDate);
+          }
           setIsTradingActive(stocksRes.isTradingActive);
           setIsWsConnected(stocksRes.isWsConnected || false);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Ticking poll error:', err);
       } finally {
         setIsSyncing(false);
@@ -333,6 +341,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         trades,
         stocks,
         preOpenStocks,
+        preOpenDate,
         scannerResults,
         isTradingActive,
         isSyncing,

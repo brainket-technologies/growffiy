@@ -21,7 +21,7 @@ import {
 import { Loader } from '../../../views/components/Loader';
 
 export default function ClientPreOpenScannerPage() {
-  const { preOpenStocks: stocks, loading, isSyncing, isWsConnected } = useAppViewModel();
+  const { preOpenStocks: stocks, loading, isSyncing, isWsConnected, preOpenDate } = useAppViewModel();
   if (loading) {
     return <Loader title="Loading Pre-Open Market" text="Fetching indicative quotes and syncing pre-market feeds..." fullscreen={false} />;
   }
@@ -131,8 +131,10 @@ export default function ClientPreOpenScannerPage() {
       {/* Page Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
-            Pre-Open Market Scanner <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)' }}>(9:00 AM - 9:15 AM)</span>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            Pre-Open Market Scanner 
+            <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)' }}>(9:00 AM - 9:15 AM)</span>
+            {preOpenDate && <span style={{ fontSize: '14px', fontWeight: 600, color: '#2563eb', backgroundColor: '#eff6ff', padding: '3px 8px', borderRadius: '6px', border: '1px solid #bfdbfe', marginLeft: '6px' }}>{preOpenDate}</span>}
           </h1>
           <p style={{ color: 'var(--text-secondary)' }}>Indicative opening session dashboard, sentiment, and gap analysis.</p>
         </div>

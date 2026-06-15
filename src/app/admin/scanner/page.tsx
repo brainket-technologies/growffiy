@@ -10,7 +10,7 @@ import { Zap, CheckCircle2, FileSpreadsheet, Loader2, TrendingUp, TrendingDown, 
 type CategoryType = 'NIFTY 50' | 'Nifty Bank' | 'Emerge' | 'Securities in F&O' | 'Others' | 'All';
 
 export default function PreOpenScannerPage() {
-  const { scannerResults, isTradingActive, toggleTrading, loading, isSyncing, isWsConnected } = useAppViewModel();
+  const { scannerResults, isTradingActive, toggleTrading, loading, isSyncing, isWsConnected, preOpenDate } = useAppViewModel();
 
   if (loading) {
     return <Loader title="Loading Pre-Open Scanner" text="Fetching indicative quotes and syncing pre-market feeds..." fullscreen={false} />;
@@ -185,8 +185,8 @@ export default function PreOpenScannerPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
-            Pre-Open Scanner
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            Pre-Open Scanner {preOpenDate && <span style={{ fontSize: '15px', fontWeight: 600, color: '#2563eb', backgroundColor: '#eff6ff', padding: '4px 10px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>{preOpenDate}</span>}
           </h1>
           <p style={{ color: 'var(--text-secondary)' }}>Automated scanner identifying top losers for breakout entry criteria.</p>
         </div>

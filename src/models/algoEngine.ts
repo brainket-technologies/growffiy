@@ -593,6 +593,27 @@ class AlgoEngineService {
     return getInitialStocks();
   }
 
+  public getPreOpenDate(): string {
+    try {
+      const filePath = path.join(process.cwd(), 'src/models/actual-quotes.json');
+      if (fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        return stats.mtime.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
+      }
+    } catch (e) {
+      console.error('Failed to get actual-quotes file date:', e);
+    }
+    return new Date().toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  }
+
   public toggleTrading(status: boolean) {
     this.isTradingActive = status;
   }
