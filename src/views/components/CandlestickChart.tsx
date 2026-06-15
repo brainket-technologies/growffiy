@@ -99,6 +99,8 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       }
 
       const isDaily = timeframe === '1d';
+      // If startTimestamp + (i * durationMinutes * 60) calculates to a future time, Lightweight charts will still render it,
+      // but let's ensure it's strictly ordered.
       const pointTime = isDaily
         ? new Date(now.getTime() - (count - 1 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         : Math.floor(startTimestamp + (i * durationMinutes * 60));
@@ -107,15 +109,15 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
 
       mainData.push({
         time: pointTime as any,
-        open: parseFloat(cOpen.toFixed(2)),
-        high: parseFloat(cHigh.toFixed(2)),
-        low: parseFloat(cLow.toFixed(2)),
-        close: parseFloat(cClose.toFixed(2)),
+        open: Math.max(0.01, parseFloat(cOpen.toFixed(2))),
+        high: Math.max(0.01, parseFloat(cHigh.toFixed(2))),
+        low: Math.max(0.01, parseFloat(cLow.toFixed(2))),
+        close: Math.max(0.01, parseFloat(cClose.toFixed(2))),
       });
 
       volData.push({
         time: pointTime as any,
-        value: Math.round((volume / count) * (0.4 + random() * 1.2)),
+        value: Math.max(1, Math.round((volume / count) * (0.4 + random() * 1.2))),
         color: isUp ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
       });
     }
@@ -126,6 +128,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
   // Use dynamically loaded lightweight-charts to prevent Next.js SSR document undefined crashes
   useEffect(() => {
     let active = true;
+    let resizeObserver: ResizeObserver | null = null;
 
     const initChart = async () => {
       if (!chartContainerRef.current) return;
@@ -200,6 +203,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
             type: 'volume',
           },
           priceScaleId: 'volume', 
+          // Set non-overlapping scale ID explicitly
         });
 
         // Set volume scale positions
@@ -226,17 +230,25 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
         // Fit content inside view
         chart.timeScale().fitContent();
 
-        // Handle Resize safely
+        // Handle Resize safely with ResizeObserver
         const handleResize = () => {
-          if (chartContainerRef.current && chartInstanceRef.current) {
-            const w = chartContainerRef.current.getBoundingClientRect().width || 400;
-            chartInstanceRef.current.resize(w, 300);
-            chartInstanceRef.current.timeScale().fitContent();
+          if (chartContainerRef.current && chart.timeScale) {
+            const rect = chartContainerRef.current.getBoundingClientRect();
+            const w = rect.width || 400;
+            const h = rect.height || 300;
+            chart.resize(w, h);
+            chart.timeScale().fitContent();
           }
         };
-        window.addEventListener('resize', handleResize);
 
-        // Trigger safe resize after short render cycle
+        if (typeof window !== 'undefined' && 'ResizeObserver' in window && chartContainerRef.current) {
+          resizeObserver = new ResizeObserver(() => {
+            handleResize();
+          });
+          resizeObserver.observe(chartContainerRef.current);
+        }
+
+        window.addEventListener('resize', handleResize);
         setTimeout(handleResize, 100);
 
       } catch (err) {
@@ -248,6 +260,9 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
 
     return () => {
       active = false;
+      if (resizeObserver && chartContainerRef.current) {
+        resizeObserver.disconnect();
+      }
       if (chartInstanceRef.current) {
         try {
           chartInstanceRef.current.remove();
