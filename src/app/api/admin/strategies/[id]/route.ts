@@ -99,18 +99,36 @@ export async function DELETE(
     const id = params.id;
 
     try {
+      // 1. Unassign any clients pointing to this strategy
+      await prisma.client.updateMany({
+        where: { strategyId: id },
+        data: { strategyId: null }
+      });
+
+      // 2. Delete any trades associated with this strategy
+      await prisma.trade.deleteMany({
+        where: { strategyId: id }
+      });
+
+      // 3. Delete strategy conditions, assignments, logs, backtests
+      await prisma.strategyCondition.deleteMany({ where: { strategyId: id } });
+      await prisma.strategyAssignment.deleteMany({ where: { strategyId: id } });
+      await prisma.strategyLog.deleteMany({ where: { strategyId: id } });
+      await prisma.strategyBacktest.deleteMany({ where: { strategyId: id } });
+
+      // 4. Finally delete the strategy itself
       await prisma.strategy.delete({
         where: { id }
       });
       return NextResponse.json({ success: true });
-    } catch (dbErr) {
+    } catch (dbErr: any) {
       console.error('DB Delete failed, deleting in-memory:', dbErr);
       const index = inMemoryStrategies.findIndex(s => s.id === id);
       if (index !== -1) {
         inMemoryStrategies.splice(index, 1);
         return NextResponse.json({ success: true, isDemoMode: true });
       }
-      return NextResponse.json({ success: false, error: 'Strategy not found' }, { status: 404 });
+      return NextResponse.json({ success: false, error: dbErr.message || 'Strategy not found' }, { status: 404 });
     }
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
