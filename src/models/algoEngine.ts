@@ -32,6 +32,7 @@ class AlgoEngineService {
   private isTradingActive: boolean = false;
   private ws: WebSocket | null = null;
   private lastUpdate: { [symbol: string]: number } = {};
+  private mockTickerInterval: NodeJS.Timeout | null = null;
 
   // Kite credentials for live API fetches
   private activeApiKey: string | null = null;
@@ -48,6 +49,7 @@ class AlgoEngineService {
 
   constructor() {
     this.initializeKiteLiveFeed();
+    this.startMockTicker();
   }
 
   // Initialize Kite Live Socket feed from Environment variables or Database
@@ -77,6 +79,45 @@ class AlgoEngineService {
       }
     } catch (err) {
       console.error('Failed to configure Kite Connect socket feed:', err);
+    }
+  }
+
+  private startMockTicker() {
+    if (this.mockTickerInterval) return;
+    console.log('Starting background mock ticker for live market watch simulation...');
+    this.mockTickerInterval = setInterval(() => {
+      // If websocket is connected and active, do not simulate
+      if (this.isWsConnected()) {
+        return;
+      }
+
+      if (this.stocksState.length === 0 && this.preOpenCache.length > 0) {
+        this.stocksState = [...this.preOpenCache];
+      }
+
+      this.stocksState = this.stocksState.map(stock => {
+        const changePercent = (Math.random() - 0.5) * 0.15; // random +/- 0.075% change
+        const changeAmount = stock.ltp * (changePercent / 100);
+        const newLtp = parseFloat((stock.ltp + changeAmount).toFixed(2));
+        const change = parseFloat((newLtp - stock.prevClose).toFixed(2));
+        const newChangePercent = parseFloat(((change / stock.prevClose) * 100).toFixed(2));
+
+        return {
+          ...stock,
+          ltp: newLtp,
+          change,
+          changePercent: newChangePercent,
+          high: newLtp > stock.high ? newLtp : stock.high,
+          low: newLtp < stock.low ? newLtp : stock.low,
+        };
+      });
+    }, 2000);
+  }
+
+  private stopMockTicker() {
+    if (this.mockTickerInterval) {
+      clearInterval(this.mockTickerInterval);
+      this.mockTickerInterval = null;
     }
   }
 
@@ -132,6 +173,7 @@ class AlgoEngineService {
 
     this.ws.on('open', async () => {
       console.log('Kite WebSocket connection established.');
+      this.stopMockTicker();
       
       await this.ensureInstrumentMapping();
       
@@ -184,6 +226,7 @@ class AlgoEngineService {
 
     this.ws.on('close', () => {
       console.log('Kite Socket disconnected. Reconnecting in 5 seconds...');
+      this.startMockTicker();
       setTimeout(() => {
         this.connectKiteWebSocket(apiKey, accessToken);
       }, 5000);
