@@ -33,7 +33,7 @@ model User {
 
 model Client {
   id                 String    @id @default(uuid())
-  userId             String    @unique @map("user_id")
+  userId             String    @map("user_id") @unique
   user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   zerodhaClientId    String?   @map("zerodha_client_id")
   zerodhaApiKey      String?   @map("zerodha_api_key")
@@ -49,7 +49,8 @@ model Client {
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
 
-  trades Trade[]
+  trades      Trade[]
+  assignments StrategyAssignment[]
 
   @@map("clients")
 }
@@ -63,8 +64,12 @@ model Strategy {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  clients Client[]
-  trades  Trade[]
+  clients     Client[]
+  trades      Trade[]
+  conditions  StrategyCondition[]
+  assignments StrategyAssignment[]
+  logs        StrategyLog[]
+  backtests   StrategyBacktest[]
 
   @@map("strategies")
 }
@@ -176,4 +181,68 @@ model SupportTicket {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("support_tickets")
+}
+
+model StrategyCondition {
+  id         String   @id @default(uuid())
+  strategyId String   @map("strategy_id")
+  strategy   Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  logical    String   @default("AND") // AND, OR
+  indicator  String
+  operator   String
+  value      String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("strategy_conditions")
+}
+
+model StrategyAssignment {
+  id             String   @id @default(uuid())
+  clientId       String   @map("client_id")
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  strategyId     String   @map("strategy_id")
+  strategy       Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  status         String   @default("active") // active, inactive
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("strategy_assignments")
+}
+
+model StrategyTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  configJson  String   @map("config_json")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("strategy_templates")
+}
+
+model StrategyLog {
+  id         String   @id @default(uuid())
+  strategyId String   @map("strategy_id")
+  strategy   Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  message    String
+  logType    String   @default("info") // info, warning, error, trade
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("strategy_logs")
+}
+
+model StrategyBacktest {
+  id          String   @id @default(uuid())
+  strategyId  String   @map("strategy_id")
+  strategy    Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  pnl         Decimal  @db.Decimal(12, 2)
+  winRate     Decimal  @db.Decimal(5, 2) @map("win_rate")
+  totalTrades Int      @map("total_trades")
+  configJson  String?  @map("config_json")
+  status      String   @default("completed") // running, completed, failed
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("strategy_backtests")
 }
