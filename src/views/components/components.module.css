@@ -154,7 +154,7 @@
   display: flex;
   flex-direction: column;
   color: #ffffff;
-  z-index: 100;
+  z-index: 1000;
   box-shadow: 4px 0 24px rgba(15, 23, 42, 0.15);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -259,7 +259,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 32px;
-  z-index: 90;
+  z-index: 990;
 }
 
 .headerTitle {

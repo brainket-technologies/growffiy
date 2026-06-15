@@ -71,21 +71,18 @@ export default function MarketWatchPage() {
     return matchesCat && matchesSymbol;
   });
 
-  const [orderedSymbols, setOrderedSymbols] = useState<string[]>([]);
+  const [sortedStocks, setSortedStocks] = useState<any[]>([]);
 
-  // Recalculate stable ordered list of symbols only when filters or sorting configurations change,
-  // or when stocks are loaded for the first time.
+  // 1. Recalculate order only when filters, sorting configuration, or stock list length changes
   React.useEffect(() => {
     if (stocks.length === 0) return;
 
-    // Filter stocks
     const filtered = stocks.filter(stock => {
       const matchesCat = filterByCategory(stock, category);
       const matchesSymbol = stock.symbol.toLowerCase().includes(symbolQuery.trim().toLowerCase());
       return matchesCat && matchesSymbol;
     });
 
-    // Sort stocks
     const sorted = [...filtered].sort((a, b) => {
       let valA: any = 0;
       let valB: any = 0;
@@ -109,34 +106,20 @@ export default function MarketWatchPage() {
       return 0;
     });
 
-    setOrderedSymbols(sorted.map(s => s.symbol));
-  }, [category, symbolQuery, activeFilter, sortField, sortAsc, stocks.length === 0]);
+    setSortedStocks(sorted);
+  }, [category, symbolQuery, activeFilter, sortField, sortAsc, stocks.length]);
 
-  // Map ordered symbols back to the latest live stock data in stocks to keep row order stable
-  const sortedStocks = orderedSymbols.length > 0 
-    ? (orderedSymbols.map(sym => stocks.find(s => s.symbol === sym)).filter(Boolean) as any[])
-    : [...filteredStocks].sort((a, b) => {
-        let valA: any = 0;
-        let valB: any = 0;
+  // 2. Soft update: Update live stock values in-place without changing row order
+  React.useEffect(() => {
+    if (stocks.length === 0 || sortedStocks.length === 0) return;
 
-        if (sortField === 'symbol') {
-          valA = a.symbol;
-          valB = b.symbol;
-          return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
-        }
-
-        if (sortField === 'chng') {
-          valA = a.iep - a.prevClose;
-          valB = b.iep - b.prevClose;
-        } else {
-          valA = a[sortField] ?? 0;
-          valB = b[sortField] ?? 0;
-        }
-
-        if (valA < valB) return sortAsc ? -1 : 1;
-        if (valA > valB) return sortAsc ? 1 : -1;
-        return 0;
-      });
+    setSortedStocks(prev => 
+      prev.map(localStock => {
+        const match = stocks.find(s => s.symbol === localStock.symbol);
+        return match ? { ...localStock, ...match } : localStock;
+      })
+    );
+  }, [stocks]);
 
   // Derive Advance / Decline counts dynamically from watch list
   const advances = stocks.filter(s => s.changePercent > 0).length;
@@ -291,7 +274,7 @@ export default function MarketWatchPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '2.2fr 1fr', gap: '24px', alignItems: 'start' }}>
         {/* Main List & Controls */}
-        <Card style={{ padding: '24px' }}>
+        <Card style={{ padding: '24px', minWidth: 0 }}>
           {/* Filters Control Bar */}
           <div style={{ 
             display: 'flex', 
@@ -571,7 +554,7 @@ export default function MarketWatchPage() {
 
         {/* Selected Stock Live Candlestick Chart Panel */}
         {selectedStock ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
             <CandlestickChart
               symbol={selectedStock.symbol}
               name={selectedStock.name}
