@@ -288,18 +288,21 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
         alignItems: 'center',
         justifyContent: 'center'
       }}>
-        {hoveredCandle ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', width: '100%', justifyContent: 'space-between' }}>
-            <span>Time: <strong style={{ color: '#0f172a' }}>{hoveredCandle.time}</strong></span>
-            <span>O: <strong style={{ color: '#0f172a' }}>{hoveredCandle.open}</strong></span>
-            <span>H: <strong style={{ color: '#0f172a' }}>{hoveredCandle.high}</strong></span>
-            <span>L: <strong style={{ color: '#0f172a' }}>{hoveredCandle.low}</strong></span>
-            <span>C: <strong style={{ color: hoveredCandle.close >= hoveredCandle.open ? upColor : downColor }}>{hoveredCandle.close}</strong></span>
-            <span>V: <strong style={{ color: '#0f172a' }}>{hoveredCandle.volume.toLocaleString()}</strong></span>
-          </div>
-        ) : (
-          <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Hover over a candle to inspect OHLC values</span>
-        )}
+        {(() => {
+          const displayCandle = hoveredCandle || (candles.length > 0 ? candles[candles.length - 1] : null);
+          if (!displayCandle) return <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>No candle data available</span>;
+          const displayIsUp = displayCandle.close >= displayCandle.open;
+          return (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', width: '100%', justifyContent: 'space-between' }}>
+              <span>Time: <strong style={{ color: '#0f172a' }}>{displayCandle.time}</strong></span>
+              <span>O: <strong style={{ color: '#0f172a' }}>{displayCandle.open.toFixed(2)}</strong></span>
+              <span>H: <strong style={{ color: '#0f172a' }}>{displayCandle.high.toFixed(2)}</strong></span>
+              <span>L: <strong style={{ color: '#0f172a' }}>{displayCandle.low.toFixed(2)}</strong></span>
+              <span>C: <strong style={{ color: displayIsUp ? upColor : downColor }}>{displayCandle.close.toFixed(2)}</strong></span>
+              <span>V: <strong style={{ color: '#0f172a' }}>{displayCandle.volume.toLocaleString()}</strong></span>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Chart SVG */}
