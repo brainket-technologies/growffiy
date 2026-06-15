@@ -38,8 +38,9 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
   // Deterministically generate 15 realistic historical candles based on stock attributes and timeframe
   const generateCandles = (): Candle[] => {
     let seed = 0;
-    for (let i = 0; i < symbol.length; i++) {
-      seed += symbol.charCodeAt(i);
+    const compoundKey = symbol + timeframe;
+    for (let i = 0; i < compoundKey.length; i++) {
+      seed += compoundKey.charCodeAt(i);
     }
     const random = () => {
       const x = Math.sin(seed++) * 10000;
