@@ -5,7 +5,7 @@ import { useAppViewModel } from '../../../viewmodels/AppContext';
 import { Card } from '../../../views/components/Card';
 import { Button } from '../../../views/components/Button';
 import { Loader } from '../../../views/components/Loader';
-import { Zap, CheckCircle2, FileSpreadsheet, Loader2, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Zap, CheckCircle2, FileSpreadsheet, Loader2, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ShieldAlert } from 'lucide-react';
 
 type CategoryType = 'NIFTY 50' | 'Nifty Bank' | 'Emerge' | 'Securities in F&O' | 'Others' | 'All';
 
@@ -206,6 +206,13 @@ export default function PreOpenScannerPage() {
           </Button>
         </div>
       </div>
+
+      {!isWsConnected && (
+        <div style={{ padding: '12px 16px', borderRadius: '8px', backgroundColor: '#fff7ed', border: '1px solid #ffedd5', color: '#c2410c', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 500 }}>
+          <ShieldAlert size={16} />
+          <span>Kite session has expired. Showing standby pre-open data. Please connect your Zerodha account from the Admin Settings page to sync live pre-open data today.</span>
+        </div>
+      )}
 
       {scanMessage && (
         <div style={{ padding: '16px', borderRadius: '8px', backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success)', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>

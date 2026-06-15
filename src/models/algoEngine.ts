@@ -2,7 +2,6 @@ import { prisma } from '../lib/db';
 import WebSocket from 'ws';
 import fs from 'fs';
 import path from 'path';
-
 export interface StockQuote {
   symbol: string;
   name: string;
@@ -648,7 +647,7 @@ class AlgoEngineService {
             nm52wL: parseFloat((prevClose * 0.75).toFixed(2))
           };
         } else {
-          // Fallback to static if not found in live response
+          // Fallback to mock defaults if not found in live response
           const basePrice = 100.0;
           const baseVolume = Math.round(ffShares * 15000);
           const ffmCap = basePrice * ffShares;
