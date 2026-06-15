@@ -472,26 +472,6 @@ export default function StrategiesPage() {
             </Card>
           </div>
 
-          {/* Strategy Templates Slider/Grid */}
-          <div>
-            <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '14px', fontFamily: 'var(--font-title)' }}>Strategy Templates</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-              {templates.map(tmpl => (
-                <Card key={tmpl.id} hoverable onClick={() => handleLoadTemplate(tmpl)} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '130px', borderLeft: `4px solid ${colors.PRIMARY}` }}>
-                  <div>
-                    <h4 style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>{tmpl.name}</h4>
-                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px', lineBreak: 'anywhere' }}>{tmpl.description}</p>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
-                    <span style={{ fontSize: '11px', color: colors.PRIMARY, fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      Load Configuration <Plus size={12} />
-                    </span>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-
           {/* Main List Table */}
           <Card>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -631,6 +611,22 @@ export default function StrategiesPage() {
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: 'var(--color-danger)', fontSize: '13px' }}>
               <AlertCircle size={16} />
               <span>{formErrors}</span>
+            </div>
+          )}
+
+          {viewMode === 'create' && templates.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(255,255,255,0.01)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                <TrendingUp size={16} color={colors.PRIMARY} /> Start with a Template Config (Optional)
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                {templates.map(tmpl => (
+                  <div key={tmpl.id} onClick={() => handleLoadTemplate(tmpl)} style={{ cursor: 'pointer', padding: '12px', borderRadius: '6px', border: `1px solid var(--border-color)`, background: 'transparent', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = colors.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}>
+                    <h5 style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>{tmpl.name}</h5>
+                    <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>{tmpl.description}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
