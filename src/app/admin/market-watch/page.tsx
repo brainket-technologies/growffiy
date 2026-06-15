@@ -70,9 +70,25 @@ export default function MarketWatchPage() {
     return matchesCat && matchesSymbol;
   });
 
-  const [sortedStocks, setSortedStocks] = useState<any[]>([]);
+  // Recalculate order only when filters, sorting configuration, or stock list length changes
+  const [sortedStocks, setSortedStocks] = useState<any[]>(() => {
+    const filtered = stocks.filter(stock => {
+      const matchesCat = filterByCategory(stock, category);
+      const matchesSymbol = stock.symbol.toLowerCase().includes(symbolQuery.trim().toLowerCase());
+      return matchesCat && matchesSymbol;
+    });
+    return [...filtered].sort((a, b) => {
+      let valA = sortField === 'symbol' ? a.symbol : (a[sortField] ?? 0);
+      let valB = sortField === 'symbol' ? b.symbol : (b[sortField] ?? 0);
+      if (sortField === 'symbol') {
+        return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      if (valA < valB) return sortAsc ? -1 : 1;
+      if (valA > valB) return sortAsc ? 1 : -1;
+      return 0;
+    });
+  });
 
-  // 1. Recalculate order only when filters, sorting configuration, or stock list length changes
   React.useEffect(() => {
     if (stocks.length === 0) return;
 

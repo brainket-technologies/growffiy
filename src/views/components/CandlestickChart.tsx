@@ -98,11 +98,15 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
         currentClose = cClose;
       }
 
-      const pointTime = startTimestamp + (i * durationMinutes * 60);
+      const isDaily = timeframe === '1d';
+      const pointTime = isDaily
+        ? new Date(now.getTime() - (count - 1 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        : startTimestamp + (i * durationMinutes * 60);
+
       const isUp = cClose >= cOpen;
 
       mainData.push({
-        time: pointTime,
+        time: pointTime as any,
         open: parseFloat(cOpen.toFixed(2)),
         high: parseFloat(cHigh.toFixed(2)),
         low: parseFloat(cLow.toFixed(2)),
@@ -110,7 +114,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       });
 
       volData.push({
-        time: pointTime,
+        time: pointTime as any,
         value: Math.round((volume / count) * (0.4 + random() * 1.2)),
         color: isUp ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
       });
@@ -158,6 +162,11 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
           rightPriceScale: {
             borderColor: '#cbd5e1',
             autoScale: true,
+            visible: true,
+            scaleMargins: {
+              top: 0.1,
+              bottom: 0.2,
+            },
           },
           crosshair: {
             mode: 1, // Magnet mode
@@ -207,6 +216,10 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
 
         // Load initial data
         const { main, volumeData } = generateCandles();
+        
+        // Debugging verification
+        console.log('Candle data count loaded:', main.length);
+        
         candlestickSeries.setData(main);
         volumeSeries.setData(volumeData);
 
