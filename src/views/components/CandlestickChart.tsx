@@ -146,7 +146,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
         
         const chart = createChart(chartContainerRef.current, {
           layout: {
-            background: { color: '#ffffff' },
+            background: { type: 'solid' as any, color: '#ffffff' },
             textColor: '#64748b',
             fontSize: 10,
             fontFamily: 'Inter, system-ui, sans-serif',
@@ -235,8 +235,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
           if (chartContainerRef.current && chart.timeScale) {
             const rect = chartContainerRef.current.getBoundingClientRect();
             const w = rect.width || 400;
-            const h = rect.height || 300;
-            chart.resize(w, h);
+            chart.resize(w, 300);
             chart.timeScale().fitContent();
           }
         };
