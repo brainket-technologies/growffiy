@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createChart, IChartApi, ISeriesApi } from 'lightweight-charts';
 
 interface CandlestickChartProps {
   symbol: string;
@@ -12,13 +13,12 @@ interface CandlestickChartProps {
   onClose?: () => void;
 }
 
-interface Candle {
+interface CandleData {
+  time: number; // Unix timestamp in seconds
   open: number;
   high: number;
   low: number;
   close: number;
-  volume: number;
-  time: string;
 }
 
 export const CandlestickChart: React.FC<CandlestickChartProps> = ({
@@ -33,10 +33,14 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
   onClose,
 }) => {
   const [timeframe, setTimeframe] = useState<string>('5m');
-  const [hoveredCandle, setHoveredCandle] = useState<Candle | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  
+  const chartRef = useRef<IChartApi | null>(null);
+  const candlestickSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
 
-  // Deterministically generate 15 realistic historical candles based on stock attributes and timeframe
-  const generateCandles = (): Candle[] => {
+  // Helper to generate mock historical candles dynamically
+  const generateCandles = (): { main: CandleData[]; volumeData: { time: number; value: number; color: string }[] } => {
     let seed = 0;
     const compoundKey = symbol + timeframe;
     for (let i = 0; i < compoundKey.length; i++) {
@@ -47,11 +51,11 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       return x - Math.floor(x);
     };
 
-    const count = 15;
-    const candles: Candle[] = [];
+    const count = 50; // Generate 50 points for TradingView smooth charting
+    const mainData: CandleData[] = [];
+    const volData: { time: number; value: number; color: string }[] = [];
     let currentClose = prevClose;
 
-    // Start times ending now based on selected timeframe
     const now = new Date();
     let durationMinutes = 5;
     if (timeframe === '1m') durationMinutes = 1;
@@ -59,6 +63,8 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
     if (timeframe === '30m') durationMinutes = 30;
     if (timeframe === '1h') durationMinutes = 60;
     if (timeframe === '1d') durationMinutes = 1440;
+
+    const startTimestamp = Math.floor(now.getTime() / 1000) - (count * durationMinutes * 60);
 
     for (let i = 0; i < count; i++) {
       const isLast = i === count - 1;
@@ -81,7 +87,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
         cHigh = Math.max(cOpen, cClose) + random() * volatility * 0.3;
         cLow = Math.min(cOpen, cClose) - random() * volatility * 0.3;
 
-        // Clip bounds to daily ranges
+        // Clip bounds
         const absoluteHigh = Math.max(high, prevClose, open, ltp);
         const absoluteLow = Math.min(low, prevClose, open, ltp);
 
@@ -93,77 +99,136 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
         currentClose = cClose;
       }
 
-      const candleTime = new Date(now.getTime() - (count - 1 - i) * durationMinutes * 60 * 1000);
-      const timeStr = timeframe === '1d' 
-        ? candleTime.toLocaleDateString([], { month: 'short', day: 'numeric' })
-        : candleTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const pointTime = startTimestamp + (i * durationMinutes * 60);
+      const isUp = cClose >= cOpen;
 
-      candles.push({
+      mainData.push({
+        time: pointTime,
         open: parseFloat(cOpen.toFixed(2)),
         high: parseFloat(cHigh.toFixed(2)),
         low: parseFloat(cLow.toFixed(2)),
         close: parseFloat(cClose.toFixed(2)),
-        volume: Math.round(volume / count * (0.6 + random() * 0.8)),
-        time: timeStr,
+      });
+
+      volData.push({
+        time: pointTime,
+        value: Math.round((volume / count) * (0.4 + random() * 1.2)),
+        color: isUp ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
       });
     }
 
-    return candles;
+    return { main: mainData, volumeData: volData };
   };
 
-  const candles = generateCandles();
-  const allPrices = candles.flatMap((c) => [c.high, c.low, c.open, c.close]);
-  const minPrice = Math.min(...allPrices);
-  const maxPrice = Math.max(...allPrices);
-  const priceRange = maxPrice - minPrice || 1;
-  const pricePadding = priceRange * 0.08;
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
 
-  const chartMin = minPrice - pricePadding;
-  const chartMax = maxPrice + pricePadding;
-  const chartRange = chartMax - chartMin;
+    // Create TradingView Chart
+    const chart = createChart(chartContainerRef.current, {
+      layout: {
+        background: { color: '#ffffff' },
+        textColor: '#64748b',
+        fontSize: 10,
+        fontFamily: 'Inter, system-ui, sans-serif',
+      },
+      grid: {
+        vertLines: { color: '#f1f5f9' },
+        horzLines: { color: '#f1f5f9' },
+      },
+      timeScale: {
+        borderColor: '#cbd5e1',
+        timeVisible: timeframe !== '1d',
+        secondsVisible: false,
+      },
+      rightPriceScale: {
+        borderColor: '#cbd5e1',
+      },
+      crosshair: {
+        mode: 1, // Magnet mode
+        vertLine: {
+          color: '#94a3b8',
+          width: 1,
+          style: 3, // Dashed line
+        },
+        horzLine: {
+          color: '#94a3b8',
+          width: 1,
+          style: 3, // Dashed line
+        },
+      },
+      width: chartContainerRef.current.clientWidth,
+      height: 300,
+    });
 
-  const maxVolume = Math.max(...candles.map((c) => c.volume)) || 1;
+    // Add Candlestick Series
+    const candlestickSeries = chart.addCandlestickSeries({
+      upColor: '#10b981',
+      downColor: '#ef4444',
+      borderVisible: false,
+      wickUpColor: '#10b981',
+      wickDownColor: '#ef4444',
+    });
 
-  // Render sizes
-  const width = 600;
-  const height = 300;
-  const paddingLeft = 45;
-  const paddingRight = 15;
-  const paddingTop = 25;
-  const paddingBottom = 40;
+    // Add Volume Series (as overlay on bottom)
+    const volumeSeries = chart.addHistogramSeries({
+      priceFormat: {
+        type: 'volume',
+      },
+      priceScaleId: '', // Overlay style
+    });
 
-  const chartWidth = width - paddingLeft - paddingRight;
-  const chartHeight = height - paddingTop - paddingBottom;
+    // Set prices scale positions
+    chart.priceScale('').applyOptions({
+      scaleMargins: {
+        top: 0.8, // Vol in bottom 20%
+        bottom: 0,
+      },
+    });
 
-  const getX = (idx: number) => {
-    return paddingLeft + (idx / (candles.length - 1)) * chartWidth;
-  };
+    chartRef.current = chart;
+    candlestickSeriesRef.current = candlestickSeries;
+    volumeSeriesRef.current = volumeSeries;
 
-  const getY = (val: number) => {
-    return paddingTop + chartHeight - ((val - chartMin) / chartRange) * chartHeight;
-  };
+    // Load initial data
+    const { main, volumeData } = generateCandles();
+    candlestickSeries.setData(main);
+    volumeSeries.setData(volumeData);
 
-  const getVolumeY = (vol: number) => {
-    // Volume bars in lower 20% of chart
-    const volHeight = (vol / maxVolume) * (chartHeight * 0.22);
-    return paddingTop + chartHeight - volHeight;
-  };
+    // Fit content inside view
+    chart.timeScale().fitContent();
 
-  const priceGridLines = [0, 0.25, 0.5, 0.75, 1];
+    // Handle Resize
+    const handleResize = () => {
+      if (chartContainerRef.current) {
+        chart.resize(chartContainerRef.current.clientWidth, 300);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      chart.remove();
+    };
+  }, [timeframe, symbol]);
+
+  // Update dynamic last tick data in real-time
+  useEffect(() => {
+    if (!candlestickSeriesRef.current || !volumeSeriesRef.current) return;
+    const { main, volumeData } = generateCandles();
+    candlestickSeriesRef.current.setData(main);
+    volumeSeriesRef.current.setData(volumeData);
+  }, [open, high, low, ltp, volume]);
+
   const changePercent = ltp - prevClose;
   const changePercentVal = prevClose ? (changePercent / prevClose) * 100 : 0;
   const isUp = ltp >= prevClose;
-
-  // Define success/danger colors mapping correctly to theme tokens
-  const upColor = '#10b981';
-  const downColor = '#ef4444';
 
   return (
     <div style={{ 
       backgroundColor: '#ffffff', 
       borderRadius: '16px', 
       border: '1px solid var(--border)', 
-      padding: '24px', 
+      padding: '20px', 
       fontFamily: 'var(--font-body), system-ui, sans-serif',
       boxShadow: 'var(--shadow-md)',
       position: 'relative'
@@ -273,194 +338,8 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
         </div>
       </div>
 
-      {/* Floating Info Overlay (OHLC details on hover) */}
-      <div style={{ 
-        display: 'flex', 
-        flexWrap: 'wrap',
-        gap: '8px 12px', 
-        backgroundColor: '#f8fafc', 
-        border: '1px solid #f1f5f9',
-        padding: '8px 12px', 
-        borderRadius: '8px', 
-        marginBottom: '16px', 
-        fontSize: '11px', 
-        minHeight: '34px', 
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        {(() => {
-          const displayCandle = hoveredCandle || (candles.length > 0 ? candles[candles.length - 1] : null);
-          if (!displayCandle) return <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>No candle data available</span>;
-          const displayIsUp = displayCandle.close >= displayCandle.open;
-          return (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', width: '100%', justifyContent: 'space-between' }}>
-              <span>Time: <strong style={{ color: '#0f172a' }}>{displayCandle.time}</strong></span>
-              <span>O: <strong style={{ color: '#0f172a' }}>{displayCandle.open.toFixed(2)}</strong></span>
-              <span>H: <strong style={{ color: '#0f172a' }}>{displayCandle.high.toFixed(2)}</strong></span>
-              <span>L: <strong style={{ color: '#0f172a' }}>{displayCandle.low.toFixed(2)}</strong></span>
-              <span>C: <strong style={{ color: displayIsUp ? upColor : downColor }}>{displayCandle.close.toFixed(2)}</strong></span>
-              <span>V: <strong style={{ color: '#0f172a' }}>{displayCandle.volume.toLocaleString()}</strong></span>
-            </div>
-          );
-        })()}
-      </div>
-
-      {/* Chart SVG */}
-      <div style={{ position: 'relative', width: '100%', height: `${height}px` }}>
-        <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
-          {/* Horizontal Price Grid Lines */}
-          {priceGridLines.map((ratio, i) => {
-            const priceVal = chartMin + ratio * chartRange;
-            const y = getY(priceVal);
-            return (
-              <g key={i}>
-                <line
-                  x1={paddingLeft}
-                  y1={y}
-                  x2={width - paddingRight}
-                  y2={y}
-                  stroke="#f1f5f9"
-                  strokeWidth="1"
-                  strokeDasharray="4 4"
-                />
-                <text
-                  x={paddingLeft - 8}
-                  y={y + 3.5}
-                  fontSize="9.5"
-                  fontWeight="600"
-                  fill="#94a3b8"
-                  textAnchor="end"
-                >
-                  {priceVal.toFixed(1)}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Render Volume Bars */}
-          {candles.map((candle, idx) => {
-            const x = getX(idx);
-            const y = getVolumeY(candle.volume);
-            const w = (chartWidth / candles.length) * 0.5;
-            const candleIsUp = candle.close >= candle.open;
-
-            return (
-              <rect
-                key={`vol-${idx}`}
-                x={x - w / 2}
-                y={y}
-                width={w}
-                height={paddingTop + chartHeight - y}
-                fill={candleIsUp ? upColor : downColor}
-                opacity="0.1"
-              />
-            );
-          })}
-
-          {/* Render Candlesticks */}
-          {candles.map((candle, idx) => {
-            const x = getX(idx);
-            const yHigh = getY(candle.high);
-            const yLow = getY(candle.low);
-            const yOpen = getY(candle.open);
-            const yClose = getY(candle.close);
-
-            const candleIsUp = candle.close >= candle.open;
-            const color = candleIsUp ? upColor : downColor;
-            const isHovered = hoveredCandle === candle;
-            const w = (chartWidth / candles.length) * 0.65;
-
-            const yTop = Math.min(yOpen, yClose);
-            const yBottom = Math.max(yOpen, yClose);
-            const bodyHeight = Math.max(yBottom - yTop, 2.5);
-
-            return (
-              <g 
-                key={`candle-${idx}`}
-                onMouseEnter={() => setHoveredCandle(candle)}
-                onMouseLeave={() => setHoveredCandle(null)}
-                style={{ cursor: 'pointer' }}
-              >
-                {/* Vertical cursor guide line for active hover */}
-                {isHovered && (
-                  <line
-                    x1={x}
-                    y1={paddingTop}
-                    x2={x}
-                    y2={paddingTop + chartHeight}
-                    stroke="#cbd5e1"
-                    strokeWidth="1"
-                    strokeDasharray="3 3"
-                  />
-                )}
-                {/* Wick */}
-                <line
-                  x1={x}
-                  y1={yHigh}
-                  x2={x}
-                  y2={yLow}
-                  stroke={color}
-                  strokeWidth={isHovered ? "2.5" : "1.8"}
-                  opacity={hoveredCandle && !isHovered ? "0.4" : "1"}
-                />
-                {/* Candle Body */}
-                <rect
-                  x={x - w / 2}
-                  y={yTop}
-                  width={w}
-                  height={bodyHeight}
-                  fill={color}
-                  stroke={isHovered ? "var(--text-heading)" : color}
-                  strokeWidth={isHovered ? "1.5" : "0.5"}
-                  rx="1.5"
-                  opacity={hoveredCandle && !isHovered ? "0.4" : "1"}
-                  style={{
-                    filter: isHovered ? 'drop-shadow(0 0 4px rgba(0,0,0,0.15))' : 'none',
-                    transition: 'all 0.15s'
-                  }}
-                />
-                {/* Invisible hover trigger zone */}
-                <rect
-                  x={x - chartWidth / (candles.length * 2)}
-                  y={paddingTop}
-                  width={chartWidth / candles.length}
-                  height={chartHeight}
-                  fill="transparent"
-                />
-              </g>
-            );
-          })}
-
-          {/* Time axis labels */}
-          {candles.map((candle, idx) => {
-            // Show every 3rd label
-            if (idx % 3 !== 0 && idx !== candles.length - 1) return null;
-            const x = getX(idx);
-            return (
-              <g key={`time-${idx}`}>
-                <line
-                  x1={x}
-                  y1={paddingTop + chartHeight}
-                  x2={x}
-                  y2={paddingTop + chartHeight + 4}
-                  stroke="#cbd5e1"
-                  strokeWidth="1"
-                />
-                <text
-                  x={x}
-                  y={paddingTop + chartHeight + 16}
-                  fontSize="9.5"
-                  fontWeight="600"
-                  fill="#94a3b8"
-                  textAnchor="middle"
-                >
-                  {candle.time}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-      </div>
+      {/* TradingView Chart Container */}
+      <div ref={chartContainerRef} style={{ width: '100%', height: '300px', overflow: 'hidden' }} />
     </div>
   );
 };
