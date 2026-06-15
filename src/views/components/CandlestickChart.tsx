@@ -243,26 +243,27 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       {/* Floating Info Overlay (OHLC details on hover) */}
       <div style={{ 
         display: 'flex', 
-        gap: '14px', 
+        flexWrap: 'wrap',
+        gap: '8px 12px', 
         backgroundColor: '#f8fafc', 
         border: '1px solid #f1f5f9',
-        padding: '8px 16px', 
+        padding: '8px 12px', 
         borderRadius: '8px', 
         marginBottom: '16px', 
-        fontSize: '11.5px', 
+        fontSize: '11px', 
         minHeight: '34px', 
         alignItems: 'center',
-        justifyContent: hoveredCandle ? 'space-between' : 'center'
+        justifyContent: 'center'
       }}>
         {hoveredCandle ? (
-          <>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', width: '100%', justifyContent: 'space-between' }}>
             <span>Time: <strong style={{ color: '#0f172a' }}>{hoveredCandle.time}</strong></span>
             <span>O: <strong style={{ color: '#0f172a' }}>{hoveredCandle.open}</strong></span>
             <span>H: <strong style={{ color: '#0f172a' }}>{hoveredCandle.high}</strong></span>
             <span>L: <strong style={{ color: '#0f172a' }}>{hoveredCandle.low}</strong></span>
             <span>C: <strong style={{ color: hoveredCandle.close >= hoveredCandle.open ? upColor : downColor }}>{hoveredCandle.close}</strong></span>
             <span>V: <strong style={{ color: '#0f172a' }}>{hoveredCandle.volume.toLocaleString()}</strong></span>
-          </>
+          </div>
         ) : (
           <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Hover over a candle to inspect OHLC values</span>
         )}
