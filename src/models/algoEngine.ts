@@ -1,4 +1,3 @@
-import { prisma } from '../lib/db';
 import { API_ENDPOINTS } from '../lib/constants';
 
 export interface StockQuote {
@@ -48,7 +47,6 @@ class AlgoEngineService {
   }
 
   public async executePreOpenTrades(adminId: string): Promise<void> {
-    // Trading logic removed
     return;
   }
 
@@ -134,36 +132,18 @@ class AlgoEngineService {
       this.preOpenCacheDate = dateStr;
       this.lastPreOpenFetchTime = Date.now();
 
-      await savePreOpenQuotesToDb(freshStocks, dateStr);
       return freshStocks;
     } catch (err) {
       console.error('NSE API pre-open fetch failed:', err);
-      // Fallback to shared database cache
-      const dbData = await getPreOpenQuotesFromDb();
-      if (dbData) {
-        this.preOpenCache = dbData.quotes;
-        this.preOpenCacheDate = dbData.date;
-      }
       return this.preOpenCache;
     }
   }
 
   public async fetchLivePreOpenFromKite(): Promise<StockQuote[]> {
-    // Dynamic pre-open fallback direct to NSE fetch
     return this.fetchLivePreOpenFromNSE();
   }
 
   public async getPreOpenStocks(): Promise<StockQuote[]> {
-    // If memory cache is empty, load from database first (for serverless instances)
-    if (this.preOpenCache.length === 0) {
-      const dbData = await getPreOpenQuotesFromDb();
-      if (dbData) {
-        this.preOpenCache = dbData.quotes;
-        this.preOpenCacheDate = dbData.date;
-        this.lastPreOpenFetchTime = Date.now();
-      }
-    }
-
     if (this.preOpenCache.length === 0 || Date.now() - this.lastPreOpenFetchTime > 5 * 60 * 1000) {
       await this.fetchLivePreOpenFromNSE();
     }
@@ -177,32 +157,6 @@ class AlgoEngineService {
       year: 'numeric'
     });
   }
-}
-
-async function savePreOpenQuotesToDb(quotes: StockQuote[], date: string) {
-  try {
-    await prisma.appSettings.upsert({
-      where: { settingKey: 'PRE_OPEN_QUOTES_DATA' },
-      update: { settingValue: JSON.stringify({ quotes, date }) },
-      create: { settingKey: 'PRE_OPEN_QUOTES_DATA', settingValue: JSON.stringify({ quotes, date }), type: 'json' }
-    });
-  } catch (error) {
-    console.error('Failed to save pre-open quotes to appSettings:', error);
-  }
-}
-
-async function getPreOpenQuotesFromDb(): Promise<{ quotes: StockQuote[], date: string } | null> {
-  try {
-    const setting = await prisma.appSettings.findUnique({
-      where: { settingKey: 'PRE_OPEN_QUOTES_DATA' }
-    });
-    if (setting) {
-      return JSON.parse(setting.settingValue);
-    }
-  } catch (error) {
-    console.error('Failed to get pre-open quotes from appSettings:', error);
-  }
-  return null;
 }
 
 const globalForAlgo = global as unknown as { algoEngine: AlgoEngineService };
