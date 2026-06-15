@@ -290,6 +290,7 @@ class AlgoEngineService {
   // In-memory pre-open cache
   private preOpenCache: StockQuote[] = [];
   private lastPreOpenFetchTime: number = 0;
+  private preOpenCacheDate: string = '';
 
   constructor() {
     this.stocksState = getInitialStocks();
@@ -675,16 +676,44 @@ class AlgoEngineService {
         }
       });
 
+      const dateStr = new Date().toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+
       this.preOpenCache = freshStocks;
+      this.preOpenCacheDate = dateStr;
       this.lastPreOpenFetchTime = Date.now();
+
+      // Save to shared database settings table for serverless persistence
+      await savePreOpenQuotesToDb(freshStocks, dateStr);
+
       return freshStocks;
     } catch (err) {
       console.error('Error fetching live pre-open quotes from Kite:', err);
-      return this.preOpenCache.length > 0 ? this.preOpenCache : getInitialStocks();
+      // Fallback to shared database cache
+      const dbData = await getPreOpenQuotesFromDb();
+      if (dbData) {
+        this.preOpenCache = dbData.quotes;
+        this.preOpenCacheDate = dbData.date;
+      }
+      return this.preOpenCache;
     }
   }
 
   public async getPreOpenStocks(): Promise<StockQuote[]> {
+    // If memory cache is empty, load from database first (for serverless instances)
+    if (this.preOpenCache.length === 0 || this.preOpenCache[0]?.ltp === 100.0) {
+      const dbData = await getPreOpenQuotesFromDb();
+      if (dbData) {
+        this.preOpenCache = dbData.quotes;
+        this.preOpenCacheDate = dbData.date;
+        // set last fetch time to avoid instant refetch
+        this.lastPreOpenFetchTime = Date.now();
+      }
+    }
+
     if (this.preOpenCache.length === 0 || Date.now() - this.lastPreOpenFetchTime > 5 * 60 * 1000) {
       await this.fetchLivePreOpenFromKite();
     }
@@ -692,7 +721,7 @@ class AlgoEngineService {
   }
 
   public getPreOpenDate(): string {
-    return new Date().toLocaleDateString('en-GB', {
+    return this.preOpenCacheDate || new Date().toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'short',
       year: 'numeric'
@@ -811,6 +840,33 @@ class AlgoEngineService {
       }
     }
   }
+}
+
+
+async function savePreOpenQuotesToDb(quotes: StockQuote[], date: string) {
+  try {
+    await prisma.appSettings.upsert({
+      where: { settingKey: 'PRE_OPEN_QUOTES_DATA' },
+      update: { settingValue: JSON.stringify({ quotes, date }) },
+      create: { settingKey: 'PRE_OPEN_QUOTES_DATA', settingValue: JSON.stringify({ quotes, date }), type: 'json' }
+    });
+  } catch (error) {
+    console.error('Failed to save pre-open quotes to appSettings:', error);
+  }
+}
+
+async function getPreOpenQuotesFromDb(): Promise<{ quotes: StockQuote[], date: string } | null> {
+  try {
+    const setting = await prisma.appSettings.findUnique({
+      where: { settingKey: 'PRE_OPEN_QUOTES_DATA' }
+    });
+    if (setting) {
+      return JSON.parse(setting.settingValue);
+    }
+  } catch (error) {
+    console.error('Failed to get pre-open quotes from appSettings:', error);
+  }
+  return null;
 }
 
 const globalForAlgo = global as unknown as { algoEngine: AlgoEngineService };
