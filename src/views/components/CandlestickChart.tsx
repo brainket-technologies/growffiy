@@ -32,9 +32,10 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
   volume,
   onClose,
 }) => {
+  const [timeframe, setTimeframe] = useState<string>('5m');
   const [hoveredCandle, setHoveredCandle] = useState<Candle | null>(null);
 
-  // Deterministically generate 15 realistic historical candles based on stock attributes
+  // Deterministically generate 15 realistic historical candles based on stock attributes and timeframe
   const generateCandles = (): Candle[] => {
     let seed = 0;
     for (let i = 0; i < symbol.length; i++) {
@@ -49,8 +50,14 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
     const candles: Candle[] = [];
     let currentClose = prevClose;
 
-    // Start times in 15 minute intervals ending now
+    // Start times ending now based on selected timeframe
     const now = new Date();
+    let durationMinutes = 5;
+    if (timeframe === '1m') durationMinutes = 1;
+    if (timeframe === '15m') durationMinutes = 15;
+    if (timeframe === '30m') durationMinutes = 30;
+    if (timeframe === '1h') durationMinutes = 60;
+    if (timeframe === '1d') durationMinutes = 1440;
 
     for (let i = 0; i < count; i++) {
       const isLast = i === count - 1;
@@ -85,8 +92,10 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
         currentClose = cClose;
       }
 
-      const candleTime = new Date(now.getTime() - (count - 1 - i) * 15 * 60 * 1000);
-      const timeStr = candleTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const candleTime = new Date(now.getTime() - (count - 1 - i) * durationMinutes * 60 * 1000);
+      const timeStr = timeframe === '1d' 
+        ? candleTime.toLocaleDateString([], { month: 'short', day: 'numeric' })
+        : candleTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
       candles.push({
         open: parseFloat(cOpen.toFixed(2)),
@@ -196,9 +205,32 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       {/* Header Info */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', gap: '12px', flexWrap: 'wrap', paddingRight: onClose ? '24px' : '0' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '150px', flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>{symbol}</span>
             <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>{name}</span>
+            <select
+              value={timeframe}
+              onChange={(e) => setTimeframe(e.target.value)}
+              style={{
+                fontSize: '10.5px',
+                fontWeight: 600,
+                color: '#475569',
+                backgroundColor: '#f1f5f9',
+                border: '1px solid #cbd5e1',
+                borderRadius: '4px',
+                padding: '2px 6px',
+                cursor: 'pointer',
+                outline: 'none',
+                marginLeft: '4px'
+              }}
+            >
+              <option value="1m">1 Min</option>
+              <option value="5m">5 Min</option>
+              <option value="15m">15 Min</option>
+              <option value="30m">30 Min</option>
+              <option value="1h">1 Hour</option>
+              <option value="1d">1 Day</option>
+            </select>
           </div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '10px', background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
