@@ -98,12 +98,10 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
         currentClose = cClose;
       }
 
-      const isDaily = timeframe === '1d';
-      // If startTimestamp + (i * durationMinutes * 60) calculates to a future time, Lightweight charts will still render it,
-      // but let's ensure it's strictly ordered.
-      const pointTime = isDaily
-        ? new Date(now.getTime() - (count - 1 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-        : Math.floor(startTimestamp + (i * durationMinutes * 60));
+      // Using simple mock string dates 'YYYY-MM-DD' for all timeframes to avoid strict Unix timestamp scale checks entirely
+      const d = new Date(2026, 0, 1);
+      d.setDate(d.getDate() + i);
+      const pointTime = d.toISOString().split('T')[0];
 
       const isUp = cClose >= cOpen;
 
