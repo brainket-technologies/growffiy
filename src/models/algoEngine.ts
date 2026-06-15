@@ -2,7 +2,6 @@ import { prisma } from '../lib/db';
 import WebSocket from 'ws';
 import fs from 'fs';
 import path from 'path';
-import fallbackActualQuotes from './actual-quotes.json';
 
 export interface StockQuote {
   symbol: string;
@@ -248,83 +247,34 @@ const INSTRUMENT_TO_SYMBOL: { [key: number]: string } = {
 
 const uniqueSymbols = Array.from(new Set(Object.values(INSTRUMENT_TO_SYMBOL)));
 
-function getActualQuotes(): any {
-  try {
-    const filePath = path.join(process.cwd(), 'src/models/actual-quotes.json');
-    if (fs.existsSync(filePath)) {
-      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    }
-  } catch (e) {
-    console.error('Failed to read actual-quotes.json dynamically:', e);
-  }
-  return fallbackActualQuotes;
-}
-
 function getInitialStocks(): StockQuote[] {
-  const currentQuotes = getActualQuotes();
   return uniqueSymbols.map(symbol => {
     const name = STOCK_NAMES[symbol] || symbol;
-    const quote = (currentQuotes as any)[symbol];
-    const ffShares = quote?.freeFloatShares || 50.0;
+    const ffShares = 50.0;
+    const basePrice = 100.0;
+    const baseVolume = Math.round(ffShares * 15000);
+    const ffmCap = basePrice * ffShares;
+    const value = (baseVolume * basePrice) / 10000000;
 
-    if (quote) {
-      const prevClose = quote.prevClose;
-      const iep = quote.iep;
-      const change = quote.change;
-      const changePercent = quote.changePercent;
-      const ltp = iep;
-      const open = iep;
-      const high = quote.high;
-      const low = quote.low;
-      const volume = quote.volume || Math.round(ffShares * 15000);
-      const ffmCap = ltp * ffShares;
-      const value = (volume * ltp) / 10000000;
-
-      return {
-        symbol,
-        name,
-        ltp,
-        open,
-        high,
-        low,
-        prevClose,
-        volume,
-        change,
-        changePercent,
-        iep,
-        final: ltp,
-        finalQuantity: volume,
-        value,
-        ffmCap,
-        nm52wH: parseFloat((prevClose * 1.25).toFixed(2)),
-        nm52wL: parseFloat((prevClose * 0.75).toFixed(2))
-      };
-    } else {
-      const basePrice = 100.0;
-      const baseVolume = Math.round(ffShares * 15000);
-      const ffmCap = basePrice * ffShares;
-      const value = (baseVolume * basePrice) / 10000000;
-
-      return {
-        symbol,
-        name,
-        ltp: basePrice,
-        open: basePrice,
-        high: basePrice,
-        low: basePrice,
-        prevClose: basePrice,
-        volume: baseVolume,
-        change: 0,
-        changePercent: 0,
-        iep: basePrice,
-        final: basePrice,
-        finalQuantity: baseVolume,
-        value,
-        ffmCap,
-        nm52wH: basePrice * 1.2,
-        nm52wL: basePrice * 0.8
-      };
-    }
+    return {
+      symbol,
+      name,
+      ltp: basePrice,
+      open: basePrice,
+      high: basePrice,
+      low: basePrice,
+      prevClose: basePrice,
+      volume: baseVolume,
+      change: 0,
+      changePercent: 0,
+      iep: basePrice,
+      final: basePrice,
+      finalQuantity: baseVolume,
+      value,
+      ffmCap,
+      nm52wH: basePrice * 1.2,
+      nm52wL: basePrice * 0.8
+    };
   });
 }
 
@@ -662,10 +612,10 @@ class AlgoEngineService {
         const name = STOCK_NAMES[symbol] || symbol;
         const key = `NSE:${symbol}`;
         const quote = quotes[key];
-        const ffShares = fallbackActualQuotes[symbol as keyof typeof fallbackActualQuotes]?.freeFloatShares || 50.0;
+        const ffShares = 50.0;
 
         if (quote) {
-          const prevClose = quote.ohlc.close || fallbackActualQuotes[symbol as keyof typeof fallbackActualQuotes]?.prevClose || 100.0;
+          const prevClose = quote.ohlc.close || 100.0;
           // In pre-open session, the indicative equilibrium price is ohlc.open
           const iep = quote.ohlc.open || prevClose;
           const change = parseFloat((iep - prevClose).toFixed(2));
@@ -699,9 +649,8 @@ class AlgoEngineService {
           };
         } else {
           // Fallback to static if not found in live response
-          const staticQuote = fallbackActualQuotes[symbol as keyof typeof fallbackActualQuotes];
-          const basePrice = staticQuote?.iep || 100.0;
-          const baseVolume = staticQuote?.volume || Math.round(ffShares * 15000);
+          const basePrice = 100.0;
+          const baseVolume = Math.round(ffShares * 15000);
           const ffmCap = basePrice * ffShares;
           const value = (baseVolume * basePrice) / 10000000;
 
@@ -712,10 +661,10 @@ class AlgoEngineService {
             open: basePrice,
             high: basePrice,
             low: basePrice,
-            prevClose: staticQuote?.prevClose || basePrice,
+            prevClose: basePrice,
             volume: baseVolume,
-            change: staticQuote?.change || 0,
-            changePercent: staticQuote?.changePercent || 0,
+            change: 0,
+            changePercent: 0,
             iep: basePrice,
             final: basePrice,
             finalQuantity: baseVolume,
@@ -736,28 +685,14 @@ class AlgoEngineService {
     }
   }
 
-  public getPreOpenStocks(): StockQuote[] {
-    // Return cached stocks immediately to keep API response times minimal.
-    // If cache is empty, populate it on-demand.
-    if (this.preOpenCache.length === 0) {
-      this.preOpenCache = getInitialStocks();
-      this.fetchLivePreOpenFromKite().catch(console.error);
-    } else if (Date.now() - this.lastPreOpenFetchTime > 5 * 60 * 1000) {
-      // Refresh cache in the background if older than 5 minutes
-      this.fetchLivePreOpenFromKite().catch(console.error);
+  public async getPreOpenStocks(): Promise<StockQuote[]> {
+    if (this.preOpenCache.length === 0 || Date.now() - this.lastPreOpenFetchTime > 5 * 60 * 1000) {
+      await this.fetchLivePreOpenFromKite();
     }
     return this.preOpenCache;
   }
 
   public getPreOpenDate(): string {
-    try {
-      const currentQuotes = getActualQuotes();
-      if (currentQuotes && currentQuotes._meta && currentQuotes._meta.date) {
-        return currentQuotes._meta.date;
-      }
-    } catch (e) {
-      console.error('Failed to get actual-quotes JSON date:', e);
-    }
     return new Date().toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'short',
