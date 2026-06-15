@@ -18,30 +18,58 @@ async function main() {
   const strategy = await prisma.strategy.upsert({
     where: { id: 'pre-open-breakout' },
     update: {
-      name: 'Pre-Open Momentum Breakout Strategy',
-      description: 'Scans Nifty 200 candidates showing maximum gap-downs at 09:08 AM, buys high of 5-min candle close with 1% risk allocation.',
+      name: 'Pre-Open Momentum Breakout',
+      description: 'Scans Nifty 200 for maximum gap-downs at 09:08 AM, buys high of 5-min candle with 1% risk.',
       status: 'active',
       configJson: JSON.stringify({
-        candleSizeMinutes: 5,
-        riskPercentage: 1.0,
-        rewardRatio: 3.0,
-        bufferPercent: 0.1,
-        stopLossPercent: 0.5,
-        targetPercent: 1.5
+        basicInfo: {
+          name: 'Pre-Open Momentum Breakout',
+          description: 'Scans Nifty 200 for maximum gap-downs at 09:08 AM, buys high of 5-min candle with 1% risk.',
+          tradeType: 'Intraday',
+          exchange: 'NSE',
+          segment: 'NSE F&O',
+          timeframe: '5m',
+          entryTime: '09:15',
+          exitTime: '15:15',
+          maxTradesPerDay: 3,
+          status: 'active'
+        },
+        tradeAction: { action: 'Long', orderType: 'Limit', bufferPercent: 0.1 },
+        stoploss: { type: 'Trailing SL', orderType: 'Market', fixedPercent: 0.5, fixedPoints: 5, trailingSL: 0.2, riskPercent: 1.0 },
+        target: { type: 'Trailing Target', profitPercent: 1.5, riskRewardRatio: 3.0, partialExit: 50, trailingTarget: 0.5 },
+        riskManagement: { capitalAllocation: 10.0, riskPerTrade: 1.0, maxDailyLoss: 5000, maxDailyProfit: 15000, maxOpenPositions: 2, killSwitch: false },
+        conditions: [
+          { logical: 'AND', indicator: 'Gap Down', operator: '>', value: '1.5' },
+          { logical: 'AND', indicator: 'RSI', operator: '<', value: '30' }
+        ]
       })
     },
     create: {
       id: 'pre-open-breakout',
-      name: 'Pre-Open Momentum Breakout Strategy',
-      description: 'Scans Nifty 200 candidates showing maximum gap-downs at 09:08 AM, buys high of 5-min candle close with 1% risk allocation.',
+      name: 'Pre-Open Momentum Breakout',
+      description: 'Scans Nifty 200 for maximum gap-downs at 09:08 AM, buys high of 5-min candle with 1% risk.',
       status: 'active',
       configJson: JSON.stringify({
-        candleSizeMinutes: 5,
-        riskPercentage: 1.0,
-        rewardRatio: 3.0,
-        bufferPercent: 0.1,
-        stopLossPercent: 0.5,
-        targetPercent: 1.5
+        basicInfo: {
+          name: 'Pre-Open Momentum Breakout',
+          description: 'Scans Nifty 200 for maximum gap-downs at 09:08 AM, buys high of 5-min candle with 1% risk.',
+          tradeType: 'Intraday',
+          exchange: 'NSE',
+          segment: 'NSE F&O',
+          timeframe: '5m',
+          entryTime: '09:15',
+          exitTime: '15:15',
+          maxTradesPerDay: 3,
+          status: 'active'
+        },
+        tradeAction: { action: 'Long', orderType: 'Limit', bufferPercent: 0.1 },
+        stoploss: { type: 'Trailing SL', orderType: 'Market', fixedPercent: 0.5, fixedPoints: 5, trailingSL: 0.2, riskPercent: 1.0 },
+        target: { type: 'Trailing Target', profitPercent: 1.5, riskRewardRatio: 3.0, partialExit: 50, trailingTarget: 0.5 },
+        riskManagement: { capitalAllocation: 10.0, riskPerTrade: 1.0, maxDailyLoss: 5000, maxDailyProfit: 15000, maxOpenPositions: 2, killSwitch: false },
+        conditions: [
+          { logical: 'AND', indicator: 'Gap Down', operator: '>', value: '1.5' },
+          { logical: 'AND', indicator: 'RSI', operator: '<', value: '30' }
+        ]
       })
     }
   });

@@ -407,25 +407,29 @@ export default function StrategiesPage() {
       {/* HEADER SECTION */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
+          {viewMode !== 'list' && (
+            <button
+              onClick={() => setViewMode('list')}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px', marginBottom: '6px', padding: 0 }}
+            >
+              <ArrowLeft size={14} /> Strategies
+            </button>
+          )}
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
             {viewMode === 'list' && 'Strategies'}
             {viewMode === 'create' && 'Create Algo Strategy'}
-            {viewMode === 'edit' && `Edit Strategy: ${selectedStrategy?.name}`}
+            {viewMode === 'edit' && `Edit Strategy`}
             {viewMode === 'detail' && `${selectedStrategy?.name}`}
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
             {viewMode === 'list' && 'Deploy, configure, and monitor advanced algorithmic strategies.'}
             {viewMode === 'create' && 'Build a new strategy block with custom entry, target, and trailing rules.'}
-            {viewMode === 'edit' && 'Fine-tune strategy conditions, target, stoploss, and allocation limits.'}
+            {viewMode === 'edit' && `Editing: ${selectedStrategy?.name}`}
             {viewMode === 'detail' && (selectedStrategy?.description || 'Overview of settings, performance history, and client deployment.')}
           </p>
         </div>
 
-        {viewMode !== 'list' ? (
-          <Button variant="secondary" onClick={() => setViewMode('list')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ArrowLeft size={16} /> Back to List
-          </Button>
-        ) : (
+        {viewMode === 'list' && (
           <Button onClick={handleCreateNew} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Plus size={16} /> Create Strategy
           </Button>
@@ -853,14 +857,14 @@ export default function StrategiesPage() {
                   </Button>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {formData.conditions.map((cond, idx) => (
-                    <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <div key={idx} style={{ display: 'grid', gridTemplateColumns: idx > 0 ? '56px 1fr 120px 130px 28px' : '1fr 120px 130px 28px', gap: '8px', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                       {idx > 0 && (
                         <select
                           value={cond.logical}
                           onChange={(e: any) => handleConditionChange(idx, 'logical', e.target.value)}
-                          style={{ padding: '6px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', fontSize: '11px' }}
+                          style={{ width: '56px', padding: '6px 4px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', fontSize: '11px', fontWeight: 700 }}
                         >
                           <option value="AND">AND</option>
                           <option value="OR">OR</option>
@@ -869,7 +873,7 @@ export default function StrategiesPage() {
                       <select
                         value={cond.indicator}
                         onChange={(e) => handleConditionChange(idx, 'indicator', e.target.value)}
-                        style={{ flex: 2, padding: '6px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', fontSize: '12px' }}
+                        style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', fontSize: '12px' }}
                       >
                         {INDICATORS.map(ind => (
                           <option key={ind} value={ind}>{ind}</option>
@@ -878,36 +882,37 @@ export default function StrategiesPage() {
                       <select
                         value={cond.operator}
                         onChange={(e) => handleConditionChange(idx, 'operator', e.target.value)}
-                        style={{ flex: 1, padding: '6px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', fontSize: '12px' }}
+                        style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', fontSize: '12px' }}
                       >
                         <option value=">">&gt;</option>
                         <option value="<">&lt;</option>
                         <option value="==">==</option>
                         <option value=">=">&gt;=</option>
                         <option value="<=">&lt;=</option>
-                        <option value="crosses-above">crosses-above</option>
-                        <option value="crosses-below">crosses-below</option>
+                        <option value="crosses-above">↑ crosses</option>
+                        <option value="crosses-below">↓ crosses</option>
                       </select>
                       <input
                         type="text"
                         value={cond.value}
                         onChange={(e) => handleConditionChange(idx, 'value', e.target.value)}
-                        style={{ flex: 2, padding: '6px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', fontSize: '12px' }}
-                        placeholder="Value (e.g. 50, EMA)"
+                        style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', fontSize: '12px', boxSizing: 'border-box' }}
+                        placeholder="e.g. 50"
                       />
                       <button
                         type="button"
                         onClick={() => removeCondition(idx)}
-                        style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer' }}
+                        style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   ))}
                   {formData.conditions.length === 0 && (
-                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center', padding: '16px' }}>
-                      No conditions set. Trades will trigger instantly on entry time.
-                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', gap: '8px', color: 'var(--text-secondary)' }}>
+                      <FileCode size={28} style={{ opacity: 0.3 }} />
+                      <p style={{ fontSize: '12px', textAlign: 'center' }}>No conditions set. Trades will trigger at entry time automatically.</p>
+                    </div>
                   )}
                 </div>
               </Card>
