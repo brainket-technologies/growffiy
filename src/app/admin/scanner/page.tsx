@@ -72,34 +72,11 @@ export default function PreOpenScannerPage() {
   };
 
   const filterByCategory = (stock: any, cat: CategoryType) => {
-    if (stock.isNifty50 !== undefined) {
-      if (cat === 'Nifty 50') return stock.isNifty50;
-      if (cat === 'Bank Nifty') return stock.isBankNifty;
-      if (cat === 'SME') return stock.isSme;
-      if (cat === 'F&O') return stock.isFo;
-      if (cat === 'Others') return !stock.isNifty50 && !stock.isBankNifty && !stock.isSme && !stock.isFo;
-      return true;
-    }
-
-    const nifty50 = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'AXISBANK', 'KOTAKBANK', 'BHARTIARTL', 'ITC', 'HINDUNILVR', 'LT', 'SUNPHARMA', 'NTPC', 'MARUTI', 'JSWSTEEL', 'TATAMOTORS', 'BAJFINANCE', 'ONGC', 'COALINDIA', 'POWERGRID', 'ADANIENT', 'ADANIPORTS'];
-    const niftyBank = ['HDFCBANK', 'ICICIBANK', 'SBIN', 'AXISBANK', 'KOTAKBANK', 'FEDERALBNK', 'BANDHANBNK', 'YESBANK', 'PNB', 'CANBK'];
-    const emerge = ['RVNL', 'ZEEL', 'GMRINFRA', 'NATIONALUM', 'BHEL', 'BIOCON', 'DELTACORP', 'IDEA'];
-    
-    if (cat === 'Nifty 50') {
-      return nifty50.includes(stock.symbol);
-    }
-    if (cat === 'Bank Nifty') {
-      return niftyBank.includes(stock.symbol);
-    }
-    if (cat === 'SME') {
-      return emerge.includes(stock.symbol);
-    }
-    if (cat === 'F&O') {
-      return true;
-    }
-    if (cat === 'Others') {
-      return !nifty50.includes(stock.symbol) && !niftyBank.includes(stock.symbol) && !emerge.includes(stock.symbol);
-    }
+    if (cat === 'Nifty 50') return !!stock.isNifty50;
+    if (cat === 'Bank Nifty') return !!stock.isBankNifty;
+    if (cat === 'SME') return !!stock.isSme;
+    if (cat === 'F&O') return !!stock.isFo;
+    if (cat === 'Others') return !stock.isNifty50 && !stock.isBankNifty && !stock.isSme && !stock.isFo;
     return true;
   };
 
