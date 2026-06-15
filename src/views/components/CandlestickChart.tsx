@@ -367,6 +367,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
 
             const candleIsUp = candle.close >= candle.open;
             const color = candleIsUp ? upColor : downColor;
+            const isHovered = hoveredCandle === candle;
             const w = (chartWidth / candles.length) * 0.65;
 
             const yTop = Math.min(yOpen, yClose);
@@ -380,6 +381,18 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
                 onMouseLeave={() => setHoveredCandle(null)}
                 style={{ cursor: 'pointer' }}
               >
+                {/* Vertical cursor guide line for active hover */}
+                {isHovered && (
+                  <line
+                    x1={x}
+                    y1={paddingTop}
+                    x2={x}
+                    y2={paddingTop + chartHeight}
+                    stroke="#cbd5e1"
+                    strokeWidth="1"
+                    strokeDasharray="3 3"
+                  />
+                )}
                 {/* Wick */}
                 <line
                   x1={x}
@@ -387,7 +400,8 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
                   x2={x}
                   y2={yLow}
                   stroke={color}
-                  strokeWidth="1.8"
+                  strokeWidth={isHovered ? "2.5" : "1.8"}
+                  opacity={hoveredCandle && !isHovered ? "0.4" : "1"}
                 />
                 {/* Candle Body */}
                 <rect
@@ -396,9 +410,14 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
                   width={w}
                   height={bodyHeight}
                   fill={color}
-                  stroke={color}
-                  strokeWidth="0.5"
+                  stroke={isHovered ? "var(--text-heading)" : color}
+                  strokeWidth={isHovered ? "1.5" : "0.5"}
                   rx="1.5"
+                  opacity={hoveredCandle && !isHovered ? "0.4" : "1"}
+                  style={{
+                    filter: isHovered ? 'drop-shadow(0 0 4px rgba(0,0,0,0.15))' : 'none',
+                    transition: 'all 0.15s'
+                  }}
                 />
                 {/* Invisible hover trigger zone */}
                 <rect
