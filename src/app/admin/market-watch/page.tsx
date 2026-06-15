@@ -290,7 +290,7 @@ export default function MarketWatchPage() {
 
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: selectedStock ? '2.2fr 1fr' : '1fr', 
+        gridTemplateColumns: selectedStock ? '1.3fr 1fr' : '1fr', 
         gap: '24px', 
         alignItems: 'start' 
       }}>
