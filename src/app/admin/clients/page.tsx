@@ -306,9 +306,13 @@ export default function ClientsPage() {
                       <td style={{ fontFamily: 'monospace', fontWeight: 500 }}>{client.zerodhaClientId || '--'}</td>
                       <td style={{ fontWeight: 600 }}>₹{Number(client.capital).toLocaleString()}</td>
                       <td>
-                        <span className={`badge ${client.accessToken ? 'badge-green' : 'badge-red'}`}>
-                          {client.accessToken ? 'Connected' : 'Disconnected'}
-                        </span>
+                        {client.accessToken ? (
+                          <span className="badge badge-green">Connected</span>
+                        ) : client.zerodhaClientId ? (
+                          <span className="badge badge-red">Expired</span>
+                        ) : (
+                          <span className="badge">Disconnected</span>
+                        )}
                       </td>
                       <td>
                         <span

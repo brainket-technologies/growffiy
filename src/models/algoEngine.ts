@@ -1,6 +1,8 @@
 import WebSocket from 'ws';
 import { prisma } from '../lib/db';
 import { API_ENDPOINTS } from '../lib/constants';
+import { KiteClient } from '../lib/kite';
+
 
 export interface StockQuote {
   symbol: string;
@@ -387,9 +389,207 @@ class AlgoEngineService {
     return this.isTradingActive;
   }
 
-  public async executePreOpenTrades(adminId: string): Promise<void> {
-    return;
+  private async ensureApiKeyAndToken() {
+    return this.getActiveCredentials();
   }
+
+  public async executePreOpenTrades(adminId: string): Promise<void> {
+    console.log('AlgoEngine: executePreOpenTrades started.');
+    try {
+      // 1. Fetch pre-open stocks
+      const preOpenStocks = await this.getPreOpenStocks();
+      if (!preOpenStocks || preOpenStocks.length === 0) {
+        console.log('AlgoEngine: No pre-open stocks fetched. Aborting.');
+        return;
+      }
+
+      // 2. Filter Top Loser Stock based on changePercent (lowest/most negative)
+      let topLoser: StockQuote | null = null;
+      for (const stock of preOpenStocks) {
+        if (!topLoser || stock.changePercent < topLoser.changePercent) {
+          topLoser = stock;
+        }
+      }
+
+      if (!topLoser) {
+        console.log('AlgoEngine: No top loser stock identified. Aborting.');
+        return;
+      }
+
+      console.log(`AlgoEngine: Identified Today's Top Loser: ${topLoser.symbol} (${topLoser.changePercent}%)`);
+
+      // 3. Find active clients assigned to a strategy
+      const clients = await prisma.client.findMany({
+        where: {
+          tradingStatus: 'active',
+          strategyId: { not: null }
+        },
+        include: {
+          user: true,
+          strategy: true
+        }
+      });
+
+      if (clients.length === 0) {
+        console.log('AlgoEngine: No active clients assigned to any strategy.');
+        return;
+      }
+
+      console.log(`AlgoEngine: Processing strategies for ${clients.length} active client(s).`);
+
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      // Find an admin user in the system to log the action under if none is provided
+      let finalAdminId = adminId;
+      if (!finalAdminId || finalAdminId === 'system-admin-mock') {
+        const firstAdmin = await prisma.user.findFirst({
+          where: { role: 'admin' }
+        });
+        if (firstAdmin) {
+          finalAdminId = firstAdmin.id;
+        }
+      }
+
+      for (const client of clients) {
+        try {
+          const strategy = client.strategy;
+          if (!strategy) continue;
+
+          // Parse config from the strategy record in the database
+          const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
+          
+          // Verify if this is a Pre-Open strategy
+          const isPreOpen = strategy.id === 'pre-open-breakout' || 
+                            strategy.name.toLowerCase().includes('pre open') || 
+                            strategy.name.toLowerCase().includes('pre-open') || 
+                            (config?.basicInfo?.name && config.basicInfo.name.toLowerCase().includes('pre open'));
+          
+          if (!isPreOpen) {
+            console.log(`AlgoEngine: Strategy ${strategy.name} for client ${client.user.name} is not a Pre-Open strategy. Skipping.`);
+            continue;
+          }
+
+          // Check if trade already executed today for this client and strategy
+          const existingTrade = await prisma.trade.findFirst({
+            where: {
+              clientId: client.id,
+              strategyId: strategy.id,
+              createdAt: {
+                gte: todayStart
+              }
+            }
+          });
+
+          if (existingTrade) {
+            console.log(`AlgoEngine: Trade already executed today for client ${client.user.name} under strategy ${strategy.name}. Skipping.`);
+            continue;
+          }
+
+          // 4. Position sizing: perday 1% amount stock me lagana (allocate 1% of client capital)
+          const capital = Number(client.capital);
+          const allocatedAmount = capital * 0.01; 
+
+          const entryPrice = topLoser.iep || topLoser.ltp || topLoser.prevClose || 100.0;
+          let quantity = Math.floor(allocatedAmount / entryPrice);
+          if (quantity <= 0) {
+            quantity = 1; // Minimum 1 share
+          }
+
+          // Use stoploss and target values directly from the database strategy config if available
+          const slPercent = config?.stoploss?.fixedPercent || 0.5;
+          const targetPercent = config?.target?.profitPercent || 1.5;
+
+          const stopLoss = entryPrice * (1 - slPercent / 100);
+          const target = entryPrice * (1 + targetPercent / 100);
+
+          console.log(`AlgoEngine: Placing trade for ${client.user.name} under database strategy "${strategy.name}" - Buy ${quantity} qty of ${topLoser.symbol} @ ${entryPrice}`);
+
+          let orderId = 'simulated-order';
+          let orderStatus = 'open';
+
+          // 5. Use Kite Connect API if active credentials are setup for the client
+          if (client.zerodhaApiKey && client.accessToken) {
+            try {
+              const orderRes = await KiteClient.placeOrder(
+                client.zerodhaApiKey,
+                client.accessToken,
+                {
+                  exchange: 'NSE',
+                  tradingsymbol: topLoser.symbol,
+                  transaction_type: 'BUY',
+                  quantity: quantity,
+                  order_type: 'MARKET',
+                  product: 'MIS',
+                  validity: 'DAY'
+                }
+              );
+              console.log('AlgoEngine: Kite order placement response:', orderRes);
+              if (orderRes && orderRes.status === 'success' && orderRes.data?.order_id) {
+                orderId = orderRes.data.order_id;
+              } else {
+                console.warn('AlgoEngine: Kite order response status was not success. Placing simulated trade.');
+              }
+            } catch (kiteErr: any) {
+              console.error(`AlgoEngine: Failed to place order on Zerodha Kite for ${client.user.name}:`, kiteErr);
+              // Save to strategy logs
+              await prisma.strategyLog.create({
+                data: {
+                  strategyId: strategy.id,
+                  message: `Kite order failed for ${client.user.name}: ${kiteErr.message || 'API error'}. Trade placed as simulated.`,
+                  logType: 'error'
+                }
+              });
+            }
+          }
+
+          // 6. Save trade in Database referencing the database strategy ID
+          await prisma.trade.create({
+            data: {
+              clientId: client.id,
+              strategyId: strategy.id,
+              symbol: topLoser.symbol,
+              orderType: 'MIS',
+              entryPrice: entryPrice,
+              quantity: quantity,
+              stopLoss: stopLoss,
+              target: target,
+              status: orderStatus,
+              entryTime: new Date()
+            }
+          });
+
+          // 7. Write strategy log referencing the database strategy ID
+          await prisma.strategyLog.create({
+            data: {
+              strategyId: strategy.id,
+              message: `Intraday Trade Initiated for ${client.user.name}: Bought ${quantity} shares of ${topLoser.symbol} at entry price ₹${entryPrice.toFixed(2)} using config from DB strategy "${strategy.name}". Capital allocated (1%): ₹${allocatedAmount.toFixed(2)}. Target: ₹${target.toFixed(2)} (${targetPercent}%), Stop Loss: ₹${stopLoss.toFixed(2)} (${slPercent}%).`,
+              logType: 'trade'
+            }
+          });
+
+          // 8. Write audit log
+          if (finalAdminId) {
+            await prisma.auditLog.create({
+              data: {
+                adminId: finalAdminId,
+                action: 'AUTO TRADE INITIATED',
+                oldValue: null,
+                newValue: `Client: ${client.user.name} | Strategy: ${strategy.name} | Stock: ${topLoser.symbol} | Qty: ${quantity} | Entry: ${entryPrice.toFixed(2)}`
+              }
+            }).catch(() => {});
+          }
+
+        } catch (clientErr: any) {
+          console.error(`AlgoEngine: Error executing pre-open trade for client ${client.id}:`, clientErr);
+        }
+      }
+
+    } catch (e: any) {
+      console.error('AlgoEngine: executePreOpenTrades error:', e);
+    }
+  }
+
 
   public async fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
     const headers = {

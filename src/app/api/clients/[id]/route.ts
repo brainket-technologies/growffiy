@@ -24,16 +24,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         try {
           const profile = await KiteClient.getProfile(client.zerodhaApiKey, client.accessToken);
           if (profile.status === 'error' || profile.error_type === 'TokenException' || profile.message === 'Invalid token') {
-            // Token has expired or is invalid. Set status to inactive and clear token.
-            client = await prisma.client.update({
-              where: { id },
-              data: {
-                accessToken: null,
-                zerodhaSession: null,
-                tradingStatus: 'inactive'
-              },
-              include: { user: true }
-            });
+            console.warn(`Kite token verification failed for client ${client.id}: ${profile.message || 'TokenException'}`);
+            if (process.env.NODE_ENV === 'production') {
+              // Token has expired or is invalid. Set status to inactive and clear token.
+              client = await prisma.client.update({
+                where: { id },
+                data: {
+                  accessToken: null,
+                  zerodhaSession: null,
+                  tradingStatus: 'inactive'
+                },
+                include: { user: true }
+              });
+            }
           } else if (profile.status === 'success' && profile.data) {
             profileData = profile.data;
             try {

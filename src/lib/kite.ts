@@ -95,4 +95,47 @@ export class KiteClient {
     });
     return response.json();
   }
+
+  /**
+   * Places a regular order on Zerodha Kite.
+   */
+  public static async placeOrder(
+    apiKey: string,
+    accessToken: string,
+    params: {
+      exchange: string;
+      tradingsymbol: string;
+      transaction_type: 'BUY' | 'SELL';
+      quantity: number;
+      order_type: 'MARKET' | 'LIMIT' | 'SL' | 'SL-M';
+      product: 'MIS' | 'CNC' | 'NRML';
+      validity?: 'DAY' | 'IOC';
+      price?: number;
+      trigger_price?: number;
+    }
+  ) {
+    const bodyParams = new URLSearchParams();
+    bodyParams.append('exchange', params.exchange);
+    bodyParams.append('tradingsymbol', params.tradingsymbol);
+    bodyParams.append('transaction_type', params.transaction_type);
+    bodyParams.append('quantity', String(params.quantity));
+    bodyParams.append('order_type', params.order_type);
+    bodyParams.append('product', params.product);
+    if (params.validity) bodyParams.append('validity', params.validity);
+    if (params.price !== undefined) bodyParams.append('price', String(params.price));
+    if (params.trigger_price !== undefined) bodyParams.append('trigger_price', String(params.trigger_price));
+
+    const response = await fetch(`${this.BASE_URL}/orders/regular`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `token ${apiKey}:${accessToken}`,
+        'X-Kite-Version': this.KITE_VERSION,
+      },
+      body: bodyParams.toString(),
+    });
+
+    return response.json();
+  }
 }
+
