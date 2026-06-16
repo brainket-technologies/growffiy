@@ -15,6 +15,7 @@ export default function AdminDashboard() {
     dashboardStats,
     toggleTrading,
     colors,
+    loading,
   } = useAppViewModel();
 
   // Mock static PnL timeline points
@@ -40,45 +41,65 @@ export default function AdminDashboard() {
         </div>
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div
-            style={{
-              padding: '6px 12px',
+          {loading ? (
+            <div style={{ 
+              fontSize: '12px', 
+              color: 'var(--text-secondary)', 
+              background: '#f1f5f9', 
+              padding: '6px 16px', 
               borderRadius: '8px',
-              backgroundColor: isTradingActive ? 'var(--color-success-bg)' : '#f1f5f9',
-              color: isTradingActive ? 'var(--color-success)' : 'var(--text-secondary)',
-              fontWeight: 600,
-              fontSize: '13px',
+              fontWeight: 500,
+              border: '1px solid var(--border-light)',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <span
-              style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                backgroundColor: isTradingActive ? 'var(--color-success)' : 'var(--text-muted)',
-                display: 'inline-block',
-              }}
-            />
-            {isTradingActive ? 'AUTO TRADING LIVE' : 'ENGINE STOPPED'}
-          </div>
+              gap: '6px'
+            }}>
+              <span className="live-dot" style={{ width: '6px', height: '6px', backgroundColor: 'var(--primary)' }}></span>
+              Checking status...
+            </div>
+          ) : (
+            <>
+              <div
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  backgroundColor: isTradingActive ? 'var(--color-success-bg)' : '#f1f5f9',
+                  color: isTradingActive ? 'var(--color-success)' : 'var(--text-secondary)',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: isTradingActive ? 'var(--color-success)' : 'var(--text-muted)',
+                    display: 'inline-block',
+                  }}
+                />
+                {isTradingActive ? 'AUTO TRADING LIVE' : 'ENGINE STOPPED'}
+              </div>
 
-          <Button
-            variant={isTradingActive ? 'danger' : 'success'}
-            onClick={() => toggleTrading(!isTradingActive)}
-          >
-            {isTradingActive ? (
-              <>
-                <Square size={16} fill="white" /> Stop Trading
-              </>
-            ) : (
-              <>
-                <Play size={16} fill="white" /> Start Auto Trading
-              </>
-            )}
-          </Button>
+              <Button
+                variant={isTradingActive ? 'danger' : 'success'}
+                onClick={() => toggleTrading(!isTradingActive)}
+              >
+                {isTradingActive ? (
+                  <>
+                    <Square size={16} fill="white" /> Stop Trading
+                  </>
+                ) : (
+                  <>
+                    <Play size={16} fill="white" /> Start Auto Trading
+                  </>
+                )}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
