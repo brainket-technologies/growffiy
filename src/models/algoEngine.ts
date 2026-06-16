@@ -420,10 +420,11 @@ class AlgoEngineService {
 
       console.log(`AlgoEngine: Identified Today's Top Loser: ${topLoser.symbol} (${topLoser.changePercent}%)`);
 
-      // 3. Find active clients assigned to a strategy
+      // 3. Find active clients assigned to a strategy with an active subscription
       const clients = await prisma.client.findMany({
         where: {
           tradingStatus: 'active',
+          subscriptionStatus: 'active',
           strategyId: { not: null }
         },
         include: {
@@ -512,6 +513,20 @@ class AlgoEngineService {
 
           // 5. Use Kite Connect API if active credentials are setup for the client
           let activeAccessToken = client.accessToken;
+          const isAutoLoginPossible = process.env.KITE_AUTO_LOGIN_ENABLED === 'true' && client.zerodhaPassword && client.zerodhaTotpSecret;
+
+          if (!activeAccessToken && !isAutoLoginPossible) {
+            console.log(`AlgoEngine: Skipping client ${client.user.name} - No active Kite session and auto-login credentials missing.`);
+            await prisma.strategyLog.create({
+              data: {
+                strategyId: strategy.id,
+                message: `Skipped trade execution for ${client.user.name}: No active Kite connection session, and auto-login credentials (password/TOTP) are not configured.`,
+                logType: 'warning'
+              }
+            });
+            continue;
+          }
+
           if (process.env.KITE_AUTO_LOGIN_ENABLED === 'true') {
             if (client.zerodhaPassword && client.zerodhaTotpSecret) {
               console.log(`AlgoEngine: Auto-login is enabled. Refreshing session dynamically for client: ${client.user.name}`);
@@ -524,6 +539,18 @@ class AlgoEngineService {
             } else {
               console.log(`AlgoEngine: Auto-login is enabled but client ${client.user.name} is missing password or TOTP secret. Skipping dynamic auto-refresh.`);
             }
+          }
+
+          if (!activeAccessToken) {
+            console.log(`AlgoEngine: Skipping client ${client.user.name} - Failed to establish Kite API session.`);
+            await prisma.strategyLog.create({
+              data: {
+                strategyId: strategy.id,
+                message: `Skipped trade execution for ${client.user.name}: Kite session could not be established (auto-login failed or manual login required).`,
+                logType: 'error'
+              }
+            });
+            continue;
           }
 
           if (client.zerodhaApiKey && activeAccessToken) {
