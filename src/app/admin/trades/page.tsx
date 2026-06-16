@@ -44,20 +44,6 @@ export default function LiveTradingPage() {
             />
             {isTradingActive ? 'ENGINE LIVE & SCANNING' : 'ENGINE STOPPED'}
           </div>
-          <Button
-            variant={isTradingActive ? 'danger' : 'success'}
-            onClick={() => toggleTrading(!isTradingActive)}
-          >
-            {isTradingActive ? (
-              <>
-                <Square size={16} fill="white" /> Stop Engine
-              </>
-            ) : (
-              <>
-                <Play size={16} fill="white" /> Start Engine
-              </>
-            )}
-          </Button>
         </div>
       </div>
 
