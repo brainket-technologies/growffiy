@@ -277,7 +277,7 @@ export default function ClientDetailsPage() {
             <p><strong>What is this:</strong> The 2FA/TOTP setup key that allows the server to generate 6-digit TOTP codes automatically.</p>
             <p style={{ marginTop: '8px' }}><strong>Where to find it:</strong></p>
             <ol style={{ paddingLeft: '20px', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <li>Go to <a href="https://kite.zerodha.com" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>Kite</a>, log in, and click on your Profile -> <strong>My Profile / Settings</strong>.</li>
+              <li>Go to <a href="https://kite.zerodha.com" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>Kite</a>, log in, and click on your Profile &rarr; <strong>My Profile / Settings</strong>.</li>
               <li>Click on <strong>Password & Security</strong>.</li>
               <li>Click <strong>Enable 2FA TOTP</strong> (or click "Method to enable TOTP").</li>
               <li>You will see a QR Code and a text link saying <strong>"Can't scan? Copy the key"</strong>.</li>
