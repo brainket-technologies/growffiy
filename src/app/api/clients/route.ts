@@ -54,7 +54,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, userId, password, zerodhaClientId, zerodhaApiKey, zerodhaApiSecret, capital, riskPercentage, strategyId } = body;
+    const { name, email, userId, password, zerodhaClientId, zerodhaApiKey, zerodhaApiSecret, zerodhaPassword, zerodhaTotpSecret, capital, riskPercentage, strategyId } = body;
 
     // Auto-generate credentials for the client
     const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -84,6 +84,8 @@ export async function POST(request: Request) {
           zerodhaClientId,
           zerodhaApiKey,
           zerodhaApiSecret,
+          zerodhaPassword,
+          zerodhaTotpSecret,
           capital: Number(capital),
           riskPercentage: Number(riskPercentage || 1.00),
           strategyId,
@@ -128,6 +130,8 @@ export async function POST(request: Request) {
         zerodhaClientId,
         zerodhaApiKey,
         zerodhaApiSecret,
+        zerodhaPassword,
+        zerodhaTotpSecret,
         capital: Number(capital),
         riskPercentage: Number(riskPercentage || 1.00),
         tradingStatus: 'inactive',

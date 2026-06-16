@@ -26,6 +26,8 @@ export default function ClientsPage() {
   const [zerodhaClientId, setZerodhaClientId] = useState('');
   const [zerodhaApiKey, setZerodhaApiKey] = useState('');
   const [zerodhaApiSecret, setZerodhaApiSecret] = useState('');
+  const [zerodhaPassword, setZerodhaPassword] = useState('');
+  const [zerodhaTotpSecret, setZerodhaTotpSecret] = useState('');
   const [capital, setCapital] = useState('50000');
 
   const handleAddClient = async (e: React.FormEvent) => {
@@ -36,6 +38,8 @@ export default function ClientsPage() {
       zerodhaClientId,
       zerodhaApiKey,
       zerodhaApiSecret,
+      zerodhaPassword,
+      zerodhaTotpSecret,
       capital: Number(capital),
       riskPercentage: 1.00,
     });
@@ -47,6 +51,8 @@ export default function ClientsPage() {
       setZerodhaClientId('');
       setZerodhaApiKey('');
       setZerodhaApiSecret('');
+      setZerodhaPassword('');
+      setZerodhaTotpSecret('');
       setCapital('50000');
     }
   };
@@ -423,6 +429,27 @@ export default function ClientsPage() {
                 value={zerodhaApiSecret}
                 onChange={(e) => setZerodhaApiSecret(e.target.value)}
                 placeholder="xr2qwbkkn0kj8gbuzuwyn19ggxlxgye9"
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Zerodha Password (Optional)</label>
+              <input
+                type="password"
+                value={zerodhaPassword}
+                onChange={(e) => setZerodhaPassword(e.target.value)}
+                placeholder="Zerodha Password"
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Zerodha TOTP Secret (Optional)</label>
+              <input
+                type="text"
+                value={zerodhaTotpSecret}
+                onChange={(e) => setZerodhaTotpSecret(e.target.value)}
+                placeholder="e.g. JBSWY3DPEHPK3PXP"
               />
             </div>
           </div>
