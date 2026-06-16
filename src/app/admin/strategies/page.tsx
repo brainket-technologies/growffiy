@@ -736,16 +736,22 @@ export default function StrategiesPage() {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <label style={{ fontSize: '12px', fontWeight: 600 }}>Timeframe</label>
-                      <input
-                        type="text"
+                      <select
                         value={formData.basicInfo.timeframe}
                         onChange={(e) => setFormData({
                           ...formData,
                           basicInfo: { ...formData.basicInfo, timeframe: e.target.value }
                         })}
-                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                        placeholder="e.g. 5m, 15m, 1h, 1d"
-                      />
+                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', outline: 'none' }}
+                      >
+                        <option value="1m">1m</option>
+                        <option value="3m">3m</option>
+                        <option value="5m">5m</option>
+                        <option value="15m">15m</option>
+                        <option value="30m">30m</option>
+                        <option value="1h">1h</option>
+                        <option value="1d">1d</option>
+                      </select>
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
