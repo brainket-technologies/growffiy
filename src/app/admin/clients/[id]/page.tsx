@@ -43,6 +43,8 @@ export default function ClientDetailsPage() {
   const [zerodhaClientId, setZerodhaClientId] = useState('');
   const [zerodhaApiKey, setZerodhaApiKey] = useState('');
   const [zerodhaApiSecret, setZerodhaApiSecret] = useState('');
+  const [zerodhaPassword, setZerodhaPassword] = useState('');
+  const [zerodhaTotpSecret, setZerodhaTotpSecret] = useState('');
   const [capital, setCapital] = useState('');
   const [tradingStatus, setTradingStatus] = useState('inactive');
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -52,6 +54,7 @@ export default function ClientDetailsPage() {
   // UI Visibility States
   const [showPassword, setShowPassword] = useState(false);
   const [showApiSecret, setShowApiSecret] = useState(false);
+  const [showZerodhaPassword, setShowZerodhaPassword] = useState(false);
   const [alertModal, setAlertModal] = useState<{ title: string; message: React.ReactNode; onConfirm?: () => void } | null>(null);
 
   useEffect(() => {
@@ -67,6 +70,8 @@ export default function ClientDetailsPage() {
           setZerodhaClientId(c.zerodhaClientId || '');
           setZerodhaApiKey(c.zerodhaApiKey || '');
           setZerodhaApiSecret(c.zerodhaApiSecret || '');
+          setZerodhaPassword(c.zerodhaPassword || '');
+          setZerodhaTotpSecret(c.zerodhaTotpSecret || '');
           setCapital(String(c.capital));
           setTradingStatus(c.tradingStatus);
           setAccessToken(c.accessToken || null);
@@ -120,6 +125,8 @@ export default function ClientDetailsPage() {
         zerodhaClientId,
         zerodhaApiKey,
         zerodhaApiSecret,
+        zerodhaPassword,
+        zerodhaTotpSecret,
         capital: Number(capital),
         tradingStatus,
       });
@@ -596,6 +603,53 @@ export default function ClientDetailsPage() {
                     >
                       {showApiSecret ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Zerodha Password (for Auto-Login)</label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
+                    <input 
+                      type={showZerodhaPassword ? 'text' : 'password'} 
+                      value={zerodhaPassword} 
+                      onChange={(e) => setZerodhaPassword(e.target.value)} 
+                      placeholder="Zerodha Password"
+                      style={{ paddingLeft: '40px', paddingRight: '40px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowZerodhaPassword(!showZerodhaPassword)}
+                      style={{
+                        position: 'absolute',
+                        right: '14px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--text-subtle)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      {showZerodhaPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Zerodha TOTP Secret (for Auto-Login)</label>
+                  <div style={{ position: 'relative' }}>
+                    <Key size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
+                    <input 
+                      type="text" 
+                      value={zerodhaTotpSecret} 
+                      onChange={(e) => setZerodhaTotpSecret(e.target.value)} 
+                      placeholder="e.g. JBSWY3DPEHPK3PXP"
+                      style={{ paddingLeft: '40px' }}
+                    />
                   </div>
                 </div>
 

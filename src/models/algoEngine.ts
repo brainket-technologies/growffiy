@@ -2,6 +2,8 @@ import WebSocket from 'ws';
 import { prisma } from '../lib/db';
 import { API_ENDPOINTS } from '../lib/constants';
 import { KiteClient } from '../lib/kite';
+import { performKiteAutoLogin } from '../lib/kiteAutoLogin';
+
 
 
 export interface StockQuote {
@@ -509,11 +511,26 @@ class AlgoEngineService {
           let orderStatus = 'open';
 
           // 5. Use Kite Connect API if active credentials are setup for the client
-          if (client.zerodhaApiKey && client.accessToken) {
+          let activeAccessToken = client.accessToken;
+          if (process.env.KITE_AUTO_LOGIN_ENABLED === 'true') {
+            if (client.zerodhaPassword && client.zerodhaTotpSecret) {
+              console.log(`AlgoEngine: Auto-login is enabled. Refreshing session dynamically for client: ${client.user.name}`);
+              const autoLoginRes = await performKiteAutoLogin(client.id);
+              if (autoLoginRes.success && autoLoginRes.accessToken) {
+                activeAccessToken = autoLoginRes.accessToken;
+              } else {
+                console.warn(`AlgoEngine: Dynamic auto-login failed for ${client.user.name}: ${autoLoginRes.error}`);
+              }
+            } else {
+              console.log(`AlgoEngine: Auto-login is enabled but client ${client.user.name} is missing password or TOTP secret. Skipping dynamic auto-refresh.`);
+            }
+          }
+
+          if (client.zerodhaApiKey && activeAccessToken) {
             try {
               const orderRes = await KiteClient.placeOrder(
                 client.zerodhaApiKey,
-                client.accessToken,
+                activeAccessToken,
                 {
                   exchange: 'NSE',
                   tradingsymbol: topLoser.symbol,
