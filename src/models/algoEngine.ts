@@ -457,7 +457,10 @@ class AlgoEngineService {
       for (const client of clients) {
         try {
           const strategy = client.strategy;
-          if (!strategy) continue;
+          if (!strategy || strategy.status !== 'active') {
+            console.log(`AlgoEngine: Skipping client ${client.user.name} - Strategy "${strategy?.name || 'Unknown'}" is missing or status is not active.`);
+            continue;
+          }
 
           // Parse config from the strategy record in the database
           const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
