@@ -511,29 +511,7 @@ class AlgoEngineService {
             continue;
           }
 
-          // 4. Position sizing: perday 1% amount stock me lagana (allocate 1% of client capital)
-          const capital = Number(client.capital);
-          const allocatedAmount = capital * 0.01; 
-
-          const entryPrice = topLoser.iep || topLoser.ltp || topLoser.prevClose || 100.0;
-          let quantity = Math.floor(allocatedAmount / entryPrice);
-          if (quantity <= 0) {
-            quantity = 1; // Minimum 1 share
-          }
-
-          // Use stoploss and target values directly from the database strategy config if available
-          const slPercent = config?.stoploss?.fixedPercent || 0.5;
-          const targetPercent = config?.target?.profitPercent || 1.5;
-
-          const stopLoss = entryPrice * (1 - slPercent / 100);
-          const target = entryPrice * (1 + targetPercent / 100);
-
-          console.log(`AlgoEngine: Placing trade for ${client.user.name} under database strategy "${strategy.name}" - Buy ${quantity} qty of ${topLoser.symbol} @ ${entryPrice}`);
-
-          let orderId = '';
-          let orderStatus = 'open';
-
-          // 5. Use Kite Connect API if active credentials are setup for the client
+          // 4. Use Kite Connect API if active credentials are setup for the client
           let activeAccessToken = client.accessToken;
           const isAutoLoginPossible = process.env.KITE_AUTO_LOGIN_ENABLED === 'true' && client.zerodhaPassword && client.zerodhaTotpSecret;
 
@@ -574,6 +552,41 @@ class AlgoEngineService {
             });
             continue;
           }
+
+          // 5. Position sizing: perday 1% amount stock me lagana (allocate 1% of client's live Zerodha Net Cash Balance)
+          let clientCapital = Number(client.capital);
+          try {
+            console.log(`AlgoEngine: Fetching live Zerodha margins for client ${client.user.name}...`);
+            const marginRes = await KiteClient.getMargins(client.zerodhaApiKey!, activeAccessToken);
+            if (marginRes && marginRes.status === 'success' && marginRes.data?.equity?.net !== undefined) {
+              clientCapital = Number(marginRes.data.equity.net);
+              console.log(`AlgoEngine: Successfully fetched live Net Cash Balance for ${client.user.name}: ₹${clientCapital}`);
+            } else {
+              console.warn(`AlgoEngine: Margin API response unsuccessful for ${client.user.name}. Falling back to DB capital: ₹${clientCapital}`);
+            }
+          } catch (marginErr: any) {
+            console.error(`AlgoEngine: Error fetching live Zerodha margins for ${client.user.name}. Falling back to DB capital: ₹${clientCapital}`, marginErr);
+          }
+
+          const allocatedAmount = clientCapital * 0.01; 
+
+          const entryPrice = topLoser.iep || topLoser.ltp || topLoser.prevClose || 100.0;
+          let quantity = Math.floor(allocatedAmount / entryPrice);
+          if (quantity <= 0) {
+            quantity = 1; // Minimum 1 share
+          }
+
+          // Use stoploss and target values directly from the database strategy config if available
+          const slPercent = config?.stoploss?.fixedPercent || 0.5;
+          const targetPercent = config?.target?.profitPercent || 1.5;
+
+          const stopLoss = entryPrice * (1 - slPercent / 100);
+          const target = entryPrice * (1 + targetPercent / 100);
+
+          console.log(`AlgoEngine: Placing trade for ${client.user.name} under database strategy "${strategy.name}" - Buy ${quantity} qty of ${topLoser.symbol} @ ${entryPrice}`);
+
+          let orderId = '';
+          let orderStatus = 'open';
 
           if (client.zerodhaApiKey && activeAccessToken) {
             try {
