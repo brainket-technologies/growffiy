@@ -214,6 +214,87 @@ export default function ClientDetailsPage() {
     }
   };
 
+  const showFieldInfo = (field: string) => {
+    let title = '';
+    let message: React.ReactNode = null;
+
+    switch (field) {
+      case 'clientId':
+        title = 'Zerodha Client ID';
+        message = (
+          <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+            <p><strong>What is this:</strong> Your Zerodha Kite username / login ID.</p>
+            <p style={{ marginTop: '8px' }}><strong>Where to find it:</strong></p>
+            <ol style={{ paddingLeft: '20px', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <li>Open your Kite Mobile App or visit <a href="https://kite.zerodha.com" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>kite.zerodha.com</a>.</li>
+              <li>Your 6-character login ID (e.g. <code>RZJ500</code>) is your Client ID.</li>
+            </ol>
+          </div>
+        );
+        break;
+      case 'apiKey':
+        title = 'Kite API Key';
+        message = (
+          <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+            <p><strong>What is this:</strong> A unique key provided by Zerodha Developer console to link your app.</p>
+            <p style={{ marginTop: '8px' }}><strong>Where to find it:</strong></p>
+            <ol style={{ paddingLeft: '20px', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <li>Login to the <a href="https://developers.kite.trade/" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>Kite Developer Console</a>.</li>
+              <li>Create a developer app if you haven't already.</li>
+              <li>Go to your app details, and copy the <strong>API Key</strong>.</li>
+            </ol>
+          </div>
+        );
+        break;
+      case 'apiSecret':
+        title = 'Kite API Secret';
+        message = (
+          <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+            <p><strong>What is this:</strong> A private secret key used to secure communications with the Kite API.</p>
+            <p style={{ marginTop: '8px' }}><strong>Where to find it:</strong></p>
+            <ol style={{ paddingLeft: '20px', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <li>Login to the <a href="https://developers.kite.trade/" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>Kite Developer Console</a>.</li>
+              <li>Open your app details page.</li>
+              <li>Click show under <strong>API Secret</strong> to view and copy it.</li>
+            </ol>
+          </div>
+        );
+        break;
+      case 'password':
+        title = 'Zerodha Password';
+        message = (
+          <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+            <p><strong>What is this:</strong> The login password of your Zerodha account.</p>
+            <p style={{ marginTop: '8px' }}><strong>Where to find it:</strong></p>
+            <p style={{ marginTop: '6px' }}>This is the same password you use when logging into the <a href="https://kite.zerodha.com" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>Kite website</a> or Kite mobile app.</p>
+          </div>
+        );
+        break;
+      case 'totp':
+        title = 'Zerodha TOTP Secret';
+        message = (
+          <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+            <p><strong>What is this:</strong> The 2FA/TOTP setup key that allows the server to generate 6-digit TOTP codes automatically.</p>
+            <p style={{ marginTop: '8px' }}><strong>Where to find it:</strong></p>
+            <ol style={{ paddingLeft: '20px', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <li>Go to <a href="https://kite.zerodha.com" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>Kite</a>, log in, and click on your Profile -> <strong>My Profile / Settings</strong>.</li>
+              <li>Click on <strong>Password & Security</strong>.</li>
+              <li>Click <strong>Enable 2FA TOTP</strong> (or click "Method to enable TOTP").</li>
+              <li>You will see a QR Code and a text link saying <strong>"Can't scan? Copy the key"</strong>.</li>
+              <li>Copy that secret key (e.g. <code>JBSWY3DPEHPK3PXP</code>) and paste it here.</li>
+            </ol>
+          </div>
+        );
+        break;
+      default:
+        break;
+    }
+
+    if (title && message) {
+      setAlertModal({ title, message });
+    }
+  };
+
   const handleSimulateConnection = async (connect: boolean) => {
     if (connect && tradingStatus !== 'active') {
       setAlertModal({
@@ -546,7 +627,17 @@ export default function ClientDetailsPage() {
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Zerodha Client ID</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Zerodha Client ID
+                    <button 
+                      type="button" 
+                      onClick={() => showFieldInfo('clientId')}
+                      title="Click to see where to find Client ID"
+                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
+                    >
+                      <Info size={13} />
+                    </button>
+                  </label>
                   <div style={{ position: 'relative' }}>
                     <User size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
                     <input 
@@ -560,7 +651,17 @@ export default function ClientDetailsPage() {
                 </div>
                 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Kite API Key</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Kite API Key
+                    <button 
+                      type="button" 
+                      onClick={() => showFieldInfo('apiKey')}
+                      title="Click to see where to find API Key"
+                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
+                    >
+                      <Info size={13} />
+                    </button>
+                  </label>
                   <div style={{ position: 'relative' }}>
                     <Key size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
                     <input 
@@ -574,7 +675,17 @@ export default function ClientDetailsPage() {
                 </div>
                 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Kite API Secret</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Kite API Secret
+                    <button 
+                      type="button" 
+                      onClick={() => showFieldInfo('apiSecret')}
+                      title="Click to see where to find API Secret"
+                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
+                    >
+                      <Info size={13} />
+                    </button>
+                  </label>
                   <div style={{ position: 'relative' }}>
                     <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
                     <input 
@@ -607,7 +718,17 @@ export default function ClientDetailsPage() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Zerodha Password (for Auto-Login)</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Zerodha Password (for Auto-Login)
+                    <button 
+                      type="button" 
+                      onClick={() => showFieldInfo('password')}
+                      title="Click to see where to find Zerodha Password"
+                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
+                    >
+                      <Info size={13} />
+                    </button>
+                  </label>
                   <div style={{ position: 'relative' }}>
                     <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
                     <input 
@@ -640,7 +761,17 @@ export default function ClientDetailsPage() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Zerodha TOTP Secret (for Auto-Login)</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Zerodha TOTP Secret (for Auto-Login)
+                    <button 
+                      type="button" 
+                      onClick={() => showFieldInfo('totp')}
+                      title="Click to see where to find Zerodha TOTP Secret"
+                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
+                    >
+                      <Info size={13} />
+                    </button>
+                  </label>
                   <div style={{ position: 'relative' }}>
                     <Key size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
                     <input 
