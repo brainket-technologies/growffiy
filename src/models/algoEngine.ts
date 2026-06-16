@@ -383,11 +383,30 @@ class AlgoEngineService {
     return this.stocksState;
   }
 
-  public toggleTrading(status: boolean) {
+  public async toggleTrading(status: boolean): Promise<void> {
     this.isTradingActive = status;
+    try {
+      await prisma.appSettings.upsert({
+        where: { settingKey: 'isTradingActive' },
+        update: { settingValue: String(status) },
+        create: { settingKey: 'isTradingActive', settingValue: String(status), type: 'boolean' }
+      });
+    } catch (e) {
+      console.error('Failed to save trading status to DB:', e);
+    }
   }
 
-  public getTradingStatus(): boolean {
+  public async getTradingStatus(): Promise<boolean> {
+    try {
+      const setting = await prisma.appSettings.findUnique({
+        where: { settingKey: 'isTradingActive' }
+      });
+      if (setting) {
+        this.isTradingActive = setting.settingValue === 'true';
+      }
+    } catch (e) {
+      console.error('Failed to load trading status from DB:', e);
+    }
     return this.isTradingActive;
   }
 

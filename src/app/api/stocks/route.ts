@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     const stocks = algoEngine.getStocks();
     const preOpenStocks = await algoEngine.getPreOpenStocks();
     const preOpenDate = algoEngine.getPreOpenDate();
-    const isTradingActive = algoEngine.getTradingStatus();
+    const isTradingActive = await algoEngine.getTradingStatus();
     const isWsConnected = algoEngine.isWsConnected();
     return NextResponse.json({ success: true, stocks, preOpenStocks, preOpenDate, isTradingActive, isWsConnected });
   } catch (error: any) {
