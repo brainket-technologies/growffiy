@@ -511,7 +511,7 @@ class AlgoEngineService {
 
           console.log(`AlgoEngine: Placing trade for ${client.user.name} under database strategy "${strategy.name}" - Buy ${quantity} qty of ${topLoser.symbol} @ ${entryPrice}`);
 
-          let orderId = 'simulated-order';
+          let orderId = '';
           let orderStatus = 'open';
 
           // 5. Use Kite Connect API if active credentials are setup for the client
@@ -575,19 +575,30 @@ class AlgoEngineService {
               if (orderRes && orderRes.status === 'success' && orderRes.data?.order_id) {
                 orderId = orderRes.data.order_id;
               } else {
-                console.warn('AlgoEngine: Kite order response status was not success. Placing simulated trade.');
+                console.warn(`AlgoEngine: Kite order response status was not success for ${client.user.name}. Aborting trade.`);
+                await prisma.strategyLog.create({
+                  data: {
+                    strategyId: strategy.id,
+                    message: `Kite order failed for ${client.user.name}: Zerodha API returned error status. Trade aborted.`,
+                    logType: 'error'
+                  }
+                });
+                continue;
               }
             } catch (kiteErr: any) {
               console.error(`AlgoEngine: Failed to place order on Zerodha Kite for ${client.user.name}:`, kiteErr);
-              // Save to strategy logs
               await prisma.strategyLog.create({
                 data: {
                   strategyId: strategy.id,
-                  message: `Kite order failed for ${client.user.name}: ${kiteErr.message || 'API error'}. Trade placed as simulated.`,
+                  message: `Kite order failed for ${client.user.name}: ${kiteErr.message || 'API error'}. Trade aborted.`,
                   logType: 'error'
                 }
               });
+              continue;
             }
+          } else {
+            console.warn(`AlgoEngine: Missing API key or access token for ${client.user.name}. Aborting trade.`);
+            continue;
           }
 
           // 6. Save trade in Database referencing the database strategy ID
