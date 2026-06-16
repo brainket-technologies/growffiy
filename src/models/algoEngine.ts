@@ -607,11 +607,12 @@ class AlgoEngineService {
               if (orderRes && orderRes.status === 'success' && orderRes.data?.order_id) {
                 orderId = orderRes.data.order_id;
               } else {
-                console.warn(`AlgoEngine: Kite order response status was not success for ${client.user.name}. Aborting trade.`);
+                const errMsg = orderRes?.message || 'Zerodha API returned error status';
+                console.warn(`AlgoEngine: Kite order response status was not success for ${client.user.name}. Error: ${errMsg}`);
                 await prisma.strategyLog.create({
                   data: {
                     strategyId: strategy.id,
-                    message: `Kite order failed for ${client.user.name}: Zerodha API returned error status. Trade aborted.`,
+                    message: `Kite order failed for ${client.user.name}: ${errMsg}`,
                     logType: 'error'
                   }
                 });
