@@ -25,6 +25,7 @@ export async function GET(request: Request) {
     try {
       client = await prisma.client.findUnique({
         where: { id: clientId },
+        include: { user: true }
       });
     } catch {
       // Fallback in-memory

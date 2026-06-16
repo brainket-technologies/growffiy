@@ -6,6 +6,8 @@ import { Card } from '../../views/components/Card';
 import { PerformanceChart } from '../../views/components/PerformanceChart';
 import { Loader } from '../../views/components/Loader';
 import { User, Award, ShieldCheck, Activity } from 'lucide-react';
+import { KiteClient } from '../../lib/kite';
+
 
 export default function ClientDashboardOverview() {
   const { trades, clients, colors, loading, activeUser } = useAppViewModel();
@@ -254,10 +256,37 @@ export default function ClientDashboardOverview() {
                 <span style={{ color: 'var(--text-secondary)' }}>Expiry Date:</span>
                 <strong>{endDateStr}</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Kite Connection:</span>
-                <strong style={{ color: matchedClient?.accessToken ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                  {matchedClient?.accessToken ? 'Connected' : 'Disconnected'}
+                <strong>
+                  {matchedClient?.accessToken ? (
+                    <span style={{ color: 'var(--color-success)' }}>Connected</span>
+                  ) : matchedClient?.zerodhaApiKey ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ color: 'var(--color-danger)', marginRight: '4px' }}>Expired</span>
+                      <button
+                        onClick={() => {
+                          if (typeof window !== 'undefined' && matchedClient?.zerodhaApiKey) {
+                            window.location.href = KiteClient.getLoginUrl(matchedClient.zerodhaApiKey, matchedClient.id);
+                          }
+                        }}
+                        style={{
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          backgroundColor: 'var(--primary)',
+                          color: 'white',
+                          border: 'none',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Reconnect
+                      </button>
+                    </span>
+                  ) : (
+                    <span style={{ color: 'var(--color-danger)' }}>Disconnected</span>
+                  )}
                 </strong>
               </div>
               {matchedClient?.accessToken && (
