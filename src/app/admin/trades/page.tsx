@@ -109,9 +109,10 @@ export default function LiveTradingPage() {
             <thead>
               <tr>
                 <th>Symbol</th>
+                <th>Strategy</th>
                 <th>Client</th>
-                <th>Order Type</th>
                 <th>Qty</th>
+                <th>Invested (₹)</th>
                 <th>Entry Price</th>
                 <th>Exit Price</th>
                 <th>P&L (₹)</th>
@@ -121,7 +122,7 @@ export default function LiveTradingPage() {
             <tbody>
               {trades.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                     No active trades. Deploy strategies to generate live market orders.
                   </td>
                 </tr>
@@ -129,6 +130,8 @@ export default function LiveTradingPage() {
                 trades.map((trade) => {
                   const pnl = Number(trade.pnl || 0);
                   const clientName = trade.client?.user?.name || trade.clientName || 'System Client';
+                  const strategyName = trade.strategy?.name || trade.strategyName || 'Pre-Open Momentum';
+                  const investedAmt = Number(trade.entryPrice || 0) * trade.quantity;
                   return (
                     <tr 
                       key={trade.id} 
@@ -138,9 +141,10 @@ export default function LiveTradingPage() {
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       <td style={{ fontWeight: 600 }}>{trade.symbol}</td>
+                      <td style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{strategyName}</td>
                       <td>{clientName}</td>
-                      <td>{trade.orderType}</td>
                       <td>{trade.quantity}</td>
+                      <td>₹{investedAmt.toFixed(2)}</td>
                       <td>₹{Number(trade.entryPrice || 0).toFixed(2)}</td>
                       <td>{trade.exitPrice ? `₹${Number(trade.exitPrice).toFixed(2)}` : '--'}</td>
                       <td style={{ fontWeight: 600, color: pnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
@@ -148,9 +152,9 @@ export default function LiveTradingPage() {
                       </td>
                       <td>
                         <span className={`badge ${
-                          trade.status === 'open' 
+                          trade.status.toLowerCase() === 'open' 
                             ? 'badge-info' 
-                            : trade.status === 'failed' 
+                            : trade.status.toLowerCase() === 'failed' 
                               ? 'badge-red' 
                               : 'badge-success'
                         }`}>
@@ -180,6 +184,10 @@ export default function LiveTradingPage() {
                 <strong style={{ fontSize: '15px' }}>{selectedTrade.symbol}</strong>
               </div>
               <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Strategy Name</span>
+                <strong>{selectedTrade.strategy?.name || selectedTrade.strategyName || 'Pre-Open Momentum'}</strong>
+              </div>
+              <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Client Name</span>
                 <strong>{selectedTrade.client?.user?.name || selectedTrade.clientName || 'System Client'}</strong>
               </div>
@@ -192,12 +200,16 @@ export default function LiveTradingPage() {
                 <span>{selectedTrade.quantity} shares</span>
               </div>
               <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Total Invested</span>
+                <span>₹{(Number(selectedTrade.entryPrice || 0) * selectedTrade.quantity).toFixed(2)}</span>
+              </div>
+              <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Price</span>
                 <span>₹{Number(selectedTrade.entryPrice || 0).toFixed(2)}</span>
               </div>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Status</span>
-                <span className={`badge ${selectedTrade.status === 'open' ? 'badge-info' : selectedTrade.status === 'failed' ? 'badge-red' : 'badge-success'}`}>
+                <span className={`badge ${selectedTrade.status.toLowerCase() === 'open' ? 'badge-info' : selectedTrade.status.toLowerCase() === 'failed' ? 'badge-red' : 'badge-success'}`}>
                   {selectedTrade.status.toUpperCase()}
                 </span>
               </div>

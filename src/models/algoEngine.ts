@@ -689,11 +689,34 @@ class AlgoEngineService {
           // Use stoploss and target values directly from the database strategy config if available
           const slPercent = config?.stoploss?.fixedPercent || 0.5;
           const targetPercent = config?.target?.profitPercent || 1.5;
+          const marketProtectionVal = config?.tradeAction?.marketProtection !== undefined 
+            ? Number(config.tradeAction.marketProtection) 
+            : -1;
 
           const stopLoss = entryPrice * (1 - slPercent / 100);
           const target = entryPrice * (1 + targetPercent / 100);
 
-          console.log(`AlgoEngine: Placing trade for ${client.user.name} under database strategy "${strategy.name}" - Buy ${quantity} qty of ${targetStock.symbol} @ ${entryPrice}`);
+          let orderTypeParam: 'MARKET' | 'LIMIT' | 'SL' | 'SL-M' = 'MARKET';
+          let priceParam: number | undefined = undefined;
+          let triggerPriceParam: number | undefined = undefined;
+          const configOrderType = config?.tradeAction?.orderType || 'Market';
+
+          if (configOrderType === 'Limit') {
+            orderTypeParam = 'LIMIT';
+            priceParam = Number(entryPrice.toFixed(2));
+          } else if (configOrderType === 'SL-Limit') {
+            orderTypeParam = 'SL';
+            triggerPriceParam = Number(entryPrice.toFixed(2));
+            const bufferPercent = config?.tradeAction?.bufferPercent || 0.1;
+            priceParam = Number((entryPrice * (1 + bufferPercent / 100)).toFixed(2));
+          } else if (configOrderType === 'SL-Market') {
+            orderTypeParam = 'SL-M';
+            triggerPriceParam = Number(entryPrice.toFixed(2));
+          } else {
+            orderTypeParam = 'MARKET';
+          }
+
+          console.log(`AlgoEngine: Placing trade for ${client.user.name} under database strategy "${strategy.name}" - Buy ${quantity} qty of ${targetStock.symbol} @ ${entryPrice} using ${orderTypeParam} order`);
 
           let orderId = '';
           let orderStatus = 'open';
@@ -709,9 +732,12 @@ class AlgoEngineService {
                   tradingsymbol: targetStock.symbol,
                   transaction_type: 'BUY',
                   quantity: quantity,
-                  order_type: 'MARKET',
+                  order_type: orderTypeParam,
                   product: 'MIS',
-                  validity: 'DAY'
+                  validity: 'DAY',
+                  price: priceParam,
+                  trigger_price: triggerPriceParam,
+                  ...(orderTypeParam === 'MARKET' ? { market_protection: marketProtectionVal } : {})
                 }
               );
               console.log('AlgoEngine: Kite order placement response:', orderRes);

@@ -47,12 +47,12 @@ npx prisma db seed
 Use these pre-seeded credentials to access the panels:
 
 ### Client Panel Login
-- **URL**: `https://growffiy.vercel.app/login` (or `http://localhost:3000/login` locally)
+- **URL**: `https://brainket.online/login` (or `http://localhost:3000/login` locally)
 - **Pre-seeded User ID**: `aman_sharma`
 - **Pre-seeded Password**: `123` *(Remember to toggle the "Remember Me" checkbox to keep your session active!)*
 
 ### Admin Console Login
-- **URL**: `https://growffiy.vercel.app/admin/login` (or `http://localhost:3000/admin/login` locally)
+- **URL**: `https://brainket.online/admin/login` (or `http://localhost:3000/admin/login` locally)
 - **Admin Email**: `firoz@gmail.com`
 - **Admin Password**: `12345` *(database updated/synced)*
 

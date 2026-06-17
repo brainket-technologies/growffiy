@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { algoEngine } from '../../../models/algoEngine';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     console.log("Live Server: Triggering manual execution check of Pre-Open strategy...");

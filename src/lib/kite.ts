@@ -100,7 +100,7 @@ export class KiteClient {
   /**
    * Places a regular order on Zerodha Kite.
    */
-  public static async placeOrder(
+   public static async placeOrder(
     apiKey: string,
     accessToken: string,
     params: {
@@ -113,6 +113,7 @@ export class KiteClient {
       validity?: 'DAY' | 'IOC';
       price?: number;
       trigger_price?: number;
+      market_protection?: number;
     }
   ) {
     const bodyParams = new URLSearchParams();
@@ -125,6 +126,7 @@ export class KiteClient {
     if (params.validity) bodyParams.append('validity', params.validity);
     if (params.price !== undefined) bodyParams.append('price', String(params.price));
     if (params.trigger_price !== undefined) bodyParams.append('trigger_price', String(params.trigger_price));
+    if (params.market_protection !== undefined) bodyParams.append('market_protection', String(params.market_protection));
 
     const response = await fetch(`${this.BASE_URL}/orders/regular`, {
       method: 'POST',

@@ -50,6 +50,7 @@ interface StrategyConfig {
     action: 'Buy' | 'Sell' | 'Long' | 'Short';
     orderType: 'Market' | 'Limit' | 'SL-Limit' | 'SL-Market';
     bufferPercent: number;
+    marketProtection?: number;
   };
   stoploss: {
     type: 'Fixed %' | 'Fixed Points' | 'Trailing SL' | 'Risk %';
@@ -100,7 +101,8 @@ const INITIAL_CONFIG: StrategyConfig = {
   tradeAction: {
     action: 'Long',
     orderType: 'Market',
-    bufferPercent: 0.0
+    bufferPercent: 0.0,
+    marketProtection: -1
   },
   stoploss: {
     type: 'Fixed %',
@@ -849,6 +851,27 @@ export default function StrategiesPage() {
                       <option value="SL-Market">SL Market</option>
                     </select>
                   </div>
+                  {(formData.tradeAction.orderType === 'Market' || formData.tradeAction.orderType === 'SL-Market') && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Market Protection</label>
+                      <select
+                        value={formData.tradeAction.marketProtection ?? -1}
+                        onChange={(e: any) => setFormData({
+                          ...formData,
+                          tradeAction: { ...formData.tradeAction, marketProtection: Number(e.target.value) }
+                        })}
+                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                      >
+                        <option value={-1}>Auto Protection (-1)</option>
+                        <option value={0}>Disable Protection (0)</option>
+                        <option value={1}>1% Protection</option>
+                        <option value={2}>2% Protection</option>
+                        <option value={3}>3% Protection</option>
+                        <option value={4}>4% Protection</option>
+                        <option value={5}>5% Protection</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '16px' }}>
                   <label style={{ fontSize: '12px', fontWeight: 600 }}>Buffer Price %</label>
