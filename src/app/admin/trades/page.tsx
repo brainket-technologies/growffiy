@@ -1,13 +1,15 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAppViewModel } from '../../../viewmodels/AppContext';
 import { Card } from '../../../views/components/Card';
 import { Button } from '../../../views/components/Button';
-import { Activity, Play, Square, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Activity, Play, Square, RefreshCw, AlertTriangle, Info, XCircle } from 'lucide-react';
+import { Modal } from '../../../views/components/Modal';
 
 export default function LiveTradingPage() {
   const { trades, isTradingActive, toggleTrading } = useAppViewModel();
+  const [selectedTrade, setSelectedTrade] = useState<any | null>(null);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -82,7 +84,7 @@ export default function LiveTradingPage() {
       <Card>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h4 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
-            Live Open & Recent Orders
+            Live Open & Recent Orders (Click row to see failure reason/details)
           </h4>
           <button
             onClick={() => window.location.reload()}
@@ -128,7 +130,13 @@ export default function LiveTradingPage() {
                   const pnl = Number(trade.pnl || 0);
                   const clientName = trade.client?.user?.name || trade.clientName || 'System Client';
                   return (
-                    <tr key={trade.id}>
+                    <tr 
+                      key={trade.id} 
+                      onClick={() => setSelectedTrade(trade)}
+                      style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
                       <td style={{ fontWeight: 600 }}>{trade.symbol}</td>
                       <td>{clientName}</td>
                       <td>{trade.orderType}</td>
@@ -139,7 +147,13 @@ export default function LiveTradingPage() {
                         {pnl >= 0 ? `+₹${pnl.toFixed(2)}` : `-₹${Math.abs(pnl).toFixed(2)}`}
                       </td>
                       <td>
-                        <span className={`badge ${trade.status === 'open' ? 'badge-info' : 'badge-success'}`}>
+                        <span className={`badge ${
+                          trade.status === 'open' 
+                            ? 'badge-info' 
+                            : trade.status === 'failed' 
+                              ? 'badge-red' 
+                              : 'badge-success'
+                        }`}>
                           {trade.status}
                         </span>
                       </td>
@@ -151,6 +165,86 @@ export default function LiveTradingPage() {
           </table>
         </div>
       </Card>
+
+      {/* Trade Details / Failure Reason Modal */}
+      <Modal 
+        isOpen={!!selectedTrade} 
+        onClose={() => setSelectedTrade(null)} 
+        title="Order Execution details"
+      >
+        {selectedTrade && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Symbol</span>
+                <strong style={{ fontSize: '15px' }}>{selectedTrade.symbol}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Client Name</span>
+                <strong>{selectedTrade.client?.user?.name || selectedTrade.clientName || 'System Client'}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Order Product / Type</span>
+                <span>{selectedTrade.orderType} / MIS</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Quantity</span>
+                <span>{selectedTrade.quantity} shares</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Price</span>
+                <span>₹{Number(selectedTrade.entryPrice || 0).toFixed(2)}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Status</span>
+                <span className={`badge ${selectedTrade.status === 'open' ? 'badge-info' : selectedTrade.status === 'failed' ? 'badge-red' : 'badge-success'}`}>
+                  {selectedTrade.status.toUpperCase()}
+                </span>
+              </div>
+            </div>
+
+            {/* Failure/Kite Response Details */}
+            {selectedTrade.status === 'failed' && (
+              <div style={{ padding: '12px 16px', borderRadius: '10px', backgroundColor: '#fef2f2', border: '1px solid #fee2e2', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                <XCircle size={18} color="#ef4444" style={{ marginTop: '2px', flexShrink: 0 }} />
+                <div>
+                  <h5 style={{ color: '#991b1b', fontWeight: 600, fontSize: '13px' }}>Kite Rejection Reason:</h5>
+                  <p style={{ color: '#b91c1c', fontSize: '13px', marginTop: '4px', lineHeight: '1.4' }}>
+                    {selectedTrade.kiteResponse?.message || selectedTrade.kiteResponse?.status || 'No specific error message received from Zerodha API.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Raw JSON logs */}
+            {selectedTrade.kiteResponse && (
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>
+                  Raw Zerodha API Response Logs
+                </span>
+                <pre style={{ 
+                  backgroundColor: 'var(--bg-secondary)', 
+                  border: '1px solid var(--border-color)', 
+                  padding: '12px', 
+                  borderRadius: '8px', 
+                  fontSize: '11px', 
+                  fontFamily: 'monospace',
+                  overflowX: 'auto',
+                  maxHeight: '180px',
+                  lineHeight: '1.4',
+                  color: 'var(--text-primary)'
+                }}>
+                  {JSON.stringify(selectedTrade.kiteResponse, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            <Button onClick={() => setSelectedTrade(null)} style={{ marginTop: '8px' }}>
+              Close
+            </Button>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
