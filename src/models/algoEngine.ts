@@ -61,6 +61,47 @@ class AlgoEngineService {
   constructor() {
     this.initializeKiteLiveFeed();
     this.startDailyTokenRefreshScheduler();
+    this.startDailyPreOpenStrategyScheduler();
+  }
+
+  private startDailyPreOpenStrategyScheduler() {
+    console.log('AlgoEngine: Initialized Daily Pre-Open Strategy Execution Scheduler (runs every day at 09:08 AM IST)');
+    
+    // Prevent running duplicate intervals on hot reload in dev environment
+    if ((global as any).preOpenStrategyInterval) {
+      clearInterval((global as any).preOpenStrategyInterval);
+    }
+
+    let lastExecutedDate = '';
+
+    const checkAndExecute = async () => {
+      try {
+        const istDateStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+        const istDate = new Date(istDateStr);
+        const hours = istDate.getHours();
+        const minutes = istDate.getMinutes();
+        const currentDateKey = istDate.toLocaleDateString();
+
+        // Target: 09:08 AM IST, ensure it runs once per day
+        if (hours === 9 && minutes === 8 && lastExecutedDate !== currentDateKey) {
+          console.log(`AlgoEngine Scheduler: Target time 09:08 AM IST reached. Starting daily strategy execution...`);
+          lastExecutedDate = currentDateKey;
+
+          // Find first admin user in the system to log the action under
+          const firstAdmin = await prisma.user.findFirst({
+            where: { role: 'admin' }
+          });
+          const adminId = firstAdmin ? firstAdmin.id : 'system-scheduler';
+
+          await this.executePreOpenTrades(adminId);
+        }
+      } catch (err) {
+        console.error('AlgoEngine Scheduler: Error in Pre-Open Strategy cron interval execution:', err);
+      }
+    };
+
+    // Run check every 60 seconds
+    (global as any).preOpenStrategyInterval = setInterval(checkAndExecute, 60 * 1000);
   }
 
   private startDailyTokenRefreshScheduler() {
