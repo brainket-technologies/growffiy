@@ -482,11 +482,14 @@ class AlgoEngineService {
     return this.getActiveCredentials();
   }
 
-  public async executePreOpenTrades(adminId: string): Promise<void> {
+  public async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[]): Promise<void> {
     console.log('AlgoEngine: executePreOpenTrades started.');
     try {
       // 1. Fetch pre-open stocks
-      const preOpenStocks = await this.getPreOpenStocks();
+      const preOpenStocks = mockStocks && mockStocks.length > 0 
+        ? mockStocks 
+        : await this.getPreOpenStocks();
+        
       if (!preOpenStocks || preOpenStocks.length === 0) {
         console.log('AlgoEngine: No pre-open stocks fetched. Aborting.');
         return;
