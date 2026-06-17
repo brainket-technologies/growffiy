@@ -541,10 +541,18 @@ class AlgoEngineService {
             continue;
           }
 
-          // 3. Filter F&O preOpenStocks dynamically based on database strategy conditions
+          // 3. Filter preOpenStocks dynamically based on database strategy segment and conditions
+          const segment = config.basicInfo?.segment || 'NSE F&O';
+
           const matchingStocks = preOpenStocks.filter(stock => {
-            // Strategy only applies to F&O segment
-            if (!stock.isFo) return false;
+            // Apply segment filter dynamically based on DB strategy configuration
+            if (segment === 'NSE F&O' || segment === 'Futures' || segment === 'Options') {
+              if (!stock.isFo) return false;
+            } else if (segment === 'Nifty 50' || segment === 'Nifty') {
+              if (!stock.isNifty50) return false;
+            } else if (segment === 'Bank Nifty' || segment === 'BankNifty') {
+              if (!stock.isBankNifty) return false;
+            }
             
             if (config.conditions && Array.isArray(config.conditions)) {
               for (const cond of config.conditions) {
