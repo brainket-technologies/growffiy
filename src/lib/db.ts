@@ -57,9 +57,9 @@ function getPrisma(): PrismaClient {
 
 // Export a Proxy that intercepts all database queries and initializes Prisma lazily on demand
 export const prisma = new Proxy({} as PrismaClient, {
-  get(target, prop, receiver) {
+  get(target, prop) {
     const realPrisma = getPrisma();
-    const value = Reflect.get(realPrisma, prop, receiver);
+    const value = Reflect.get(realPrisma, prop);
     if (typeof value === 'function') {
       return value.bind(realPrisma);
     }
