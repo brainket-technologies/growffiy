@@ -27,8 +27,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           const profile = await KiteClient.getProfile(client.zerodhaApiKey, client.accessToken);
           if (profile.status === 'error' || profile.error_type === 'TokenException' || profile.message === 'Invalid token') {
             console.warn(`Kite token verification failed for client ${client.id}: ${profile.message || 'TokenException'}`);
-            // We do NOT automatically clear the token or deactivate the client.
-            // The session remains visually active until explicitly disconnected by the user/admin.
+            // Clear expired token from the database so UI shows correct status
+            await prisma.client.update({
+              where: { id },
+              data: { accessToken: null }
+            });
+            client.accessToken = null;
           } else if (profile.status === 'success' && profile.data) {
             profileData = profile.data;
             try {
