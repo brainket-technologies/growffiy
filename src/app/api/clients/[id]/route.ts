@@ -21,31 +21,58 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       let profileData: any = null;
       let marginData: any = null;
 
-      // If client has access token and status is active, check token validity
+      // Helper function to check token profile and fetch margins
+      const checkAndFetchData = async (apiKey: string, token: string) => {
+        const profile = await KiteClient.getProfile(apiKey, token);
+        if (profile.status === 'success' && profile.data) {
+          let margins: any = null;
+          try {
+            const mRes = await KiteClient.getMargins(apiKey, token);
+            if (mRes.status === 'success') margins = mRes.data;
+          } catch (e) {}
+          return { isValid: true, profile: profile.data, margins };
+        }
+        return { isValid: false, profile: null, margins: null };
+      };
+
+      // 1. If we have a token, check it
       if (client.accessToken && client.tradingStatus === 'active' && client.zerodhaApiKey) {
         try {
-          const profile = await KiteClient.getProfile(client.zerodhaApiKey, client.accessToken);
-          if (profile.status === 'error' || profile.error_type === 'TokenException' || profile.message === 'Invalid token') {
-            console.warn(`Kite token verification failed for client ${client.id}: ${profile.message || 'TokenException'}`);
-            // Clear expired token from the database so UI shows correct status
+          const check = await checkAndFetchData(client.zerodhaApiKey, client.accessToken);
+          if (check.isValid) {
+            profileData = check.profile;
+            marginData = check.margins;
+          } else {
+            console.warn(`Kite token verification failed for client ${client.id}. Clearing token.`);
             await prisma.client.update({
               where: { id },
               data: { accessToken: null }
             });
             client.accessToken = null;
-          } else if (profile.status === 'success' && profile.data) {
-            profileData = profile.data;
-            try {
-              const margins = await KiteClient.getMargins(client.zerodhaApiKey, client.accessToken);
-              if (margins.status === 'success' && margins.data) {
-                marginData = margins.data;
+          }
+        } catch (e) {
+          console.error('Failed to verify Kite token session:', e);
+        }
+      }
+
+      // 2. If token is missing/expired, attempt auto-login
+      if (!client.accessToken && client.tradingStatus === 'active' && client.zerodhaPassword && client.zerodhaTotpSecret && client.zerodhaClientId) {
+        try {
+          console.log(`API: Token expired or null. Attempting auto-login for client ${client.id}...`);
+          const loginRes = await performKiteAutoLogin(client.id);
+          if (loginRes.success && loginRes.accessToken) {
+            client.accessToken = loginRes.accessToken;
+            // Fetch profile data with new token
+            if (client.zerodhaApiKey) {
+              const check = await checkAndFetchData(client.zerodhaApiKey, client.accessToken);
+              if (check.isValid) {
+                profileData = check.profile;
+                marginData = check.margins;
               }
-            } catch (marginErr) {
-              console.error('Failed to fetch margins:', marginErr);
             }
           }
-        } catch (checkErr) {
-          console.error('Failed to verify Kite token session:', checkErr);
+        } catch (autoLoginErr) {
+          console.error('API: Auto-login failed during client fetch:', autoLoginErr);
         }
       }
 
