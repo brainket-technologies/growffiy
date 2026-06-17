@@ -492,22 +492,7 @@ class AlgoEngineService {
         return;
       }
 
-      // 2. Filter Top Loser Stock based on changePercent (lowest/most negative)
-      let topLoser: StockQuote | null = null;
-      for (const stock of preOpenStocks) {
-        if (!topLoser || stock.changePercent < topLoser.changePercent) {
-          topLoser = stock;
-        }
-      }
-
-      if (!topLoser) {
-        console.log('AlgoEngine: No top loser stock identified. Aborting.');
-        return;
-      }
-
-      console.log(`AlgoEngine: Identified Today's Top Loser: ${topLoser.symbol} (${topLoser.changePercent}%)`);
-
-      // 3. Find active clients assigned to a strategy with an active subscription
+      // 2. Find active clients assigned to a strategy with an active subscription
       const clients = await prisma.client.findMany({
         where: {
           tradingStatus: 'active',
@@ -551,17 +536,63 @@ class AlgoEngineService {
 
           // Parse config from the strategy record in the database
           const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
-          
-          // Verify if this is a Pre-Open strategy
-          const isPreOpen = strategy.id === 'pre-open-breakout' || 
-                            strategy.name.toLowerCase().includes('pre open') || 
-                            strategy.name.toLowerCase().includes('pre-open') || 
-                            (config?.basicInfo?.name && config.basicInfo.name.toLowerCase().includes('pre open'));
-          
-          if (!isPreOpen) {
-            console.log(`AlgoEngine: Strategy ${strategy.name} for client ${client.user.name} is not a Pre-Open strategy. Skipping.`);
+          if (!config) {
+            console.log(`AlgoEngine: Skipping client ${client.user.name} - Strategy configJson is missing.`);
             continue;
           }
+
+          // 3. Filter F&O preOpenStocks dynamically based on database strategy conditions
+          const matchingStocks = preOpenStocks.filter(stock => {
+            // Strategy only applies to F&O segment
+            if (!stock.isFo) return false;
+            
+            if (config.conditions && Array.isArray(config.conditions)) {
+              for (const cond of config.conditions) {
+                if (cond.indicator === 'Pre Open Change %') {
+                  const val = Number(cond.value);
+                  if (cond.operator === '<' && !(stock.changePercent < val)) return false;
+                  if (cond.operator === '>' && !(stock.changePercent > val)) return false;
+                  if (cond.operator === '<=' && !(stock.changePercent <= val)) return false;
+                  if (cond.operator === '>=' && !(stock.changePercent >= val)) return false;
+                  if (cond.operator === '===' && !(stock.changePercent === val)) return false;
+                  if (cond.operator === '==' && !(stock.changePercent == val)) return false;
+                }
+              }
+            }
+            return true;
+          });
+
+          if (matchingStocks.length === 0) {
+            console.log(`AlgoEngine: No F&O stocks matched strategy conditions for client ${client.user.name}.`);
+            continue;
+          }
+
+          // 4. Select the target stock dynamically based on action (Long = lowest changePercent, Short = highest changePercent)
+          let targetStock: StockQuote | null = null;
+          const action = config.tradeAction?.action || 'Long';
+
+          for (const stock of matchingStocks) {
+            if (!targetStock) {
+              targetStock = stock;
+              continue;
+            }
+            if (action === 'Long') {
+              if (stock.changePercent < targetStock.changePercent) {
+                targetStock = stock;
+              }
+            } else {
+              if (stock.changePercent > targetStock.changePercent) {
+                targetStock = stock;
+              }
+            }
+          }
+
+          if (!targetStock) {
+            console.log(`AlgoEngine: No target stock selected for client ${client.user.name}.`);
+            continue;
+          }
+
+          console.log(`AlgoEngine: Client ${client.user.name} matches strategy "${strategy.name}". Selected stock: ${targetStock.symbol} (${targetStock.changePercent}%)`);
 
           // Check if trade already executed today for this client and strategy
           const existingTrade = await prisma.trade.findFirst({
@@ -579,7 +610,7 @@ class AlgoEngineService {
             continue;
           }
 
-          // 4. Use Kite Connect API if active credentials are setup for the client
+          // 5. Use Kite Connect API if active credentials are setup for the client
           let activeAccessToken = client.accessToken;
           const isAutoLoginPossible = process.env.KITE_AUTO_LOGIN_ENABLED === 'true' && client.zerodhaPassword && client.zerodhaTotpSecret;
 
@@ -621,7 +652,7 @@ class AlgoEngineService {
             continue;
           }
 
-          // 5. Position sizing: perday 1% amount stock me lagana (allocate 1% of client's live Zerodha Net Cash Balance)
+          // 6. Position sizing: perday 1% amount stock me lagana (allocate 1% of client's live Zerodha Net Cash Balance)
           let clientCapital = Number(client.capital);
           try {
             console.log(`AlgoEngine: Fetching live Zerodha margins for client ${client.user.name}...`);
@@ -638,7 +669,7 @@ class AlgoEngineService {
 
           const allocatedAmount = clientCapital * 0.01; 
 
-          const entryPrice = topLoser.iep || topLoser.ltp || topLoser.prevClose || 100.0;
+          const entryPrice = targetStock.iep || targetStock.ltp || targetStock.prevClose || 100.0;
           let quantity = Math.floor(allocatedAmount / entryPrice);
           if (quantity <= 0) {
             quantity = 1; // Minimum 1 share
@@ -651,7 +682,7 @@ class AlgoEngineService {
           const stopLoss = entryPrice * (1 - slPercent / 100);
           const target = entryPrice * (1 + targetPercent / 100);
 
-          console.log(`AlgoEngine: Placing trade for ${client.user.name} under database strategy "${strategy.name}" - Buy ${quantity} qty of ${topLoser.symbol} @ ${entryPrice}`);
+          console.log(`AlgoEngine: Placing trade for ${client.user.name} under database strategy "${strategy.name}" - Buy ${quantity} qty of ${targetStock.symbol} @ ${entryPrice}`);
 
           let orderId = '';
           let orderStatus = 'open';
@@ -663,7 +694,7 @@ class AlgoEngineService {
                 activeAccessToken,
                 {
                   exchange: 'NSE',
-                  tradingsymbol: topLoser.symbol,
+                  tradingsymbol: targetStock.symbol,
                   transaction_type: 'BUY',
                   quantity: quantity,
                   order_type: 'MARKET',
@@ -707,7 +738,7 @@ class AlgoEngineService {
             data: {
               clientId: client.id,
               strategyId: strategy.id,
-              symbol: topLoser.symbol,
+              symbol: targetStock.symbol,
               orderType: 'MIS',
               entryPrice: entryPrice,
               quantity: quantity,
@@ -722,7 +753,7 @@ class AlgoEngineService {
           await prisma.strategyLog.create({
             data: {
               strategyId: strategy.id,
-              message: `Intraday Trade Initiated for ${client.user.name}: Bought ${quantity} shares of ${topLoser.symbol} at entry price ₹${entryPrice.toFixed(2)} using config from DB strategy "${strategy.name}". Capital allocated (1%): ₹${allocatedAmount.toFixed(2)}. Target: ₹${target.toFixed(2)} (${targetPercent}%), Stop Loss: ₹${stopLoss.toFixed(2)} (${slPercent}%).`,
+              message: `Intraday Trade Initiated for ${client.user.name}: Bought ${quantity} shares of ${targetStock.symbol} at entry price ₹${entryPrice.toFixed(2)} using config from DB strategy "${strategy.name}". Capital allocated (1%): ₹${allocatedAmount.toFixed(2)}. Target: ₹${target.toFixed(2)} (${targetPercent}%), Stop Loss: ₹${stopLoss.toFixed(2)} (${slPercent}%).`,
               logType: 'trade'
             }
           });
@@ -734,7 +765,7 @@ class AlgoEngineService {
                 adminId: finalAdminId,
                 action: 'AUTO TRADE INITIATED',
                 oldValue: null,
-                newValue: `Client: ${client.user.name} | Strategy: ${strategy.name} | Stock: ${topLoser.symbol} | Qty: ${quantity} | Entry: ${entryPrice.toFixed(2)}`
+                newValue: `Client: ${client.user.name} | Strategy: ${strategy.name} | Stock: ${targetStock.symbol} | Qty: ${quantity} | Entry: ${entryPrice.toFixed(2)}`
               }
             }).catch(() => {});
           }
