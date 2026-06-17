@@ -65,7 +65,7 @@ class AlgoEngineService {
   }
 
   private startDailyPreOpenStrategyScheduler() {
-    console.log('AlgoEngine: Initialized Daily Pre-Open Strategy Execution Scheduler (runs every day at 09:08 AM IST)');
+    console.log('AlgoEngine: Initialized Daily Pre-Open Strategy Execution Scheduler (caching at 09:08 AM, executing at 09:15 AM IST)');
     
     // Prevent running duplicate intervals on hot reload in dev environment
     if ((global as any).preOpenStrategyInterval) {
@@ -73,6 +73,7 @@ class AlgoEngineService {
     }
 
     let lastExecutedDate = '';
+    let lastFetchedDate = '';
 
     const checkAndExecute = async () => {
       try {
@@ -82,9 +83,16 @@ class AlgoEngineService {
         const minutes = istDate.getMinutes();
         const currentDateKey = istDate.toLocaleDateString();
 
-        // Target: 09:08 AM IST, ensure it runs once per day
-        if (hours === 9 && minutes === 8 && lastExecutedDate !== currentDateKey) {
-          console.log(`AlgoEngine Scheduler: Target time 09:08 AM IST reached. Starting daily strategy execution...`);
+        // Stage 1: Fetch and cache NSE pre-open data at 09:08 AM IST
+        if (hours === 9 && minutes === 8 && lastFetchedDate !== currentDateKey) {
+          console.log(`AlgoEngine Scheduler: Target time 09:08 AM IST reached. Pre-fetching NSE pre-open data...`);
+          lastFetchedDate = currentDateKey;
+          await this.getPreOpenStocks();
+        }
+
+        // Stage 2: Execute trades at 09:15 AM IST (Market Open)
+        if (hours === 9 && minutes === 15 && lastExecutedDate !== currentDateKey) {
+          console.log(`AlgoEngine Scheduler: Target time 09:15 AM IST reached. Starting daily strategy execution...`);
           lastExecutedDate = currentDateKey;
 
           // Find first admin user in the system to log the action under
@@ -1046,7 +1054,14 @@ class AlgoEngineService {
   }
 
   public async getPreOpenStocks(): Promise<StockQuote[]> {
-    if (this.preOpenCache.length === 0 || Date.now() - this.lastPreOpenFetchTime > 5 * 60 * 1000) {
+    const todayDateStr = new Date().toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+
+    if (this.preOpenCache.length === 0 || this.preOpenCacheDate !== todayDateStr) {
+      console.log(`AlgoEngine: Pre-open cache empty or expired for today. Fetching fresh NSE pre-open data...`);
       await this.fetchLivePreOpenFromNSE();
     }
     return this.preOpenCache;
