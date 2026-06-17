@@ -39,7 +39,7 @@ interface StrategyConfig {
     description: string;
     tradeType: 'Intraday' | 'Swing' | 'Positional';
     exchange: 'NSE' | 'BSE';
-    segment: 'Cash' | 'Equity' | 'Futures' | 'Options' | 'NSE F&O';
+    segment: 'Cash' | 'Equity' | 'Futures' | 'Options' | 'NSE F&O' | 'Nifty 50' | 'Bank Nifty';
     timeframe: string;
     entryTime: string;
     exitTime: string;
@@ -732,6 +732,8 @@ export default function StrategiesPage() {
                         <option value="Futures">Futures</option>
                         <option value="Options">Options</option>
                         <option value="NSE F&O">NSE F&O</option>
+                        <option value="Nifty 50">Nifty 50</option>
+                        <option value="Bank Nifty">Bank Nifty</option>
                       </select>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
