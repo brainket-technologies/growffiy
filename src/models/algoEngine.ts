@@ -720,6 +720,24 @@ class AlgoEngineService {
               } else {
                 const errMsg = orderRes?.message || 'Zerodha API returned error status';
                 console.warn(`AlgoEngine: Kite order response status was not success for ${client.user.name}. Error: ${errMsg}`);
+                
+                // Save failed trade in Database so it shows up in UI
+                await prisma.trade.create({
+                  data: {
+                    clientId: client.id,
+                    strategyId: strategy.id,
+                    symbol: targetStock.symbol,
+                    orderType: 'MIS',
+                    entryPrice: entryPrice,
+                    quantity: quantity,
+                    stopLoss: stopLoss,
+                    target: target,
+                    status: 'FAILED',
+                    entryTime: new Date(),
+                    kiteResponse: orderRes || { error: errMsg }
+                  }
+                });
+
                 await prisma.strategyLog.create({
                   data: {
                     strategyId: strategy.id,
@@ -731,6 +749,24 @@ class AlgoEngineService {
               }
             } catch (kiteErr: any) {
               console.error(`AlgoEngine: Failed to place order on Zerodha Kite for ${client.user.name}:`, kiteErr);
+              
+              // Save failed trade in Database so it shows up in UI
+              await prisma.trade.create({
+                data: {
+                  clientId: client.id,
+                  strategyId: strategy.id,
+                  symbol: targetStock.symbol,
+                  orderType: 'MIS',
+                  entryPrice: entryPrice,
+                  quantity: quantity,
+                  stopLoss: stopLoss,
+                  target: target,
+                  status: 'FAILED',
+                  entryTime: new Date(),
+                  kiteResponse: { error: kiteErr.message || String(kiteErr) }
+                }
+              });
+
               await prisma.strategyLog.create({
                 data: {
                   strategyId: strategy.id,
