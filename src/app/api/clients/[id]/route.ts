@@ -5,6 +5,7 @@ import { prisma } from '../../../../lib/db';
 import { inMemoryClients } from '../route';
 import { KiteClient } from '../../../../lib/kite';
 import { sendEmail } from '../../../../lib/mailer';
+import { performKiteAutoLogin } from '../../../../lib/kiteAutoLogin';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -64,7 +65,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             client.accessToken = loginRes.accessToken;
             // Fetch profile data with new token
             if (client.zerodhaApiKey) {
-              const check = await checkAndFetchData(client.zerodhaApiKey, client.accessToken);
+              const check = await checkAndFetchData(client.zerodhaApiKey, loginRes.accessToken);
               if (check.isValid) {
                 profileData = check.profile;
                 marginData = check.margins;

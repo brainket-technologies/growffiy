@@ -382,7 +382,6 @@ export default function SupportPage() {
                         onChange={(e) => handleStatusChange(t.id, e.target.value)}
                         style={{
                           fontSize: '11px',
-                          fontWeight: 700,
                           padding: '4px 10px',
                           borderRadius: '12px',
                           border: '1px solid transparent',
@@ -402,7 +401,6 @@ export default function SupportPage() {
                     {/* Actions Column */}
                     <td style={{ padding: '16px', textAlign: 'right' }}>
                       <Button 
-                        size="small"
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveTicket(t);

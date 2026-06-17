@@ -92,7 +92,7 @@ export default function AuditLogsPage() {
             <Trash2 size={14} /> Clear Logs
           </button>
           <button
-            onClick={fetchLogs}
+            onClick={() => fetchLogs()}
             disabled={loading}
             style={{
               background: 'none',

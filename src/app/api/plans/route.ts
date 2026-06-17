@@ -13,7 +13,7 @@ export async function GET() {
     const mappedPlans = plans.map(p => {
       let parsedFeatures = [];
       try {
-        parsedFeatures = JSON.parse(p.features);
+        parsedFeatures = p.features ? JSON.parse(p.features) : [];
       } catch (e) {
         parsedFeatures = p.features ? p.features.split(',') : [];
       }
