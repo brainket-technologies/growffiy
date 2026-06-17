@@ -67,6 +67,10 @@ class AlgoEngineService {
 
     const checkAndRefresh = async () => {
       try {
+        if (process.env.KITE_AUTO_LOGIN_ENABLED !== 'true') {
+          return;
+        }
+
         const istDateStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
         const istDate = new Date(istDateStr);
         const hours = istDate.getHours();

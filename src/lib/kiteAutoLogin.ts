@@ -15,6 +15,11 @@ function parseCookies(cookieHeaders: string[] | null): string {
 
 export async function performKiteAutoLogin(clientId: string): Promise<{ success: boolean; accessToken?: string; error?: string }> {
   try {
+    if (process.env.KITE_AUTO_LOGIN_ENABLED !== 'true') {
+      console.log(`KiteAutoLogin: Auto-login is disabled (KITE_AUTO_LOGIN_ENABLED is not 'true')`);
+      return { success: false, error: 'Auto-login is disabled via environment configuration' };
+    }
+
     console.log(`KiteAutoLogin: Initiating auto-login for client ID: ${clientId}`);
 
     // 1. Fetch Client Credentials from Database
