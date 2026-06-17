@@ -56,7 +56,7 @@ class AlgoEngineService {
   }
 
   private startDailyTokenRefreshScheduler() {
-    console.log('AlgoEngine: Initialized Daily Token Refresh Scheduler (runs every day at 08:30 AM IST)');
+    console.log('AlgoEngine: Initialized Daily Token Refresh Scheduler (runs every day at 08:00 AM IST)');
     
     // Prevent running duplicate intervals on hot reload in dev environment
     if ((global as any).tokenRefreshInterval) {
@@ -73,9 +73,9 @@ class AlgoEngineService {
         const minutes = istDate.getMinutes();
         const currentDateKey = istDate.toLocaleDateString();
 
-        // Target: 08:30 AM IST, ensure it runs once per day
-        if (hours === 8 && minutes === 30 && lastRefreshedDate !== currentDateKey) {
-          console.log(`AlgoEngine Scheduler: Target time 08:30 AM IST reached. Starting daily token refresh...`);
+        // Target: 08:00 AM IST, ensure it runs once per day
+        if (hours === 8 && minutes === 0 && lastRefreshedDate !== currentDateKey) {
+          console.log(`AlgoEngine Scheduler: Target time 08:00 AM IST reached. Starting daily token refresh...`);
           lastRefreshedDate = currentDateKey;
 
           const clients = await prisma.client.findMany({
