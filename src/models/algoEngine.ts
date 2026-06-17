@@ -694,10 +694,11 @@ class AlgoEngineService {
 
           let orderId = '';
           let orderStatus = 'open';
+          let orderRes: any = null;
 
           if (client.zerodhaApiKey && activeAccessToken) {
             try {
-              const orderRes = await KiteClient.placeOrder(
+              orderRes = await KiteClient.placeOrder(
                 client.zerodhaApiKey,
                 activeAccessToken,
                 {
@@ -753,7 +754,8 @@ class AlgoEngineService {
               stopLoss: stopLoss,
               target: target,
               status: orderStatus,
-              entryTime: new Date()
+              entryTime: new Date(),
+              kiteResponse: orderRes
             }
           });
 

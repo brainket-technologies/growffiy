@@ -34,9 +34,28 @@ export async function GET() {
       price: 100.0
     });
 
+    // Save trade in Database referencing the client's assigned strategy ID
+    const strategyId = client.strategyId || (await prisma.strategy.findFirst())?.id || '';
+    
+    await prisma.trade.create({
+      data: {
+        clientId: client.id,
+        strategyId: strategyId,
+        symbol: 'TATASTEEL',
+        orderType: 'LIMIT',
+        entryPrice: 100.0,
+        quantity: 1,
+        stopLoss: 99.0,
+        target: 102.0,
+        status: orderRes.status === 'success' ? 'open' : 'failed',
+        entryTime: new Date(),
+        kiteResponse: orderRes
+      }
+    });
+
     return NextResponse.json({
       success: orderRes.status === 'success',
-      message: 'Test order request completed.',
+      message: 'Test order request completed and saved to database.',
       response: orderRes
     });
   } catch (error: any) {

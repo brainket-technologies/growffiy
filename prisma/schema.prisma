@@ -93,6 +93,7 @@ model Trade {
   status     String    @default("open") // open, closed, cancelled, failed
   entryTime  DateTime? @map("entry_time")
   exitTime   DateTime? @map("exit_time")
+  kiteResponse Json?   @map("kite_response")
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
 
