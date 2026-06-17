@@ -180,6 +180,9 @@ export default function ClientDetailsPage() {
             <strong>OTP & TOTP:</strong> Enter your Zerodha credentials. For the OTP, enter the TOTP/2FA code from your <strong>Kite Mobile App</strong> or <strong>Google Authenticator</strong>.
           </li>
           <li>
+            <strong>Auto-Login Setup (Recommended):</strong> Go to your Zerodha Account &gt; Settings &gt; Password &amp; Security &gt; Enable/Regenerate 2FA TOTP. Copy the raw alphanumeric Secret Key (below the QR code) and paste it into the <strong>Zerodha TOTP Secret</strong> field in the client settings. This enables fully automated daily token refresh!
+          </li>
+          <li>
             <strong>Success:</strong> Upon successful login, Zerodha will redirect you back here automatically and exchange the token!
           </li>
         </ol>
