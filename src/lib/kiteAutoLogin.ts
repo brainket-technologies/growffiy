@@ -53,7 +53,7 @@ export async function performKiteAutoLogin(clientId: string): Promise<{ success:
     loginParams.append('user_id', userId);
     loginParams.append('password', password);
 
-    const loginRes = await fetch('https://kite.zerodha.com/api/login', {
+    const loginRes = await fetch(`${KiteClient.KITE_FRONTEND_URL}/api/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -85,7 +85,7 @@ export async function performKiteAutoLogin(clientId: string): Promise<{ success:
     twofaParams.append('twofa_value', totpCode);
     twofaParams.append('twofa_type', 'totp');
 
-    const twofaRes = await fetch('https://kite.zerodha.com/api/twofa', {
+    const twofaRes = await fetch(`${KiteClient.KITE_FRONTEND_URL}/api/twofa`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -109,7 +109,7 @@ export async function performKiteAutoLogin(clientId: string): Promise<{ success:
 
     // 4. Step 3: Kite Connect authorization redirection
     console.log('KiteAutoLogin: Requesting connect redirection to fetch request token...');
-    const connectUrl = `https://kite.zerodha.com/connect/login?api_key=${apiKey}&v=3&redirect_params=state%3D${clientId}`;
+    const connectUrl = KiteClient.getLoginUrl(apiKey, clientId);
 
     const connectRes = await fetch(connectUrl, {
       method: 'GET',

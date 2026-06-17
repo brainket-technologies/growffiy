@@ -3,12 +3,13 @@ import crypto from 'crypto';
 export class KiteClient {
   private static BASE_URL = 'https://api.kite.trade';
   private static KITE_VERSION = '3';
+  public static KITE_FRONTEND_URL = 'https://kite.zerodha.com';
 
   /**
    * Generates the login connect redirect URL.
    */
   public static getLoginUrl(apiKey: string, clientId: string) {
-    return `https://kite.zerodha.com/connect/login?api_key=${apiKey}&v=${this.KITE_VERSION}&redirect_params=state%3D${clientId}`;
+    return `${this.KITE_FRONTEND_URL}/connect/login?api_key=${apiKey}&v=${this.KITE_VERSION}&redirect_params=state%3D${clientId}`;
   }
 
   /**
