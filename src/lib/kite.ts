@@ -114,6 +114,7 @@ export class KiteClient {
       price?: number;
       trigger_price?: number;
       market_protection?: number;
+      variety?: 'regular' | 'amo';
     }
   ) {
     const bodyParams = new URLSearchParams();
@@ -128,7 +129,8 @@ export class KiteClient {
     if (params.trigger_price !== undefined) bodyParams.append('trigger_price', String(params.trigger_price));
     if (params.market_protection !== undefined) bodyParams.append('market_protection', String(params.market_protection));
 
-    const response = await fetch(`${this.BASE_URL}/orders/regular`, {
+    const variety = params.variety || 'regular';
+    const response = await fetch(`${this.BASE_URL}/orders/${variety}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',

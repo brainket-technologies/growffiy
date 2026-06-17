@@ -724,22 +724,39 @@ class AlgoEngineService {
 
           if (client.zerodhaApiKey && activeAccessToken) {
             try {
+              const orderParams = {
+                exchange: 'NSE',
+                tradingsymbol: targetStock.symbol,
+                transaction_type: 'BUY' as const,
+                quantity: quantity,
+                order_type: orderTypeParam as any,
+                product: 'MIS' as const,
+                validity: 'DAY' as const,
+                price: priceParam,
+                trigger_price: triggerPriceParam,
+                ...(orderTypeParam === 'MARKET' ? { market_protection: marketProtectionVal } : {})
+              };
+
               orderRes = await KiteClient.placeOrder(
                 client.zerodhaApiKey,
                 activeAccessToken,
-                {
-                  exchange: 'NSE',
-                  tradingsymbol: targetStock.symbol,
-                  transaction_type: 'BUY',
-                  quantity: quantity,
-                  order_type: orderTypeParam,
-                  product: 'MIS',
-                  validity: 'DAY',
-                  price: priceParam,
-                  trigger_price: triggerPriceParam,
-                  ...(orderTypeParam === 'MARKET' ? { market_protection: marketProtectionVal } : {})
-                }
+                orderParams
               );
+
+              // If it fails because the market is closed or needs to be placed as AMO
+              if (orderRes && orderRes.status === 'error' && 
+                  (orderRes.message?.includes('After Market Order') || 
+                   orderRes.message?.includes('AMO') || 
+                   orderRes.message?.includes('closed') ||
+                   orderRes.message?.includes('variety'))) {
+                console.log(`AlgoEngine: Retrying order as AMO (After Market Order) because market is closed.`);
+                orderRes = await KiteClient.placeOrder(
+                  client.zerodhaApiKey,
+                  activeAccessToken,
+                  { ...orderParams, variety: 'amo' }
+                );
+              }
+
               console.log('AlgoEngine: Kite order placement response:', orderRes);
               if (orderRes && orderRes.status === 'success' && orderRes.data?.order_id) {
                 orderId = orderRes.data.order_id;
