@@ -52,6 +52,62 @@ class AlgoEngineService {
 
   constructor() {
     this.initializeKiteLiveFeed();
+    this.startDailyTokenRefreshScheduler();
+  }
+
+  private startDailyTokenRefreshScheduler() {
+    console.log('AlgoEngine: Initialized Daily Token Refresh Scheduler (runs every day at 08:30 AM IST)');
+    
+    // Prevent running duplicate intervals on hot reload in dev environment
+    if ((global as any).tokenRefreshInterval) {
+      clearInterval((global as any).tokenRefreshInterval);
+    }
+
+    let lastRefreshedDate = '';
+
+    const checkAndRefresh = async () => {
+      try {
+        const istDateStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+        const istDate = new Date(istDateStr);
+        const hours = istDate.getHours();
+        const minutes = istDate.getMinutes();
+        const currentDateKey = istDate.toLocaleDateString();
+
+        // Target: 08:30 AM IST, ensure it runs once per day
+        if (hours === 8 && minutes === 30 && lastRefreshedDate !== currentDateKey) {
+          console.log(`AlgoEngine Scheduler: Target time 08:30 AM IST reached. Starting daily token refresh...`);
+          lastRefreshedDate = currentDateKey;
+
+          const clients = await prisma.client.findMany({
+            where: {
+              tradingStatus: 'active',
+              subscriptionStatus: 'active',
+              zerodhaPassword: { not: null },
+              zerodhaTotpSecret: { not: null },
+              zerodhaClientId: { not: null }
+            },
+            include: { user: true }
+          });
+
+          console.log(`AlgoEngine Scheduler: Found ${clients.length} clients to auto-login.`);
+
+          for (const client of clients) {
+            try {
+              console.log(`AlgoEngine Scheduler: Auto-logging in client ${client.user.name} (${client.zerodhaClientId})...`);
+              const loginRes = await performKiteAutoLogin(client.id);
+              console.log(`AlgoEngine Scheduler: Auto-login result for ${client.user.name}:`, loginRes.success);
+            } catch (err: any) {
+              console.error(`AlgoEngine Scheduler: Error auto-logging in client ${client.user.name}:`, err);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('AlgoEngine Scheduler: Error in cron interval execution:', err);
+      }
+    };
+
+    // Run check every 60 seconds
+    (global as any).tokenRefreshInterval = setInterval(checkAndRefresh, 60 * 1000);
   }
 
   // Initialize Kite Live Socket feed from Environment variables or Database
