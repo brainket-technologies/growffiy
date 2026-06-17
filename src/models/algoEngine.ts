@@ -678,17 +678,20 @@ class AlgoEngineService {
             console.error(`AlgoEngine: Error fetching live Zerodha margins for ${client.user.name}. Falling back to DB capital: ₹${clientCapital}`, marginErr);
           }
 
-          const allocatedAmount = clientCapital * 0.01; 
+          const riskPercent = config?.riskManagement?.riskPerTrade || config?.stoploss?.riskPercent || 1;
+          const allocatedAmount = clientCapital * (riskPercent / 100); 
 
           const entryPrice = targetStock.iep || targetStock.ltp || targetStock.prevClose || 100.0;
-          let quantity = Math.floor(allocatedAmount / entryPrice);
+          const slPercent = config?.stoploss?.fixedPercent || 0.5;
+          const targetPercent = config?.target?.profitPercent || 1.5;
+
+          // Calculate quantity based on stoploss risk sizing
+          const lossPerShare = entryPrice * (slPercent / 100);
+          let quantity = Math.floor(allocatedAmount / lossPerShare);
           if (quantity <= 0) {
             quantity = 1; // Minimum 1 share
           }
 
-          // Use stoploss and target values directly from the database strategy config if available
-          const slPercent = config?.stoploss?.fixedPercent || 0.5;
-          const targetPercent = config?.target?.profitPercent || 1.5;
           const marketProtectionVal = config?.tradeAction?.marketProtection !== undefined 
             ? Number(config.tradeAction.marketProtection) 
             : -1;
