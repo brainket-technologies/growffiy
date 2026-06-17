@@ -1,10 +1,16 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import ws from 'ws';
 
 // Force load .env from multiple potential directory contexts
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 dotenv.config({ path: path.join(__dirname, '../../../.env') });
+
+// Setup global WebSocket polyfill for Neon serverless adapter in Node.js environment
+if (!global.WebSocket) {
+  global.WebSocket = ws as any;
+}
 
 import { PrismaClient } from '@prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
