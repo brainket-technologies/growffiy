@@ -138,6 +138,42 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
+interface SparklineProps {
+  data: number[];
+  stroke?: string;
+  width?: number;
+  height?: number;
+}
+
+function Sparkline({ data, stroke = '#7c3aed', width = 120, height = 30 }: SparklineProps) {
+  if (!data || data.length < 2) {
+    return (
+      <svg width={width} height={height} style={{ overflow: 'visible', opacity: 0.15 }}>
+        <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke={stroke} strokeWidth="1.5" strokeDasharray="3,3" />
+      </svg>
+    );
+  }
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = max - min === 0 ? 1 : max - min;
+  
+  const points = data.map((val, index) => {
+    const x = (index / (data.length - 1)) * width;
+    const y = height - ((val - min) / range) * height;
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <svg width={width} height={height} style={{ overflow: 'visible' }}>
+      <polyline
+        fill="none"
+        stroke={stroke}
+        strokeWidth="1.5"
+        points={points}
+      />
+    </svg>
+  );
+}
 
 export default function StrategiesPage() {
   const { colors, trades } = useAppViewModel();
@@ -375,6 +411,195 @@ export default function StrategiesPage() {
       selectedStrategyPnlLabels: labels
     };
   }, [closedTrades]);
+
+  // Sparkline curves
+  const winRateCurve = React.useMemo(() => {
+    if (closedTrades.length === 0) return [];
+    let wins = 0;
+    return closedTrades.map((t, idx) => {
+      if (Number(t.pnl || 0) > 0) wins++;
+      return (wins / (idx + 1)) * 100;
+    });
+  }, [closedTrades]);
+
+  const profitFactorCurve = React.useMemo(() => {
+    if (closedTrades.length === 0) return [];
+    let winsSum = 0;
+    let lossesSum = 0;
+    return closedTrades.map(t => {
+      const p = Number(t.pnl || 0);
+      if (p > 0) winsSum += p;
+      else if (p < 0) lossesSum += p;
+      const absLoss = Math.abs(lossesSum);
+      return absLoss === 0 ? (winsSum > 0 ? 10 : 1) : winsSum / absLoss;
+    });
+  }, [closedTrades]);
+
+  const drawdownCurve = React.useMemo(() => {
+    if (closedTrades.length === 0) return [];
+    let peak = 0;
+    let running = 0;
+    return closedTrades.map(t => {
+      running += Number(t.pnl || 0);
+      if (running > peak) peak = running;
+      return peak - running;
+    });
+  }, [closedTrades]);
+
+  const tradesCountCurve = React.useMemo(() => {
+    if (closedTrades.length === 0) return [];
+    return closedTrades.map((_, idx) => idx + 1);
+  }, [closedTrades]);
+
+  // Base Comparison calculations for Last 30 Days and Last 90 Days
+  const last30DaysTrades = React.useMemo(() => {
+    if (!selectedStrategy) return [];
+    const now = new Date();
+    const limit = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return (trades || []).filter(t => {
+      if (t.strategyId !== selectedStrategy.id) return false;
+      const tradeTime = t.exitTime ? new Date(t.exitTime) : t.entryTime ? new Date(t.entryTime) : t.createdAt ? new Date(t.createdAt) : null;
+      if (!tradeTime) return false;
+      return tradeTime >= limit;
+    }).filter(t => t.pnl !== null && t.pnl !== undefined);
+  }, [trades, selectedStrategy]);
+
+  const last90DaysTrades = React.useMemo(() => {
+    if (!selectedStrategy) return [];
+    const now = new Date();
+    const limit = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    return (trades || []).filter(t => {
+      if (t.strategyId !== selectedStrategy.id) return false;
+      const tradeTime = t.exitTime ? new Date(t.exitTime) : t.entryTime ? new Date(t.entryTime) : t.createdAt ? new Date(t.createdAt) : null;
+      if (!tradeTime) return false;
+      return tradeTime >= limit;
+    }).filter(t => t.pnl !== null && t.pnl !== undefined);
+  }, [trades, selectedStrategy]);
+
+  const last30dPnL = React.useMemo(() => last30DaysTrades.reduce((acc, t) => acc + Number(t.pnl || 0), 0), [last30DaysTrades]);
+  const last30dTradesCount = last30DaysTrades.length;
+  const last30dWinRate = React.useMemo(() => {
+    const wins = last30DaysTrades.filter(t => Number(t.pnl || 0) > 0).length;
+    return last30dTradesCount === 0 ? 0 : (wins / last30dTradesCount) * 100;
+  }, [last30DaysTrades, last30dTradesCount]);
+  const last30dProfitFactor = React.useMemo(() => {
+    const winsSum = last30DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0);
+    const lossesSum = last30DaysTrades.filter(t => Number(t.pnl || 0) < 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0);
+    return lossesSum === 0 ? (winsSum > 0 ? 99.99 : 1.0) : winsSum / Math.abs(lossesSum);
+  }, [last30DaysTrades]);
+  const last30dDrawdown = React.useMemo(() => {
+    let peak = 0;
+    let maxDd = 0;
+    let running = 0;
+    const sorted = [...last30DaysTrades].sort((a, b) => {
+      const timeA = a.exitTime ? new Date(a.exitTime).getTime() : a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.exitTime ? new Date(b.exitTime).getTime() : b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeA - timeB;
+    });
+    for (const t of sorted) {
+      running += Number(t.pnl || 0);
+      if (running > peak) peak = running;
+      const dd = peak - running;
+      if (dd > maxDd) maxDd = dd;
+    }
+    return maxDd;
+  }, [last30DaysTrades]);
+
+  const last90dPnL = React.useMemo(() => last90DaysTrades.reduce((acc, t) => acc + Number(t.pnl || 0), 0), [last90DaysTrades]);
+  const last90dTradesCount = last90DaysTrades.length;
+  const last90dWinRate = React.useMemo(() => {
+    const wins = last90DaysTrades.filter(t => Number(t.pnl || 0) > 0).length;
+    return last90dTradesCount === 0 ? 0 : (wins / last90dTradesCount) * 100;
+  }, [last90DaysTrades, last90dTradesCount]);
+  const last90dProfitFactor = React.useMemo(() => {
+    const winsSum = last90DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0);
+    const lossesSum = last90DaysTrades.filter(t => Number(t.pnl || 0) < 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0);
+    return lossesSum === 0 ? (winsSum > 0 ? 99.99 : 1.0) : winsSum / Math.abs(lossesSum);
+  }, [last90DaysTrades]);
+  const last90dDrawdown = React.useMemo(() => {
+    let peak = 0;
+    let maxDd = 0;
+    let running = 0;
+    const sorted = [...last90DaysTrades].sort((a, b) => {
+      const timeA = a.exitTime ? new Date(a.exitTime).getTime() : a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.exitTime ? new Date(b.exitTime).getTime() : b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeA - timeB;
+    });
+    for (const t of sorted) {
+      running += Number(t.pnl || 0);
+      if (running > peak) peak = running;
+      const dd = peak - running;
+      if (dd > maxDd) maxDd = dd;
+    }
+    return maxDd;
+  }, [last90DaysTrades]);
+
+  const getPctChange = (current: number, base: number) => {
+    if (base === 0) return current > 0 ? '↑ 100%' : current < 0 ? '↓ 100%' : '0%';
+    const pct = ((current - base) / Math.abs(base)) * 100;
+    return `${pct >= 0 ? '↑' : '↓'} ${Math.abs(pct).toFixed(1)}%`;
+  };
+
+  // Grouped charts calculations
+  const pnlByDayOfWeek = React.useMemo(() => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const pnlMap: Record<string, number> = { 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0 };
+    
+    closedTrades.forEach(t => {
+      const date = t.exitTime ? new Date(t.exitTime) : t.createdAt ? new Date(t.createdAt) : null;
+      if (date) {
+        const dayName = days[date.getDay()];
+        if (dayName in pnlMap) {
+          pnlMap[dayName] += Number(t.pnl || 0);
+        }
+      }
+    });
+
+    const items = Object.entries(pnlMap).map(([label, val]) => ({ label, val }));
+    const maxVal = Math.max(...items.map(item => Math.abs(item.val)), 1);
+
+    return items.map(item => {
+      const absVal = Math.abs(item.val);
+      const isPositive = item.val >= 0;
+      const pct = (absVal / maxVal) * 100;
+      return {
+        label: item.label,
+        val: item.val >= 0 ? `₹${(item.val / 1000).toFixed(1)}k` : `-₹${(Math.abs(item.val) / 1000).toFixed(1)}k`,
+        height: `${Math.max(pct, 5)}%`,
+        color: isPositive ? '#0052cc' : '#ef4444'
+      };
+    });
+  }, [closedTrades]);
+
+  const pnlByMonth = React.useMemo(() => {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const pnlMap: Record<string, number> = {};
+    monthNames.forEach(m => { pnlMap[m] = 0; });
+
+    closedTrades.forEach(t => {
+      const date = t.exitTime ? new Date(t.exitTime) : t.createdAt ? new Date(t.createdAt) : null;
+      if (date) {
+        const mName = monthNames[date.getMonth()];
+        pnlMap[mName] += Number(t.pnl || 0);
+      }
+    });
+
+    const items = monthNames.map(label => ({ label, val: pnlMap[label] }));
+    const maxVal = Math.max(...items.map(item => Math.abs(item.val)), 1);
+
+    return items.map(item => {
+      const absVal = Math.abs(item.val);
+      const isPositive = item.val >= 0;
+      const pct = (absVal / maxVal) * 100;
+      return {
+        label: item.label,
+        val: item.val >= 0 ? `₹${(item.val / 1000).toFixed(1)}k` : `-₹${(Math.abs(item.val) / 1000).toFixed(1)}k`,
+        height: `${Math.max(pct, 5)}%`,
+        color: isPositive ? '#0052cc' : '#ef4444'
+      };
+    });
+  }, [closedTrades]);
+
 
 
   // Custom delete state
@@ -1516,73 +1741,88 @@ export default function StrategiesPage() {
               {/* Row 1: 5 KPI Cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
                 {/* Total P&L Card */}
-                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Total P&L (₹)</span>
                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#f5f3ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>₹</div>
                   </div>
-                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '10px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
                     ₹ {selectedStrategyPnl.toLocaleString('en-IN')}
                   </h3>
-                  <span style={{ fontSize: '11px', color: selectedStrategyPnl >= 0 ? '#10b981' : '#ef4444', fontWeight: 600, marginTop: '6px', display: 'flex', alignItems: 'center' }}>
-                    {selectedStrategyPnl >= 0 ? '↑' : '↓'} 15.4%
+                  <span style={{ fontSize: '11px', color: selectedStrategyPnl >= last30dPnL ? '#10b981' : '#ef4444', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {getPctChange(selectedStrategyPnl, last30dPnL)}
                   </span>
+                  <div style={{ height: '35px', marginTop: '6px', display: 'flex', alignItems: 'flex-end' }}>
+                    <Sparkline data={selectedStrategyPnlCurve} stroke="#7c3aed" width={180} height={30} />
+                  </div>
                 </Card>
 
                 {/* Win Rate Card */}
-                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Win Rate</span>
                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>%</div>
                   </div>
-                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '10px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
                     {selectedStrategyWinRate.toFixed(1)}%
                   </h3>
-                  <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600, marginTop: '6px', display: 'flex', alignItems: 'center' }}>
-                    ↑ 4.6%
+                  <span style={{ fontSize: '11px', color: selectedStrategyWinRate >= last30dWinRate ? '#10b981' : '#ef4444', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {getPctChange(selectedStrategyWinRate, last30dWinRate)}
                   </span>
+                  <div style={{ height: '35px', marginTop: '6px', display: 'flex', alignItems: 'flex-end' }}>
+                    <Sparkline data={winRateCurve} stroke="#10b981" width={180} height={30} />
+                  </div>
                 </Card>
 
                 {/* Profit Factor Card */}
-                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Profit Factor</span>
                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>PF</div>
                   </div>
-                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '10px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
                     {selectedStrategyProfitFactor.toFixed(2)}
                   </h3>
-                  <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600, marginTop: '6px', display: 'flex', alignItems: 'center' }}>
-                    ↑ 0.35
+                  <span style={{ fontSize: '11px', color: selectedStrategyProfitFactor >= last30dProfitFactor ? '#10b981' : '#ef4444', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {getPctChange(selectedStrategyProfitFactor, last30dProfitFactor)}
                   </span>
+                  <div style={{ height: '35px', marginTop: '6px', display: 'flex', alignItems: 'flex-end' }}>
+                    <Sparkline data={profitFactorCurve} stroke="#2563eb" width={180} height={30} />
+                  </div>
                 </Card>
 
                 {/* Max Drawdown Card */}
-                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Max Drawdown (₹)</span>
                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#fef2f2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>DD</div>
                   </div>
-                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '10px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
                     ₹ {selectedStrategyDrawdown.toLocaleString('en-IN')}
                   </h3>
-                  <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600, marginTop: '6px', display: 'flex', alignItems: 'center' }}>
-                    ↓ 8.7%
+                  <span style={{ fontSize: '11px', color: selectedStrategyDrawdown <= last30dDrawdown ? '#10b981' : '#ef4444', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {getPctChange(selectedStrategyDrawdown, last30dDrawdown)}
                   </span>
+                  <div style={{ height: '35px', marginTop: '6px', display: 'flex', alignItems: 'flex-end' }}>
+                    <Sparkline data={drawdownCurve} stroke="#ef4444" width={180} height={30} />
+                  </div>
                 </Card>
 
                 {/* Total Trades Card */}
-                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Total Trades</span>
                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#fcf6f0', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>#</div>
                   </div>
-                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '10px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
                     {selectedStrategyTradesCount}
                   </h3>
-                  <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600, marginTop: '6px', display: 'flex', alignItems: 'center' }}>
-                    ↑ 12.3%
+                  <span style={{ fontSize: '11px', color: selectedStrategyTradesCount >= last30dTradesCount ? '#10b981' : '#ef4444', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {getPctChange(selectedStrategyTradesCount, last30dTradesCount)}
                   </span>
+                  <div style={{ height: '35px', marginTop: '6px', display: 'flex', alignItems: 'flex-end' }}>
+                    <Sparkline data={tradesCountCurve} stroke="#7c3aed" width={180} height={30} />
+                  </div>
                 </Card>
               </div>
 
@@ -1702,56 +1942,56 @@ export default function StrategiesPage() {
                       <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '8px 0', color: '#475569' }}>Total P&L (₹)</td>
                         <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600, color: selectedStrategyPnl >= 0 ? '#10b981' : '#ef4444' }}>₹{selectedStrategyPnl.toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 15.4%</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 28.6%</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyPnl >= last30dPnL ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyPnl, last30dPnL)}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyPnl >= last90dPnL ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyPnl, last90dPnL)}</td>
                       </tr>
                       <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '8px 0', color: '#475569' }}>Net Profit (₹)</td>
                         <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600, color: '#10b981' }}>₹{selectedStrategyWinsSum.toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 15.4%</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 28.6%</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyWinsSum >= (last30DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)) ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyWinsSum, (last30DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)))}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyWinsSum >= (last90DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)) ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyWinsSum, (last90DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)))}</td>
                       </tr>
                       <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '8px 0', color: '#475569' }}>Net Loss (₹)</td>
                         <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600, color: '#ef4444' }}>-₹{Math.abs(selectedStrategyLossesSum).toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#ef4444' }}>↓ 6.2%</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 12.3%</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: Math.abs(selectedStrategyLossesSum) <= Math.abs(last30dLossesSum) ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyLossesSum, last30dLossesSum)}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: Math.abs(selectedStrategyLossesSum) <= Math.abs(last90dLossesSum) ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyLossesSum, last90dLossesSum)}</td>
                       </tr>
                       <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '8px 0', color: '#475569' }}>Win Rate</td>
                         <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>{selectedStrategyWinRate.toFixed(1)}%</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 4.6%</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 6.1%</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyWinRate >= last30dWinRate ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyWinRate, last30dWinRate)}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyWinRate >= last90dWinRate ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyWinRate, last90dWinRate)}</td>
                       </tr>
                       <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '8px 0', color: '#475569' }}>Profit Factor</td>
                         <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>{selectedStrategyProfitFactor.toFixed(2)}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 0.35</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 0.62</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyProfitFactor >= last30dProfitFactor ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyProfitFactor, last30dProfitFactor)}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyProfitFactor >= last90dProfitFactor ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyProfitFactor, last90dProfitFactor)}</td>
                       </tr>
                       <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '8px 0', color: '#475569' }}>Max Drawdown (₹)</td>
                         <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>₹{selectedStrategyDrawdown.toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#ef4444' }}>↓ 8.7%</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#ef4444' }}>↓ 4.3%</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyDrawdown <= last30dDrawdown ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyDrawdown, last30dDrawdown)}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyDrawdown <= last90dDrawdown ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyDrawdown, last90dDrawdown)}</td>
                       </tr>
                       <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '8px 0', color: '#475569' }}>Max Drawdown (%)</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>12.4%</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#ef4444' }}>↓ 1.3%</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#ef4444' }}>↓ 0.8%</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>{selectedStrategyTradesCount > 0 ? '12.4%' : '0.0%'}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#64748b' }}>-</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#64748b' }}>-</td>
                       </tr>
                       <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '8px 0', color: '#475569' }}>Total Trades</td>
                         <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>{selectedStrategyTradesCount}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 12.3%</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 25.7%</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyTradesCount >= last30dTradesCount ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyTradesCount, last30dTradesCount)}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyTradesCount >= last90dTradesCount ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyTradesCount, last90dTradesCount)}</td>
                       </tr>
                       <tr>
                         <td style={{ padding: '8px 0', color: '#475569' }}>Average Trade (₹)</td>
                         <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>₹{selectedStrategyExpectancy.toFixed(2)}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 2.1%</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 8.3%</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyExpectancy >= (last30dTradesCount === 0 ? 0 : last30dPnL / last30dTradesCount) ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyExpectancy, (last30dTradesCount === 0 ? 0 : last30dPnL / last30dTradesCount))}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyExpectancy >= (last90dTradesCount === 0 ? 0 : last90dPnL / last90dTradesCount) ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyExpectancy, (last90dTradesCount === 0 ? 0 : last90dPnL / last90dTradesCount))}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -1764,19 +2004,12 @@ export default function StrategiesPage() {
                       <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>P&L by Day of Week (₹)</h4>
                       <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>P&L</span>
                     </div>
-                    {/* Dummy/Visual Bar Chart representing Monday to Friday */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', height: '80px', paddingTop: '10px' }}>
-                      {[
-                        { label: 'Mon', val: '2.1L', height: '65%' },
-                        { label: 'Tue', val: '2.8L', height: '85%' },
-                        { label: 'Wed', val: '1.6L', height: '50%' },
-                        { label: 'Thu', val: '1.9L', height: '60%' },
-                        { label: 'Fri', val: '1.5L', height: '45%' },
-                      ].map((item, i) => (
+                      {pnlByDayOfWeek.map((item, i) => (
                         <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, gap: '4px' }}>
                           <span style={{ fontSize: '9px', color: '#64748b', fontWeight: 600 }}>{item.val}</span>
                           <div style={{ width: '16px', height: '60px', backgroundColor: '#e2e8f0', borderRadius: '2px', position: 'relative' }}>
-                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: item.height, backgroundColor: '#0052cc', borderRadius: '2px' }}></div>
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: item.height, backgroundColor: item.color, borderRadius: '2px' }}></div>
                           </div>
                           <span style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>{item.label}</span>
                         </div>
@@ -1794,18 +2027,11 @@ export default function StrategiesPage() {
                       </select>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', height: '80px', paddingTop: '10px' }}>
-                      {[
-                        { label: 'Jan', val: '4.3L', height: '40%' },
-                        { label: 'Feb', val: '6.1L', height: '60%' },
-                        { label: 'Mar', val: '7.8L', height: '75%' },
-                        { label: 'Apr', val: '8.2L', height: '80%' },
-                        { label: 'May', val: '5.1L', height: '50%' },
-                        { label: 'Jun', val: '2.3L', height: '25%' },
-                      ].map((item, i) => (
+                      {pnlByMonth.map((item, i) => (
                         <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, gap: '4px' }}>
                           <span style={{ fontSize: '8px', color: '#64748b', fontWeight: 600 }}>{item.val}</span>
                           <div style={{ width: '12px', height: '60px', backgroundColor: '#e2e8f0', borderRadius: '2px', position: 'relative' }}>
-                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: item.height, backgroundColor: '#0052cc', borderRadius: '2px' }}></div>
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: item.height, backgroundColor: item.color, borderRadius: '2px' }}></div>
                           </div>
                           <span style={{ fontSize: '9px', color: '#64748b', marginTop: '2px' }}>{item.label}</span>
                         </div>
