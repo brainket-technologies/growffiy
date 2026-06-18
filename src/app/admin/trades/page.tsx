@@ -33,7 +33,7 @@ const formatDateTime = (timeStr: string | Date | null) => {
 };
 
 export default function LiveTradingPage() {
-  const { trades, isTradingActive } = useAppViewModel();
+  const { trades = [], isTradingActive } = useAppViewModel();
   const [selectedTrade, setSelectedTrade] = useState<any | null>(null);
 
   // Filter local states
@@ -48,12 +48,13 @@ export default function LiveTradingPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
-  // Dynamic filter lists
-  const uniqueClients = Array.from(new Set(trades.map(t => t.client?.user?.name || t.clientName).filter(Boolean)));
-  const uniqueStrategies = Array.from(new Set(trades.map(t => t.strategy?.name || t.strategyName).filter(Boolean)));
-  const uniqueSymbols = Array.from(new Set(trades.map(t => t.symbol).filter(Boolean)));
+  // Dynamic filter lists safely extracted
+  const uniqueClients = Array.from(new Set((trades || []).map(t => t && (t.client?.user?.name || t.clientName)).filter(Boolean))) as string[];
+  const uniqueStrategies = Array.from(new Set((trades || []).map(t => t && (t.strategy?.name || t.strategyName)).filter(Boolean))) as string[];
+  const uniqueSymbols = Array.from(new Set((trades || []).map(t => t && t.symbol).filter(Boolean))) as string[];
 
   const getTransactionType = (trade: any) => {
+    if (!trade) return 'BUY';
     try {
       const config = JSON.parse(trade.strategy?.configJson || '{}');
       const action = config?.tradeAction?.action || 'Long';
@@ -64,7 +65,8 @@ export default function LiveTradingPage() {
     return 'BUY';
   };
 
-  const filteredTrades = trades.filter(trade => {
+  const filteredTrades = (trades || []).filter(trade => {
+    if (!trade) return false;
     const symbol = (trade.symbol || '').toLowerCase();
     const strategy = (trade.strategy?.name || trade.strategyName || '').toLowerCase();
     const client = (trade.client?.user?.name || trade.clientName || '').toLowerCase();
@@ -90,6 +92,7 @@ export default function LiveTradingPage() {
   const handleExportCSV = () => {
     const headers = ['Date & Time', 'Client', 'Strategy', 'Type', 'Symbol', 'Qty', 'Entry Price', 'Exit Price', 'P&L (INR)', 'Status'];
     const rows = filteredTrades.map(trade => {
+      if (!trade) return [];
       const pnl = Number(trade.pnl || 0);
       const entryPriceVal = Number(trade.entryPrice || 0);
       const exitPriceVal = Number(trade.exitPrice || 0);
@@ -102,13 +105,13 @@ export default function LiveTradingPage() {
         strategyName,
         txType,
         trade.symbol,
-        trade.quantity,
+        trade.quantity || 0,
         entryPriceVal.toFixed(2),
         exitPriceVal ? exitPriceVal.toFixed(2) : '--',
         pnl.toFixed(2),
-        trade.status.toUpperCase()
+        (trade.status || '').toUpperCase()
       ];
-    });
+    }).filter(row => row.length > 0);
 
     const csvContent = [
       headers.join(','),
@@ -337,14 +340,16 @@ export default function LiveTradingPage() {
                 </tr>
               ) : (
                 paginatedTrades.map((trade) => {
+                  if (!trade) return null;
                   const pnl = Number(trade.pnl || 0);
                   const entryPriceVal = Number(trade.entryPrice || 0);
                   const exitPriceVal = Number(trade.exitPrice || 0);
+                  const quantityVal = Number(trade.quantity || 0);
 
                   // Calculate P&L %
                   let pnlPercent = 0;
-                  if (entryPriceVal > 0) {
-                    pnlPercent = (pnl / (entryPriceVal * trade.quantity)) * 100;
+                  if (entryPriceVal > 0 && quantityVal > 0) {
+                    pnlPercent = (pnl / (entryPriceVal * quantityVal)) * 100;
                   }
 
                   const clientName = trade.client?.user?.name || trade.clientName || 'System Client';
@@ -372,7 +377,7 @@ export default function LiveTradingPage() {
                         </span>
                       </td>
                       <td style={{ fontWeight: 600 }}>{trade.symbol}</td>
-                      <td>{trade.quantity}</td>
+                      <td>{quantityVal}</td>
                       <td>₹{entryPriceVal.toFixed(2)}</td>
                       <td>{exitPriceVal ? `₹${exitPriceVal.toFixed(2)}` : '--'}</td>
                       <td style={{ fontWeight: 600, color: pnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
@@ -383,15 +388,15 @@ export default function LiveTradingPage() {
                       </td>
                       <td>
                         <span className={`badge ${
-                          trade.status.toLowerCase() === 'open' 
+                          (trade.status || '').toLowerCase() === 'open' 
                             ? 'badge-info' 
-                            : trade.status.toLowerCase() === 'failed' 
+                            : (trade.status || '').toLowerCase() === 'failed' 
                               ? 'badge-danger' 
-                              : trade.status.toLowerCase() === 'cancelled'
+                              : (trade.status || '').toLowerCase() === 'cancelled'
                                 ? 'badge-warning'
                                 : 'badge-success'
                         }`}>
-                          {trade.status.toUpperCase()}
+                          {(trade.status || '').toUpperCase()}
                         </span>
                       </td>
                     </tr>
@@ -492,11 +497,11 @@ export default function LiveTradingPage() {
               </div>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Quantity</span>
-                <span>{selectedTrade.quantity} shares</span>
+                <span>{selectedTrade.quantity || 0} shares</span>
               </div>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Total Invested</span>
-                <span>₹{(Number(selectedTrade.entryPrice || 0) * selectedTrade.quantity).toFixed(2)}</span>
+                <span>₹{(Number(selectedTrade.entryPrice || 0) * (selectedTrade.quantity || 0)).toFixed(2)}</span>
               </div>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Time</span>
@@ -516,14 +521,14 @@ export default function LiveTradingPage() {
               </div>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Status</span>
-                <span className={`badge ${selectedTrade.status.toLowerCase() === 'open' ? 'badge-info' : selectedTrade.status.toLowerCase() === 'failed' ? 'badge-red' : 'badge-success'}`}>
-                  {selectedTrade.status.toUpperCase()}
+                <span className={`badge ${selectedTrade.status ? (selectedTrade.status.toLowerCase() === 'open' ? 'badge-info' : selectedTrade.status.toLowerCase() === 'failed' ? 'badge-red' : 'badge-success') : ''}`}>
+                  {(selectedTrade.status || '').toUpperCase()}
                 </span>
               </div>
             </div>
 
             {/* Failure/Kite Response Details */}
-            {selectedTrade.status.toLowerCase() === 'failed' && (
+            {selectedTrade.status && selectedTrade.status.toLowerCase() === 'failed' && (
               <div style={{ padding: '12px 16px', borderRadius: '10px', backgroundColor: '#fef2f2', border: '1px solid #fee2e2', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                 <XCircle size={18} color="#ef4444" style={{ marginTop: '2px', flexShrink: 0 }} />
                 <div>
