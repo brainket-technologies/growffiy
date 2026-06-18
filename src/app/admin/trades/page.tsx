@@ -182,20 +182,6 @@ export default function LiveTradingPage() {
             </div>
           </div>
         </Card>
-
-        <Card>
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-            <div style={{ padding: '12px', borderRadius: '12px', backgroundColor: '#fef3c7', color: '#d97706' }}>
-              <AlertTriangle size={24} />
-            </div>
-            <div>
-              <h4 style={{ fontWeight: 600, fontSize: '15px' }}>Risk Guard</h4>
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                Daily Loss Limit: Enforced at 3% max portfolio drawdown.
-              </p>
-            </div>
-          </div>
-        </Card>
       </div>
 
       {/* Live Trades Table */}
