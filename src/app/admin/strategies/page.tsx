@@ -904,13 +904,13 @@ export default function StrategiesPage() {
             {viewMode === 'list' && 'Strategies'}
             {viewMode === 'create' && 'Create Algo Strategy'}
             {viewMode === 'edit' && `Edit Strategy`}
-            {viewMode === 'detail' && `${selectedStrategy?.name}`}
+            {viewMode === 'detail' && 'Strategy Detail'}
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
             {viewMode === 'list' && 'Deploy, configure, and monitor advanced algorithmic strategies.'}
             {viewMode === 'create' && 'Build a new strategy block with custom entry, target, and trailing rules.'}
             {viewMode === 'edit' && `Editing: ${selectedStrategy?.name}`}
-            {viewMode === 'detail' && (selectedStrategy?.description || 'Overview of settings, performance history, and client deployment.')}
+            {viewMode === 'detail' && 'Overview of settings, performance history, and client deployment.'}
           </p>
         </div>
 
@@ -1630,6 +1630,11 @@ export default function StrategiesPage() {
                     {selectedStrategy.status.toUpperCase()}
                   </span>
                 </div>
+                {selectedStrategy.description && (
+                  <p style={{ fontSize: '13px', color: '#64748b', margin: '6px 0 8px 0', lineHeight: '1.4' }}>
+                    {selectedStrategy.description}
+                  </p>
+                )}
                 <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
                   <span>Strategy Type: <strong>{(() => { try { return JSON.parse(selectedStrategy.configJson).basicInfo.tradeType } catch(e) { return 'Intraday' } })()}</strong></span>
                   <span>Asset Class: <strong>Equity (Cash)</strong></span>
