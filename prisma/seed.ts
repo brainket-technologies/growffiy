@@ -38,7 +38,10 @@ async function main() {
         stoploss: { type: 'Trailing SL', orderType: 'Market', fixedPercent: 0.5, fixedPoints: 5, trailingSL: 0.2, riskPercent: 1.0 },
         target: { type: 'Trailing Target', profitPercent: 1.5, riskRewardRatio: 3.0, partialExit: 50, trailingTarget: 0.5 },
         riskManagement: { capitalAllocation: 10.0, riskPerTrade: 1.0, maxDailyLoss: 5000, maxDailyProfit: 15000, maxOpenPositions: 2, killSwitch: false },
-        conditions: []
+        conditions: [
+          { logical: 'AND', indicator: 'Gap Down', operator: '>', value: '1.5' },
+          { logical: 'AND', indicator: 'RSI', operator: '<', value: '30' }
+        ]
       })
     },
     create: {
@@ -63,7 +66,10 @@ async function main() {
         stoploss: { type: 'Trailing SL', orderType: 'Market', fixedPercent: 0.5, fixedPoints: 5, trailingSL: 0.2, riskPercent: 1.0 },
         target: { type: 'Trailing Target', profitPercent: 1.5, riskRewardRatio: 3.0, partialExit: 50, trailingTarget: 0.5 },
         riskManagement: { capitalAllocation: 10.0, riskPerTrade: 1.0, maxDailyLoss: 5000, maxDailyProfit: 15000, maxOpenPositions: 2, killSwitch: false },
-        conditions: []
+        conditions: [
+          { logical: 'AND', indicator: 'Gap Down', operator: '>', value: '1.5' },
+          { logical: 'AND', indicator: 'RSI', operator: '<', value: '30' }
+        ]
       })
     }
   });
