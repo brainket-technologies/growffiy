@@ -56,34 +56,10 @@ status:  active
     "selectPosition": 1,
     "status": "active"
   },
-  "tradeAction": {
-    "action": "Long",
-    "orderType": "Limit",
-    "bufferPercent": 0.1
-  },
-  "stoploss": {
-    "type": "Trailing SL",
-    "orderType": "Market",
-    "fixedPercent": 0.5,
-    "trailingSL": 0.2,
-    "fixedPoints": 5,
-    "riskPercent": 1
-  },
-  "target": {
-    "type": "Trailing Target",
-    "profitPercent": 1.5,
-    "trailingTarget": 0.5,
-    "riskRewardRatio": 3,
-    "partialExit": 50
-  },
-  "riskManagement": {
-    "riskPerTrade": 1,
-    "capitalAllocation": 10,
-    "maxDailyLoss": 5000,
-    "maxDailyProfit": 15000,
-    "maxOpenPositions": 2,
-    "killSwitch": false
-  },
+  "tradeAction": { "action": "Long", "orderType": "Limit", "bufferPercent": 0.1 },
+  "stoploss": { "type": "Trailing SL", "fixedPercent": 0.5, "trailingSL": 0.2 },
+  "target": { "profitPercent": 1.5, "trailingTarget": 0.5 },
+  "riskManagement": { "riskPerTrade": 1, "capitalAllocation": 10 },
   "conditions": []
 }
 ```
@@ -93,10 +69,8 @@ status:  active
 ```
 id:                  b364d72f-e2e2-4dbc-bbef-3286c75e1875
 zerodha_client_id:   RZJ500
-capital:             ₹50,000.00
-risk_percentage:     1.00%
-trading_status:      active
-subscription_status: active
+capital:             ₹50,000 | risk_percentage: 1%
+trading_status:      active | subscription_status: active
 strategy_id:         c7bafa89-...
 ```
 
@@ -109,217 +83,453 @@ algo_token_refresh_time → 08:00
 algo_check_interval_sec → 60
 ```
 
-### Table: `strategy_conditions` — Empty
+---
 
-### Table: `strategy_templates` — Empty
+## 3. Complete Execution Flow
+
+Har stage me **Bina Code (plain explanation)** + **Code (actual code from algoEngine.ts)** dono diya gaya hai.
 
 ---
 
-## 3. Complete Execution Flow (Step by Step with Code References)
+### ⏰ 08:00 — Token Refresh
 
-### 08:00 — `startDailyTokenRefreshScheduler()` (line 151)
-
+#### Bina Code
 ```
-Har 60 sec check → currentTime === cachedRefreshTime (08:00) && lastRefreshedDate !== today?
-
-Function: checkAndRefresh (line 161)
-├── IF KITE_AUTO_LOGIN_ENABLED !== 'true' → RETURN (skip)
-├── cachedRefreshTime = getAlgoSetting('algo_token_refresh_time', '08:00')
-├── currentTimeStr built from IST date
-├── if (currentTimeStr === cachedRefreshTime && date mismatch):
-│   ├── performKiteAutoLogin(client.id)     → TOTP login
-│   │   ├── client.zerodhaPassword + zerodhaTotpSecret → generate TOTP
-│   │   ├── Kite login API → session token
-│   │   └── DB update: client.accessToken = new token
-│   └── lastRefreshedDate = currentDateKey
-└── setInterval(checkAndRefresh, 60 * 1000)
+Kya KITE_AUTO_LOGIN_ENABLED = true hai?
+→ Nahi → kuch mat karo, skip
+→ Ha → client ki zerodhaPassword + zerodhaTotpSecret lo
+       → TOTP generate karo
+       → Kite login API call karo
+       → naya accessToken aayega
+       → client.accessToken DB me update karo
 ```
 
-**DB Read:** `app_settings` (algo_token_refresh_time), `clients` (zerodhaPassword, zerodhaTotpSecret)
-**DB Write:** `clients.accessToken`
+#### Code (`algoEngine.ts:151-174`)
+```typescript
+private startDailyTokenRefreshScheduler() {
+  const checkAndRefresh = async () => {
+    if (process.env.KITE_AUTO_LOGIN_ENABLED !== 'true') return;
 
----
+    cachedRefreshTime = await this.getAlgoSetting('algo_token_refresh_time', '08:00');
 
-### 09:08 — `startDailyPreOpenStrategyScheduler()` — Stage 1 (line 80)
-
-```
-Same setInterval, har 60 sec:
-
-Stage 1 → currentTime === cachedFetchTime (09:08) && lastFetchedDate !== today?
-
-Function: getPreOpenStocks() (line 1477)
-├── IF preOpenCache empty OR date expired → fetchLivePreOpenFromNSE()
-│   └── RETURN preOpenCache
-│
-└── fetchLivePreOpenFromNSE() (line 1349)
-    ├── NSE API: GET nseindia.com/api/market-data-pre-open
-    │   ├── Cookies set from NSE homepage (line 1359)
-    │   ├── Also fetch NIFTY, BANKNIFTY, FO, SME index members (line 1379-1384)
-    │   └── Parse response → StockQuote[] array
-    ├── For each stock set: isNifty50, isBankNifty, isFo, isSme flags
-    ├── preOpenCache = freshStocks
-    ├── WebSocket re-subscribe to new symbols (line 1451-1463)
-    └── RETURN freshStocks
-
-DB Write: app_settings (PRE_OPEN_QUOTES_DATA) ← stores full JSON
+    if (currentTimeStr === cachedRefreshTime && lastRefreshedDate !== currentDateKey) {
+      for (const client of clients) {
+        const res = await performKiteAutoLogin(client.id);
+        if (res.success && res.accessToken) {
+          // client.accessToken updated in DB
+        }
+      }
+      lastRefreshedDate = currentDateKey;
+    }
+  };
+  setInterval(checkAndRefresh, 60 * 1000);
+}
 ```
 
 ---
 
-### 09:15 — `startDailyPreOpenStrategyScheduler()` — Stage 1.5 (line 124)
+### ⏰ 09:08 — Pre-Open Data Fetch (Stage 1)
 
+#### Bina Code
 ```
-Stage 1.5 → currentTime === cachedPreSelectTime (09:15)
+Scheduler har 60 second check karta hai.
+Jab time 09:08 hota hai aur aaj ka data nahi fetch hua:
 
-cachedPreSelectTime = strategy.configJson.basicInfo.preSelectTime (line 105)
+1. NSE India ki official API call karo
+   → Pehle NSE homepage se cookies lo
+   → Phir pre-open API call karo
+2. JSON response parse karo → har stock ka:
+   - symbol, name, ltp, high, low
+   - changePercent, prevClose
+   - isFo (F&O stock?), isNifty50?, isBankNifty?
+3. preOpenCache[] memory me store karo
+4. PRE_OPEN_QUOTES_DATA app_setting DB me store karo
+5. WebSocket ko naye symbols subscribe karo
+```
 
-Function: preSelectAllClients() (line 756)
-├── preOpenStocks = preOpenCache (stage 1 se already fetch)
-├── clients = prisma.client.findMany({
-│     where: { tradingStatus:'active', subscriptionStatus:'active', strategyId: not null },
-│     include: { user, strategy }
-│   })
-├── preselectedForClient.clear()                ← Map reset
-│
-├── FOR each client:
-│   ├── strategy = client.strategy
-│   ├── IF strategy.status !== 'active' → SKIP
-│   ├── config = JSON.parse(strategy.configJson)
-│   │
-│   ├── SEGMENT FILTER (line 791-798):
-│   │   ├── IF segment === 'NSE F&O' | 'Futures' | 'Options':
-│   │   │   → stock.isFo === false? → EXCLUDE
-│   │   ├── IF segment === 'Nifty 50' | 'Nifty':
-│   │   │   → stock.isNifty50 === false? → EXCLUDE
-│   │   └── IF segment === 'Bank Nifty' | 'BankNifty':
-│   │       → stock.isBankNifty === false? → EXCLUDE
-│   │
-│   ├── CONDITIONS FILTER (line 799-816):
-│   │   ├── IF conditions array is empty → ALL PASS
-│   │   ├── IF condition.indicator === 'Pre Open Change %':
-│   │   │   → Compare stock.changePercent with cond.value
-│   │   │   → Operators: < > <= >= === ==
-│   │   └── IF condition.indicator === 'Price Action':
-│   │       → Compare stock.ltp with stock.high/prevClose
-│   │       → Operators: > >=
-│   │
-│   ├── IF matchingStocks.length === 0 → SKIP (log)
-│   │
-│   ├── SORT (line 828-830):
-│   │   ├── Action = 'Long' → ascending by changePercent (most negative first)
-│   │   └── Action = 'Short' → descending by changePercent (most positive first)
-│   │
-│   ├── PICK (line 837):
-│   │   selectPosition = config.basicInfo.selectPosition || 1
-│   │   candidateStock = sortedStocks[selectPosition - 1]
-│   │
-│   └── STORE (line 838):
-│       preselectedForClient.set(client.id, candidateStock)
-│       → In-memory Map me store (RAM me, DB nahi)
-│
-└── Console: "X/Y clients have a preselected stock ready"
+#### Code (`algoEngine.ts:1477-1489` + `1349-1471`)
+```typescript
+// getPreOpenStocks - line 1477
+public async getPreOpenStocks(): Promise<StockQuote[]> {
+  if (this.preOpenCache.length === 0 || this.preOpenCacheDate !== todayDateStr) {
+    await this.fetchLivePreOpenFromNSE();
+  }
+  return this.preOpenCache;
+}
+
+// fetchLivePreOpenFromNSE - line 1349
+private async fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
+  // NSE API call
+  const dataRes = await fetch(API_ENDPOINTS.NSE_PRE_OPEN, { headers });
+
+  // Parse response
+  const freshStocks: StockQuote[] = nseJson.data.map((nseItem) => ({
+    symbol: nseItem.metadata.symbol,
+    ltp: nseItem.metadata.iep,
+    changePercent: nseItem.metadata.pChange,
+    isFo: foSymbols.includes(symbol),
+    isNifty50: niftySymbols.includes(symbol),
+    // ...
+  }));
+
+  this.preOpenCache = freshStocks;
+  return freshStocks;
+}
 ```
 
 ---
 
-### 09:15 to 09:20 — 5-Minute Candle
+### ⏰ 09:15 — Pre-Select Stock (Stage 1.5)
 
+#### Bina Code
 ```
-Market opens at 09:15. 5-minute candles bante hain:
+preSelectTime strategy config se aata hai (default 09:15)
 
-09:15-09:20 → Candle 1: [open, high, low, close]
+1. preOpenCache se data lo (jo 09:08 ko fetch hua)
+2. Active clients DB se dhundo
+3. Har client ke liye:
+
+   STEP A: SEGMENT FILTER
+     → config.segment = "NSE F&O"
+     → sirf woh stocks pass jinka isFo = true hai
+
+   STEP B: CONDITIONS FILTER
+     → config.conditions array check karo
+     → agar empty hai → sab pass
+     → agar "Pre Open Change % < -1.5" hai:
+         → sirf woh stocks pass jinka changePercent < -1.5
+     → agar "Price Action >= Previous 5m High" hai:
+         → sirf woh stocks pass jinka ltp >= stock.high
+
+   STEP C: SORT
+     → action = "Long" → ascending (sabse zyada negative pehle)
+     → action = "Short" → descending (sabse zyada positive pehle)
+
+   STEP D: PICK POSITION
+     → selectPosition = 1 → sortedStocks[0] lo
+
+   STEP E: STORE IN MAP
+     → client.id → selected stock (RAM me, DB nahi)
+
+4. Console: "RZJ500 → #1 HINDALCO(-4.20%)"
+```
+
+#### Code (`algoEngine.ts:756-846`)
+```typescript
+private async preSelectAllClients(): Promise<void> {
+  const preOpenStocks = this.preOpenCache.length > 0
+    ? this.preOpenCache
+    : await this.getPreOpenStocks();
+
+  const clients = await prisma.client.findMany({
+    where: { tradingStatus: 'active', subscriptionStatus: 'active', strategyId: { not: null } },
+    include: { user: true, strategy: true }
+  });
+
+  this.preselectedForClient.clear();
+
+  for (const client of clients) {
+    const config = JSON.parse(strategy.configJson);
+    const segment = config.basicInfo?.segment || 'NSE F&O';
+
+    // --- SEGMENT FILTER ---
+    const matchingStocks = preOpenStocks.filter(stock => {
+      if (segment === 'NSE F&O' && !stock.isFo) return false;
+
+      // --- CONDITIONS FILTER ---
+      if (config.conditions && Array.isArray(config.conditions)) {
+        for (const cond of config.conditions) {
+          if (cond.indicator === 'Pre Open Change %') {
+            const val = Number(cond.value);
+            if (cond.operator === '<' && !(stock.changePercent < val)) return false;
+          } else if (cond.indicator === 'Price Action') {
+            if (cond.value === 'Previous 5m High') {
+              const prevHigh = stock.high || stock.prevClose || stock.ltp;
+              if (cond.operator === '>' && !(stock.ltp > prevHigh)) return false;
+            }
+          }
+        }
+      }
+      return true;
+    });
+
+    // --- SORT ---
+    const action = config.tradeAction?.action || 'Long';
+    const sortedStocks = [...matchingStocks].sort((a, b) =>
+      action === 'Long' ? a.changePercent - b.changePercent : b.changePercent - a.changePercent
+    );
+
+    // --- PICK POSITION ---
+    const selectPosition = config.basicInfo?.selectPosition || 1;
+    const selected = sortedStocks[selectPosition - 1];
+
+    // --- STORE ---
+    this.preselectedForClient.set(client.id, selected);
+  }
+}
 ```
 
 ---
 
-### 09:20 — `executePreOpenTrades()` — Stage 2 (line 848)
+### ⏰ 09:15 to 09:20 — 5-Min Candle Build
 
+#### Bina Code
 ```
-Function: executePreOpenTrades(adminId) (line 848)
-│
-├── preOpenStocks = getPreOpenStocks() (line 852-854)
-├── clients = prisma.client.findMany({...})
-│
-├── FOR each client (line 895):
-│   ├── strategy = client.strategy
-│   ├── IF strategy.status !== 'active' → SKIP
-│   ├── config = JSON.parse(strategy.configJson)
-│   │
-│   ├── [STEP 1] PRESELECTED MAP CHECK (line 909-910):
-│   │   candidateStock = preselectedForClient.get(client.id)
-│   │   preselectedForClient.delete(client.id)   ← consumed!
-│   │   IF candidateStock === null:
-│   │   │   → Fallback: full filter + sort + rank (same logic as Stage 1.5)
-│   │
-│   ├── [STEP 2] EXISTING TRADE CHECK (line 975-986):
-│   │   trade = prisma.trade.findFirst({
-│   │     where: { clientId, strategyId, symbol, createdAt: { gte: today } }
-│   │   })
-│   │   IF trade exists → SKIP (already traded today)
-│   │
-│   ├── [STEP 3] 5-MIN CANDLE FETCH (line 990-1005):
-│   │   KiteClient.getHistoricalData(apiKey, accessToken, token, "5minute", from, to)
-│   │   candleHigh = res.data.candles[0][2]     ← 1 candle ka high
-│   │   IF candleHigh === 0:
-│   │     candleHigh = stock.high || stock.ltp || prevClose || 100
-│   │
-│   ├── [STEP 4] ENTRY PRICE (line 1011-1012):
-│   │   entryPrice = candleHigh × (1 + bufferPercent / 100)
-│   │
-│   ├── [STEP 5] BREAKOUT CHECK (line 1014-1025):
-│   │   hasPriceAction = conditions.some(c => c.indicator === 'Price Action')
-│   │   IF !hasPriceAction OR currentLtp >= candleHigh → BREAKOUT ✅
-│   │   ELSE → BREAKOUT NOT MET ❌ → SKIP
-│   │
-│   ├── [STEP 6] KITE SESSION (line 1037-1108):
-│   │   IF !accessToken AND auto-login possible → performKiteAutoLogin()
-│   │   IF !accessToken → FAILED trade → SKIP
-│   │
-│   ├── [STEP 7] POSITION SIZING (line 1110-1163):
-│   │   liveBalance = Kite.getMargins() (or DB client.capital fallback)
-│   │   allocatedAmount = liveBalance × riskPerTrade / 100
-│   │   Cap by client.capital
-│   │   qty = floor(allocatedAmount / entryPrice)
-│   │
-│   ├── [STEP 8] SL & TARGET (line 1169-1190):
-│   │   SL = entryPrice × (1 - slPercent/100)
-│   │   Target = entryPrice × (1 + targetPercent/100)
-│   │
-│   ├── [STEP 9] PLACE ORDER (line 1198-1298):
-│   │   KiteClient.placeOrder({ exchange, tradingsymbol, BUY, qty, LIMIT, MIS, ... })
-│   │
-│   ├── [STEP 10] SAVE TRADE (line 1301-1315): DB WRITE
-│   │   prisma.trade.create({ clientId, strategyId, symbol, entryPrice, qty, ... })
-│   │
-│   └── [STEP 11] LOGS (line 1317-1336): DB WRITE
-│       prisma.strategyLog.create({...})
-│       prisma.auditLog.create({...})
+Market 09:15 ko opens hota hai.
+Is 5 minute mein (09:15 to 09:20) har stock ki ek 5-min candle banti hai.
+
+Example: HINDALCO
+  09:15 → ₹191.60 (open)
+  09:16 → ₹193.00
+  09:17 → ₹194.50
+  09:18 → ₹196.80 (HIGH)
+  09:19 → ₹195.50
+  09:20 → ₹200.20 (current LTP)
+
+Candle: [open=191.60, HIGH=196.80, low=191.00, close=195.50]
+
+Yeh candle breakout check ke liye use hogi.
+```
+
+#### Code
+```
+Koi code nahi — yeh live market mein apne aap hota hai.
+Algo engine 09:20 par is candle ko Kite API se fetch karega.
 ```
 
 ---
 
-### 09:20 to 15:15 — `startActiveTradesMonitoringScheduler()` (line 212)
+### ⏰ 09:20 — Trade Execution (Stage 2)
 
+#### Bina Code
 ```
-Har 60 sec:
+1. MAP SE PRESELECTED STOCK LO
+   → client.id se Map check karo
+   → HINDALCO mila? → use karo
+   → nahi mila? → fallback: full filter + sort + rank karo
 
-Function: checkOpenTradesExits (line 219)
-├── openTrades = prisma.trade.findMany({ where: { status: 'open' } })
-│
-├── FOR each trade:
-│   ├── config = JSON.parse(strategy.configJson)
-│   ├── KiteClient.getHistoricalData(apiKey, token, interval, from, to)
-│   │   → latestCandle = candles[candles.length - 1]
-│   │   → currentPrice = latestCandle[4] (close)
-│   │
-│   ├── IF currentPrice <= SL → MARKET SELL (Stop Loss hit)
-│   ├── IF currentPrice >= Target → MARKET SELL (Target hit)
-│   │
-│   └── prisma.trade.update({ status:'closed', exitPrice, pnl })
-│       prisma.strategyLog.create({...})
-│       prisma.auditLog.create({...})
-│
-└── setInterval(checkOpenTradesExits, 60 * 1000)
+2. EXISTING TRADE CHECK
+   → Kya aaj is client ne HINDALCO ka trade kiya hai?
+   → Ha → skip (do baar trade nahi karenge)
+
+3. 5-MIN CANDLE FETCH (Kite API)
+   → instToken dhundo (instrument map se)
+   → historicalData(apiKey, token, "5minute", "09:15", "09:20")
+   → 1 candle aati hai → uske HIGH[2] lo
+   → candleHigh = 196.80
+
+4. ENTRY PRICE CALCULATE
+   → bufferPercent = 0.1%
+   → entryPrice = 196.80 × 1.001 = ₹196.99
+
+5. BREAKOUT CHECK
+   → currentLTP = 200.20 (live price)
+   → kya conditions mein "Price Action" hai?
+     → Nahi (conditions empty) → breakout automatically true ✅
+     → Ha → tab LTP >= candleHigh hona chahiye
+   → BREAKOUT CONFIRMED → targetStock = HINDALCO
+
+6. KITE SESSION CHECK
+   → client.accessToken hai? → ha
+   → nahi hai aur auto-login enabled hai? → TOTP login
+
+7. POSITION SIZING
+   → Kite margins API se net equity = ₹8,00,000
+   → riskPerTrade = 1% → allocated = ₹8,000
+   → client.capital = ₹50,000 (cap)
+   → tradeAmount = min(8000, 50000) = ₹8,000
+   → qty = floor(8000 / 196.99) = 40 shares
+
+8. SL & TARGET
+   → SL% = 0.5% → SL₹ = 196.99 × 0.995 = ₹196.00
+   → Target% = 1.5% → Target₹ = 196.99 × 1.015 = ₹200.02
+   → orderType = "Limit" → LIMIT order @ ₹196.99
+
+9. KITE PAR ORDER LAGAO
+   → BUY HINDALCO 40 qty LIMIT 196.99 MIS DAY
+   → response aaya → order_id mila
+
+10. DB ME SAVE KARO
+    → trades table: status = "OPEN"
+    → strategy_logs: trade log
+    → audit_logs: audit entry
+```
+
+#### Code (`algoEngine.ts:848-1346`)
+```typescript
+public async executePreOpenTrades(adminId: string): Promise<void> {
+  const preOpenStocks = await this.getPreOpenStocks();
+  const clients = await prisma.client.findMany({
+    where: { tradingStatus: 'active', subscriptionStatus: 'active', strategyId: { not: null } },
+    include: { user: true, strategy: true }
+  });
+
+  for (const client of clients) {
+    const strategy = client.strategy;
+    const config = JSON.parse(strategy.configJson);
+
+    // --- STEP 1: PRESELECTED MAP CHECK ---
+    let candidateStock = this.preselectedForClient.get(client.id) || null;
+    this.preselectedForClient.delete(client.id);
+
+    if (!candidateStock) {
+      // Fallback: full filter + sort + rank
+      const matchingStocks = preOpenStocks.filter(/* F&O + conditions filter */);
+      const sortedStocks = [...matchingStocks].sort(/* sort logic */);
+      candidateStock = sortedStocks[config.basicInfo?.selectPosition - 1];
+    }
+
+    // --- STEP 2: EXISTING TRADE CHECK ---
+    const existingTrade = await prisma.trade.findFirst({
+      where: { clientId: client.id, strategyId: strategy.id,
+               symbol: candidateStock.symbol, createdAt: { gte: todayStart } }
+    });
+    if (existingTrade) continue;
+
+    // --- STEP 3: 5-MIN CANDLE FETCH ---
+    const res = await KiteClient.getHistoricalData(
+      apiKey, accessToken, token, '5minute', from, to
+    );
+    let candleHigh = Number(res.data.candles[0][2]);
+
+    // --- STEP 4: ENTRY PRICE ---
+    const bufferPct = config.tradeAction?.bufferPercent || 0.1;
+    const entryPrice = candleHigh * (1 + bufferPct / 100);
+
+    // --- STEP 5: BREAKOUT CHECK ---
+    const currentLtp = candidateStock.ltp || candidateStock.iep || entryPrice;
+    const hasPriceAction = config.conditions?.some((c: any) => c.indicator === 'Price Action');
+
+    if (!hasPriceAction || currentLtp >= candleHigh) {
+      targetStock = candidateStock;  // ✅ BREAKOUT
+    } else {
+      continue;  // ❌ BREAKOUT NOT MET
+    }
+
+    // --- STEP 6: KITE SESSION ---
+    if (!client.accessToken) {
+      if (client.zerodhaPassword && client.zerodhaTotpSecret) {
+        const autoLoginRes = await performKiteAutoLogin(client.id);
+        // use new accessToken
+      }
+    }
+
+    // --- STEP 7: POSITION SIZING ---
+    const marginRes = await KiteClient.getMargins(apiKey, accessToken);
+    let liveBalance = Number(marginRes.data.equity.net);
+    const riskPerTrade = config.riskManagement?.riskPerTrade || 1;
+    let allocatedAmount = liveBalance * (riskPerTrade / 100);
+    const dbCapitalLimit = Number(client.capital);
+    if (allocatedAmount > dbCapitalLimit) allocatedAmount = dbCapitalLimit;
+    const qty = Math.floor(allocatedAmount / entryPrice);
+
+    // --- STEP 8: SL & TARGET ---
+    const slPercent = config?.stoploss?.fixedPercent || 0.5;
+    const targetPercent = config?.target?.profitPercent || 2.0;
+    const stopLoss = entryPrice * (1 - slPercent / 100);
+    const target = entryPrice * (1 + targetPercent / 100);
+
+    // --- STEP 9: PLACE ORDER ---
+    const orderRes = await KiteClient.placeOrder(apiKey, accessToken, {
+      exchange: 'NSE',
+      tradingsymbol: targetStock.symbol,
+      transaction_type: 'BUY',
+      quantity: qty,
+      order_type: 'LIMIT',
+      product: 'MIS',
+      validity: 'DAY',
+      price: entryPrice
+    });
+
+    // --- STEP 10: SAVE TRADE ---
+    await prisma.trade.create({
+      data: {
+        clientId: client.id, strategyId: strategy.id,
+        symbol: targetStock.symbol, entryPrice, quantity: qty,
+        stopLoss, target, status: 'OPEN'
+      }
+    });
+
+    // --- STEP 11: LOGS ---
+    await prisma.strategyLog.create({ data: { strategyId: strategy.id, message: '...' } });
+    await prisma.auditLog.create({ data: { adminId, action: 'AUTO TRADE INITIATED', newValue: '...' } });
+  }
+}
+```
+
+---
+
+### ⏰ 09:20 to 15:15 — Monitor SL/Target
+
+#### Bina Code
+```
+Har 60 second:
+
+1. DB se saare OPEN trades fetch karo
+2. Har trade ke liye:
+
+   a. Kite API se latest candle lo
+   b. candle ka close price = current price
+
+   c. SL CHECK:
+      → SL ₹ = entryPrice × 0.995
+      → agar currentPrice <= SL:
+         → MARKET SELL order lagao
+         → trade status = "closed"
+         → p&L calculate karo
+
+   d. TARGET CHECK:
+      → Target ₹ = entryPrice × 1.015
+      → agar currentPrice >= Target:
+         → MARKET SELL order lagao
+         → trade status = "closed"
+         → P&L calculate karo
+
+3. DB updates:
+   → trades table: status, exitPrice, pnl
+   → strategy_logs: exit log
+   → audit_logs: audit entry
+```
+
+#### Code (`algoEngine.ts:212-394`)
+```typescript
+private startActiveTradesMonitoringScheduler() {
+  const checkOpenTradesExits = async () => {
+    const openTrades = await prisma.trade.findMany({
+      where: { status: 'open' },
+      include: { client, strategy }
+    });
+
+    for (const trade of openTrades) {
+      const config = JSON.parse(trade.strategy.configJson);
+      const slPercent = config?.stoploss?.fixedPercent || 0.5;
+      const targetPercent = config?.target?.profitPercent || 2.0;
+
+      // Fetch latest candle
+      const res = await KiteClient.getHistoricalData(apiKey, token, interval, from, to);
+      const latestCandle = res.data.candles[res.data.candles.length - 1];
+      const currentPrice = Number(latestCandle[4]);
+
+      const stopLossLevel = Number(trade.entryPrice) * (1 - slPercent / 100);
+      const targetLevel = Number(trade.entryPrice) * (1 + targetPercent / 100);
+
+      if (currentPrice <= stopLossLevel) {
+        // STOP LOSS HIT → SELL
+        const sellRes = await KiteClient.placeOrder(apiKey, token, {
+          tradingsymbol: trade.symbol, transaction_type: 'SELL',
+          quantity: trade.quantity, order_type: 'MARKET'
+        });
+        await prisma.trade.update({
+          where: { id: trade.id },
+          data: { status: 'closed', exitPrice: currentPrice, pnl }
+        });
+      } else if (currentPrice >= targetLevel) {
+        // TARGET HIT → SELL (same logic)
+      }
+    }
+  };
+  setInterval(checkOpenTradesExits, 60 * 1000);
+}
 ```
 
 ---
@@ -353,253 +563,129 @@ Function: checkOpenTradesExits (line 219)
 ┌─────────────────────────────────────────────────────────────────────┐
 │ 09:08 — STAGE 1: PRE-OPEN FETCH                                    │
 │                                                                     │
-│ getPreOpenStocks() → fetchLivePreOpenFromNSE()                      │
-│   → NSE API se 200+ stocks ka data fetch                           │
-│   → preOpenCache[] me store                                         │
-│   → PRE_OPEN_QUOTES_DATA app_setting me save                        │
-│   → Har stock me flags set: isFo=true/false, isNifty50, etc.        │
+│ BINA CODE:                                                         │
+│ → NSE API se saare stocks ka data fetch kiya                      │
+│ → preOpenCache mein 200+ stocks store                              │
+│ → Har stock ke saath isFo, isNifty50 flags set                    │
+│                                                                     │
+│ CODE: getPreOpenStocks() → fetchLivePreOpenFromNSE()               │
+│ TRADE: Koi trade nahi, sirf data fetch                            │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│ 09:15 — STAGE 1.5: PRE-SELECT STOCK                                │
+│ 09:15 — STAGE 1.5: PRE-SELECT                                      │
 │                                                                     │
-│ preSelectAllClients() [algoEngine.ts:756]                           │
+│ BINA CODE:                                                         │
+│ 1. Sirf F&O stocks filter (isFo = true) → 7 stocks                │
+│ 2. Conditions empty → sab pass                                     │
+│ 3. Sort by changePercent ascending:                                 │
+│    HINDALCO(-4.2%), TATASTEEL(-3.5%), JSWSTEEL(-2.5%)...           │
+│ 4. Position #1 → HINDALCO select                                  │
+│ 5. RAM Map me store → client "b364d72f" → HINDALCO                │
 │                                                                     │
-│ Step A: preOpenStocks = preOpenCache (already fetched)              │
-│                                                                     │
-│ Step B: clients = prisma.client.findMany(where active)             │
-│         → 1 client: RZJ500 (b364d72f)                               │
-│                                                                     │
-│ Step C: strategy = c7bafa89 (Pre Open Momentum Breakout)            │
-│         config = JSON.parse(strategy.configJson)                    │
-│                                                                     │
-│ Step D: SEGMENT FILTER [line 791-798]                              │
-│         segment = "NSE F&O"                                         │
-│         → stocks.filter(s => s.isFo === true)                       │
-│         → 7 stocks pass (HINDALCO, TATASTEEL, JSWSTEEL,             │
-│           BHARTIARTL, RELIANCE, HDFCBANK, SBIN)                     │
-│                                                                     │
-│ Step E: CONDITIONS FILTER [line 799-816]                           │
-│         conditions = []                                             │
-│         → koi filter nahi → ALL 7 F&O stocks pass                   │
-│                                                                     │
-│ Step F: SORT [line 828-830]                                        │
-│         action = "Long" → ascending by changePercent                │
-│         1. HINDALCO    -4.20%  ← sortedStocks[0]                   │
-│         2. TATASTEEL   -3.50%  ← sortedStocks[1]                   │
-│         3. JSWSTEEL    -2.50%  ← sortedStocks[2]                   │
-│         4. BHARTIARTL  -1.80%  ← sortedStocks[3]                   │
-│         5. RELIANCE    -1.20%  ← sortedStocks[4]                   │
-│         6. HDFCBANK    -0.62%  ← sortedStocks[5]                   │
-│         7. SBIN        -0.33%  ← sortedStocks[6]                   │
-│                                                                     │
-│ Step G: PICK POSITION #1 [line 837]                                │
-│         selectPosition = 1                                          │
-│         candidateStock = sortedStocks[0] = HINDALCO                 │
-│                                                                     │
-│ Step H: STORE IN MAP [line 838]                                    │
-│         preselectedForClient.set("b364d72f", HINDALCO stock data)  │
-│         → RAM me store, DB nahi                                     │
-│                                                                     │
-│ Console: "RZJ500 → #1 HINDALCO(-4.20%)"                            │
+│ CODE: preSelectAllClients() [line 756]                              │
+│ TRADE: Koi trade nahi, sirf selection                              │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│ 09:15 to 09:20 — MARKET OPEN + 5-MIN CANDLE BUILD                  │
+│ 09:15-09:20 — 5-MIN CANDLE BUILD                                   │
 │                                                                     │
-│ HINDALCO live trading:                                              │
-│   09:15:00 → ₹191.60 (open)                                        │
-│   09:16:00 → ₹193.00                                                │
-│   09:17:00 → ₹194.50                                                │
-│   09:18:00 → ₹196.80 ← HIGH                                       │
-│   09:19:00 → ₹195.50                                                │
-│   09:20:00 → ₹200.20 ← current LTP                                │
+│ HINDALCO: 191.60 → 193.00 → 194.50 → 196.80 (HIGH) → 195.50       │
 │                                                                     │
-│ 5-min candle: [191.60, 196.80, 191.00, 195.50]                    │
-│              [open,   HIGH,  low,    close]                        │
-│                                                                     │
-│ candleHigh = 196.80                                                 │
+│ CODE: Koi code nahi, market mein apne aap hota hai                 │
+│ TRADE: Koi trade nahi, candle banna                                │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│ 09:20 — STAGE 2: TRADE EXECUTION                                   │
+│ 09:20 — TRADE EXECUTION                                            │
 │                                                                     │
-│ executePreOpenTrades('system-scheduler') [algoEngine.ts:848]       │
+│ BINA CODE:                                                         │
+│ 1. Map se HINDALCO mila ✅                                         │
+│ 2. Aaj ka koi trade nahi ✅                                        │
+│ 3. 5-min candle high = 196.80                                      │
+│ 4. Entry price = 196.80 × 1.001 = ₹196.99                         │
+│ 5. LTP 200.20 >= 196.80 → BREAKOUT ✅                              │
+│ 6. accessToken hai ✅                                              │
+│ 7. Balance ₹8,00,000 → 1% = ₹8,000 → qty = 40                    │
+│ 8. SL = ₹196.00 | Target = ₹200.02                                 │
+│ 9. ORDER: BUY HINDALCO 40 LIMIT 196.99 MIS DAY                     │
+│10. DB SAVE: trade = OPEN, logs = done                              │
 │                                                                     │
-│ FOR CLIENT RZJ500:                                                  │
-│                                                                     │
-│ [STEP 1] Map Check [line 909]                                      │
-│   → preselectedForClient.get("b364d72f") = HINDALCO ✅             │
-│   → Map se delete (consumed)                                        │
-│                                                                     │
-│ [STEP 2] Existing Trade Check [line 976-986]                       │
-│   → prisma.trade.findFirst({ clientId, strategyId,                 │
-│       symbol: 'HINDALCO', createdAt >= today })                     │
-│   → No trade found → CONTINUE ✅                                    │
-│                                                                     │
-│ [STEP 3] 5-Min Candle Fetch [line 990-1005]                        │
-│   → instTokenStr = 12345 (from instrumentToSymbol Map)              │
-│   → KiteClient.getHistoricalData(apiKey, token,                     │
-│       "5minute", "2026-06-19%2009:15", "2026-06-19%2009:20")       │
-│   → Response: [[..., 191.60, 196.80, 191.00, 195.50, ...]]         │
-│   → candleHigh = Number(response.data.candles[0][2]) = 196.80     │
-│                                                                     │
-│ [STEP 4] Entry Price [line 1011-1012]                              │
-│   → bufferPercent = 0.1                                             │
-│   → entryPrice = 196.80 × (1 + 0.1/100) = 196.80 × 1.001          │
-│   → entryPrice = ₹196.99                                            │
-│                                                                     │
-│ [STEP 5] Breakout Check [line 1014-1025]                           │
-│   → currentLTP = 200.20 (Kite live price)                           │
-│   → hasPriceAction = false (conditions empty)                       │
-│   → !hasPriceAction = true → BREAKOUT CONFIRMED ✅                 │
-│   → targetStock = HINDALCO                                          │
-│   Console: "Breakout confirmed for HINDALCO |                       │
-│     Candle High: 196.80 | LTP: 200.20 | Entry: 196.99"             │
-│                                                                     │
-│ [STEP 6] Kite Session [line 1037-1108]                             │
-│   → client.accessToken = "abc123..." (exists) ✅                   │
-│                                                                     │
-│ [STEP 7] Position Sizing [line 1110-1163]                          │
-│   → KiteClient.getMargins() → net equity = ₹8,00,000               │
-│   → riskPerTrade = 1%                                               │
-│   → allocatedAmount = 800000 × 1/100 = ₹8,000                      │
-│   → dbCapitalLimit = client.capital = ₹50,000                       │
-│   → allocatedAmount = min(8000, 50000) = ₹8,000                    │
-│   → qty = floor(8000 / 196.99) = 40 shares                        │
-│                                                                     │
-│ [STEP 8] SL & Target [line 1169-1190]                              │
-│   → slPercent = 0.5%                                                │
-│   → targetPercent = 1.5%                                            │
-│   → SL = 196.99 × 0.995 = ₹196.00                                   │
-│   → Target = 196.99 × 1.015 = ₹200.02                               │
-│   → orderType = 'Limit' → LIMIT order at ₹196.99                    │
-│                                                                     │
-│ [STEP 9] Place Order [line 1198-1298]                              │
-│   → KiteClient.placeOrder({                                        │
-│       exchange: 'NSE',                                              │
-│       tradingsymbol: 'HINDALCO',                                    │
-│       transaction_type: 'BUY',                                      │
-│       quantity: 40,                                                  │
-│       order_type: 'LIMIT',                                          │
-│       product: 'MIS',                                               │
-│       validity: 'DAY',                                              │
-│       price: 196.99                                                 │
-│     })                                                              │
-│   → Response: { status: 'success', data: { order_id: '240619...' }}│
-│   → orderId = '240619000123456'                                    │
-│                                                                     │
-│ [STEP 10] Save Trade [line 1301-1315] (DB WRITE)                   │
-│   → prisma.trade.create({                                          │
-│       clientId: 'b364d72f...',                                      │
-│       strategyId: 'c7bafa89...',                                    │
-│       symbol: 'HINDALCO',                                           │
-│       orderType: 'MIS',                                             │
-│       entryPrice: 196.99,                                           │
-│       quantity: 40,                                                  │
-│       stopLoss: 196.00,                                             │
-│       target: 200.02,                                               │
-│       status: 'OPEN',                                               │
-│       entryTime: new Date(),                                        │
-│       kiteResponse: { order_id: '240619000123456' }                 │
-│     })                                                              │
-│                                                                     │
-│ [STEP 11] Logs [line 1317-1336] (DB WRITE)                         │
-│   → prisma.strategyLog.create({...})                                │
-│   → prisma.auditLog.create({...})                                   │
+│ CODE: executePreOpenTrades() [line 848]                             │
+│ TRADE: ✅ OPEN                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│ 09:20 to 15:15 — MONITORING (har 60 sec)                           │
+│ 09:20-15:15 — MONITOR (har 60 sec)                                 │
 │                                                                     │
-│ startActiveTradesMonitoringScheduler() [line 212]                   │
+│ BINA CODE:                                                         │
+│ → Har 60 sec Kite se latest price lo                               │
+│ → Price >= ₹200.02? → TARGET HIT → MARKET SELL                    │
+│ → Price <= ₹196.00? → STOP LOSS HIT → MARKET SELL                 │
 │                                                                     │
-│ Check 1 — 09:21:00:                                                 │
-│   Trade: HINDALCO | Entry: 196.99 | Current: ₹201.00                │
-│   SL: 196.00 | Target: 200.02                                       │
-│   → 201.00 >= 200.02? → YES → TARGET HIT ✅                        │
-│   → MARKET SELL 40 HINDALCO @ 201.00                                │
-│   → P&L = (201.00 - 196.99) × 40 = ₹160.40                         │
-│   → Trade status: 'closed'                                          │
-│   → Strategy Log: "Intraday Trade Closed for RZJ500:               │
-│     Sold 40 shares of HINDALCO at exit price ₹201.00                │
-│     due to Target (1.5%) hit. Total P&L: ₹160.40"                   │
+│ SCENARIO 1 (TARGET): Price ₹201 → SELL @ 201 → P&L +₹160           │
+│ SCENARIO 2 (SL):     Price ₹195 → SELL @ 196 → P&L -₹40            │
+│ SCENARIO 3 (TRAIL):  Price ₹220 → SL trail to ₹219.56              │
+│                      Price ₹219 → SL hit → P&L +₹902               │
 │                                                                     │
-│ Scenario 2 — Agar price girta:                                      │
-│   Check 5 — 10:30:00:                                                │
-│     Trade: HINDALCO | Current: ₹195.50                               │
-│     SL: 196.00 → 195.50 <= 196.00? → STOP LOSS HIT 🔴              │
-│     P&L = (196.00 - 196.99) × 40 = -₹39.60                          │
-│                                                                     │
-│ Scenario 3 — Trailing SL active:                                     │
-│   Price ₹210 → SL trails to ₹209.58 (210 × 0.998)                   │
-│   Price ₹220 → SL trails to ₹219.56 (220 × 0.998)                   │
-│   Price drops to ₹219 → 219 <= 219.56? → YES → SL HIT              │
-│   P&L = (219.56 - 196.99) × 40 = ₹902.80                           │
+│ CODE: startActiveTradesMonitoringScheduler() [line 212]             │
+│ TRADE: CLOSED (profit ya loss)                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 5. All Conditions — Detail
+## 5. All Conditions Detail
 
-### Current: `conditions: []` (Empty — No Filter)
+### Current: `conditions: []` (Empty)
 
 ```
-Saare F&O stocks pass → sabse zyada gira hua select → trade
+BINA CODE: Koi condition nahi hai → saare F&O stocks pass hote hain
+           → sorting ke baad #1 select hota hai
+
+CODE: if (config.conditions && Array.isArray(config.conditions)) {
+        for (const cond of config.conditions) { ... }
+      }
+      → Loop zero times → no filter
 ```
 
-### Condition 1: `Pre Open Change %`
+### Condition: `Pre Open Change %`
 
 ```json
 { "logical": "AND", "indicator": "Pre Open Change %", "operator": "<", "value": "-1.5" }
 ```
 
-| Field | Meaning | Possible Values |
-|---|---|---|
-| `logical` | Multiple conditions ka AND/OR | `AND` |
-| `indicator` | Kaunsa indicator | `Pre Open Change %` |
-| `operator` | Comparison | `<`, `>`, `<=`, `>=`, `===`, `==` |
-| `value` | Threshold | Any number (e.g. `-1.5`, `0`, `2`) |
+```
+BINA CODE:
+→ Har stock ka changePercent check karo
+→ Agar changePercent < -1.5 hai tabhi pass
+→ Example: HINDALCO(-4.20%) → -4.20 < -1.5? → ✅ pass
+           RELIANCE(-1.20%) → -1.20 < -1.5? → ❌ reject
 
-**Code:** `algoEngine.ts:800-808`
-```javascript
+CODE (algoEngine.ts:800-808):
 if (cond.indicator === 'Pre Open Change %') {
   const val = Number(cond.value);
   if (cond.operator === '<' && !(stock.changePercent < val)) return false;
   if (cond.operator === '>' && !(stock.changePercent > val)) return false;
-  // ...
+  if (cond.operator === '<=' && !(stock.changePercent <= val)) return false;
+  if (cond.operator === '>=' && !(stock.changePercent >= val)) return false;
 }
 ```
 
-**Example:** `Pre Open Change % < -1.5`
-```
-Stock        changePercent    Pass?
-─────────────────────────────────────
-HINDALCO        -4.20%        ✅
-TATASTEEL       -3.50%        ✅
-JSWSTEEL        -2.50%        ✅
-BHARTIARTL      -1.80%        ✅
-RELIANCE        -1.20%        ❌
-HDFCBANK        -0.62%        ❌
-SBIN            -0.33%        ❌
-ICICIBANK       +0.30%        ❌
-```
-
-### Condition 2: `Price Action`
+### Condition: `Price Action`
 
 ```json
 { "logical": "AND", "indicator": "Price Action", "operator": ">=", "value": "Previous 5m High" }
 ```
 
-| Field | Meaning | Possible Values |
-|---|---|---|
-| `indicator` | Kaunsa indicator | `Price Action` |
-| `operator` | Comparison | `>`, `>=` |
-| `value` | Compare kiske saath | `Previous 5m High` (fixed) |
+```
+BINA CODE:
+→ stock.ltp >= stock.high hona chahiye
+→ matlab stock ne apna previous high todo diya ho
+→ Example: TATASTEEL (LTP=200.20, High=200.20) → 200.20 >= 200.20 → ✅ pass
+           HINDALCO (LTP=191.60, High=196.80) → 191.60 >= 196.80 → ❌ reject
 
-**Code:** `algoEngine.ts:809-814`
-```javascript
+CODE (algoEngine.ts:809-814):
 } else if (cond.indicator === 'Price Action') {
   if (cond.value === 'Previous 5m High') {
     const prevHigh = stock.high || stock.prevClose || stock.ltp;
@@ -609,65 +695,67 @@ ICICIBANK       +0.30%        ❌
 }
 ```
 
-### Multiple Conditions — AND Logic
-
-```json
-"conditions": [
-  { "logical": "AND", "indicator": "Pre Open Change %", "operator": "<", "value": "-1.5" },
-  { "logical": "AND", "indicator": "Price Action", "operator": ">=", "value": "Previous 5m High" }
-]
-```
+### Multiple Conditions (AND)
 
 ```
-F&O filter → Pre Open Change % < -1.5 → Price Action >= Prev High
-→ dono true? → pass → sorted → pick position #1
+BINA CODE:
+conditions array mein do conditions hain → dono true honi chahiye
+1. Pre Open Change % < -1.5
+2. Price Action >= Previous 5m High
+
+Stock        change%   pass #1?  LTP vs High  pass #2?  Overall
+────────────────────────────────────────────────────────────────────
+HINDALCO    -4.20%    ✅        191 < 196     ❌        ❌
+TATASTEEL   -3.50%    ✅        200 >= 200    ✅        ✅ ← #1
+JSWSTEEL    -2.50%    ✅        785 >= 780    ✅        ✅ ← #2
+
+CODE:
+→ Dono conditions ka code sequentially run hota hai
+→ Koi bhi false return kare to stock reject
 ```
 
-```
-Stock        change%  LTP   High   Pass PreChange?  Pass PriceAction?  Result
-──────────────────────────────────────────────────────────────────────────────
-HINDALCO    -4.20%  191.60 196.80  ✅                ❌                 ❌
-TATASTEEL   -3.50%  200.20 200.20  ✅                ✅                 ✅ ← #1
-JSWSTEEL    -2.50%  785.00 780.00  ✅                ✅                 ✅ ← #2
-```
-
-### Bypassed Indicators (Code me handler nahi hai — ignore hote hain)
+### Bypassed Indicators (Code me nahi hai)
 
 ```
-Gap Down, RSI, EMA, SMA, VWAP, MACD, SuperTrend, ADX,
-Volume, Open Interest, Previous High/Low/Close, Gap Up,
-Pre Open Price, Pre Open Volume, ATR, Bollinger Bands
-```
+BINA CODE:
+Gap Down, RSI, EMA, SMA, VWAP, MACD, SuperTrend, ADX, Volume, ATR...
+→ code me inka koi handler nahi hai
+→ admin form me add karega to bhi ignore hoga
+→ sirf Pre Open Change % aur Price Action ka effect hota hai
 
-Agar admin form me yeh indicators add karega, code unhe **ignore karega** (skip, error nahi). Sirf **Pre Open Change %** aur **Price Action** ka actual effect hoga.
+CODE:
+→ else if ladder mein sirf 2 indicators check hote hain
+→ baaki indicators ke liye koi branch nahi → automatically skip
+```
 
 ---
 
 ## 6. DB Read/Write Summary
 
-### DB Reads (Prisma Queries)
+### Queries Overview
 
-| Function | Table | When |
-|---|---|---|
-| `getAlgoSetting()` | `app_settings` | Har 60 sec (scheduler) |
-| `preSelectAllClients()` | `clients`, `strategies` | 09:15 once |
-| `executePreOpenTrades()` | `clients`, `strategies`, `trades` | 09:20 once |
-| `startActiveTradesMonitoringScheduler()` | `trades`, `clients`, `strategies` | Har 60 sec |
+```
+08:00 → READ  app_settings, clients
+      → WRITE clients (accessToken)
 
-### DB Writes (Prisma Queries)
+09:08 → WRITE app_settings (PRE_OPEN_QUOTES_DATA)
 
-| Function | Table | When |
-|---|---|---|
-| `fetchLivePreOpenFromNSE()` | `app_settings` (PRE_OPEN_QUOTES_DATA) | 09:08 once |
-| `performKiteAutoLogin()` | `clients` (accessToken) | 08:00 (if enabled) |
-| `executePreOpenTrades()` | `trades`, `strategy_logs`, `audit_logs` | 09:20 |
-| `startActiveTradesMonitoringScheduler()` | `trades`, `strategy_logs`, `audit_logs` | On SL/Target hit |
+09:15 → READ  clients, strategies
+      → (koi write nahi)
 
-### Kite API Calls
+09:20 → READ  clients, strategies, trades
+      → WRITE trades, strategy_logs, audit_logs
 
-| API | When |
-|---|---|
-| `getHistoricalData("5minute")` | 09:20 + har 60 sec monitor |
-| `getMargins()` | 09:20 (position sizing) |
-| `placeOrder()` | 09:20 + SL/Target hit |
-| `performKiteAutoLogin()` | 08:00 (if needed) |
+09:20-15:15 → READ  trades, clients, strategies (har 60 sec)
+            → WRITE trades, strategy_logs, audit_logs (on exit)
+```
+
+### Detail Table
+
+| Time | Function | Read Table | Write Table | API Call |
+|---|---|---|---|---|
+| 08:00 | `startDailyTokenRefreshScheduler` | `app_settings`, `clients` | `clients.accessToken` | Kite login |
+| 09:08 | `fetchLivePreOpenFromNSE` | — | `app_settings` | NSE pre-open |
+| 09:15 | `preSelectAllClients` | `clients`, `strategies` | — | — |
+| 09:20 | `executePreOpenTrades` | `clients`, `strategies`, `trades` | `trades`, `strategy_logs`, `audit_logs` | Kite: candle, margins, placeOrder |
+| 60s loop | `checkOpenTradesExits` | `trades`, `clients`, `strategies` | `trades`, `strategy_logs`, `audit_logs` | Kite: candle, placeOrder |
