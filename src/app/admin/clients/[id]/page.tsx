@@ -855,9 +855,8 @@ export default function ClientDetailsPage() {
                   value={panNumber} 
                   onChange={(e) => setPanNumber(e.target.value)} 
                   placeholder="e.g. ABCDE1234F"
-                  style={{ width: '100%', height: '40px', padding: '10px 36px 10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px' }}
+                  style={{ width: '100%', height: '40px', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px' }}
                 />
-                <Pencil size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)', pointerEvents: 'none' }} />
               </div>
             </div>
 
@@ -869,9 +868,8 @@ export default function ClientDetailsPage() {
                   value={aadhaarNumber} 
                   onChange={(e) => setAadhaarNumber(e.target.value)} 
                   placeholder="e.g. XXXX XXXX 1234"
-                  style={{ width: '100%', height: '40px', padding: '10px 36px 10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px' }}
+                  style={{ width: '100%', height: '40px', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px' }}
                 />
-                <Pencil size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)', pointerEvents: 'none' }} />
               </div>
             </div>
 
@@ -883,9 +881,8 @@ export default function ClientDetailsPage() {
                   value={dob} 
                   onChange={(e) => setDob(e.target.value)} 
                   placeholder="e.g. 15 Jan 1990"
-                  style={{ width: '100%', height: '40px', padding: '10px 36px 10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px' }}
+                  style={{ width: '100%', height: '40px', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px' }}
                 />
-                <Pencil size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)', pointerEvents: 'none' }} />
               </div>
             </div>
 
@@ -898,7 +895,7 @@ export default function ClientDetailsPage() {
                   style={{ 
                     width: '100%', 
                     height: '40px', 
-                    padding: '10px 36px 10px 14px', 
+                    padding: '10px 24px 10px 14px', 
                     borderRadius: '8px', 
                     border: '1px solid var(--border-color)', 
                     outline: 'none',
@@ -914,9 +911,8 @@ export default function ClientDetailsPage() {
                   <option value="verified" style={{ color: 'var(--color-success)', backgroundColor: '#ffffff' }}>Verified</option>
                   <option value="failed" style={{ color: 'var(--color-danger)', backgroundColor: '#ffffff' }}>Failed</option>
                 </select>
-                <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: '6px', pointerEvents: 'none' }}>
+                <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
                   <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>▼</span>
-                  <Pencil size={14} style={{ color: 'var(--primary)' }} />
                 </div>
               </div>
             </div>
