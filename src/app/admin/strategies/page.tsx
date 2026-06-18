@@ -190,6 +190,7 @@ export default function StrategiesPage() {
   const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
   const [filterType, setFilterType] = useState<string>('all');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [stratPage, setStratPage] = useState<number>(1);
 
   // Filter Date Range State
   const [filterStartDate, setFilterStartDate] = useState<Date>(() => {
@@ -1063,7 +1064,6 @@ export default function StrategiesPage() {
                 (searchQuery === '' || s.name.toLowerCase().includes(searchQuery.toLowerCase()) || (s.description || '').toLowerCase().includes(searchQuery.toLowerCase()))
               );
               const stratPageSize = 15;
-              const [stratPage, setStratPage] = React.useState(1);
               const stratTotalPages = Math.ceil(filtered.length / stratPageSize) || 1;
               const stratStart = (stratPage - 1) * stratPageSize;
               const paginated = filtered.slice(stratStart, stratStart + stratPageSize);
