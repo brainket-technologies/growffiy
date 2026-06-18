@@ -28,10 +28,9 @@ export async function GET() {
       tradingsymbol: 'TATASTEEL',
       transaction_type: 'BUY',
       quantity: 1,
-      order_type: 'LIMIT',
+      order_type: 'MARKET',
       product: 'CNC',
-      validity: 'DAY',
-      price: 100.0
+      validity: 'DAY'
     });
 
     return NextResponse.json({
