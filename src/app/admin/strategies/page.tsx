@@ -1123,8 +1123,39 @@ export default function StrategiesPage() {
                                     <div>
                                       <div style={{ fontWeight: 600, fontSize: '13px' }}>{strat.name}</div>
                                       {strat.description && <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{strat.description}</div>}
-                                    </div>
-                                  </div>
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>SL Order Type</label>
+                    <select
+                      value={formData.stoploss.orderType}
+                      onChange={(e: any) => setFormData({
+                        ...formData,
+                        stoploss: { ...formData.stoploss, orderType: e.target.value }
+                      })}
+                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                    >
+                      <option value="Market">Market</option>
+                      <option value="Limit">Limit</option>
+                    </select>
+                  </div>
+                  {formData.stoploss.type === 'Risk %' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Risk %</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={formData.stoploss.riskPercent}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          stoploss: { ...formData.stoploss, riskPercent: Number(e.target.value) }
+                        })}
+                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                      />
+                    </div>
+                  )}
+                </div>
                                 </td>
                                 <td><span className="badge badge-blue" style={{ padding: '3px 8px', fontSize: '10px' }}>{segment}</span></td>
                                 <td><span className="badge" style={{ padding: '3px 8px', fontSize: '10px', background: 'rgba(139,92,246,0.1)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.2)', borderRadius: '4px' }}>{tradeType}</span></td>
@@ -1577,13 +1608,15 @@ export default function StrategiesPage() {
                     <input
                       type="number"
                       step="0.1"
-                      value={formData.stoploss.type === 'Fixed Points' ? formData.stoploss.fixedPoints : formData.stoploss.type === 'Trailing SL' ? formData.stoploss.trailingSL : formData.stoploss.fixedPercent}
+                      value={formData.stoploss.type === 'Fixed Points' ? formData.stoploss.fixedPoints : formData.stoploss.type === 'Trailing SL' ? formData.stoploss.trailingSL : formData.stoploss.type === 'Risk %' ? formData.stoploss.riskPercent : formData.stoploss.fixedPercent}
                       onChange={(e) => {
                         const val = Number(e.target.value);
                         if (formData.stoploss.type === 'Fixed Points') {
                           setFormData({ ...formData, stoploss: { ...formData.stoploss, fixedPoints: val } });
                         } else if (formData.stoploss.type === 'Trailing SL') {
                           setFormData({ ...formData, stoploss: { ...formData.stoploss, trailingSL: val } });
+                        } else if (formData.stoploss.type === 'Risk %') {
+                          setFormData({ ...formData, stoploss: { ...formData.stoploss, riskPercent: val } });
                         } else {
                           setFormData({ ...formData, stoploss: { ...formData.stoploss, fixedPercent: val } });
                         }
@@ -1628,6 +1661,40 @@ export default function StrategiesPage() {
                     />
                   </div>
                 </div>
+                {formData.target.type === 'Partial Exit' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Partial Exit %</label>
+                      <input
+                        type="number"
+                        step="1"
+                        value={formData.target.partialExit}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          target: { ...formData.target, partialExit: Number(e.target.value) }
+                        })}
+                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {formData.target.type === 'Trailing Target' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Trailing Target %</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={formData.target.trailingTarget}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          target: { ...formData.target, trailingTarget: Number(e.target.value) }
+                        })}
+                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                      />
+                    </div>
+                  </div>
+                )}
               </Card>
 
               {/* Risk Management */}
@@ -1662,7 +1729,33 @@ export default function StrategiesPage() {
                     />
                   </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Max Daily Loss (₹)</label>
+                    <input
+                      type="number"
+                      value={formData.riskManagement.maxDailyLoss}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        riskManagement: { ...formData.riskManagement, maxDailyLoss: Number(e.target.value) }
+                      })}
+                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Max Daily Profit (₹)</label>
+                    <input
+                      type="number"
+                      value={formData.riskManagement.maxDailyProfit}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        riskManagement: { ...formData.riskManagement, maxDailyProfit: Number(e.target.value) }
+                      })}
+                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 600 }}>Max Open Positions</label>
                     <input
