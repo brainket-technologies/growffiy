@@ -1941,10 +1941,10 @@ export default function StrategiesPage() {
                   <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid #cbd5e1', textAlign: 'left' }}>
-                        <th style={{ padding: '6px 0', color: '#64748b', fontWeight: 600 }}>METRIC</th>
-                        <th style={{ padding: '6px 0', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>VALUE</th>
-                        <th style={{ padding: '6px 0', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>VS LAST 30 DAYS</th>
-                        <th style={{ padding: '6px 0', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>VS LAST 90 DAYS</th>
+                        <th style={{ padding: '6px 0', color: '#64748b', fontWeight: 600, width: '30%' }}>METRIC</th>
+                        <th style={{ padding: '6px 0', color: '#64748b', fontWeight: 600, textAlign: 'right', width: '22%' }}>VALUE</th>
+                        <th style={{ padding: '6px 0', color: '#64748b', fontWeight: 600, textAlign: 'right', width: '24%', fontSize: '10px', whiteSpace: 'nowrap' }}>VS LAST 30 DAYS</th>
+                        <th style={{ padding: '6px 0', color: '#64748b', fontWeight: 600, textAlign: 'right', width: '24%', fontSize: '10px', whiteSpace: 'nowrap' }}>VS LAST 90 DAYS</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2013,11 +2013,11 @@ export default function StrategiesPage() {
                       <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>P&L by Day of Week (₹)</h4>
                       <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>P&L</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', height: '80px', paddingTop: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', height: '140px', paddingTop: '20px' }}>
                       {pnlByDayOfWeek.map((item, i) => (
                         <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, gap: '4px' }}>
                           <span style={{ fontSize: '9px', color: '#64748b', fontWeight: 600 }}>{item.val}</span>
-                          <div style={{ width: '16px', height: '60px', backgroundColor: '#e2e8f0', borderRadius: '2px', position: 'relative' }}>
+                          <div style={{ width: '16px', height: '110px', backgroundColor: '#e2e8f0', borderRadius: '2px', position: 'relative' }}>
                             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: item.height, backgroundColor: item.color, borderRadius: '2px' }}></div>
                           </div>
                           <span style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>{item.label}</span>
@@ -2035,11 +2035,11 @@ export default function StrategiesPage() {
                         <option>2024</option>
                       </select>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', height: '80px', paddingTop: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', height: '140px', paddingTop: '20px' }}>
                       {pnlByMonth.map((item, i) => (
                         <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, gap: '4px' }}>
                           <span style={{ fontSize: '8px', color: '#64748b', fontWeight: 600 }}>{item.val}</span>
-                          <div style={{ width: '12px', height: '60px', backgroundColor: '#e2e8f0', borderRadius: '2px', position: 'relative' }}>
+                          <div style={{ width: '12px', height: '110px', backgroundColor: '#e2e8f0', borderRadius: '2px', position: 'relative' }}>
                             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: item.height, backgroundColor: item.color, borderRadius: '2px' }}></div>
                           </div>
                           <span style={{ fontSize: '9px', color: '#64748b', marginTop: '2px' }}>{item.label}</span>
