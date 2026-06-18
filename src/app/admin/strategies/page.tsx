@@ -1258,7 +1258,7 @@ export default function StrategiesPage() {
                         basicInfo: { ...formData.basicInfo, name: e.target.value }
                       })}
                       style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      placeholder="e.g. RSI Momentum Scalper"
+                      placeholder="e.g. Pre-Open Momentum Breakout"
                     />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -1273,58 +1273,61 @@ export default function StrategiesPage() {
                       placeholder="Explain the strategy objective..."
                     />
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Trade Type</label>
-                      <select
-                        value={formData.basicInfo.tradeType}
-                        onChange={(e: any) => setFormData({
-                          ...formData,
-                          basicInfo: { ...formData.basicInfo, tradeType: e.target.value }
-                        })}
-                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      >
-                        <option value="Intraday">Intraday</option>
-                        <option value="Swing">Swing</option>
-                        <option value="Positional">Positional</option>
-                      </select>
+
+                  {/* MARKET SELECTION */}
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '4px' }}>
+                    <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>MARKET SELECTION</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 600 }}>Trade Type</label>
+                        <select
+                          value={formData.basicInfo.tradeType}
+                          onChange={(e: any) => setFormData({
+                            ...formData,
+                            basicInfo: { ...formData.basicInfo, tradeType: e.target.value }
+                          })}
+                          style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                        >
+                          <option value="Intraday">Intraday</option>
+                          <option value="Swing">Swing</option>
+                          <option value="Positional">Positional</option>
+                        </select>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 600 }}>Exchange</label>
+                        <select
+                          value={formData.basicInfo.exchange}
+                          onChange={(e: any) => setFormData({
+                            ...formData,
+                            basicInfo: { ...formData.basicInfo, exchange: e.target.value }
+                          })}
+                          style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                        >
+                          <option value="NSE">NSE</option>
+                          <option value="BSE">BSE</option>
+                        </select>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 600 }}>Segment</label>
+                        <select
+                          value={formData.basicInfo.segment}
+                          onChange={(e: any) => setFormData({
+                            ...formData,
+                            basicInfo: { ...formData.basicInfo, segment: e.target.value }
+                          })}
+                          style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                        >
+                          <option value="Cash">Cash</option>
+                          <option value="Equity">Equity</option>
+                          <option value="Futures">Futures</option>
+                          <option value="Options">Options</option>
+                          <option value="NSE F&O">NSE F&O</option>
+                          <option value="Nifty 50">Nifty 50</option>
+                          <option value="Bank Nifty">Bank Nifty</option>
+                        </select>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Exchange</label>
-                      <select
-                        value={formData.basicInfo.exchange}
-                        onChange={(e: any) => setFormData({
-                          ...formData,
-                          basicInfo: { ...formData.basicInfo, exchange: e.target.value }
-                        })}
-                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      >
-                        <option value="NSE">NSE</option>
-                        <option value="BSE">BSE</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Segment</label>
-                      <select
-                        value={formData.basicInfo.segment}
-                        onChange={(e: any) => setFormData({
-                          ...formData,
-                          basicInfo: { ...formData.basicInfo, segment: e.target.value }
-                        })}
-                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      >
-                        <option value="Cash">Cash</option>
-                        <option value="Equity">Equity</option>
-                        <option value="Futures">Futures</option>
-                        <option value="Options">Options</option>
-                        <option value="NSE F&O">NSE F&O</option>
-                        <option value="Nifty 50">Nifty 50</option>
-                        <option value="Bank Nifty">Bank Nifty</option>
-                      </select>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '12px' }}>
                       <label style={{ fontSize: '12px', fontWeight: 600 }}>Timeframe</label>
                       <select
                         value={formData.basicInfo.timeframe}
@@ -1344,64 +1347,62 @@ export default function StrategiesPage() {
                       </select>
                     </div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: '12px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '11px', fontWeight: 600 }}>Entry Time</label>
-                      <input
-                        type="time"
-                        value={formData.basicInfo.entryTime}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          basicInfo: { ...formData.basicInfo, entryTime: e.target.value }
-                        })}
-                        style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      />
+
+                  {/* TIMING */}
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '16px' }}>
+                    <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>TIMING</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: 600 }}>Pre-Select Time</label>
+                        <input
+                          type="time"
+                          value={formData.basicInfo.preSelectTime}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            basicInfo: { ...formData.basicInfo, preSelectTime: e.target.value }
+                          })}
+                          style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: 600 }}>Entry Time</label>
+                        <input
+                          type="time"
+                          value={formData.basicInfo.entryTime}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            basicInfo: { ...formData.basicInfo, entryTime: e.target.value }
+                          })}
+                          style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: 600 }}>Exit Time</label>
+                        <input
+                          type="time"
+                          value={formData.basicInfo.exitTime}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            basicInfo: { ...formData.basicInfo, exitTime: e.target.value }
+                          })}
+                          style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                        />
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '11px', fontWeight: 600 }}>Pre-Select Time</label>
-                      <input
-                        type="time"
-                        value={formData.basicInfo.preSelectTime}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          basicInfo: { ...formData.basicInfo, preSelectTime: e.target.value }
-                        })}
-                        style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '11px', fontWeight: 600 }}>Exit Time</label>
-                      <input
-                        type="time"
-                        value={formData.basicInfo.exitTime}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          basicInfo: { ...formData.basicInfo, exitTime: e.target.value }
-                        })}
-                        style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '11px', fontWeight: 600 }}>Max Trades/Day</label>
-                      <input
-                        type="number"
-                        value={formData.basicInfo.maxTradesPerDay}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          basicInfo: { ...formData.basicInfo, maxTradesPerDay: Number(e.target.value) }
-                        })}
-                        style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '11px', fontWeight: 600 }}>Select Position</label>
+                  </div>
+
+                  {/* TRADE SELECTION */}
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '16px' }}>
+                    <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>TRADE SELECTION</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Select Position</label>
                       <select
                         value={formData.basicInfo.selectPosition}
                         onChange={(e) => setFormData({
                           ...formData,
                           basicInfo: { ...formData.basicInfo, selectPosition: Number(e.target.value) }
                         })}
-                        style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                       >
                         <option value={1}>1st</option>
                         <option value={2}>2nd</option>
@@ -1414,21 +1415,48 @@ export default function StrategiesPage() {
                         <option value={9}>9th</option>
                         <option value={10}>10th</option>
                       </select>
+                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Select which ranked stock to trade (e.g. 1st loser, 2nd loser)</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Max Trades/Day</label>
+                      <input
+                        type="number"
+                        value={formData.basicInfo.maxTradesPerDay}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          basicInfo: { ...formData.basicInfo, maxTradesPerDay: Number(e.target.value) }
+                        })}
+                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                      />
+                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Maximum number of trades allowed per day</span>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Status</label>
-                    <select
-                      value={formData.basicInfo.status}
-                      onChange={(e: any) => setFormData({
-                        ...formData,
-                        basicInfo: { ...formData.basicInfo, status: e.target.value }
-                      })}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    >
-                      <option value="active">Active (Live running)</option>
-                      <option value="inactive">Inactive (Suspended)</option>
-                    </select>
+
+                  {/* STATUS */}
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '16px' }}>
+                    <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>STATUS</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, basicInfo: { ...formData.basicInfo, status: 'active' } })}
+                        style={{
+                          padding: '8px 20px', borderRadius: '20px', border: 'none', cursor: 'pointer',
+                          background: formData.basicInfo.status === 'active' ? '#22c55e' : 'var(--bg-card)',
+                          color: formData.basicInfo.status === 'active' ? '#fff' : 'var(--text-secondary)',
+                          fontWeight: 600, fontSize: '12px', transition: 'all 0.2s ease'
+                        }}
+                      >🟢 Active</button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, basicInfo: { ...formData.basicInfo, status: 'inactive' } })}
+                        style={{
+                          padding: '8px 20px', borderRadius: '20px', border: 'none', cursor: 'pointer',
+                          background: formData.basicInfo.status === 'inactive' ? '#ef4444' : 'var(--bg-card)',
+                          color: formData.basicInfo.status === 'inactive' ? '#fff' : 'var(--text-secondary)',
+                          fontWeight: 600, fontSize: '12px', transition: 'all 0.2s ease'
+                        }}
+                      >🔴 Inactive</button>
+                    </div>
                   </div>
                 </div>
               </Card>
