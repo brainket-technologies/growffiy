@@ -71,19 +71,20 @@ export async function performKiteAutoLogin(clientId: string): Promise<{ success:
     }
 
     const requestId = loginData.data.request_id;
+    const twofaType = loginData.data.twofa_type || 'totp';
     // Capture session cookies
     const loginCookieHeaders = loginRes.headers.getSetCookie();
     let cookies = parseCookies(loginCookieHeaders);
 
-    // 3. Step 2: Two-Factor Authentication (TOTP Verification)
-    console.log('KiteAutoLogin: Generating TOTP code and submitting 2FA...');
+    // 3. Step 2: Two-Factor Authentication (TOTP/App Code Verification)
+    console.log(`KiteAutoLogin: Generating TOTP code and submitting 2FA (type: ${twofaType})...`);
     const totpCode = generateTOTP(totpSecret);
     
     const twofaParams = new URLSearchParams();
     twofaParams.append('user_id', userId);
     twofaParams.append('request_id', requestId);
     twofaParams.append('twofa_value', totpCode);
-    twofaParams.append('twofa_type', 'totp');
+    twofaParams.append('twofa_type', twofaType);
 
     const twofaRes = await fetch(`${KiteClient.KITE_FRONTEND_URL}/api/twofa`, {
       method: 'POST',

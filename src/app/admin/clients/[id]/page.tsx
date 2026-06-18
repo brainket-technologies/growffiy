@@ -56,6 +56,10 @@ export default function ClientDetailsPage() {
   const [dob, setDob] = useState('');
   const [kycStatus, setKycStatus] = useState('pending');
 
+  // TOTP Display
+  const [totpCode, setTotpCode] = useState('------');
+  const [totpCountdown, setTotpCountdown] = useState(30);
+
   // UI Visibility States
   const [showPassword, setShowPassword] = useState(false);
   const [showApiSecret, setShowApiSecret] = useState(false);
@@ -120,6 +124,24 @@ export default function ClientDetailsPage() {
       }
     }
   }, [id]);
+
+  // TOTP auto-refresh
+  useEffect(() => {
+    if (!zerodhaTotpSecret) {
+      setTotpCode('------');
+      return;
+    }
+    const update = async () => {
+      try {
+        const { generateClientTOTP, getTOTPCountdown } = await import('../../../../lib/totpClient');
+        setTotpCode(await generateClientTOTP(zerodhaTotpSecret));
+        setTotpCountdown(getTOTPCountdown());
+      } catch { setTotpCode('------'); }
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [zerodhaTotpSecret]);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -798,6 +820,19 @@ export default function ClientDetailsPage() {
                       style={{ paddingLeft: '40px' }}
                     />
                   </div>
+                  {zerodhaTotpSecret && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px', padding: '8px 12px', borderRadius: '8px', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontFamily: 'monospace', fontSize: '22px', fontWeight: 700, letterSpacing: '4px', color: 'var(--primary)' }}>
+                        {totpCode}
+                      </div>
+                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '2px solid var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: 'var(--primary)' }}>
+                        {totpCountdown}
+                      </div>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        {totpCode === '------' ? 'No secret key' : 'Current TOTP — match this with your phone app'}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px' }}>
