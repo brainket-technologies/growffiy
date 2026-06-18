@@ -842,11 +842,31 @@ class AlgoEngineService {
           }
 
           // 5. Use Kite Connect API if active credentials are setup for the client
+          const entryPrice = targetStock.iep || targetStock.ltp || targetStock.prevClose || 100.0;
+          const slPercent = config?.stoploss?.fixedPercent || 0.5;
+          const targetPercent = config?.target?.profitPercent || 2.0;
+
           let activeAccessToken = client.accessToken;
           const isAutoLoginPossible = process.env.KITE_AUTO_LOGIN_ENABLED === 'true' && client.zerodhaPassword && client.zerodhaTotpSecret;
 
           if (!activeAccessToken && !isAutoLoginPossible) {
-            console.log(`AlgoEngine: Skipping client ${client.user.name} - No active Kite session and auto-login credentials missing.`);
+            const errMsg = `Skipped: No active Kite connection session, and auto-login credentials (password/TOTP) are not configured.`;
+            console.log(`AlgoEngine: Skipping client ${client.user.name} - ${errMsg}`);
+            
+            await prisma.trade.create({
+              data: {
+                clientId: client.id,
+                strategyId: strategy.id,
+                symbol: targetStock.symbol,
+                orderType: 'MIS',
+                entryPrice: entryPrice,
+                quantity: 0,
+                status: 'FAILED',
+                entryTime: new Date(),
+                kiteResponse: { message: errMsg }
+              }
+            });
+
             await prisma.strategyLog.create({
               data: {
                 strategyId: strategy.id,
@@ -872,7 +892,23 @@ class AlgoEngineService {
           }
 
           if (!activeAccessToken) {
-            console.log(`AlgoEngine: Skipping client ${client.user.name} - Failed to establish Kite API session.`);
+            const errMsg = `Skipped: Kite session could not be established (auto-login failed or manual login required).`;
+            console.log(`AlgoEngine: Skipping client ${client.user.name} - ${errMsg}`);
+            
+            await prisma.trade.create({
+              data: {
+                clientId: client.id,
+                strategyId: strategy.id,
+                symbol: targetStock.symbol,
+                orderType: 'MIS',
+                entryPrice: entryPrice,
+                quantity: 0,
+                status: 'FAILED',
+                entryTime: new Date(),
+                kiteResponse: { message: errMsg }
+              }
+            });
+
             await prisma.strategyLog.create({
               data: {
                 strategyId: strategy.id,
@@ -907,18 +943,30 @@ class AlgoEngineService {
             allocatedAmount = dbCapitalLimit;
           }
 
-          const entryPrice = targetStock.iep || targetStock.ltp || targetStock.prevClose || 100.0;
-          const slPercent = config?.stoploss?.fixedPercent || 0.5;
-          const targetPercent = config?.target?.profitPercent || 2.0;
-
           // Calculate quantity based on direct capital allocation (allocatedAmount / entryPrice)
           let quantity = Math.floor(allocatedAmount / entryPrice);
           if (quantity <= 0) {
+            const errMsg = `Skipped: Calculated quantity is 0 (Allocated amount ₹${allocatedAmount.toFixed(2)} is less than entry price ₹${entryPrice.toFixed(2)}).`;
             console.log(`AlgoEngine: Calculated quantity is 0 for client ${client.user.name} (Allocated: ₹${allocatedAmount.toFixed(2)}, Entry Price: ₹${entryPrice.toFixed(2)}). Skipping trade.`);
+            
+            await prisma.trade.create({
+              data: {
+                clientId: client.id,
+                strategyId: strategy.id,
+                symbol: targetStock.symbol,
+                orderType: 'MIS',
+                entryPrice: entryPrice,
+                quantity: 0,
+                status: 'FAILED',
+                entryTime: new Date(),
+                kiteResponse: { message: errMsg }
+              }
+            });
+
             await prisma.strategyLog.create({
               data: {
                 strategyId: strategy.id,
-                message: `Skipped trade execution for ${client.user.name}: Calculated quantity is 0 (Allocated amount ₹${allocatedAmount.toFixed(2)} is less than entry price ₹${entryPrice.toFixed(2)}).`,
+                message: errMsg,
                 logType: 'info'
               }
             });
