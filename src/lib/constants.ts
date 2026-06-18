@@ -70,6 +70,11 @@ export const SETTINGS_KEYS = {
   RAZORPAY_WEBHOOK_SECRET: 'razorpay_webhook_secret',
   RAZORPAY_MODE: 'razorpay_mode', // test, live
   RAZORPAY_STATUS: 'razorpay_status',
+
+  ALGO_PREOPEN_FETCH_TIME: 'algo_preopen_fetch_time',
+  ALGO_ENTRY_TIME: 'algo_entry_time',
+  ALGO_TOKEN_REFRESH_TIME: 'algo_token_refresh_time',
+  ALGO_CHECK_INTERVAL_SEC: 'algo_check_interval_sec',
 };
 
 export const ORDER_TYPES = {
