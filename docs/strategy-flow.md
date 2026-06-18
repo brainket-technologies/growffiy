@@ -54,7 +54,7 @@ Ek **automatic trading system** jo har din:
 | | `checkIntervalSec` | **60** | Admin → Strategy → Trade Selection → Check Interval (sec) | Har kitne second monitor karna hai is strategy ke trades ke liye |
 | | `status` | **active** | Admin → Strategy → Status toggle | active = trade chalega, inactive = nahi chalega |
 | **tradeAction** | `action` | **Long** | Admin → Strategy → Trade Action → Action Direction | Long = losers me se pick. Short = gainers me se pick |
-| | `orderType` | **Limit** | Admin → Strategy → Trade Action → Order Type | Limit = specific price pe order. Market = market price pe |
+| | `orderType` | **SL-Market** | Admin → Strategy → Trade Action → Order Type | SL-M = trigger price pe market order. Limit = specific price. SL-Limit = trigger + limit |
 | | `bufferPercent` | **0.1%** | Admin → Strategy → Trade Action → Buffer % | Candle high se kitna upar entry price rakhna hai |
 | **stoploss** | `fixedPercent` | **0.5%** | Admin → Strategy → Stoploss section | Entry price se kitna neeche SL rakhna hai |
 | | `trailingSL` | **0.2%** | Admin → Strategy → Stoploss section | Trailing SL kitna gap rakhna hai |
@@ -275,13 +275,14 @@ Target₹ = 196.99 × (1 + 1.5/100) = 196.99 × 1.015 = ₹200.02
 Trailing SL = 0.2% (price upar jayega to SL bhi upar aayega)
 Trailing Target = 0.5% (price upar jayega to Target bhi upar aayega)
 
-orderType = "Limit" → LIMIT order at ₹196.99
+orderType = "SL-Market" → SL-M order at trigger ₹196.99 (market fill after trigger)
 
 📌 ADMIN CHANGE KARE TO KYA HOGA:
   fixedPercent = 1.0% → SL = 196.99 × 0.99 = ₹195.02 (zyada room)
   profitPercent = 2.0% → Target = 196.99 × 1.02 = ₹200.93
   trailingSL = 0 → trailing band (fixed SL)
-  orderType = "Market" → MARKET order (entry price guarantee nahi)
+  orderType = "Limit" → LIMIT order (exact price guarantee, may not fill)
+  orderType = "Market" → MARKET order (instant fill, no price control)
 
 STEP 9: PLACE ORDER ON ZERODHA
 ────────────────────────────────
@@ -290,14 +291,14 @@ Kite.placeOrder({
   tradingsymbol: "HINDALCO",
   transaction_type: "BUY",
   quantity: 40,
-  order_type: "LIMIT",
-  price: 196.99,
+  order_type: "SL-M",          // ← SL-Market: trigger pe market order
+  trigger_price: 196.99,       // ← Jab price 196.99 tak aayega tab fill hoga
   product: "MIS",
   validity: "DAY"
 })
 
 → Response: { status: "success", data: { order_id: "240619000123456" } }
-→ Order placed ✅
+→ Order placed ✅ (trigger waiting for price to hit ₹196.99)
 
 STEP 10: SAVE TRADE IN DATABASE
 ────────────────────────────────
@@ -586,9 +587,10 @@ executePreOpenTrades(strategyId?) — Har client ke liye:
 ├─────────────────────────────────────────────────────────────┤
 │ 7. ORDER TYPE                                              │
 │    config.tradeAction.orderType                             │
+│    "SL-Market" → SL-M order, trigger=entryPrice (default)  │
 │    "Limit" → LIMIT order at entryPrice                     │
 │    "Market" → MARKET order                                  │
-│    "SL-Limit" → SL order with trigger at entryPrice        │
+│    "SL-Limit" → SL order with trigger + limit price        │
 ├─────────────────────────────────────────────────────────────┤
 │ 8. SL/TARGET                                                │
 │    SL% = config.stoploss.fixedPercent                      │
@@ -648,7 +650,7 @@ Strategy:        Pre Open Momentum Breakout
 Client:          RZJ500 (capital ₹50,000)
 Segment:         NSE F&O
 Position:        #1 Loser (selectPosition = 1)
-Entry:           LIMIT @ candle high + 0.1%
+Entry:           SL-Market @ trigger = candle high + 0.1%
 Amount:          1% of live balance (capped at ₹50,000)
 SL:              0.5% trailing (0.2% trail)
 Target:          1.5% trailing (0.5% trail)
