@@ -1,8 +1,21 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/db';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const startDateStr = searchParams.get('startDate');
+    const endDateStr = searchParams.get('endDate');
+
+    const now = new Date();
+    // Default to start of current month to end of current month
+    const defaultStartDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    const defaultEndDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const startFilter = startDateStr ? new Date(startDateStr) : defaultStartDate;
+    // Set time to end of day if only YYYY-MM-DD was sent
+    const endFilter = endDateStr ? new Date(new Date(endDateStr).setHours(23, 59, 59, 999)) : defaultEndDate;
+
     // 1. Client counts
     const totalClients = await prisma.client.count();
     const activeClients = await prisma.client.count({ where: { tradingStatus: 'active' } });
@@ -11,7 +24,16 @@ export async function GET() {
     // 2. Strategy counts & performance
     const activeStrategies = await prisma.strategy.count({ where: { status: 'active' } });
     const strategies = await prisma.strategy.findMany({
-      include: { trades: true }
+      include: { 
+        trades: {
+          where: {
+            createdAt: {
+              gte: startFilter,
+              lte: endFilter
+            }
+          }
+        } 
+      }
     });
 
     let winningStrategies = 0;
@@ -30,7 +52,14 @@ export async function GET() {
     });
 
     // 3. Trade metrics calculations
-    const allTrades = await prisma.trade.findMany();
+    const allTrades = await prisma.trade.findMany({
+      where: {
+        createdAt: {
+          gte: startFilter,
+          lte: endFilter
+        }
+      }
+    });
     
     let totalPnl = 0;
     let totalExposure = 0;
@@ -106,3 +135,4 @@ export async function GET() {
     }, { status: 500 });
   }
 }
+
