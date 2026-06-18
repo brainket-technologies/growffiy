@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../../../views/components/Card';
 import { Button } from '../../../views/components/Button';
-import { Shield, Server, RefreshCw, Key, Eye, EyeOff, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight, Mail, CreditCard, Sliders, Globe, Info, LifeBuoy } from 'lucide-react';
+import { Shield, Server, RefreshCw, Key, Eye, EyeOff, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight, Mail, CreditCard, Sliders, Globe, Info, LifeBuoy, Clock } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { Modal } from '../../../views/components/Modal';
 import { API_ENDPOINTS } from '../../../lib/constants';
 
 
-type TabType = 'payments' | 'smtp' | 'risk' | 'support';
+type TabType = 'payments' | 'smtp' | 'risk' | 'support' | 'algo';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('payments');
@@ -38,6 +38,12 @@ export default function SettingsPage() {
   const [supportEmail, setSupportEmail] = useState('support@growffiy.com');
   const [supportPhone, setSupportPhone] = useState('+91 98765 43210');
   const [supportTimings, setSupportTimings] = useState('Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)');
+
+  // Algo Timings
+  const [algoPreopenFetchTime, setAlgoPreopenFetchTime] = useState('09:08');
+  const [algoEntryTime, setAlgoEntryTime] = useState('09:20');
+  const [algoTokenRefreshTime, setAlgoTokenRefreshTime] = useState('08:00');
+  const [algoCheckIntervalSec, setAlgoCheckIntervalSec] = useState('60');
 
   // UI Status
   const [loading, setLoading] = useState(true);
@@ -74,6 +80,11 @@ export default function SettingsPage() {
           setSupportEmail(res.settings.support_email || 'support@growffiy.com');
           setSupportPhone(res.settings.support_phone || '+91 98765 43210');
           setSupportTimings(res.settings.support_timings || 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)');
+
+          setAlgoPreopenFetchTime(res.settings.algo_preopen_fetch_time || '09:08');
+          setAlgoEntryTime(res.settings.algo_entry_time || '09:20');
+          setAlgoTokenRefreshTime(res.settings.algo_token_refresh_time || '08:00');
+          setAlgoCheckIntervalSec(res.settings.algo_check_interval_sec || '60');
         }
       } catch (err: any) {
         console.error('Error fetching settings:', err);
@@ -108,6 +119,10 @@ export default function SettingsPage() {
         support_email: supportEmail,
         support_phone: supportPhone,
         support_timings: supportTimings,
+        algo_preopen_fetch_time: algoPreopenFetchTime,
+        algo_entry_time: algoEntryTime,
+        algo_token_refresh_time: algoTokenRefreshTime,
+        algo_check_interval_sec: algoCheckIntervalSec,
       });
 
 
@@ -269,6 +284,28 @@ export default function SettingsPage() {
         >
           <LifeBuoy size={16} />
           Support Info
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('algo')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '14px 4px',
+            fontSize: '14px',
+            fontWeight: 600,
+            border: 'none',
+            borderBottom: activeTab === 'algo' ? '2px solid var(--primary)' : '2px solid transparent',
+            color: activeTab === 'algo' ? 'var(--primary)' : 'var(--text-secondary)',
+            background: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+        >
+          <Clock size={16} />
+          Algo Timings
         </button>
       </div>
 
@@ -896,6 +933,126 @@ export default function SettingsPage() {
         )}
       </form>
 
+
+        {/* Algo Timings View Tab */}
+        {activeTab === 'algo' && (
+          <Card style={{ padding: '24px 28px' }}>
+            <div style={{ marginBottom: '28px', borderBottom: '1px solid var(--border-light)', paddingBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Algo Engine Timings
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Configure the daily schedule for the automated trading engine. All times are in IST (24-hour format).
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Pre-Open Fetch Time
+                </label>
+                <input
+                  type="time"
+                  value={algoPreopenFetchTime}
+                  onChange={(e) => setAlgoPreopenFetchTime(e.target.value)}
+                  required
+                  style={{ height: '38px', fontSize: '13px' }}
+                />
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  When to fetch NSE pre-open data (default: 09:08)
+                </p>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Pre-Select Time
+                </label>
+                <input
+                  type="time"
+                  value={algoPreopenFetchTime}
+                  readOnly
+                  style={{ height: '38px', fontSize: '13px', opacity: 0.7, cursor: 'not-allowed' }}
+                />
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Set per-strategy in Strategy Config (default: 09:15)
+                </p>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Entry Time
+                </label>
+                <input
+                  type="time"
+                  value={algoEntryTime}
+                  onChange={(e) => setAlgoEntryTime(e.target.value)}
+                  required
+                  style={{ height: '38px', fontSize: '13px' }}
+                />
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  When to execute breakout entry trades (default: 09:20)
+                </p>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Token Refresh Time
+                </label>
+                <input
+                  type="time"
+                  value={algoTokenRefreshTime}
+                  onChange={(e) => setAlgoTokenRefreshTime(e.target.value)}
+                  required
+                  style={{ height: '38px', fontSize: '13px' }}
+                />
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Daily Zerodha token refresh for all active clients (default: 08:00)
+                </p>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Check Interval (seconds)
+                </label>
+                <input
+                  type="number"
+                  min="10"
+                  max="300"
+                  step="10"
+                  value={algoCheckIntervalSec}
+                  onChange={(e) => setAlgoCheckIntervalSec(e.target.value)}
+                  required
+                  style={{ height: '38px', fontSize: '13px' }}
+                />
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  How often the scheduler checks if it's time to run (default: 60)
+                </p>
+              </div>
+            </div>
+
+            {/* Submit Action inside Box */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '24px' }}>
+              <Button
+                type="submit"
+                disabled={saving}
+                style={{
+                  padding: '10px 28px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
+                  color: 'white',
+                  boxShadow: 'var(--shadow-blue)'
+                }}
+              >
+                {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
+                Save & Apply Settings
+              </Button>
+            </div>
+          </Card>
+        )}
 
       {/* Info Help Modal */}
       {infoModal && (
