@@ -1,5 +1,7 @@
 # Pre-Open Momentum Breakout — Pura Application Flow
 
+> **Updated: 19 June 2026 — v2 (3-Step Order Flow + OCO + Trailing SL + market_protection=-1)**
+> 
 > Yeh document batata hai ki **poora system kaise kaam karta hai** — admin kya change karega to kya hoga, strategy kaise apply hoti hai, aur ek real client ke saath exact example.
 
 ---
@@ -8,11 +10,13 @@
 
 Ek **automatic trading system** jo har din:
 
-1. **09:08 AM** — NSE se pre-open data fetch karta hai (global timing)
-2. **09:15 AM** — Sabse zyada girne wala F&O stock select karta hai (per-strategy timing)
-3. **09:15-09:20** — Market open hota hai, 5-min candle banti hai
-4. **09:20 AM** — Candle high check karta hai → breakout hua? → LIMIT BUY order lagata hai (per-strategy timing)
-5. **09:20-15:15** — Strategy ke `checkIntervalSec` ke hisaab se monitor karta hai → SL ya Target hit? → SELL
+1. **08:00 AM** — Zerodha access token refresh (TOTP auto-login)
+2. **09:08 AM** — NSE se pre-open data fetch karta hai (global timing)
+3. **XX:XX AM** — Sabse zyada girne wala F&O stock select karta hai (per-strategy `preSelectTime`)
+4. **XX:XX AM** — Candle high check → breakout → **MARKET BUY** order (`market_protection=-1`)
+5. **After entry fill** — **SL-M SELL** (`trigger_price=SL`, `market_protection=-1`) + **Target LIMIT SELL** (`price=Target`)
+6. **XX:XX-15:15** — Order status monitor (API polling) → OCO logic (cancel opposite order on hit)
+7. **Trailing SL** — Modify SL trigger price as price moves up
 
 **Zerodha Kite API** ke through orders lagte hain.
 
@@ -23,10 +27,10 @@ Ek **automatic trading system** jo har din:
 ```
 ⏰ 08:00 → Token refresh (Zerodha session) — global
 ⏰ 09:08 → NSE se saare stocks ka pre-open data aaya — global
-⏰ 09:15 → F&O stocks filter → sort → position #1 select → Map me store — per strategy
-⏰ 09:15-09:20 → Market open → 5-min candle bani
-⏰ 09:20 → Candle high check → breakout? → BUY order — per strategy
-⏰ 09:20-15:15 → Price monitor (per strategy checkIntervalSec) → SL/Target? → SELL
+⏰ XX:XX → F&O stocks filter → sort → position #N select → Map me store — per strategy
+⏰ XX:XX → Candle high check → breakout? → MARKET BUY (market_protection=-1) — per strategy
+⏰ After fill → SL-M SELL (trigger=SL) + Target LIMIT SELL (price=Target)
+⏰ XX:XX-15:15 → Order status monitor (API polling) → OCO → Trailing SL
 ```
 
 ---
@@ -54,8 +58,9 @@ Ek **automatic trading system** jo har din:
 | | `checkIntervalSec` | **60** | Admin → Strategy → Trade Selection → Check Interval (sec) | Har kitne second monitor karna hai is strategy ke trades ke liye |
 | | `status` | **active** | Admin → Strategy → Status toggle | active = trade chalega, inactive = nahi chalega |
 | **tradeAction** | `action` | **Long** | Admin → Strategy → Trade Action → Action Direction | Long = losers me se pick. Short = gainers me se pick |
-| | `orderType` | **SL-Market** | Admin → Strategy → Trade Action → Order Type | SL-M = trigger price pe market order. Limit = specific price. SL-Limit = trigger + limit |
+| | `orderType` | **Market** | Admin → Strategy → Trade Action → Order Type | Entry order type: MARKET (recommended). Limit/SL-Market/SL-Limit bhi possible |
 | | `bufferPercent` | **0.1%** | Admin → Strategy → Trade Action → Buffer % | Candle high se kitna upar entry price rakhna hai |
+| | `marketProtection` | **-1** | Admin → Strategy → Trade Action → Market Protection | MARKET & SL-M orders ke liye protection. -1 = off, 1-5 = protection % |
 | **stoploss** | `fixedPercent` | **0.5%** | Admin → Strategy → Stoploss section | Entry price se kitna neeche SL rakhna hai |
 | | `trailingSL` | **0.2%** | Admin → Strategy → Stoploss section | Trailing SL kitna gap rakhna hai |
 | **target** | `profitPercent` | **1.5%** | Admin → Strategy → Target section | Entry price se kitna upar target rakhna hai |
@@ -284,127 +289,133 @@ orderType = "SL-Market" → SL-M order at trigger ₹196.99 (market fill after t
   orderType = "Limit" → LIMIT order (exact price guarantee, may not fill)
   orderType = "Market" → MARKET order (instant fill, no price control)
 
-STEP 9: PLACE ORDER ON ZERODHA
-────────────────────────────────
+STEP 9: PLACE ENTRY ORDER — MARKET (market_protection=-1)
+──────────────────────────────────────────────────────────────
 Kite.placeOrder({
   exchange: "NSE",
   tradingsymbol: "HINDALCO",
   transaction_type: "BUY",
   quantity: 40,
-  order_type: "SL-M",          // ← SL-Market: trigger pe market order
-  trigger_price: 196.99,       // ← Jab price 196.99 tak aayega tab fill hoga
+  order_type: "MARKET",                    // ← MARKET: instant fill
   product: "MIS",
-  validity: "DAY"
+  validity: "DAY",
+  market_protection: -1                    // ← -1 = off (required for MARKET orders)
 })
 
 → Response: { status: "success", data: { order_id: "240619000123456" } }
-→ Order placed ✅ (trigger waiting for price to hit ₹196.99)
+→ Entry order placed ✅
 
-STEP 10: SAVE TRADE IN DATABASE
-────────────────────────────────
+STEP 10: POLL ENTRY ORDER UNTIL COMPLETE
+──────────────────────────────────────────────
+// Engine polls every 2 sec for max 20 sec
+Kite.getOrderById("240619000123456")
+→ { status: "success", data: { status: "COMPLETE", average_price: 197.50 } }
+
+actualEntryPrice = 197.50  // use actual filled price, not calculated
+
+STEP 11: PLACE SL-M ORDER (market_protection=-1)
+──────────────────────────────────────────────────────
+Kite.placeOrder({
+  exchange: "NSE",
+  tradingsymbol: "HINDALCO",
+  transaction_type: "SELL",                // ← opposite of entry
+  quantity: 40,
+  order_type: "SL-M",                      // ← SL-Market: auto-triggers
+  product: "MIS",
+  validity: "DAY",
+  trigger_price: 196.53,                   // ← 197.50 × (1 - 0.5/100) = 196.53
+  market_protection: -1
+})
+
+→ Response: { status: "success", data: { order_id: "240619000123457" } }
+→ SL order placed ✅ (will auto-trigger if price hits ₹196.53)
+
+STEP 12: PLACE TARGET LIMIT ORDER
+──────────────────────────────────────────────
+Kite.placeOrder({
+  exchange: "NSE",
+  tradingsymbol: "HINDALCO",
+  transaction_type: "SELL",                // ← opposite of entry
+  quantity: 40,
+  order_type: "LIMIT",                     // ← LIMIT: fills at exact price
+  product: "MIS",
+  validity: "DAY",
+  price: 200.46                            // ← 197.50 × (1 + 1.5/100) = 200.46
+})
+
+→ Response: { status: "success", data: { order_id: "240619000123458" } }
+→ Target order placed ✅ (will fill when price reaches ₹200.46)
+
+STEP 13: SAVE TRADE IN DATABASE (with all order IDs)
+──────────────────────────────────────────────────────────────
 prisma.trade.create({
   clientId: "b364d72f...",
   strategyId: "c7bafa89...",
   symbol: "HINDALCO",
   orderType: "MIS",
-  entryPrice: 196.99,
+  entryPrice: 197.50,           // actual filled price
   quantity: 40,
-  stopLoss: 196.00,
-  target: 200.02,
-  status: "OPEN"
+  stopLoss: 196.53,
+  target: 200.46,
+  status: "open",
+  entryOrderId: "240619000123456",
+  slOrderId: "240619000123457",
+  targetOrderId: "240619000123458",
+  slTriggerPrice: 196.53
 })
 
-STEP 11: LOGS
+STEP 14: LOGS
 ────────────────────────────────
-prisma.strategyLog.create({ message: "Bought 40 HINDALCO @ 196.99..." })
+prisma.strategyLog.create({ message: "Bought 40 HINDALCO @ 197.50 (entry: 240619000123456, SL: 240619000123457, Target: 240619000123458)..." })
 prisma.auditLog.create({ action: "AUTO TRADE INITIATED", ... })
 ```
 
 ---
 
-#### ⏰ 09:20-15:15 — Monitoring (Per-Strategy Check Interval)
+#### ⏰ XX:XX-15:15 — Monitoring — OCO + Trailing SL (Order Status API Polling)
 
 > Har strategy ka apna `checkIntervalSec` hota hai (configJson → basicInfo.checkIntervalSec).
 > Default 60 hai. Engine ka base timer har 10 sec chalta hai, lekin har trade ko sirf apni strategy ke
 > interval ke hisaab se check karta hai. Example: checkIntervalSec=120 → har 2 min check.
 
+**Naya flow:** Candle-based monitoring nahi, balki **order status API polling** — SL-M aur Target LIMIT orders ke status check hote hain. Jab koi order COMPLETE hota hai, opposite order auto-cancel (OCO).
+
 ```
 startActiveTradesMonitoringScheduler() — base timer har 10 sec, per-trade filtering
 
-─────────────────────────────────────────────────────────────
-SCENARIO 1: ✅ TARGET HIT (PROFIT)
-─────────────────────────────────────────────────────────────
+────────────────────────────────────────────────
+SCENARIO 1: TARGET HIT (PROFIT)
+────────────────────────────────────────────────
 
-Time: 09:21 (1 minute baad)
-────────────────────────────────
-Kite se latest candle fetch:
-  currentPrice = latestCandle[4] = ₹201.00
+Kite.getOrderById(targetOrderId) → status: "COMPLETE" ✅
+→ Cancel SL: Kite.cancelOrder(slOrderId)
+→ Trade: status="target_hit", exitReason="Target Hit"
+→ P&L = (fillPrice - entry) × qty
 
-SL Check:  201.00 <= 196.00? → ❌ Nahi (no SL)
-Target Check: 201.00 >= 200.02? → ✅ HA!
+────────────────────────────────────────────────
+SCENARIO 2: STOP LOSS HIT (LOSS)
+────────────────────────────────────────────────
 
-→ MARKET SELL 40 HINDALCO @ 201.00
-→ Trade status: "closed"
-→ P&L = (201.00 - 196.99) × 40 = ₹160.40 PROFIT ✅
+Kite.getOrderById(slOrderId) → status: "COMPLETE" ❌
+→ Cancel Target: Kite.cancelOrder(targetOrderId)
+→ Trade: status="sl_hit", exitReason="SL Hit"
 
-Log: "Sold 40 shares of HINDALCO at ₹201.00 due to Target (1.5%) hit. P&L: ₹160.40"
+────────────────────────────────────────────────
+SCENARIO 3: TRAILING SL ACTIVE
+────────────────────────────────────────────────
 
-📌 ISKA MATLAB:
-  ₹8,000 lagaye → ₹160.40 profit (2% return on deployed capital in 1 min)
-  Agar riskPerTrade = 2% hota → ₹16,000 lagte → ₹320.80 profit
+Engine reads LTP from WebSocket → calculates new SL trigger
+trailStep = entry × (trailingSL%/100)
+If newSL > currentSLTrigger → Kite.modifyOrder(slOrderId, { trigger_price: newSL })
 
-─────────────────────────────────────────────────────────────
-SCENARIO 2: ❌ STOP LOSS HIT (LOSS)
-─────────────────────────────────────────────────────────────
+────────────────────────────────────────────────
+SCENARIO 4: FALLBACK CANDLE CHECK (no order IDs)
+────────────────────────────────────────────────
 
-Time: 10:30 AM
-────────────────────────────────
-currentPrice = ₹195.50
-
-SL Check:  195.50 <= 196.00? → ✅ HA!
-Target Check: 195.50 >= 200.02? → ❌ Nahi
-
-→ MARKET SELL 40 HINDALCO @ 196.00 (SL price)
-→ Trade status: "closed"
-→ P&L = (196.00 - 196.99) × 40 = -₹39.60 LOSS ❌
-
-Log: "Sold 40 shares of HINDALCO at ₹196.00 due to Stop Loss (0.5%) hit. P&L: -₹39.60"
-
-📌 ISKA MATLAB:
-  ₹39.60 loss → 0.5% of ₹8,000 = ₹40 (exact risk)
-  Yeh hi hota hai risk management — small loss, big profit
-
-─────────────────────────────────────────────────────────────
-SCENARIO 3: 🔄 TRAILING SL ACTIVE (BIG PROFIT)
-─────────────────────────────────────────────────────────────
-
-Price trend:
-  09:30 → ₹205  → SL trail: 205 × 0.998 = ₹204.59
-  10:00 → ₹215  → SL trail: 215 × 0.998 = ₹214.57
-  11:00 → ₹225  → SL trail: 225 × 0.998 = ₹224.55
-  11:30 → ₹220  → Price neeche aaya
-
-SL Check:  220 <= 224.55? → ✅ HA! (trailing SL hit)
-→ SELL @ 224.55 (trailing SL price)
-→ P&L = (224.55 - 196.99) × 40 = ₹1,102.40 PROFIT 🚀
-
-📌 TRAILING SL KA FAIDA:
-  Fixed SL hota to ₹196.00 pe hit hota → ₹39.60 loss
-  Trailing SL ne price ko follow kiya → ₹1,102 profit
-  Difference: ₹1,142
-
-─────────────────────────────────────────────────────────────
-SCENARIO 4: TRAILING TARGET ACTIVE
-─────────────────────────────────────────────────────────────
-
-Price trend:
-  09:30 → ₹205  → Target trail: 205 × 1.005 = ₹206.03
-  10:00 → ₹210  → Target trail: 210 × 1.005 = ₹211.05
-  11:00 → ₹215  → Target trail: 215 × 1.005 = ₹216.08
-  11:30 → ₹220  → Target trail: 220 × 1.005 = ₹221.10
-
-Target Check: 220 >= 221.10? → ❌ (abhi nahi)
-Jab price 221.10 tak jayega tab target hit hoga.
+Agar trade ke paas order IDs nahi hain → purana candle-based:
+  Kite.getHistoricalData() → currentClose
+  currentClose <= SL? → MARKET SELL (market_protection from config)
+  currentClose >= Target? → MARKET SELL (market_protection from config)
 ```
 
 ---
