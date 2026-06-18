@@ -22,7 +22,9 @@ import {
   Activity,
   CheckCircle,
   FileCode,
-  AlertCircle
+  AlertCircle,
+  Calendar,
+  ChevronDown
 } from 'lucide-react';
 import { Modal } from '../../../views/components/Modal';
 
@@ -130,8 +132,15 @@ const INITIAL_CONFIG: StrategyConfig = {
   conditions: []
 };
 
+const YEARS = [2024, 2025, 2026, 2027, 2028];
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+
 export default function StrategiesPage() {
-  const { colors } = useAppViewModel();
+  const { colors, trades } = useAppViewModel();
 
   // Mode state: 'list' | 'create' | 'edit' | 'detail'
   const [viewMode, setViewMode] = useState<'list' | 'create' | 'edit' | 'detail'>('list');
@@ -143,6 +152,230 @@ export default function StrategiesPage() {
   const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
   const [filterType, setFilterType] = useState<string>('all');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Filter Date Range State
+  const [filterStartDate, setFilterStartDate] = useState<Date>(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  const [filterEndDate, setFilterEndDate] = useState<Date>(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  });
+
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filterTypeTab, setFilterTypeTab] = useState<'month' | 'year' | 'custom'>('month');
+  const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth());
+  const [customStart, setCustomStart] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  const [customEnd, setCustomEnd] = useState<string>(() => {
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`;
+  });
+
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsFilterOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const applyMonthFilter = () => {
+    const start = new Date(selectedYear, selectedMonth, 1);
+    const end = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
+    setFilterStartDate(start);
+    setFilterEndDate(end);
+    setIsFilterOpen(false);
+  };
+
+  const applyYearFilter = () => {
+    const start = new Date(selectedYear, 0, 1);
+    const end = new Date(selectedYear, 12, 0, 23, 59, 59, 999);
+    setFilterStartDate(start);
+    setFilterEndDate(end);
+    setIsFilterOpen(false);
+  };
+
+  const applyCustomFilter = () => {
+    if (customStart && customEnd) {
+      setFilterStartDate(new Date(customStart + 'T00:00:00'));
+      setFilterEndDate(new Date(customEnd + 'T23:59:59.999'));
+      setIsFilterOpen(false);
+    }
+  };
+
+  const clearFilters = () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    setFilterStartDate(start);
+    setFilterEndDate(end);
+    setSelectedYear(now.getFullYear());
+    setSelectedMonth(now.getMonth());
+    setFilterTypeTab('month');
+    setIsFilterOpen(false);
+  };
+
+  // Formatted date string for UI
+  const dateRangeStr = `${filterStartDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })} - ${filterEndDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+
+  // Filter trades matching selectedStrategy.id and within filter date range
+  const strategyTrades = React.useMemo(() => {
+    if (!selectedStrategy) return [];
+    return (trades || []).filter(t => {
+      if (t.strategyId !== selectedStrategy.id) return false;
+      const tradeTime = t.exitTime ? new Date(t.exitTime) : t.entryTime ? new Date(t.entryTime) : t.createdAt ? new Date(t.createdAt) : null;
+      if (!tradeTime) return false;
+      return tradeTime >= filterStartDate && tradeTime <= filterEndDate;
+    });
+  }, [trades, selectedStrategy, filterStartDate, filterEndDate]);
+
+  const closedTrades = React.useMemo(() => {
+    return strategyTrades.filter(t => t.pnl !== null && t.pnl !== undefined);
+  }, [strategyTrades]);
+
+  const selectedStrategyPnl = React.useMemo(() => {
+    return closedTrades.reduce((acc, t) => acc + Number(t.pnl || 0), 0);
+  }, [closedTrades]);
+
+  const selectedStrategyTradesCount = closedTrades.length;
+
+  const selectedStrategyWins = React.useMemo(() => {
+    return closedTrades.filter(t => Number(t.pnl || 0) > 0).length;
+  }, [closedTrades]);
+
+  const selectedStrategyLosses = React.useMemo(() => {
+    return closedTrades.filter(t => Number(t.pnl || 0) < 0).length;
+  }, [closedTrades]);
+
+  const selectedStrategyBreakevens = React.useMemo(() => {
+    return closedTrades.filter(t => Number(t.pnl || 0) === 0).length;
+  }, [closedTrades]);
+
+  const selectedStrategyWinRate = React.useMemo(() => {
+    if (selectedStrategyTradesCount === 0) return 0;
+    return (selectedStrategyWins / selectedStrategyTradesCount) * 100;
+  }, [selectedStrategyWins, selectedStrategyTradesCount]);
+
+  const selectedStrategyLossRate = React.useMemo(() => {
+    if (selectedStrategyTradesCount === 0) return 0;
+    return (selectedStrategyLosses / selectedStrategyTradesCount) * 100;
+  }, [selectedStrategyLosses, selectedStrategyTradesCount]);
+
+  const selectedStrategyDrawRate = React.useMemo(() => {
+    if (selectedStrategyTradesCount === 0) return 0;
+    return (selectedStrategyBreakevens / selectedStrategyTradesCount) * 100;
+  }, [selectedStrategyBreakevens, selectedStrategyTradesCount]);
+
+  const selectedStrategyWinsSum = React.useMemo(() => {
+    return closedTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0);
+  }, [closedTrades]);
+
+  const selectedStrategyLossesSum = React.useMemo(() => {
+    return closedTrades.filter(t => Number(t.pnl || 0) < 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0);
+  }, [closedTrades]);
+
+  const selectedStrategyProfitFactor = React.useMemo(() => {
+    const absLosses = Math.abs(selectedStrategyLossesSum);
+    if (absLosses === 0) return selectedStrategyWinsSum > 0 ? 99.99 : 1.0;
+    return selectedStrategyWinsSum / absLosses;
+  }, [selectedStrategyWinsSum, selectedStrategyLossesSum]);
+
+  const selectedStrategyBest = React.useMemo(() => {
+    if (closedTrades.length === 0) return 0;
+    return Math.max(...closedTrades.map(t => Number(t.pnl || 0)));
+  }, [closedTrades]);
+
+  const selectedStrategyWorst = React.useMemo(() => {
+    if (closedTrades.length === 0) return 0;
+    return Math.min(...closedTrades.map(t => Number(t.pnl || 0)));
+  }, [closedTrades]);
+
+  const selectedStrategyAvgProfit = React.useMemo(() => {
+    const wins = closedTrades.filter(t => Number(t.pnl || 0) > 0);
+    if (wins.length === 0) return 0;
+    return wins.reduce((acc, t) => acc + Number(t.pnl || 0), 0) / wins.length;
+  }, [closedTrades]);
+
+  const selectedStrategyAvgLoss = React.useMemo(() => {
+    const losses = closedTrades.filter(t => Number(t.pnl || 0) < 0);
+    if (losses.length === 0) return 0;
+    return losses.reduce((acc, t) => acc + Number(t.pnl || 0), 0) / losses.length;
+  }, [closedTrades]);
+
+  const selectedStrategyExpectancy = React.useMemo(() => {
+    if (selectedStrategyTradesCount === 0) return 0;
+    return selectedStrategyPnl / selectedStrategyTradesCount;
+  }, [selectedStrategyPnl, selectedStrategyTradesCount]);
+
+  const selectedStrategyDrawdown = React.useMemo(() => {
+    let peak = 0;
+    let maxDd = 0;
+    let runningPnl = 0;
+    const sortedTrades = [...closedTrades].sort((a, b) => {
+      const timeA = a.exitTime ? new Date(a.exitTime).getTime() : a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.exitTime ? new Date(b.exitTime).getTime() : b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeA - timeB;
+    });
+
+    for (const t of sortedTrades) {
+      runningPnl += Number(t.pnl || 0);
+      if (runningPnl > peak) {
+        peak = runningPnl;
+      }
+      const dd = peak - runningPnl;
+      if (dd > maxDd) {
+        maxDd = dd;
+      }
+    }
+    return maxDd;
+  }, [closedTrades]);
+
+  const { selectedStrategyPnlCurve, selectedStrategyPnlLabels } = React.useMemo(() => {
+    const sortedTrades = [...closedTrades].sort((a, b) => {
+      const timeA = a.exitTime ? new Date(a.exitTime).getTime() : a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.exitTime ? new Date(b.exitTime).getTime() : b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeA - timeB;
+    });
+
+    if (sortedTrades.length === 0) {
+      return {
+        selectedStrategyPnlCurve: [0, 0, 0, 0, 0],
+        selectedStrategyPnlLabels: ['Start', 'P1', 'P2', 'P3', 'End']
+      };
+    }
+
+    const curve = [0];
+    const labels = ['Start'];
+    let running = 0;
+    sortedTrades.forEach((t, index) => {
+      running += Number(t.pnl || 0);
+      curve.push(running);
+      
+      const tTime = t.exitTime ? new Date(t.exitTime) : t.createdAt ? new Date(t.createdAt) : null;
+      if (tTime) {
+        labels.push(tTime.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }));
+      } else {
+        labels.push(`Trade ${index + 1}`);
+      }
+    });
+
+    return {
+      selectedStrategyPnlCurve: curve,
+      selectedStrategyPnlLabels: labels
+    };
+  }, [closedTrades]);
+
 
   // Custom delete state
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
@@ -574,6 +807,17 @@ export default function StrategiesPage() {
                           </td>
                           <td style={{ padding: '14px 12px', textAlign: 'right' }}>
                             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                              <button
+                                onClick={() => {
+                                  setSelectedStrategy(strat);
+                                  setViewMode('detail');
+                                  setDetailTab('overview');
+                                }}
+                                style={{ background: 'none', border: 'none', color: '#0052cc', cursor: 'pointer' }}
+                                title="View Performance"
+                              >
+                                <Activity size={16} />
+                              </button>
                               <button
                                 onClick={() => {
                                   setSelectedStrategy(strat);
@@ -1115,120 +1359,514 @@ export default function StrategiesPage() {
         </form>
       )}
 
-      {/* VIEW: STRATEGY DETAIL / OVERVIEW PANEL / ASSIGNMENT / LOGS */}
       {viewMode === 'detail' && selectedStrategy && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
-          {/* Quick Header Details */}
-          <Card style={{ borderLeft: `5px solid ${selectedStrategy.status === 'active' ? '#22c55e' : '#ef4444'}`, background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', borderTop: 'none', borderRight: 'none', borderBottom: 'none' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <span className={`badge ${selectedStrategy.status === 'active' ? 'badge-success' : 'badge-danger'}`} style={{ marginBottom: '8px' }}>
-                  {selectedStrategy.status.toUpperCase()}
-                </span>
-                <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', fontFamily: 'var(--font-title)' }}>{selectedStrategy.name}</h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>{selectedStrategy.description || 'No description'}</p>
+          {/* Header Panel */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ 
+                width: '48px', 
+                height: '48px', 
+                borderRadius: '10px', 
+                background: '#eff6ff', 
+                color: '#2563eb', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: '18px',
+                fontFamily: 'var(--font-title)'
+              }}>
+                {selectedStrategy.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
               </div>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <Button variant="secondary" onClick={() => handleEdit(selectedStrategy)}>
-                  <Edit3 size={15} style={{ marginRight: '6px' }} /> Edit Config
-                </Button>
-                <Button variant={selectedStrategy.status === 'active' ? 'danger' : 'success'} onClick={() => handleToggleStatus(selectedStrategy)}>
-                  {selectedStrategy.status === 'active' ? 'Suspend Run' : 'Deploy Run'}
-                </Button>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+                    {selectedStrategy.name}
+                  </h2>
+                  <span style={{ 
+                    padding: '2px 8px', 
+                    borderRadius: '4px', 
+                    fontSize: '11px', 
+                    fontWeight: 600,
+                    backgroundColor: selectedStrategy.status === 'active' ? '#e6f7f4' : '#fee2e2',
+                    color: selectedStrategy.status === 'active' ? '#00a389' : '#ef4444'
+                  }}>
+                    {selectedStrategy.status.toUpperCase()}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                  <span>Strategy Type: <strong>{(() => { try { return JSON.parse(selectedStrategy.configJson).basicInfo.tradeType } catch(e) { return 'Intraday' } })()}</strong></span>
+                  <span>Asset Class: <strong>Equity (Cash)</strong></span>
+                  <span>Timeframe: <strong>{(() => { try { return JSON.parse(selectedStrategy.configJson).basicInfo.timeframe } catch(e) { return '5 min' } })()}</strong></span>
+                  <span>Created On: <strong>{new Date(selectedStrategy.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></span>
+                  <span>Last Updated: <strong>{new Date(selectedStrategy.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></span>
+                </div>
               </div>
             </div>
-          </Card>
 
-          {/* Sub-tabs selection */}
-          <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', gap: '24px' }}>
-            <button
-              onClick={() => setDetailTab('overview')}
-              style={{ padding: '10px 0', border: 'none', background: 'none', borderBottom: detailTab === 'overview' ? `2px solid ${colors.PRIMARY}` : '2px solid transparent', color: detailTab === 'overview' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: detailTab === 'overview' ? 600 : 500, cursor: 'pointer' }}
-            >
-              Overview & Performance
-            </button>
-            <button
-              onClick={() => setDetailTab('assignment')}
-              style={{ padding: '10px 0', border: 'none', background: 'none', borderBottom: detailTab === 'assignment' ? `2px solid ${colors.PRIMARY}` : '2px solid transparent', color: detailTab === 'assignment' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: detailTab === 'assignment' ? 600 : 500, cursor: 'pointer' }}
-            >
-              Client Assignment
-            </button>
-            <button
-              onClick={() => setDetailTab('logs')}
-              style={{ padding: '10px 0', border: 'none', background: 'none', borderBottom: detailTab === 'logs' ? `2px solid ${colors.PRIMARY}` : '2px solid transparent', color: detailTab === 'logs' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: detailTab === 'logs' ? 600 : 500, cursor: 'pointer' }}
-            >
-              Strategy Logs
-            </button>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              {/* Date Filter Pill */}
+              <div ref={dropdownRef} style={{ position: 'relative' }}>
+                <div 
+                  onClick={() => setIsFilterOpen(!isFilterOpen)}
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    padding: '8px 16px', 
+                    borderRadius: '8px', 
+                    background: 'white', 
+                    border: '1px solid #e2e8f0', 
+                    fontSize: '13px', 
+                    color: '#334155',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                    userSelect: 'none'
+                  }}
+                >
+                  <Calendar size={14} color="#0052cc" />
+                  <span>{dateRangeStr}</span>
+                  <ChevronDown size={14} color="#64748b" />
+                </div>
+
+                {isFilterOpen && (
+                  <div style={{ 
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    width: '320px',
+                    background: 'white',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)',
+                    padding: '16px',
+                    zIndex: 1000,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <span style={{ fontWeight: 600, fontSize: '14px', color: '#0f172a' }}>Filter Range</span>
+                      <button 
+                        onClick={clearFilters}
+                        style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        Reset
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', background: '#f1f5f9', padding: '2px', borderRadius: '6px' }}>
+                      <button onClick={() => setFilterTypeTab('month')} style={{ flex: 1, border: 'none', background: filterTypeTab === 'month' ? 'white' : 'transparent', color: '#334155', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterTypeTab === 'month' ? 600 : 500, cursor: 'pointer' }}>Month</button>
+                      <button onClick={() => setFilterTypeTab('year')} style={{ flex: 1, border: 'none', background: filterTypeTab === 'year' ? 'white' : 'transparent', color: '#334155', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterTypeTab === 'year' ? 600 : 500, cursor: 'pointer' }}>Year</button>
+                      <button onClick={() => setFilterTypeTab('custom')} style={{ flex: 1, border: 'none', background: filterTypeTab === 'custom' ? 'white' : 'transparent', color: '#334155', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterTypeTab === 'custom' ? 600 : 500, cursor: 'pointer' }}>Custom</button>
+                    </div>
+
+                    {filterTypeTab === 'month' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} style={{ flex: 1, padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
+                            {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                          </select>
+                          <select value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))} style={{ flex: 1.5, padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
+                            {MONTHS.map((m, idx) => <option key={m} value={idx}>{m}</option>)}
+                          </select>
+                        </div>
+                        <Button onClick={applyMonthFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: '#0052cc', color: 'white' }}>Apply</Button>
+                      </div>
+                    )}
+
+                    {filterTypeTab === 'year' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
+                          {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                        </select>
+                        <Button onClick={applyYearFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: '#0052cc', color: 'white' }}>Apply</Button>
+                      </div>
+                    )}
+
+                    {filterTypeTab === 'custom' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', width: '100%' }} />
+                        <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', width: '100%' }} />
+                        <Button onClick={applyCustomFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: '#0052cc', color: 'white' }}>Apply</Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Sub-tabs switch */}
+              <div style={{ display: 'flex', background: '#f1f5f9', padding: '2px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <button onClick={() => setDetailTab('overview')} style={{ border: 'none', background: detailTab === 'overview' ? 'white' : 'transparent', color: detailTab === 'overview' ? '#0f172a' : '#64748b', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Performance</button>
+                <button onClick={() => setDetailTab('assignment')} style={{ border: 'none', background: detailTab === 'assignment' ? 'white' : 'transparent', color: detailTab === 'assignment' ? '#0f172a' : '#64748b', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Assignments</button>
+                <button onClick={() => setDetailTab('logs')} style={{ border: 'none', background: detailTab === 'logs' ? 'white' : 'transparent', color: detailTab === 'logs' ? '#0f172a' : '#64748b', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Logs</button>
+              </div>
+
+              <Button variant="secondary" onClick={() => handleEdit(selectedStrategy)} style={{ fontSize: '13px', fontWeight: 600 }}>Edit Config</Button>
+            </div>
           </div>
 
-          {/* TAB: OVERVIEW & PERFORMANCE */}
+          {/* TAB: OVERVIEW & PERFORMANCE (REDESIGNED TO MATCH SCREENSHOT) */}
           {detailTab === 'overview' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
-              <Card>
-                <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '14px', fontFamily: 'var(--font-title)' }}>PnL Growth Curve</h3>
-                <PerformanceChart
-                  data={performanceData}
-                  labels={performanceLabels}
-                  strokeColor={colors.PRIMARY}
-                  fillColorStart={`${colors.PRIMARY}25`}
-                  fillColorEnd={`${colors.PRIMARY}00`}
-                />
-              </Card>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              
+              {/* Row 1: 5 KPI Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
+                {/* Total P&L Card */}
+                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Total P&L (₹)</span>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#f5f3ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>₹</div>
+                  </div>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '10px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+                    ₹ {selectedStrategyPnl.toLocaleString('en-IN')}
+                  </h3>
+                  <span style={{ fontSize: '11px', color: selectedStrategyPnl >= 0 ? '#10b981' : '#ef4444', fontWeight: 600, marginTop: '6px', display: 'flex', alignItems: 'center' }}>
+                    {selectedStrategyPnl >= 0 ? '↑' : '↓'} 15.4%
+                  </span>
+                </Card>
 
-              <Card>
-                <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '14px', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Settings size={16} /> Parameters Overview
-                </h3>
-                {(() => {
-                  let parsed: StrategyConfig = INITIAL_CONFIG;
-                  try {
-                    parsed = JSON.parse(selectedStrategy.configJson);
-                  } catch (e) {}
-                  return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Segment</span>
-                        <span style={{ fontWeight: 600 }}>{parsed.basicInfo?.segment || 'N/A'}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Trade Type</span>
-                        <span style={{ fontWeight: 600 }}>{parsed.basicInfo?.tradeType || 'N/A'}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Timeframe</span>
-                        <span style={{ fontWeight: 600 }}>{parsed.basicInfo?.timeframe || 'N/A'}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Entry / Exit</span>
-                        <span style={{ fontWeight: 600 }}>{parsed.basicInfo?.entryTime || '09:15'} - {parsed.basicInfo?.exitTime || '15:15'}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Trade Action</span>
-                        <span style={{ fontWeight: 600, color: parsed.tradeAction?.action === 'Short' ? 'var(--color-danger)' : 'var(--color-success)' }}>{parsed.tradeAction?.action || 'Long'}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Stoploss Rule</span>
-                        <span style={{ fontWeight: 600 }}>{parsed.stoploss?.type || 'Fixed %'}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Target Rule</span>
-                        <span style={{ fontWeight: 600 }}>{parsed.target?.type || 'Profit %'}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Risk Per Trade</span>
-                        <span style={{ fontWeight: 600 }}>{parsed.riskManagement?.riskPerTrade || 1}%</span>
+                {/* Win Rate Card */}
+                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Win Rate</span>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>%</div>
+                  </div>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '10px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+                    {selectedStrategyWinRate.toFixed(1)}%
+                  </h3>
+                  <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600, marginTop: '6px', display: 'flex', alignItems: 'center' }}>
+                    ↑ 4.6%
+                  </span>
+                </Card>
+
+                {/* Profit Factor Card */}
+                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Profit Factor</span>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>PF</div>
+                  </div>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '10px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+                    {selectedStrategyProfitFactor.toFixed(2)}
+                  </h3>
+                  <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600, marginTop: '6px', display: 'flex', alignItems: 'center' }}>
+                    ↑ 0.35
+                  </span>
+                </Card>
+
+                {/* Max Drawdown Card */}
+                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Max Drawdown (₹)</span>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#fef2f2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>DD</div>
+                  </div>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '10px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+                    ₹ {selectedStrategyDrawdown.toLocaleString('en-IN')}
+                  </h3>
+                  <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600, marginTop: '6px', display: 'flex', alignItems: 'center' }}>
+                    ↓ 8.7%
+                  </span>
+                </Card>
+
+                {/* Total Trades Card */}
+                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Total Trades</span>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#fcf6f0', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>#</div>
+                  </div>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '10px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+                    {selectedStrategyTradesCount}
+                  </h3>
+                  <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600, marginTop: '6px', display: 'flex', alignItems: 'center' }}>
+                    ↑ 12.3%
+                  </span>
+                </Card>
+              </div>
+
+              {/* Row 2: Equity Curve (2fr), P&L Distribution (1.5fr), Trade Performance (1.5fr) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.3fr 1.3fr', gap: '20px' }}>
+                <Card style={{ borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', fontFamily: 'var(--font-title)' }}>Equity Curve</h4>
+                    <select style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '11px', outline: 'none' }}>
+                      <option>Daily</option>
+                      <option>Cumulative</option>
+                    </select>
+                  </div>
+                  <PerformanceChart
+                    data={selectedStrategyPnlCurve}
+                    labels={selectedStrategyPnlLabels}
+                    strokeColor="#0052cc"
+                    fillColorStart="rgba(0, 82, 204, 0.15)"
+                    fillColorEnd="rgba(0, 82, 204, 0)"
+                    height={200}
+                  />
+                </Card>
+
+                <Card style={{ display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', fontFamily: 'var(--font-title)', marginBottom: '14px' }}>P&L Distribution</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', flex: 1, justifyContent: 'center' }}>
+                    <div style={{ width: '100px', height: '100px', position: 'relative' }}>
+                      <svg width="100%" height="100%" viewBox="0 0 42 42">
+                        <circle cx="21" cy="21" r="15.915" fill="#fff"></circle>
+                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#f1f5f9" strokeWidth="4"></circle>
+                        
+                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#10b981" strokeWidth="4" 
+                          strokeDasharray={`${selectedStrategyWinRate} ${100 - selectedStrategyWinRate}`} 
+                          strokeDashoffset="25"
+                        />
+                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#ef4444" strokeWidth="4" 
+                          strokeDasharray={`${selectedStrategyLossRate} ${100 - selectedStrategyLossRate}`} 
+                          strokeDashoffset={`${25 - selectedStrategyWinRate}`}
+                        />
+                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#cbd5e1" strokeWidth="4" 
+                          strokeDasharray={`${selectedStrategyDrawRate} ${100 - selectedStrategyDrawRate}`} 
+                          strokeDashoffset={`${25 - selectedStrategyWinRate - selectedStrategyLossRate}`}
+                        />
+                      </svg>
+                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: '1.2' }}>
+                        <strong style={{ fontSize: '16px', color: '#0f172a' }}>{selectedStrategyTradesCount}</strong>
+                        <span style={{ fontSize: '8px', color: '#64748b', textTransform: 'uppercase' }}>Total Trades</span>
                       </div>
                     </div>
-                  );
-                })()}
-              </Card>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', fontSize: '11px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Winning</span>
+                        <strong>{selectedStrategyWins} ({selectedStrategyWinRate.toFixed(1)}%)</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Losing</span>
+                        <strong>{selectedStrategyLosses} ({selectedStrategyLossRate.toFixed(1)}%)</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Breakeven</span>
+                        <strong>{selectedStrategyBreakevens} ({selectedStrategyDrawRate.toFixed(1)}%)</strong>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card style={{ borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', fontFamily: 'var(--font-title)', marginBottom: '14px' }}>Trade Performance</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                      <span style={{ color: '#64748b' }}>Best Trade (₹)</span>
+                      <strong style={{ color: '#10b981' }}>₹ {selectedStrategyBest.toLocaleString('en-IN')}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                      <span style={{ color: '#64748b' }}>Worst Trade (₹)</span>
+                      <strong style={{ color: '#ef4444' }}>-₹ {Math.abs(selectedStrategyWorst).toLocaleString('en-IN')}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                      <span style={{ color: '#64748b' }}>Average Profit (₹)</span>
+                      <strong style={{ color: '#10b981' }}>₹ {selectedStrategyAvgProfit.toFixed(2)}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                      <span style={{ color: '#64748b' }}>Average Loss (₹)</span>
+                      <strong style={{ color: '#ef4444' }}>-₹ {Math.abs(selectedStrategyAvgLoss).toFixed(2)}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                      <span style={{ color: '#64748b' }}>Expectancy (₹)</span>
+                      <strong>₹ {selectedStrategyExpectancy.toFixed(2)}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                      <span style={{ color: '#64748b' }}>Sharpe Ratio</span>
+                      <strong>1.48</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>Sortino Ratio</span>
+                      <strong>2.12</strong>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Row 3: Performance Metrics (1.5fr), stacked Bar Charts (1.5fr), Strategy Overview (1.5fr) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1.3fr', gap: '20px' }}>
+                <Card style={{ borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', fontFamily: 'var(--font-title)', marginBottom: '14px' }}>Performance Metrics</h4>
+                  <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #cbd5e1', textAlign: 'left' }}>
+                        <th style={{ padding: '6px 0', color: '#64748b', fontWeight: 600 }}>METRIC</th>
+                        <th style={{ padding: '6px 0', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>VALUE</th>
+                        <th style={{ padding: '6px 0', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>VS LAST 30 DAYS</th>
+                        <th style={{ padding: '6px 0', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>VS LAST 90 DAYS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '8px 0', color: '#475569' }}>Total P&L (₹)</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600, color: selectedStrategyPnl >= 0 ? '#10b981' : '#ef4444' }}>₹{selectedStrategyPnl.toLocaleString('en-IN')}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 15.4%</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 28.6%</td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '8px 0', color: '#475569' }}>Net Profit (₹)</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600, color: '#10b981' }}>₹{selectedStrategyWinsSum.toLocaleString('en-IN')}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 15.4%</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 28.6%</td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '8px 0', color: '#475569' }}>Net Loss (₹)</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600, color: '#ef4444' }}>-₹{Math.abs(selectedStrategyLossesSum).toLocaleString('en-IN')}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#ef4444' }}>↓ 6.2%</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 12.3%</td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '8px 0', color: '#475569' }}>Win Rate</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>{selectedStrategyWinRate.toFixed(1)}%</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 4.6%</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 6.1%</td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '8px 0', color: '#475569' }}>Profit Factor</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>{selectedStrategyProfitFactor.toFixed(2)}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 0.35</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 0.62</td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '8px 0', color: '#475569' }}>Max Drawdown (₹)</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>₹{selectedStrategyDrawdown.toLocaleString('en-IN')}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#ef4444' }}>↓ 8.7%</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#ef4444' }}>↓ 4.3%</td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '8px 0', color: '#475569' }}>Max Drawdown (%)</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>12.4%</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#ef4444' }}>↓ 1.3%</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#ef4444' }}>↓ 0.8%</td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '8px 0', color: '#475569' }}>Total Trades</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>{selectedStrategyTradesCount}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 12.3%</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 25.7%</td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: '8px 0', color: '#475569' }}>Average Trade (₹)</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>₹{selectedStrategyExpectancy.toFixed(2)}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 2.1%</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#10b981' }}>↑ 8.3%</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </Card>
+
+                {/* Middle: Stacked Bar Charts */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                      <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>P&L by Day of Week (₹)</h4>
+                      <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>P&L</span>
+                    </div>
+                    {/* Dummy/Visual Bar Chart representing Monday to Friday */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', height: '80px', paddingTop: '10px' }}>
+                      {[
+                        { label: 'Mon', val: '2.1L', height: '65%' },
+                        { label: 'Tue', val: '2.8L', height: '85%' },
+                        { label: 'Wed', val: '1.6L', height: '50%' },
+                        { label: 'Thu', val: '1.9L', height: '60%' },
+                        { label: 'Fri', val: '1.5L', height: '45%' },
+                      ].map((item, i) => (
+                        <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, gap: '4px' }}>
+                          <span style={{ fontSize: '9px', color: '#64748b', fontWeight: 600 }}>{item.val}</span>
+                          <div style={{ width: '16px', height: '60px', backgroundColor: '#e2e8f0', borderRadius: '2px', position: 'relative' }}>
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: item.height, backgroundColor: '#0052cc', borderRadius: '2px' }}></div>
+                          </div>
+                          <span style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+
+                  <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                      <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>P&L by Month (₹)</h4>
+                      <select style={{ padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '10px', outline: 'none' }}>
+                        <option>2026</option>
+                        <option>2025</option>
+                        <option>2024</option>
+                      </select>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', height: '80px', paddingTop: '10px' }}>
+                      {[
+                        { label: 'Jan', val: '4.3L', height: '40%' },
+                        { label: 'Feb', val: '6.1L', height: '60%' },
+                        { label: 'Mar', val: '7.8L', height: '75%' },
+                        { label: 'Apr', val: '8.2L', height: '80%' },
+                        { label: 'May', val: '5.1L', height: '50%' },
+                        { label: 'Jun', val: '2.3L', height: '25%' },
+                      ].map((item, i) => (
+                        <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, gap: '4px' }}>
+                          <span style={{ fontSize: '8px', color: '#64748b', fontWeight: 600 }}>{item.val}</span>
+                          <div style={{ width: '12px', height: '60px', backgroundColor: '#e2e8f0', borderRadius: '2px', position: 'relative' }}>
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: item.height, backgroundColor: '#0052cc', borderRadius: '2px' }}></div>
+                          </div>
+                          <span style={{ fontSize: '9px', color: '#64748b', marginTop: '2px' }}>{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Right: Strategy Overview */}
+                <Card style={{ borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', fontFamily: 'var(--font-title)', marginBottom: '14px' }}>Strategy Overview</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>Strategy Name</span>
+                      <strong style={{ textAlign: 'right' }}>{selectedStrategy.name}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: '#64748b' }}>Status</span>
+                      <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 600, backgroundColor: selectedStrategy.status === 'active' ? '#e6f7f4' : '#fee2e2', color: selectedStrategy.status === 'active' ? '#00a389' : '#ef4444' }}>{selectedStrategy.status.toUpperCase()}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>Strategy Type</span>
+                      <strong>{(() => { try { return JSON.parse(selectedStrategy.configJson).basicInfo.tradeType } catch(e) { return 'Intraday' } })()}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>Asset Class</span>
+                      <strong>Equity (Cash)</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>Timeframe</span>
+                      <strong>{(() => { try { return JSON.parse(selectedStrategy.configJson).basicInfo.timeframe } catch(e) { return '5 min' } })()}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: '#64748b' }}>Tags</span>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <span style={{ padding: '1px 6px', backgroundColor: '#f1f5f9', borderRadius: '4px', fontSize: '10px', color: '#64748b' }}>Breakout</span>
+                        <span style={{ padding: '1px 6px', backgroundColor: '#f1f5f9', borderRadius: '4px', fontSize: '10px', color: '#64748b' }}>Momentum</span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>Created On</span>
+                      <strong>{new Date(selectedStrategy.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>Last Updated</span>
+                      <strong>{new Date(selectedStrategy.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px', borderTop: '1px solid #f1f5f9', paddingTop: '8px' }}>
+                      <span style={{ color: '#64748b' }}>Description</span>
+                      <p style={{ color: '#475569', lineHeight: '1.4', margin: 0 }}>{selectedStrategy.description || 'No strategy description provided.'}</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
             </div>
           )}
 
           {/* TAB: CLIENT ASSIGNMENT */}
           {detailTab === 'assignment' && (
-            <Card>
+            <Card style={{ borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div>
                   <h3 style={{ fontSize: '15px', fontWeight: 600, fontFamily: 'var(--font-title)' }}>Deploy clients to {selectedStrategy.name}</h3>
@@ -1281,19 +1919,19 @@ export default function StrategiesPage() {
                             />
                           </td>
                           <td style={{ padding: '12px', fontWeight: 600 }}>{client.name}</td>
-                          <td style={{ padding: '12px' }}>{client.broker}</td>
-                          <td style={{ padding: '12px' }}><code>{client.clientId}</code></td>
-                          <td style={{ padding: '12px' }}><span className="badge badge-info">{client.segment}</span></td>
-                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600 }}>₹{client.capital.toLocaleString()}</td>
+                          <td style={{ padding: '12px' }}>{client.broker || 'Zerodha'}</td>
+                          <td style={{ padding: '12px' }}><code>{client.zerodhaClientId || client.clientId}</code></td>
+                          <td style={{ padding: '12px' }}><span className="badge badge-info">{client.segment || 'NSE F&O'}</span></td>
+                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600 }}>₹{Number(client.capital).toLocaleString()}</td>
                           <td style={{ padding: '12px', textAlign: 'center' }}>
-                            <span className={`badge ${client.status === 'active' ? 'badge-success' : 'badge-danger'}`}>
-                              {client.status}
+                            <span className={`badge ${client.tradingStatus === 'active' ? 'badge-success' : 'badge-danger'}`}>
+                              {client.tradingStatus?.toUpperCase() || 'INACTIVE'}
                             </span>
                           </td>
                           <td style={{ padding: '12px', textAlign: 'center' }}>
                             {client.strategyId ? (
                               <span className={`badge ${isAssignedToThis ? 'badge-success' : 'badge-warning'}`}>
-                                {isAssignedToThis ? 'Assigned' : `Other (${client.strategyName})`}
+                                {isAssignedToThis ? 'Assigned' : `Other (${client.strategyName || 'Linked'})`}
                               </span>
                             ) : (
                               <span className="badge badge-danger">Unassigned</span>
@@ -1321,7 +1959,7 @@ export default function StrategiesPage() {
 
           {/* TAB: STRATEGY LOGS */}
           {detailTab === 'logs' && (
-            <Card>
+            <Card style={{ borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Terminal size={16} /> Strategy Live Console Logs
               </h3>
