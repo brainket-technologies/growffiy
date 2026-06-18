@@ -65,38 +65,51 @@ class AlgoEngineService {
     this.startActiveTradesMonitoringScheduler();
   }
 
+  private async getAlgoSetting(key: string, defaultValue: string): Promise<string> {
+    try {
+      const setting = await prisma.appSettings.findUnique({ where: { settingKey: key } });
+      return setting?.settingValue || defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  }
+
   private startDailyPreOpenStrategyScheduler() {
-    console.log('AlgoEngine: Initialized Daily Pre-Open Strategy Execution Scheduler (caching at 09:08 AM, executing at 09:15 AM IST)');
+    console.log('AlgoEngine: Initialized Daily Pre-Open Strategy Execution Scheduler');
     
-    // Prevent running duplicate intervals on hot reload in dev environment
     if ((global as any).preOpenStrategyInterval) {
       clearInterval((global as any).preOpenStrategyInterval);
     }
 
     let lastExecutedDate = '';
     let lastFetchedDate = '';
+    let cachedFetchTime = '09:08';
+    let cachedEntryTime = '09:20';
 
     const checkAndExecute = async () => {
       try {
+        cachedFetchTime = await this.getAlgoSetting('algo_preopen_fetch_time', '09:08');
+        cachedEntryTime = await this.getAlgoSetting('algo_entry_time', '09:20');
+
         const istDateStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
         const istDate = new Date(istDateStr);
         const hours = istDate.getHours();
         const minutes = istDate.getMinutes();
         const currentDateKey = istDate.toLocaleDateString();
+        const currentTimeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 
-        // Stage 1: Fetch and cache NSE pre-open data at 09:08 AM IST
-        if (hours === 9 && minutes === 8 && lastFetchedDate !== currentDateKey) {
-          console.log(`AlgoEngine Scheduler: Target time 09:08 AM IST reached. Pre-fetching NSE pre-open data...`);
+        // Stage 1: Fetch and cache NSE pre-open data
+        if (currentTimeStr === cachedFetchTime && lastFetchedDate !== currentDateKey) {
+          console.log(`AlgoEngine Scheduler: Pre-open fetch time ${cachedFetchTime} reached. Fetching NSE pre-open data...`);
           lastFetchedDate = currentDateKey;
           await this.getPreOpenStocks();
         }
 
-        // Stage 2: Execute trades at 09:15 AM IST (Market Open)
-        if (hours === 9 && minutes === 15 && lastExecutedDate !== currentDateKey) {
-          console.log(`AlgoEngine Scheduler: Target time 09:15 AM IST reached. Starting daily strategy execution...`);
+        // Stage 2: Execute trades at entry time
+        if (currentTimeStr === cachedEntryTime && lastExecutedDate !== currentDateKey) {
+          console.log(`AlgoEngine Scheduler: Entry time ${cachedEntryTime} reached. Starting daily strategy execution...`);
           lastExecutedDate = currentDateKey;
 
-          // Find first admin user in the system to log the action under
           const firstAdmin = await prisma.user.findFirst({
             where: { role: 'admin' }
           });
@@ -109,19 +122,18 @@ class AlgoEngineService {
       }
     };
 
-    // Run check every 60 seconds
     (global as any).preOpenStrategyInterval = setInterval(checkAndExecute, 60 * 1000);
   }
 
   private startDailyTokenRefreshScheduler() {
-    console.log('AlgoEngine: Initialized Daily Token Refresh Scheduler (runs every day at 08:00 AM IST)');
+    console.log('AlgoEngine: Initialized Daily Token Refresh Scheduler');
     
-    // Prevent running duplicate intervals on hot reload in dev environment
     if ((global as any).tokenRefreshInterval) {
       clearInterval((global as any).tokenRefreshInterval);
     }
 
     let lastRefreshedDate = '';
+    let cachedRefreshTime = '08:00';
 
     const checkAndRefresh = async () => {
       try {
@@ -129,15 +141,17 @@ class AlgoEngineService {
           return;
         }
 
+        cachedRefreshTime = await this.getAlgoSetting('algo_token_refresh_time', '08:00');
+
         const istDateStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
         const istDate = new Date(istDateStr);
         const hours = istDate.getHours();
         const minutes = istDate.getMinutes();
         const currentDateKey = istDate.toLocaleDateString();
+        const currentTimeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 
-        // Target: 08:00 AM IST, ensure it runs once per day
-        if (hours === 8 && minutes === 0 && lastRefreshedDate !== currentDateKey) {
-          console.log(`AlgoEngine Scheduler: Target time 08:00 AM IST reached. Starting daily token refresh...`);
+        if (currentTimeStr === cachedRefreshTime && lastRefreshedDate !== currentDateKey) {
+          console.log(`AlgoEngine Scheduler: Token refresh time ${cachedRefreshTime} reached. Starting daily token refresh...`);
           lastRefreshedDate = currentDateKey;
 
           const clients = await prisma.client.findMany({
@@ -822,51 +836,87 @@ class AlgoEngineService {
             continue;
           }
 
-          // 4. Select the target stock dynamically based on action (Long = lowest changePercent, Short = highest changePercent)
-          let targetStock: StockQuote | null = null;
+          // 4. Select top N target stocks (Long = sorted by changePercent ascending, Short = descending)
           const action = config.tradeAction?.action || 'Long';
+          const maxPositions = config.basicInfo?.maxTradesPerDay || 1;
 
-          for (const stock of matchingStocks) {
-            if (!targetStock) {
-              targetStock = stock;
-              continue;
-            }
-            if (action === 'Long') {
-              if (stock.changePercent < targetStock.changePercent) {
-                targetStock = stock;
+          const sortedStocks = [...matchingStocks].sort((a, b) =>
+            action === 'Long' ? a.changePercent - b.changePercent : b.changePercent - a.changePercent
+          );
+          const candidateStocks = sortedStocks.slice(0, maxPositions);
+
+          if (candidateStocks.length === 0) {
+            console.log(`AlgoEngine: No target stocks selected for client ${client.user.name}.`);
+            continue;
+          }
+
+          console.log(`AlgoEngine: Client ${client.user.name} | Strategy "${strategy.name}" | Top ${candidateStocks.length} candidates: ${candidateStocks.map(s => `${s.symbol}(${s.changePercent}%)`).join(', ')}`);
+
+          // 5. Candle breakout check for each candidate stock
+          let targetStock: StockQuote | null = null;
+          let breakoutEntryPrice = 0;
+
+          for (const stock of candidateStocks) {
+            try {
+              const existingTrade = await prisma.trade.findFirst({
+                where: {
+                  clientId: client.id,
+                  strategyId: strategy.id,
+                  symbol: stock.symbol,
+                  createdAt: { gte: todayStart }
+                }
+              });
+              if (existingTrade) {
+                console.log(`AlgoEngine: Trade already exists today for ${stock.symbol} (${client.user.name}). Skipping.`);
+                continue;
               }
-            } else {
-              if (stock.changePercent > targetStock.changePercent) {
-                targetStock = stock;
+
+              // Fetch minute candles from Kite for candle high check
+              let candleHigh = 0;
+              if (client.zerodhaApiKey && client.accessToken) {
+                const instTokenStr = Object.entries(this.instrumentToSymbol).find(([, sym]) => sym === stock.symbol)?.[0];
+                if (instTokenStr) {
+                  try {
+                    const today = new Date();
+                    const formatKiteDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                    const from = `${formatKiteDate(today)}%2009:15`;
+                    const to = `${formatKiteDate(today)}%20${(await this.getAlgoSetting('algo_entry_time', '09:20')).replace(':', '%20')}`;
+                    const res = await KiteClient.getHistoricalData(client.zerodhaApiKey, client.accessToken, instTokenStr, 'minute', from, to);
+                    if (res.status === 'success' && Array.isArray(res.data?.candles) && res.data.candles.length > 0) {
+                      candleHigh = Math.max(...res.data.candles.map((c: any) => Number(c[2])));
+                    }
+                  } catch {}
+                }
               }
+
+              if (candleHigh === 0) {
+                candleHigh = stock.high || stock.ltp || stock.prevClose || 100;
+              }
+
+              const bufferPct = config.tradeAction?.bufferPercent || 0.1;
+              breakoutEntryPrice = candleHigh * (1 + bufferPct / 100);
+
+              // Check if current LTP breaks candle high
+              const currentLtp = stock.ltp || stock.iep || breakoutEntryPrice;
+              const hasPriceAction = config.conditions?.some((c: any) => c.indicator === 'Price Action');
+
+              if (!hasPriceAction || currentLtp >= candleHigh) {
+                targetStock = stock;
+                console.log(`AlgoEngine: Breakout confirmed for ${stock.symbol} | Candle High: ${candleHigh} | LTP: ${currentLtp} | Entry: ${breakoutEntryPrice}`);
+                break;
+              }
+              console.log(`AlgoEngine: Breakout not met for ${stock.symbol} | Candle High: ${candleHigh} | LTP: ${currentLtp}. Trying next candidate...`);
+            } catch (checkErr) {
+              console.error(`AlgoEngine: Error checking breakout for ${stock.symbol}:`, checkErr);
             }
           }
 
           if (!targetStock) {
-            console.log(`AlgoEngine: No target stock selected for client ${client.user.name}.`);
+            console.log(`AlgoEngine: No breakout candidate found for client ${client.user.name}. Skipping trades for today.`);
             continue;
           }
 
-          console.log(`AlgoEngine: Client ${client.user.name} matches strategy "${strategy.name}". Selected stock: ${targetStock.symbol} (${targetStock.changePercent}%)`);
-
-          // Check if trade already executed today for this client and strategy
-          const existingTrade = await prisma.trade.findFirst({
-            where: {
-              clientId: client.id,
-              strategyId: strategy.id,
-              createdAt: {
-                gte: todayStart
-              }
-            }
-          });
-
-          if (existingTrade) {
-            console.log(`AlgoEngine: Trade already executed today for client ${client.user.name} under strategy ${strategy.name}. Skipping.`);
-            continue;
-          }
-
-          // 5. Use Kite Connect API if active credentials are setup for the client
-          const entryPrice = targetStock.iep || targetStock.ltp || targetStock.prevClose || 100.0;
+          const entryPrice = breakoutEntryPrice;
           const slPercent = config?.stoploss?.fixedPercent || 0.5;
           const targetPercent = config?.target?.profitPercent || 2.0;
 
