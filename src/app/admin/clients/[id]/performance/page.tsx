@@ -57,6 +57,7 @@ export default function ClientPerformancePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [selectedTrade, setSelectedTrade] = useState<any | null>(null);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -674,7 +675,12 @@ export default function ClientPerformancePage() {
                   const strategyName = trade.strategy?.name || trade.strategyName || 'Pre-Open Momentum';
 
                   return (
-                    <tr key={trade.id}>
+                    <tr 
+                      key={trade.id}
+                      onClick={() => setSelectedTrade(trade)}
+                      style={{ cursor: 'pointer' }}
+                      title="Click to view full trade details"
+                    >
                       <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                         {formatDateTime(trade.entryTime || trade.createdAt)}
                       </td>
@@ -776,6 +782,215 @@ export default function ClientPerformancePage() {
           </div>
         </div>
       </Card>
+
+      {/* Trade Details Modal */}
+      {selectedTrade && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }} onClick={() => setSelectedTrade(null)}>
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            width: '100%',
+            maxWidth: '600px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column'
+          }} onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '20px 24px',
+              borderBottom: '1px solid var(--border-color)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-heading)', margin: 0, fontFamily: 'var(--font-title)' }}>
+                  Trade Details
+                </h3>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ID: {selectedTrade.id}</span>
+              </div>
+              <button 
+                onClick={() => setSelectedTrade(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '20px',
+                  fontWeight: 600,
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Top Row Strategy & Status */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '16px' }}>
+                <div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Strategy</span>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
+                    {selectedTrade.strategy?.name || selectedTrade.strategyName || 'Pre-Open Momentum'}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Execution Status</span>
+                  <div style={{ marginTop: '4px' }}>
+                    <span className={`badge ${
+                      selectedTrade.status.toLowerCase() === 'open' 
+                        ? 'badge-info' 
+                        : selectedTrade.status.toLowerCase() === 'failed' 
+                          ? 'badge-danger' 
+                          : selectedTrade.status.toLowerCase() === 'cancelled'
+                            ? 'badge-warning'
+                            : 'badge-success'
+                    }`} style={{ fontSize: '11px', padding: '4px 12px' }}>
+                      {selectedTrade.status.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Price & Quantity Grid */}
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(3, 1fr)', 
+                gap: '16px',
+                padding: '16px',
+                backgroundColor: '#f8fafc',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0'
+              }}>
+                <div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Symbol</span>
+                  <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-heading)', marginTop: '2px' }}>{selectedTrade.symbol}</div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Type</span>
+                  <div style={{ marginTop: '2px' }}>
+                    <span className={`badge ${selectedTrade.orderType?.toUpperCase() === 'BUY' ? 'badge-blue' : 'badge-red'}`} style={{ padding: '2px 8px', fontSize: '9px' }}>
+                      {selectedTrade.orderType}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Quantity</span>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>{selectedTrade.quantity}</div>
+                </div>
+
+                <div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Entry Price</span>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+                    ₹{Number(selectedTrade.entryPrice || 0).toFixed(2)}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Exit Price</span>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+                    {selectedTrade.exitPrice ? `₹${Number(selectedTrade.exitPrice).toFixed(2)}` : '--'}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Net P&L</span>
+                  <div style={{ 
+                    fontSize: '14px', 
+                    fontWeight: 800, 
+                    marginTop: '2px',
+                    color: Number(selectedTrade.pnl || 0) >= 0 ? 'var(--color-success)' : 'var(--color-danger)'
+                  }}>
+                    {Number(selectedTrade.pnl || 0) >= 0 ? `+₹${Number(selectedTrade.pnl || 0).toFixed(2)}` : `-₹${Math.abs(Number(selectedTrade.pnl || 0)).toFixed(2)}`}
+                  </div>
+                </div>
+
+                <div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Stop Loss</span>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginTop: '2px' }}>
+                    {selectedTrade.stopLoss ? `₹${Number(selectedTrade.stopLoss).toFixed(2)}` : '--'}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Target</span>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginTop: '2px' }}>
+                    {selectedTrade.target ? `₹${Number(selectedTrade.target).toFixed(2)}` : '--'}
+                  </div>
+                </div>
+                <div></div>
+              </div>
+
+              {/* Time stamps */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Entry Time</span>
+                  <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginTop: '4px' }}>
+                    {formatDateTime(selectedTrade.entryTime || selectedTrade.createdAt)}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Exit Time</span>
+                  <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginTop: '4px' }}>
+                    {selectedTrade.exitTime ? formatDateTime(selectedTrade.exitTime) : '--'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Kite API Response Logs */}
+              <div>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Kite Response / Execution logs</span>
+                <div style={{ 
+                  marginTop: '6px', 
+                  backgroundColor: '#0f172a', 
+                  color: '#e2e8f0', 
+                  padding: '16px', 
+                  borderRadius: '10px', 
+                  fontSize: '12px',
+                  fontFamily: 'monospace',
+                  overflowX: 'auto',
+                  maxHeight: '180px',
+                  whiteSpace: 'pre-wrap',
+                  border: '1px solid #1e293b'
+                }}>
+                  {selectedTrade.kiteResponse 
+                    ? JSON.stringify(selectedTrade.kiteResponse, null, 2) 
+                    : 'No broker response received.'
+                  }
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ 
+              padding: '16px 24px', 
+              borderTop: '1px solid var(--border-color)', 
+              display: 'flex', 
+              justifyContent: 'flex-end',
+              background: '#f8fafc',
+              borderBottomLeftRadius: '16px',
+              borderBottomRightRadius: '16px'
+            }}>
+              <Button onClick={() => setSelectedTrade(null)} variant="secondary" style={{ padding: '8px 16px', fontSize: '13px' }}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
