@@ -563,7 +563,17 @@ export default function AdminDashboard() {
                     const entryPriceVal = Number(trade.entryPrice || 0);
                     const exitPriceVal = Number(trade.exitPrice || 0);
                     const strategyName = trade.strategy?.name || trade.strategyName || 'Pre Open Momentum';
-                    const isBuy = trade.orderType?.toUpperCase() === 'BUY';
+                    
+                    // Dynamically calculate transaction type from strategy config action
+                    let transactionType = 'BUY';
+                    try {
+                      const config = JSON.parse(trade.strategy?.configJson || '{}');
+                      const action = config?.tradeAction?.action || 'Long';
+                      if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
+                        transactionType = 'SELL';
+                      }
+                    } catch (e) {}
+                    const isBuy = transactionType === 'BUY';
 
                     return (
                       <tr key={trade.id} style={{ borderBottom: '1px solid #f8fafc' }}>
@@ -571,7 +581,7 @@ export default function AdminDashboard() {
                         <td style={{ padding: '12px 0', fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{trade.symbol}</td>
                         <td style={{ padding: '12px 0', fontSize: '13px' }}>
                           <span style={{ fontWeight: 700, color: isBuy ? '#10b981' : '#ef4444' }}>
-                            {trade.orderType}
+                            {transactionType}
                           </span>
                         </td>
                         <td style={{ padding: '12px 0', fontSize: '13px', color: '#475569' }}>{trade.quantity}</td>

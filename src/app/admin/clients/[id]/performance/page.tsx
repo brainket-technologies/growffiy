@@ -233,12 +233,21 @@ export default function ClientPerformancePage() {
   const filteredTransactions = clientTrades.filter(t => {
     const strategyName = (t.strategy?.name || t.strategyName || '').toLowerCase();
     const symbolStr = (t.symbol || '').toLowerCase();
-    const typeStr = (t.orderType || '').toLowerCase();
     const query = searchQuery.toLowerCase();
+
+    // Dynamically calculate transaction type from strategy config action
+    let txType = 'BUY';
+    try {
+      const config = JSON.parse(t.strategy?.configJson || '{}');
+      const action = config?.tradeAction?.action || 'Long';
+      if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
+        txType = 'SELL';
+      }
+    } catch (e) {}
 
     const matchesSearch = strategyName.includes(query) || symbolStr.includes(query);
     const matchesStrategy = strategyFilter === 'all' || strategyName.includes(strategyFilter.toLowerCase());
-    const matchesType = typeFilter === 'all' || typeStr === typeFilter.toLowerCase();
+    const matchesType = typeFilter === 'all' || txType === typeFilter.toUpperCase();
 
     return matchesSearch && matchesStrategy && matchesType;
   });
@@ -673,7 +682,16 @@ export default function ClientPerformancePage() {
                     pnlPercent = (pnl / (entryPriceVal * trade.quantity)) * 100;
                   }
                   
-                  const isBuy = trade.orderType?.toUpperCase() === 'BUY';
+                  // Dynamically calculate transaction type from strategy config action
+                  let transactionType = 'BUY';
+                  try {
+                    const config = JSON.parse(trade.strategy?.configJson || '{}');
+                    const action = config?.tradeAction?.action || 'Long';
+                    if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
+                      transactionType = 'SELL';
+                    }
+                  } catch (e) {}
+                  const isBuy = transactionType === 'BUY';
                   const strategyName = trade.strategy?.name || trade.strategyName || 'Pre-Open Momentum';
 
                   return (
@@ -692,7 +710,7 @@ export default function ClientPerformancePage() {
                       <td style={{ fontWeight: 500 }}>{strategyName}</td>
                       <td>
                         <span className={`badge ${isBuy ? 'badge-blue' : 'badge-red'}`} style={{ padding: '3px 8px', fontSize: '10px' }}>
-                          {trade.orderType}
+                          {transactionType}
                         </span>
                       </td>
                       <td style={{ fontWeight: 600 }}>{trade.symbol}</td>
