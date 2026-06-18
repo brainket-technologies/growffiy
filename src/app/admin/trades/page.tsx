@@ -167,22 +167,6 @@ export default function LiveTradingPage() {
         </div>
       </div>
 
-      {/* Connection & Terminal Status */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
-        <Card>
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-            <div style={{ padding: '12px', borderRadius: '12px', backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success)' }}>
-              <Activity size={24} />
-            </div>
-            <div>
-              <h4 style={{ fontWeight: 600, fontSize: '15px' }}>Terminal Status</h4>
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                Kite WebSocket: Connected (Delay: 12ms) | Feed: Active
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
 
       {/* Live Trades Table */}
       <Card>
