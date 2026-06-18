@@ -118,10 +118,10 @@ export default function ClientPerformancePage() {
     );
   }
 
-  const clientName = client.user?.name || client.name || 'Rahul Sharma';
-  const clientEmail = client.user?.email || client.email || 'rahul.sharma@example.com';
-  const clientPhone = client.user?.mobile || '+91 98765 43210';
-  const clientCode = client.zerodhaClientId || 'CLT10024';
+  const clientName = client.user?.name || client.name || 'Unknown Client';
+  const clientEmail = client.user?.email || client.email || '--';
+  const clientPhone = client.user?.mobile || '--';
+  const clientCode = client.zerodhaClientId || 'Not Configured';
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(clientCode);
@@ -157,13 +157,13 @@ export default function ClientPerformancePage() {
   const worstTrade = losingTrades.length ? Math.min(...losingTrades.map(t => Number(t.pnl || 0))) : 0;
   const expectancy = totalTradesCount ? totalPnl / totalTradesCount : 0;
 
-  // Mock static historical curves if client has very few trades to keep visuals rich
+  // Real equity curve calculation
   let pnlHistoryData = [0];
   let pnlHistoryLabels = ['Start'];
   if (clientTrades.length > 0) {
     let runningSum = 0;
     const sortedTrades = [...clientTrades].sort((a, b) => new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime());
-    sortedTrades.forEach((t, index) => {
+    sortedTrades.forEach((t) => {
       runningSum += Number(t.pnl || 0);
       pnlHistoryData.push(runningSum);
       
@@ -171,9 +171,58 @@ export default function ClientPerformancePage() {
       pnlHistoryLabels.push(date.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
     });
   } else {
-    // Premium Mock placeholder timeline
-    pnlHistoryData = [0, 452000, 1136000, 754000, 1318000, 1545000, 1874560];
-    pnlHistoryLabels = ['13 May', '14 May', '15 May', '16 May', '17 May', '18 May', '20 May'];
+    pnlHistoryData = [0];
+    pnlHistoryLabels = ['Start'];
+  }
+
+  // Max Drawdown calculation from running equity curve relative to client capital
+  let maxDrawdownValue = 0;
+  let maxDrawdownPercent = 0;
+  const clientCapital = Number(client.capital || 0);
+
+  if (pnlHistoryData.length > 0 && clientCapital > 0) {
+    let peak = clientCapital;
+    let maxDdV = 0;
+    pnlHistoryData.forEach((pnlVal) => {
+      const currentEquity = clientCapital + pnlVal;
+      if (currentEquity > peak) {
+        peak = currentEquity;
+      }
+      const dd = peak - currentEquity;
+      if (dd > maxDdV) {
+        maxDdV = dd;
+      }
+    });
+    maxDrawdownValue = maxDdV;
+    maxDrawdownPercent = (maxDdV / clientCapital) * 100;
+  }
+
+  // Sharpe ratio approximation
+  let sharpeRatio = 0;
+  if (closedTrades.length > 1) {
+    const pnls = closedTrades.map(t => Number(t.pnl || 0));
+    const mean = pnls.reduce((a, b) => a + b, 0) / pnls.length;
+    const variance = pnls.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (pnls.length - 1);
+    const stdDev = Math.sqrt(variance);
+    sharpeRatio = stdDev > 0 ? mean / stdDev : 0;
+  }
+
+  // Capital percentage calculations
+  const totalPnlPercent = clientCapital > 0 ? (totalPnl / clientCapital) * 100 : 0;
+  const netProfitPercent = clientCapital > 0 ? (netProfit / clientCapital) * 100 : 0;
+  const netLossPercent = clientCapital > 0 ? (netLoss / clientCapital) * 100 : 0;
+
+  // Dynamic date range string
+  let dateRangeStr = 'All Time';
+  if (clientTrades.length > 0) {
+    const times = clientTrades
+      .map(t => new Date(t.createdAt).getTime())
+      .filter(t => !isNaN(t));
+    if (times.length > 0) {
+      const minDate = new Date(Math.min(...times));
+      const maxDate = new Date(Math.max(...times));
+      dateRangeStr = `${minDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })} - ${maxDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+    }
   }
 
   // Filter transaction list
@@ -226,7 +275,7 @@ export default function ClientPerformancePage() {
           cursor: 'pointer'
         }}>
           <Calendar size={14} color="var(--text-muted)" />
-          <span>13 May 2024 - 20 May 2024</span>
+          <span>{dateRangeStr}</span>
         </div>
       </div>
 
@@ -309,14 +358,14 @@ export default function ClientPerformancePage() {
             </div>
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 800, marginTop: '8px', color: totalPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)', fontFamily: 'var(--font-title)' }}>
-            ₹{(totalPnl || 1874560).toLocaleString('en-IN')}
+            ₹{totalPnl.toLocaleString('en-IN')}
           </h3>
-          <span style={{ fontSize: '11px', color: 'var(--color-success)', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '2px' }}>
-            ↑ 15.4%
+          <span style={{ fontSize: '11px', color: totalPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+            {totalPnl >= 0 ? '↑' : '↓'} {Math.abs(totalPnlPercent).toFixed(2)}% of cap.
           </span>
           <div style={{ position: 'absolute', bottom: '8px', right: '12px', width: '90px', height: '24px' }}>
             <svg width="90" height="24">
-              <path d={getSparklinePath(true)} fill="none" stroke="#8b5cf6" strokeWidth="1.5" />
+              <path d={getSparklinePath(totalPnl >= 0)} fill="none" stroke="#8b5cf6" strokeWidth="1.5" />
             </svg>
           </div>
         </Card>
@@ -330,10 +379,10 @@ export default function ClientPerformancePage() {
             </div>
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 800, marginTop: '8px', color: 'var(--color-success)', fontFamily: 'var(--font-title)' }}>
-            ₹{(netProfit || 2145780).toLocaleString('en-IN')}
+            ₹{netProfit.toLocaleString('en-IN')}
           </h3>
           <span style={{ fontSize: '11px', color: 'var(--color-success)', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '2px' }}>
-            ↑ 18.7%
+            ↑ {netProfitPercent.toFixed(2)}% of cap.
           </span>
           <div style={{ position: 'absolute', bottom: '8px', right: '12px', width: '90px', height: '24px' }}>
             <svg width="90" height="24">
@@ -351,10 +400,10 @@ export default function ClientPerformancePage() {
             </div>
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 800, marginTop: '8px', color: 'var(--color-danger)', fontFamily: 'var(--font-title)' }}>
-            ₹{(netLoss || 271220).toLocaleString('en-IN')}
+            ₹{netLoss.toLocaleString('en-IN')}
           </h3>
           <span style={{ fontSize: '11px', color: 'var(--color-danger)', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '2px' }}>
-            ↓ 6.2%
+            ↓ {netLossPercent.toFixed(2)}% of cap.
           </span>
           <div style={{ position: 'absolute', bottom: '8px', right: '12px', width: '90px', height: '24px' }}>
             <svg width="90" height="24">
@@ -372,14 +421,14 @@ export default function ClientPerformancePage() {
             </div>
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 800, marginTop: '8px', color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
-            {(winRate || 58.3).toFixed(1)}%
+            {winRate.toFixed(1)}%
           </h3>
-          <span style={{ fontSize: '11px', color: 'var(--color-success)', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '2px' }}>
-            ↑ 4.6%
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, marginTop: '4px' }}>
+            {winCount} winning trades
           </span>
           <div style={{ position: 'absolute', bottom: '8px', right: '12px', width: '90px', height: '24px' }}>
             <svg width="90" height="24">
-              <path d={getSparklinePath(true)} fill="none" stroke="var(--accent)" strokeWidth="1.5" />
+              <path d={getSparklinePath(winRate >= 50)} fill="none" stroke="var(--accent)" strokeWidth="1.5" />
             </svg>
           </div>
         </Card>
@@ -393,10 +442,10 @@ export default function ClientPerformancePage() {
             </div>
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 800, marginTop: '8px', color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
-            {totalTradesCount || 142}
+            {totalTradesCount}
           </h3>
-          <span style={{ fontSize: '11px', color: 'var(--color-success)', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '2px' }}>
-            ↑ 12.3%
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, marginTop: '4px' }}>
+            {closedTrades.length} closed, {totalTradesCount - closedTrades.length} open
           </span>
           <div style={{ position: 'absolute', bottom: '8px', right: '12px', width: '90px', height: '24px' }}>
             <svg width="90" height="24">
@@ -437,38 +486,38 @@ export default function ClientPerformancePage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '12px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Average Profit (₹)</span>
-              <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>₹{(avgProfit || 15109.01).toFixed(2)}</strong>
+              <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>₹{avgProfit.toFixed(2)}</strong>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Max Drawdown</span>
-              <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>₹3,21,450 (8.7%)</strong>
+              <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>₹{maxDrawdownValue.toLocaleString('en-IN')} ({maxDrawdownPercent.toFixed(1)}%)</strong>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Average Loss (₹)</span>
-              <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>₹{(avgLoss || 8226.06).toFixed(2)}</strong>
+              <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>₹{avgLoss.toFixed(2)}</strong>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Best Trade (₹)</span>
-              <strong style={{ fontSize: '13px', color: 'var(--color-success)' }}>₹{(bestTrade || 125430).toLocaleString('en-IN')}</strong>
+              <strong style={{ fontSize: '13px', color: 'var(--color-success)' }}>₹{bestTrade.toLocaleString('en-IN')}</strong>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Profit Factor</span>
-              <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{(profitFactor || 2.61).toFixed(2)}</strong>
+              <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{profitFactor.toFixed(2)}</strong>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Worst Trade (₹)</span>
-              <strong style={{ fontSize: '13px', color: 'var(--color-danger)' }}>₹{(worstTrade || -45230).toLocaleString('en-IN')}</strong>
+              <strong style={{ fontSize: '13px', color: 'var(--color-danger)' }}>₹{worstTrade.toLocaleString('en-IN')}</strong>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Sharpe Ratio</span>
-              <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>1.48</strong>
+              <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{sharpeRatio.toFixed(2)}</strong>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Expectancy (₹)</span>
-              <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>₹{(expectancy || 13204.23).toFixed(2)}</strong>
+              <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>₹{expectancy.toFixed(2)}</strong>
             </div>
           </div>
         </Card>
@@ -488,23 +537,23 @@ export default function ClientPerformancePage() {
                 
                 {/* Winning segment (Green) */}
                 <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--color-success)" strokeWidth="4.5" 
-                  strokeDasharray={`${winRate || 58.3} ${100 - (winRate || 58.3)}`} 
+                  strokeDasharray={`${winRate} ${100 - winRate}`} 
                   strokeDashoffset="25"
                 />
                 {/* Losing segment (Red) */}
                 <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--color-danger)" strokeWidth="4.5" 
-                  strokeDasharray={`${lossRate || 28.9} ${100 - (lossRate || 28.9)}`} 
-                  strokeDashoffset={`${25 - (winRate || 58.3)}`}
+                  strokeDasharray={`${lossRate} ${100 - lossRate}`} 
+                  strokeDashoffset={`${25 - winRate}`}
                 />
                 {/* Breakeven / Open segment (Gray) */}
                 <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--text-subtle)" strokeWidth="4.5" 
-                  strokeDasharray={`${drawRate || 12.8} ${100 - (drawRate || 12.8)}`} 
-                  strokeDashoffset={`${25 - (winRate || 58.3) - (lossRate || 28.9)}`}
+                  strokeDasharray={`${drawRate} ${100 - drawRate}`} 
+                  strokeDashoffset={`${25 - winRate - lossRate}`}
                 />
               </svg>
               {/* Center total number */}
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: '1.2' }}>
-                <strong style={{ fontSize: '16px', color: 'var(--text-heading)' }}>{totalTradesCount || 142}</strong>
+                <strong style={{ fontSize: '16px', color: 'var(--text-heading)' }}>{totalTradesCount}</strong>
                 <span style={{ fontSize: '8px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Trades</span>
               </div>
             </div>
@@ -516,21 +565,21 @@ export default function ClientPerformancePage() {
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-success)' }} />
                   Winning
                 </span>
-                <strong>{winCount || 83} ({ (winRate || 58.3).toFixed(1)}%)</strong>
+                <strong>{winCount} ({winRate.toFixed(1)}%)</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-danger)' }} />
                   Losing
                 </span>
-                <strong>{lossCount || 41} ({ (lossRate || 28.9).toFixed(1)}%)</strong>
+                <strong>{lossCount} ({lossRate.toFixed(1)}%)</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--text-subtle)' }} />
-                  Breakeven
+                  Breakeven / Open
                 </span>
-                <strong>{drawCount || 18} ({ (drawRate || 12.8).toFixed(1)}%)</strong>
+                <strong>{drawCount} ({drawRate.toFixed(1)}%)</strong>
               </div>
             </div>
           </div>
