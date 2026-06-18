@@ -222,11 +222,28 @@ class AlgoEngineService {
             const fromDateStr = formatKiteDate(new Date(today.getTime() - 24 * 60 * 60 * 1000));
             const toDateStr = formatKiteDate(today);
 
+            // Parse configuration
+            const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
+            const slPercent = config?.stoploss?.fixedPercent || 0.5;
+            const targetPercent = config?.target?.profitPercent || 2.0;
+
+            // Determine timeframe dynamically from config, default to 5minute
+            let intervalParam = '5minute';
+            const tf = config?.basicInfo?.timeframe;
+            if (tf === '1m' || tf === '1minute' || tf === 'minute') intervalParam = 'minute';
+            else if (tf === '3m' || tf === '3minute') intervalParam = '3minute';
+            else if (tf === '5m' || tf === '5minute') intervalParam = '5minute';
+            else if (tf === '10m' || tf === '10minute') intervalParam = '10minute';
+            else if (tf === '15m' || tf === '15minute') intervalParam = '15minute';
+            else if (tf === '30m' || tf === '30minute') intervalParam = '30minute';
+            else if (tf === '60m' || tf === '60minute' || tf === 'hour') intervalParam = '60minute';
+            else if (tf === '1d' || tf === 'day') intervalParam = 'day';
+
             const res = await KiteClient.getHistoricalData(
               client.zerodhaApiKey,
               client.accessToken,
               instrumentTokenStr,
-              '5minute',
+              intervalParam,
               fromDateStr,
               toDateStr
             );
@@ -245,10 +262,6 @@ class AlgoEngineService {
             const currentClosePrice = Number(latestCandle[4]);
 
             // Calculate SL and Target based on DB configuration
-            const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
-            const slPercent = config?.stoploss?.fixedPercent || 0.5;
-            const targetPercent = config?.target?.profitPercent || 2.0;
-
             const entryPrice = Number(trade.entryPrice);
             const stopLossLevel = entryPrice * (1 - slPercent / 100);
             const targetLevel = entryPrice * (1 + targetPercent / 100);
@@ -262,23 +275,24 @@ class AlgoEngineService {
             if (currentClosePrice <= stopLossLevel) {
               exitTriggered = true;
               exitPrice = stopLossLevel;
-              exitReason = 'Stop Loss (0.5%) hit';
+              exitReason = `Stop Loss (${slPercent}%) hit`;
             } else if (currentClosePrice >= targetLevel) {
               exitTriggered = true;
               exitPrice = targetLevel;
-              exitReason = 'Target (2.0%) hit';
+              exitReason = `Target (${targetPercent}%) hit`;
             }
 
             if (exitTriggered) {
               console.log(`AlgoEngine Monitor: EXIT TRIGGERED for trade ${trade.id} (${trade.symbol}) due to ${exitReason} at ₹${exitPrice.toFixed(2)}.`);
 
+              const exchangeParam = config?.basicInfo?.exchange || 'NSE';
               const sellParams = {
-                exchange: 'NSE',
+                exchange: exchangeParam,
                 tradingsymbol: trade.symbol,
                 transaction_type: 'SELL' as const,
                 quantity: trade.quantity,
                 order_type: 'MARKET' as const,
-                product: 'MIS' as const,
+                product: trade.orderType as any,
                 validity: 'DAY' as const
               };
 
@@ -378,7 +392,7 @@ class AlgoEngineService {
     }
     try {
       console.log('Fetching live instrument list from Zerodha Kite...');
-      const res = await fetch('https://api.kite.trade/instruments/NSE');
+      const res = await fetch(API_ENDPOINTS.KITE_INSTRUMENTS);
       if (!res.ok) throw new Error(`Kite instruments API returned status ${res.status}`);
       const text = await res.text();
       const lines = text.split('\n');
@@ -764,6 +778,10 @@ class AlgoEngineService {
             continue;
           }
 
+          const exchangeParam = config.basicInfo?.exchange || 'NSE';
+          const tradeType = config.basicInfo?.tradeType || 'Intraday';
+          const productParam = tradeType === 'Delivery' ? 'CNC' : (tradeType === 'Carry Forward' || tradeType === 'Normal' || tradeType === 'NRML') ? 'NRML' : 'MIS';
+
           // 3. Filter preOpenStocks dynamically based on database strategy segment and conditions
           const segment = config.basicInfo?.segment || 'NSE F&O';
 
@@ -787,6 +805,12 @@ class AlgoEngineService {
                   if (cond.operator === '>=' && !(stock.changePercent >= val)) return false;
                   if (cond.operator === '===' && !(stock.changePercent === val)) return false;
                   if (cond.operator === '==' && !(stock.changePercent == val)) return false;
+                } else if (cond.indicator === 'Price Action') {
+                  if (cond.value === 'Previous 5m High') {
+                    const prevHigh = stock.high || stock.prevClose || stock.ltp;
+                    if (cond.operator === '>' && !(stock.ltp > prevHigh)) return false;
+                    if (cond.operator === '>=' && !(stock.ltp >= prevHigh)) return false;
+                  }
                 }
               }
             }
@@ -858,7 +882,7 @@ class AlgoEngineService {
                 clientId: client.id,
                 strategyId: strategy.id,
                 symbol: targetStock.symbol,
-                orderType: 'MIS',
+                orderType: productParam,
                 entryPrice: entryPrice,
                 quantity: 0,
                 status: 'FAILED',
@@ -900,7 +924,7 @@ class AlgoEngineService {
                 clientId: client.id,
                 strategyId: strategy.id,
                 symbol: targetStock.symbol,
-                orderType: 'MIS',
+                orderType: productParam,
                 entryPrice: entryPrice,
                 quantity: 0,
                 status: 'FAILED',
@@ -954,7 +978,7 @@ class AlgoEngineService {
                 clientId: client.id,
                 strategyId: strategy.id,
                 symbol: targetStock.symbol,
-                orderType: 'MIS',
+                orderType: productParam,
                 entryPrice: entryPrice,
                 quantity: 0,
                 status: 'FAILED',
@@ -1009,12 +1033,12 @@ class AlgoEngineService {
           if (client.zerodhaApiKey && activeAccessToken) {
             try {
               const orderParams = {
-                exchange: 'NSE',
+                exchange: exchangeParam,
                 tradingsymbol: targetStock.symbol,
                 transaction_type: 'BUY' as const,
                 quantity: quantity,
                 order_type: orderTypeParam as any,
-                product: 'MIS' as const,
+                product: productParam as any,
                 validity: 'DAY' as const,
                 price: priceParam,
                 trigger_price: triggerPriceParam,
@@ -1054,7 +1078,7 @@ class AlgoEngineService {
                     clientId: client.id,
                     strategyId: strategy.id,
                     symbol: targetStock.symbol,
-                    orderType: 'MIS',
+                    orderType: productParam,
                     entryPrice: entryPrice,
                     quantity: quantity,
                     stopLoss: stopLoss,
@@ -1083,7 +1107,7 @@ class AlgoEngineService {
                   clientId: client.id,
                   strategyId: strategy.id,
                   symbol: targetStock.symbol,
-                  orderType: 'MIS',
+                  orderType: productParam,
                   entryPrice: entryPrice,
                   quantity: quantity,
                   stopLoss: stopLoss,
@@ -1114,7 +1138,7 @@ class AlgoEngineService {
               clientId: client.id,
               strategyId: strategy.id,
               symbol: targetStock.symbol,
-              orderType: 'MIS',
+              orderType: productParam,
               entryPrice: entryPrice,
               quantity: quantity,
               stopLoss: stopLoss,
@@ -1326,7 +1350,7 @@ class AlgoEngineService {
     try {
       console.log(`Fetching HTTP live quotes for ${symbols.length} symbols from Kite API...`);
       const queryParams = symbols.map(sym => `i=NSE:${sym}`).join('&');
-      const url = `https://api.kite.trade/quote?${queryParams}`;
+      const url = `${API_ENDPOINTS.KITE_BASE}/quote?${queryParams}`;
 
       const res = await fetch(url, {
         headers: {

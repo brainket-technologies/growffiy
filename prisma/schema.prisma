@@ -48,6 +48,10 @@ model Client {
   strategy           Strategy? @relation(fields: [strategyId], references: [id])
   tradingStatus      String    @default("inactive") @map("trading_status") // active, inactive
   subscriptionStatus String    @default("pending") @map("subscription_status") // active, expired, pending
+  panNumber          String?   @map("pan_number")
+  aadhaarNumber      String?   @map("aadhaar_number")
+  dob                String?   @map("dob")
+  kycStatus          String    @default("pending") @map("kyc_status") // pending, verified, failed
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
 

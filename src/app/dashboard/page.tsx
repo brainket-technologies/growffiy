@@ -373,7 +373,15 @@ export default function ClientDashboardOverview() {
                         {pnl >= 0 ? `+₹${pnl.toFixed(2)}` : `-₹${Math.abs(pnl).toFixed(2)}`}
                       </td>
                       <td>
-                        <span className={`badge ${trade.status === 'open' ? 'badge-info' : 'badge-success'}`}>
+                        <span className={`badge ${
+                          trade.status.toLowerCase() === 'open' 
+                            ? 'badge-info' 
+                            : trade.status.toLowerCase() === 'failed' 
+                              ? 'badge-danger' 
+                              : trade.status.toLowerCase() === 'cancelled'
+                                ? 'badge-warning'
+                                : 'badge-success'
+                        }`}>
                           {trade.status}
                         </span>
                       </td>

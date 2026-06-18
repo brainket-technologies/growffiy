@@ -18,7 +18,8 @@ import {
   Coins, 
   Activity,
   ChevronRight,
-  Info
+  Info,
+  Pencil
 } from 'lucide-react';
 import { useAppViewModel } from '../../../../viewmodels/AppContext';
 import { Modal } from '../../../../views/components/Modal';
@@ -50,6 +51,10 @@ export default function ClientDetailsPage() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [margins, setMargins] = useState<any>(null);
+  const [panNumber, setPanNumber] = useState('');
+  const [aadhaarNumber, setAadhaarNumber] = useState('');
+  const [dob, setDob] = useState('');
+  const [kycStatus, setKycStatus] = useState('pending');
 
   // UI Visibility States
   const [showPassword, setShowPassword] = useState(false);
@@ -77,6 +82,10 @@ export default function ClientDetailsPage() {
           setAccessToken(c.accessToken || null);
           setProfile(res.profile || null);
           setMargins(res.margin || null);
+          setPanNumber(c.panNumber || '');
+          setAadhaarNumber(c.aadhaarNumber || '');
+          setDob(c.dob || '');
+          setKycStatus(c.kycStatus || 'pending');
         } else {
           setError('Failed to load client details');
         }
@@ -129,6 +138,10 @@ export default function ClientDetailsPage() {
         zerodhaTotpSecret,
         capital: Number(capital),
         tradingStatus,
+        panNumber,
+        aadhaarNumber,
+        dob,
+        kycStatus,
       });
 
       if (success) {
@@ -827,6 +840,88 @@ export default function ClientDetailsPage() {
             </Card>
           </div>
         </div>
+
+        {/* Contact & KYC Information */}
+        <Card style={{ padding: '24px 28px', marginTop: '8px' }}>
+          <h4 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--primary)', marginBottom: '20px', fontFamily: 'var(--font-title)' }}>
+            Contact & KYC Information
+          </h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '8px' }}>PAN Number</label>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="text" 
+                  value={panNumber} 
+                  onChange={(e) => setPanNumber(e.target.value)} 
+                  placeholder="e.g. ABCDE1234F"
+                  style={{ width: '100%', height: '40px', padding: '10px 36px 10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px' }}
+                />
+                <Pencil size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)', pointerEvents: 'none' }} />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '8px' }}>Aadhaar Number</label>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="text" 
+                  value={aadhaarNumber} 
+                  onChange={(e) => setAadhaarNumber(e.target.value)} 
+                  placeholder="e.g. XXXX XXXX 1234"
+                  style={{ width: '100%', height: '40px', padding: '10px 36px 10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px' }}
+                />
+                <Pencil size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)', pointerEvents: 'none' }} />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '8px' }}>Date of Birth</label>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="text" 
+                  value={dob} 
+                  onChange={(e) => setDob(e.target.value)} 
+                  placeholder="e.g. 15 Jan 1990"
+                  style={{ width: '100%', height: '40px', padding: '10px 36px 10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px' }}
+                />
+                <Pencil size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)', pointerEvents: 'none' }} />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '8px' }}>KYC Status</label>
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={kycStatus}
+                  onChange={(e) => setKycStatus(e.target.value)}
+                  style={{ 
+                    width: '100%', 
+                    height: '40px', 
+                    padding: '10px 36px 10px 14px', 
+                    borderRadius: '8px', 
+                    border: '1px solid var(--border-color)', 
+                    outline: 'none',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    appearance: 'none',
+                    fontWeight: 600,
+                    color: kycStatus === 'verified' ? 'var(--color-success)' : kycStatus === 'failed' ? 'var(--color-danger)' : 'var(--text-secondary)',
+                    backgroundColor: kycStatus === 'verified' ? 'var(--color-success-bg)' : kycStatus === 'failed' ? '#fee2e2' : '#f1f5f9'
+                  }}
+                >
+                  <option value="pending" style={{ color: 'var(--text-body)', backgroundColor: '#ffffff' }}>Pending</option>
+                  <option value="verified" style={{ color: 'var(--color-success)', backgroundColor: '#ffffff' }}>Verified</option>
+                  <option value="failed" style={{ color: 'var(--color-danger)', backgroundColor: '#ffffff' }}>Failed</option>
+                </select>
+                <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: '6px', pointerEvents: 'none' }}>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>▼</span>
+                  <Pencil size={14} style={{ color: 'var(--primary)' }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
 
         {/* Render Zerodha Profile details if active session profile is loaded */}
         {profile && (

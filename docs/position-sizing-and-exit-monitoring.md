@@ -69,3 +69,29 @@ Using the real database configurations and live Demat cash balance for Vikash Sh
    - **Stop Loss Level:** $₹198.00 \times 0.995 = ₹197.01$
    - **Target Level:** $₹198.00 \times 1.015 = ₹200.97$
 2. **Candle Monitoring:** The engine polls the latest 5-min candle. If the closing price of a 5-minute candle is $\le ₹197.01$ or $\ge ₹200.97$, the system immediately sells the 4 shares and marks the trade as `closed` in the DB.
+
+---
+
+## 4. Database Strategy Matching & Parameter Routing
+
+Below is the code-level implementation details of how the database configurations match and route trades for active clients:
+
+### A. Parameter Routing and Product Type Mapping
+The engine maps the user's strategy trade types directly to Zerodha order parameters:
+* **Exchange Routing:** Determined dynamically by the strategy config (`config.basicInfo.exchange`, defaults to `'NSE'`).
+* **Product Type Mapping:**
+  * If `tradeType` is `'Delivery'` $\rightarrow$ Maps to **`CNC`**
+  * If `tradeType` is `'Carry Forward'`, `'Normal'`, or `'NRML'` $\rightarrow$ Maps to **`NRML`**
+  * Otherwise (e.g. `'Intraday'`) $\rightarrow$ Maps to **`MIS`**
+
+### B. Segment Filtering
+Before processing conditions, the pre-open stock list is filtered dynamically:
+* **NSE F&O:** Only stocks with F&O enabled are scanned (`stock.isFo === true`).
+* **Nifty 50:** Only Nifty 50 stocks are scanned (`stock.isNifty50 === true`).
+* **Bank Nifty:** Only Bank Nifty stocks are scanned (`stock.isBankNifty === true`).
+
+### C. Condition Evaluation (e.g. Vikash Sharma's Config)
+* **Condition 1 (Pre Open Change % < 0):** Only scans and selects stocks that open negative (gap-down).
+* **Condition 2 (Price Action > Previous 5m High):** Only enters a trade if the current price exceeds the previous candle high.
+* **Target Stock Selection:** Because Vikash's strategy is a **Long** momentum breakout, the engine picks the stock with the **lowest changePercent** (maximum gap-down) from the filtered list to maximize recovery upside.
+
