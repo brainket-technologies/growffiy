@@ -178,6 +178,8 @@ function Sparkline({ data, stroke = '#7c3aed', width = 120, height = 30 }: Spark
 export default function StrategiesPage() {
   const { colors, trades } = useAppViewModel();
 
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
   // Mode state: 'list' | 'create' | 'edit' | 'detail'
   const [viewMode, setViewMode] = useState<'list' | 'create' | 'edit' | 'detail'>('list');
   const [strategies, setStrategies] = useState<any[]>([]);
@@ -938,182 +940,263 @@ export default function StrategiesPage() {
       {/* VIEW: STRATEGY LIST */}
       {viewMode === 'list' && (
         <>
-          {/* Quick Metrics */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
-            <Card style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Total Strategies</p>
-                <div style={{ padding: '8px', borderRadius: '8px', background: 'rgba(56, 189, 248, 0.1)' }}>
-                  <TrendingUp size={16} color="#38bdf8" />
+          {/* Premium Stat Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+            {/* Total Strategies */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0f172a 0%, #1a2744 100%)',
+              border: '1px solid rgba(56,189,248,0.15)',
+              borderRadius: '16px',
+              padding: '24px',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.18)'
+            }}>
+              <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(56,189,248,0.06)' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Total Strategies</p>
+                  <h3 style={{ fontSize: '36px', fontWeight: 800, color: '#fff', marginTop: '8px', fontFamily: 'var(--font-title)', lineHeight: 1 }}>{strategies.length}</h3>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', marginTop: '6px' }}>All time registered</p>
+                </div>
+                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(56,189,248,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(56,189,248,0.2)' }}>
+                  <TrendingUp size={20} color="#38bdf8" />
                 </div>
               </div>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', fontFamily: 'var(--font-title)', color: '#fff' }}>
-                {strategies.length}
-              </h3>
-            </Card>
-            <Card style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Active Strategies</p>
-                <div style={{ padding: '8px', borderRadius: '8px', background: 'rgba(34, 197, 94, 0.1)' }}>
-                  <CheckCircle size={16} color="#22c55e" />
+            </div>
+
+            {/* Active Strategies */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0a1f1a 0%, #0d2b22 100%)',
+              border: '1px solid rgba(34,197,94,0.15)',
+              borderRadius: '16px',
+              padding: '24px',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.18)'
+            }}>
+              <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(34,197,94,0.06)' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Active Strategies</p>
+                  <h3 style={{ fontSize: '36px', fontWeight: 800, color: '#22c55e', marginTop: '8px', fontFamily: 'var(--font-title)', lineHeight: 1 }}>{strategies.filter(s => s.status === 'active').length}</h3>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', marginTop: '6px' }}>Currently running</p>
+                </div>
+                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(34,197,94,0.2)' }}>
+                  <CheckCircle size={20} color="#22c55e" />
                 </div>
               </div>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', fontFamily: 'var(--font-title)', color: '#22c55e' }}>
-                {strategies.filter(s => s.status === 'active').length}
-              </h3>
-            </Card>
-            <Card style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Assigned Clients</p>
-                <div style={{ padding: '8px', borderRadius: '8px', background: 'rgba(234, 179, 8, 0.1)' }}>
-                  <Users size={16} color="#eab308" />
+            </div>
+
+            {/* Assigned Clients */}
+            <div style={{
+              background: 'linear-gradient(135deg, #1a1500 0%, #231e00 100%)',
+              border: '1px solid rgba(234,179,8,0.15)',
+              borderRadius: '16px',
+              padding: '24px',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.18)'
+            }}>
+              <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(234,179,8,0.06)' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Assigned Clients</p>
+                  <h3 style={{ fontSize: '36px', fontWeight: 800, color: '#eab308', marginTop: '8px', fontFamily: 'var(--font-title)', lineHeight: 1 }}>{clients.filter(c => c.strategyId).length}</h3>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', marginTop: '6px' }}>Across all strategies</p>
+                </div>
+                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(234,179,8,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(234,179,8,0.2)' }}>
+                  <Users size={20} color="#eab308" />
                 </div>
               </div>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', fontFamily: 'var(--font-title)', color: '#eab308' }}>
-                {clients.filter(c => c.strategyId).length}
-              </h3>
-            </Card>
+            </div>
           </div>
 
-          {/* Main List Table */}
-          <Card>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-title)' }}>Strategy Registry</h3>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <Filter size={16} color="var(--text-secondary)" />
-                <select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  style={{ border: '1px solid var(--border-color)', borderRadius: '6px', padding: '6px 12px', outline: 'none', fontSize: '12px', background: 'transparent', color: 'var(--text-primary)' }}
+          {/* Search + Filter Bar */}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <svg style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input
+                type="text"
+                placeholder="Search strategies..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{ width: '100%', padding: '10px 14px 10px 40px', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div style={{ display: 'flex', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '10px', overflow: 'hidden' }}>
+              {['all', 'active', 'inactive'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setFilterType(tab)}
+                  style={{
+                    padding: '10px 18px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: filterType === tab ? 'var(--color-primary)' : 'transparent',
+                    color: filterType === tab ? '#fff' : 'var(--text-secondary)',
+                    transition: 'all 0.2s',
+                    textTransform: 'capitalize'
+                  }}
                 >
-                  <option value="all">All Statuses</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
+                  {tab === 'all' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
             </div>
+          </div>
 
-            <div className="table-responsive">
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: 'left', padding: '12px' }}>Strategy Name</th>
-                    <th style={{ textAlign: 'left', padding: '12px' }}>Segment</th>
-                    <th style={{ textAlign: 'left', padding: '12px' }}>Type</th>
-                    <th style={{ textAlign: 'left', padding: '12px' }}>Timeframe</th>
-                    <th style={{ textAlign: 'center', padding: '12px' }}>Status</th>
-                    <th style={{ textAlign: 'center', padding: '12px' }}>Assigned Clients</th>
-                    <th style={{ textAlign: 'right', padding: '12px' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {strategies
-                    .filter(s => filterType === 'all' || s.status === filterType)
-                    .map(strat => {
-                      let segment = 'N/A';
-                      let tradeType = 'N/A';
-                      let timeframe = 'N/A';
-                      try {
-                        const parsed = JSON.parse(strat.configJson);
-                        segment = parsed.basicInfo?.segment || segment;
-                        tradeType = parsed.basicInfo?.tradeType || tradeType;
-                        timeframe = parsed.basicInfo?.timeframe || timeframe;
-                      } catch (e) {}
-
-                      const assignedCount = clients.filter(c => c.strategyId === strat.id).length;
-
-                      return (
-                        <tr key={strat.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                          <td style={{ padding: '14px 12px', fontWeight: 600 }}>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <span>{strat.name}</span>
-                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 400 }}>{strat.description || 'No description'}</span>
-                            </div>
-                          </td>
-                          <td style={{ padding: '14px 12px' }}>
-                            <span className="badge badge-info">{segment}</span>
-                          </td>
-                          <td style={{ padding: '14px 12px' }}>{tradeType}</td>
-                          <td style={{ padding: '14px 12px' }}>{timeframe}</td>
-                          <td style={{ padding: '14px 12px', textAlign: 'center' }}>
-                            <button
-                              onClick={() => handleToggleStatus(strat)}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: 0
-                              }}
-                            >
-                              <span className={`badge ${strat.status === 'active' ? 'badge-success' : 'badge-danger'}`}>
-                                {strat.status.toUpperCase()}
-                              </span>
-                            </button>
-                          </td>
-                          <td style={{ padding: '14px 12px', textAlign: 'center', fontWeight: 600 }}>
-                            {assignedCount}
-                          </td>
-                          <td style={{ padding: '14px 12px', textAlign: 'right' }}>
-                            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                              <button
-                                onClick={() => {
-                                  setSelectedStrategy(strat);
-                                  setViewMode('detail');
-                                  setDetailTab('overview');
-                                }}
-                                style={{ background: 'none', border: 'none', color: '#0052cc', cursor: 'pointer' }}
-                                title="View Performance"
-                              >
-                                <Activity size={16} />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setSelectedStrategy(strat);
-                                  setViewMode('detail');
-                                  setDetailTab('overview');
-                                }}
-                                style={{ background: 'none', border: 'none', color: 'var(--color-info)', cursor: 'pointer' }}
-                                title="View details"
-                              >
-                                <Eye size={16} />
-                              </button>
-                              <button
-                                onClick={() => handleEdit(strat)}
-                                style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }}
-                                title="Edit"
-                              >
-                                <Edit3 size={16} />
-                              </button>
-                              <button
-                                onClick={() => handleClone(strat.id)}
-                                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
-                                title="Clone"
-                              >
-                                <Copy size={16} />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(strat)}
-                                style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer' }}
-                                title="Delete"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  {strategies.length === 0 && (
-                    <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
-                        No strategies created yet. Click "Create Strategy" or load a template above to start.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+          {/* Strategy Cards Grid */}
+          {strategies.filter(s =>
+            (filterType === 'all' || s.status === filterType) &&
+            (searchQuery === '' || s.name.toLowerCase().includes(searchQuery.toLowerCase()) || (s.description || '').toLowerCase().includes(searchQuery.toLowerCase()))
+          ).length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 24px', background: 'var(--bg-secondary)', borderRadius: '16px', border: '1px dashed var(--border-color)' }}>
+              <FileCode size={40} color="var(--text-secondary)" style={{ opacity: 0.4, marginBottom: '12px' }} />
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>No strategies found. Click <strong>+ Create Strategy</strong> to get started.</p>
             </div>
-          </Card>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
+              {strategies
+                .filter(s =>
+                  (filterType === 'all' || s.status === filterType) &&
+                  (searchQuery === '' || s.name.toLowerCase().includes(searchQuery.toLowerCase()) || (s.description || '').toLowerCase().includes(searchQuery.toLowerCase()))
+                )
+                .map(strat => {
+                  let segment = 'N/A';
+                  let tradeType = 'N/A';
+                  let timeframe = 'N/A';
+                  let entryTime = '';
+                  let exitTime = '';
+                  try {
+                    const parsed = JSON.parse(strat.configJson);
+                    segment = parsed.basicInfo?.segment || segment;
+                    tradeType = parsed.basicInfo?.tradeType || tradeType;
+                    timeframe = parsed.basicInfo?.timeframe || timeframe;
+                    entryTime = parsed.basicInfo?.entryTime || '';
+                    exitTime = parsed.basicInfo?.exitTime || '';
+                  } catch (e) {}
+
+                  const assignedCount = clients.filter(c => c.strategyId === strat.id).length;
+                  const isActive = strat.status === 'active';
+
+                  return (
+                    <div
+                      key={strat.id}
+                      style={{
+                        background: 'var(--bg-secondary)',
+                        border: `1px solid ${isActive ? 'rgba(34,197,94,0.2)' : 'var(--border-color)'}`,
+                        borderRadius: '16px',
+                        padding: '20px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '14px',
+                        transition: 'all 0.2s',
+                        cursor: 'pointer',
+                        boxShadow: isActive ? '0 0 0 1px rgba(34,197,94,0.08)' : 'none'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isActive ? '0 0 0 1px rgba(34,197,94,0.08)' : 'none'; }}
+                    >
+                      {/* Card Header */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isActive ? '#22c55e' : '#94a3b8', flexShrink: 0, boxShadow: isActive ? '0 0 6px #22c55e' : 'none' }} />
+                            <h4 style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{strat.name}</h4>
+                          </div>
+                          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{strat.description || 'No description provided'}</p>
+                        </div>
+                        <button
+                          onClick={e => { e.stopPropagation(); handleToggleStatus(strat); }}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: '20px',
+                            border: `1px solid ${isActive ? 'rgba(34,197,94,0.3)' : 'rgba(148,163,184,0.3)'}`,
+                            background: isActive ? 'rgba(34,197,94,0.1)' : 'rgba(148,163,184,0.08)',
+                            color: isActive ? '#22c55e' : '#94a3b8',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            letterSpacing: '0.04em',
+                            flexShrink: 0,
+                            marginLeft: '10px'
+                          }}
+                        >
+                          {isActive ? '● ACTIVE' : '○ INACTIVE'}
+                        </button>
+                      </div>
+
+                      {/* Tags Row */}
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ padding: '3px 10px', borderRadius: '6px', background: 'rgba(14,165,233,0.1)', color: '#38bdf8', fontSize: '11px', fontWeight: 600, border: '1px solid rgba(14,165,233,0.15)' }}>{segment}</span>
+                        <span style={{ padding: '3px 10px', borderRadius: '6px', background: 'rgba(139,92,246,0.1)', color: '#a78bfa', fontSize: '11px', fontWeight: 600, border: '1px solid rgba(139,92,246,0.15)' }}>{tradeType}</span>
+                        <span style={{ padding: '3px 10px', borderRadius: '6px', background: 'rgba(251,191,36,0.1)', color: '#fbbf24', fontSize: '11px', fontWeight: 600, border: '1px solid rgba(251,191,36,0.15)' }}>{timeframe}</span>
+                        {entryTime && <span style={{ padding: '3px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.04)', color: 'var(--text-secondary)', fontSize: '11px', border: '1px solid var(--border-color)' }}>{entryTime} – {exitTime}</span>}
+                      </div>
+
+                      {/* Stats Row */}
+                      <div style={{ display: 'flex', gap: '0', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
+                        <div style={{ flex: 1, textAlign: 'center' }}>
+                          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '0 0 2px' }}>Clients</p>
+                          <p style={{ fontSize: '18px', fontWeight: 700, color: assignedCount > 0 ? '#eab308' : 'var(--text-secondary)', margin: 0 }}>{assignedCount}</p>
+                        </div>
+                        <div style={{ width: '1px', background: 'var(--border-color)' }} />
+                        <div style={{ flex: 1, textAlign: 'center' }}>
+                          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '0 0 2px' }}>Status</p>
+                          <p style={{ fontSize: '13px', fontWeight: 700, color: isActive ? '#22c55e' : '#94a3b8', margin: 0 }}>{isActive ? 'Live' : 'Paused'}</p>
+                        </div>
+                        <div style={{ width: '1px', background: 'var(--border-color)' }} />
+                        <div style={{ flex: 1, textAlign: 'center' }}>
+                          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '0 0 2px' }}>Trades</p>
+                          <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{(trades || []).filter(t => t.strategyId === strat.id).length}</p>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => { setSelectedStrategy(strat); setViewMode('detail'); setDetailTab('overview'); }}
+                          style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', transition: 'all 0.15s' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-primary)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'var(--color-primary)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
+                        >
+                          <Eye size={13} /> View
+                        </button>
+                        <button
+                          onClick={() => handleEdit(strat)}
+                          style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.15s' }}
+                          title="Edit"
+                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          <Edit3 size={13} />
+                        </button>
+                        <button
+                          onClick={() => handleClone(strat.id)}
+                          style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.15s' }}
+                          title="Clone"
+                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          <Copy size={13} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(strat)}
+                          style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.05)', color: '#ef4444', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.15s' }}
+                          title="Delete"
+                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.05)'; }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
         </>
       )}
 
