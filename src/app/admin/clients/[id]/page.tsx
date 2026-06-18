@@ -51,6 +51,7 @@ export default function ClientDetailsPage() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [margins, setMargins] = useState<any>(null);
+  const [marginError, setMarginError] = useState<string | null>(null);
   const [panNumber, setPanNumber] = useState('');
   const [aadhaarNumber, setAadhaarNumber] = useState('');
   const [dob, setDob] = useState('');

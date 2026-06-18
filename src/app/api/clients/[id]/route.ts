@@ -21,6 +21,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
       let profileData: any = null;
       let marginData: any = null;
+      let marginError: string | null = null;
 
       // Helper function to check token profile and fetch margins
       const checkAndFetchData = async (apiKey: string, token: string) => {
@@ -30,7 +31,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           try {
             const mRes = await KiteClient.getMargins(apiKey, token);
             if (mRes.status === 'success') margins = mRes.data;
-          } catch (e) {}
+            else marginError = mRes.message || 'Margins API error';
+          } catch (e: any) { marginError = e.message || 'Margins request failed'; }
           return { isValid: true, profile: profile.data, margins };
         }
         return { isValid: false, profile: null, margins: null };
@@ -77,7 +79,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         }
       }
 
-      return NextResponse.json({ success: true, client, profile: profileData, margin: marginData });
+      return NextResponse.json({ success: true, client, profile: profileData, margin: marginData, marginError });
     } catch {
       let client = inMemoryClients.find((c) => c.id === id);
       if (client) {

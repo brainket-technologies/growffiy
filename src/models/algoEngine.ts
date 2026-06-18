@@ -62,7 +62,11 @@ class AlgoEngineService {
   private preselectedForClient: Map<string, StockQuote> = new Map();
 
   constructor() {
-    this.initializeKiteLiveFeed();
+    if (process.env.USE_HTTP_POLLING !== 'true') {
+      this.initializeKiteLiveFeed();
+    } else {
+      console.log('USE_HTTP_POLLING=true, skipping WebSocket connection. Using HTTP polling for live quotes.');
+    }
     this.startDailyTokenRefreshScheduler();
     this.startDailyPreOpenStrategyScheduler();
     this.startActiveTradesMonitoringScheduler();
@@ -351,7 +355,8 @@ class AlgoEngineService {
                 quantity: trade.quantity,
                 order_type: 'MARKET' as const,
                 product: trade.orderType as any,
-                validity: 'DAY' as const
+                validity: 'DAY' as const,
+                market_protection: 5
               };
 
               const sellRes = await KiteClient.placeOrder(
@@ -499,13 +504,20 @@ class AlgoEngineService {
       
       await this.ensureInstrumentMapping();
       
+      if (process.env.USE_HTTP_POLLING === 'true') {
+        console.log('USE_HTTP_POLLING=true, skipping WebSocket subscription.');
+        return;
+      }
+      
       // Seed stocksState from preOpenCache if empty
       if (this.stocksState.length === 0 && this.preOpenCache.length > 0) {
         this.stocksState = [...this.preOpenCache];
       }
 
-      // Get the symbols in our current pre-open cache or state
-      let symbols = this.preOpenCache.map(s => s.symbol);
+      // Only subscribe to F&O stocks (plus a few defaults) — NOT all pre-open stocks
+      let symbols = this.preOpenCache
+        .filter(s => s.isFo)
+        .map(s => s.symbol);
       if (symbols.length === 0) {
         symbols = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'LT', 'ITC'];
       }
@@ -522,7 +534,7 @@ class AlgoEngineService {
         return;
       }
 
-      console.log(`Subscribing to ${tokens.length} live stock tokens on Kite WebSocket.`);
+      console.log(`Subscribing to ${tokens.length} live stock tokens on Kite WebSocket (F&O only).`);
       const subMsg = {
         a: 'subscribe',
         v: tokens
@@ -1245,7 +1257,7 @@ class AlgoEngineService {
                 validity: 'DAY' as const,
                 price: priceParam,
                 trigger_price: triggerPriceParam,
-                ...(orderTypeParam === 'MARKET' ? { market_protection: marketProtectionVal } : {})
+                ...(orderTypeParam === 'MARKET' || orderTypeParam === 'SL-M' ? { market_protection: marketProtectionVal } : {})
               };
 
               orderRes = await KiteClient.placeOrder(
@@ -1485,10 +1497,10 @@ class AlgoEngineService {
       this.preOpenCacheDate = dateStr;
       this.lastPreOpenFetchTime = Date.now();
 
-      // Dynamically re-subscribe WebSocket to newly fetched pre-open symbols
-      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        console.log('NSE pre-open fetch completed. Re-subscribing WebSocket to dynamic symbols...');
-        const symbols = freshStocks.map(s => s.symbol);
+      // Re-subscribe WebSocket to F&O stocks only (not all pre-open stocks)
+      if (this.ws && this.ws.readyState === WebSocket.OPEN && process.env.USE_HTTP_POLLING !== 'true') {
+        console.log('NSE pre-open fetch completed. Re-subscribing WebSocket to F&O symbols...');
+        const symbols = freshStocks.filter(s => s.isFo).map(s => s.symbol);
         const tokens: number[] = [];
         for (const [tokenStr, sym] of Object.entries(this.instrumentToSymbol)) {
           if (symbols.includes(sym)) {
@@ -1544,15 +1556,18 @@ class AlgoEngineService {
     }
 
     if (this.stocksState.length === 0 && this.preOpenCache.length > 0) {
-      this.stocksState = [...this.preOpenCache];
+      this.stocksState = this.preOpenCache.filter(s => s.isFo);
     }
 
     const symbols = this.stocksState.map(s => s.symbol);
     if (symbols.length === 0) return;
 
+    // Limit to 50 symbols per poll to avoid oversized URL and API rate limits
+    const pollSymbols = symbols.slice(0, 50);
+
     try {
-      console.log(`Fetching HTTP live quotes for ${symbols.length} symbols from Kite API...`);
-      const queryParams = symbols.map(sym => `i=NSE:${sym}`).join('&');
+      console.log(`Fetching HTTP live quotes for ${pollSymbols.length} symbols from Kite API...`);
+      const queryParams = pollSymbols.map(sym => `i=NSE:${sym}`).join('&');
       const url = `${API_ENDPOINTS.KITE_BASE}/quote?${queryParams}`;
 
       const res = await fetch(url, {
