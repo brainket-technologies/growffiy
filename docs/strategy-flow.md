@@ -8,11 +8,11 @@
 
 Ek **automatic trading system** jo har din:
 
-1. **09:08 AM** — NSE se pre-open data fetch karta hai
-2. **09:15 AM** — Sabse zyada girne wala F&O stock select karta hai
+1. **09:08 AM** — NSE se pre-open data fetch karta hai (global timing)
+2. **09:15 AM** — Sabse zyada girne wala F&O stock select karta hai (per-strategy timing)
 3. **09:15-09:20** — Market open hota hai, 5-min candle banti hai
-4. **09:20 AM** — Candle high check karta hai → breakout hua? → LIMIT BUY order lagata hai
-5. **09:20-15:15** — Har 60 second monitor karta hai → SL ya Target hit? → SELL
+4. **09:20 AM** — Candle high check karta hai → breakout hua? → LIMIT BUY order lagata hai (per-strategy timing)
+5. **09:20-15:15** — Strategy ke `checkIntervalSec` ke hisaab se monitor karta hai → SL ya Target hit? → SELL
 
 **Zerodha Kite API** ke through orders lagte hain.
 
@@ -21,38 +21,37 @@ Ek **automatic trading system** jo har din:
 ## 2. Simple Flow (Bina Technical Detail)
 
 ```
-⏰ 08:00 → Token refresh (Zerodha session)
-⏰ 09:08 → NSE se saare stocks ka pre-open data aaya
-⏰ 09:15 → F&O stocks filter → sort → position #1 select → Map me store
+⏰ 08:00 → Token refresh (Zerodha session) — global
+⏰ 09:08 → NSE se saare stocks ka pre-open data aaya — global
+⏰ 09:15 → F&O stocks filter → sort → position #1 select → Map me store — per strategy
 ⏰ 09:15-09:20 → Market open → 5-min candle bani
-⏰ 09:20 → Candle high check → breakout? → BUY order
-⏰ 09:20-15:15 → Price monitor → SL/Target? → SELL
+⏰ 09:20 → Candle high check → breakout? → BUY order — per strategy
+⏰ 09:20-15:15 → Price monitor (per strategy checkIntervalSec) → SL/Target? → SELL
 ```
 
 ---
 
 ## 3. Database — Current State (June 2026)
 
-### 3.1 App Settings (Algo Timings)
+### 3.1 App Settings (Global Algo Timings — Infrastructure)
 
 | Setting Key | Value | Admin Kahan Change Karega | Effect |
 |---|---|---|---|
-| `algo_preopen_fetch_time` | **09:08** | Admin → App Settings page | Is time pe NSE se data fetch hoga. 09:08 karo ya 09:10 |
-| `algo_entry_time` | **09:20** | Admin → App Settings page | Is time pe trade execute hogi. 09:20 karo ya 09:25 |
-| `algo_token_refresh_time` | **08:00** | Admin → App Settings page | Is time pe Zerodha session refresh hoga |
-| `algo_check_interval_sec` | **60** | Admin → App Settings page | Har kitne second monitor karna hai (60 = 1 min) |
+| `algo_preopen_fetch_time` | **09:08** | Admin → Settings → Algo Timings tab | Is time pe NSE se data fetch hoga |
+| `algo_token_refresh_time` | **08:00** | Admin → Settings → Algo Timings tab | Is time pe Zerodha session refresh hoga |
 
-### 3.2 Strategy Config (Pre Open Momentum Breakout)
+### 3.2 Strategy Config (Pre Open Momentum Breakout) — `strategy.configJson` column
 
 | Section | Field | Current Value | Admin Kahan Change Karega | Effect |
 |---|---|---|---|---|
 | **basicInfo** | `name` | "Pre-Open Momentum Breakout" | Admin → Strategy → Edit Name | Sirf display name |
 | | `segment` | **NSE F&O** | Admin → Strategy → Basic Info → Segment | Kaunse stocks filter honge. NSE F&O = sirf F&O stocks. Nifty 50 = sirf Nifty stocks |
-| | `entryTime` | **09:20** | Admin → Strategy → Timing → Entry Time | Kitne baje trade karni hai |
-| | `preSelectTime` | **09:15** | Admin → Strategy → Timing → Pre-Select Time | Kitne baje stock select karna hai |
+| | `entryTime` | **09:20** | Admin → Strategy → Timing → Entry Time | Kitne baje trade karni hai (per strategy) |
+| | `preSelectTime` | **09:15** | Admin → Strategy → Timing → Pre-Select Time | Kitne baje stock select karna hai (per strategy) |
 | | `exitTime` | **15:15** | Admin → Strategy → Timing → Exit Time | Market close time |
 | | `selectPosition` | **1** | Admin → Strategy → Trade Selection → Select Position | Kaunsa rank pick karna hai. 1 = biggest loser, 2 = second biggest loser |
 | | `maxTradesPerDay` | **3** | Admin → Strategy → Trade Selection → Max Trades/Day | Max kitne trade ek din me |
+| | `checkIntervalSec` | **60** | Admin → Strategy → Trade Selection → Check Interval (sec) | Har kitne second monitor karna hai is strategy ke trades ke liye |
 | | `status` | **active** | Admin → Strategy → Status toggle | active = trade chalega, inactive = nahi chalega |
 | **tradeAction** | `action` | **Long** | Admin → Strategy → Trade Action → Action Direction | Long = losers me se pick. Short = gainers me se pick |
 | | `orderType` | **Limit** | Admin → Strategy → Trade Action → Order Type | Limit = specific price pe order. Market = market price pe |
@@ -104,28 +103,32 @@ TCS           3500.00     3550.00       +1.43%     YES
 
 ---
 
-#### ⏰ 08:00 — Token Refresh
+#### ⏰ 08:00 — Token Refresh (Global)
 
 | Detail | Value |
 |---|---|
 | Kya hua? | KITE_AUTO_LOGIN_ENABLED check hua |
 | Result | Agar true hai → TOTP generate → Zerodha login → naya accessToken |
 | DB me kya hua? | client.accessToken update |
-| Admin kya change karega? | `algo_token_refresh_time` app setting (default 08:00) |
+| Admin kya change karega? | `algo_token_refresh_time` app setting → Admin → Settings → Algo Timings tab |
 
 ---
 
-#### ⏰ 09:08 — Pre-Open Data Fetch
+#### ⏰ 09:08 — Pre-Open Data Fetch (Global)
 
 | Detail | Value |
 |---|---|
 | Kya hua? | NSE API call → 200+ stocks ka data aaya |
 | Kahan store hua? | `preOpenCache[]` (RAM) + `PRE_OPEN_QUOTES_DATA` (DB app_settings) |
-| Admin kya change karega? | `algo_preopen_fetch_time` app setting |
+| Admin kya change karega? | `algo_preopen_fetch_time` app setting → Admin → Settings → Algo Timings tab |
 
 ---
 
-#### ⏰ 09:15 — Stock Selection (Stage 1.5)
+#### ⏰ XX:XX — Stock Selection (Stage 1.5 — Per Strategy)
+
+> Har strategy ka apna `preSelectTime` hota hai (configJson → basicInfo.preSelectTime).
+> Default 09:15 hai, lekin aap alag strategy ke liye alag time rakh sakte hain.
+> Algo engine har 60 sec check karta hai ki kya kisi strategy ka preSelectTime match karta hai.
 
 ```
 🔍 STEP 1: SEGMENT FILTER
@@ -192,7 +195,11 @@ Time      Price
 
 ---
 
-#### ⏰ 09:20 — Trade Execution (Stage 2)
+#### ⏰ XX:XX — Trade Execution (Stage 2 — Per Strategy)
+
+> Har strategy ka apna `entryTime` hota hai (configJson → basicInfo.entryTime).
+> Default 09:20 hai. Algo engine har 60 sec check karta hai ki kya kisi strategy ka entryTime match karta hai,
+> aur sirf us strategy ke clients ke liye trade execute karta hai.
 
 ```
 ═══════════════════════════════════════════════════════
@@ -314,10 +321,14 @@ prisma.auditLog.create({ action: "AUTO TRADE INITIATED", ... })
 
 ---
 
-#### ⏰ 09:20-15:15 — Monitoring (Har 60 Sec)
+#### ⏰ 09:20-15:15 — Monitoring (Per-Strategy Check Interval)
+
+> Har strategy ka apna `checkIntervalSec` hota hai (configJson → basicInfo.checkIntervalSec).
+> Default 60 hai. Engine ka base timer har 10 sec chalta hai, lekin har trade ko sirf apni strategy ke
+> interval ke hisaab se check karta hai. Example: checkIntervalSec=120 → har 2 min check.
 
 ```
-startActiveTradesMonitoringScheduler() — har 60 second chalta hai
+startActiveTradesMonitoringScheduler() — base timer har 10 sec, per-trade filtering
 
 ─────────────────────────────────────────────────────────────
 SCENARIO 1: ✅ TARGET HIT (PROFIT)
@@ -489,7 +500,7 @@ Kyun? Code me sirf do conditions ka handler hai:
 ## 6. Admin Value Change → Kya Effect Hoga (Quick Reference)
 
 | Admin Change | Current Value | Naya Value | Effect |
-|---|---|---|---|
+|---|---|---|---|---|
 | **Segment** → Nifty 50 | NSE F&O | Nifty 50 | F&O stocks nahi, Nifty 50 stocks filter honge |
 | **selectPosition** → 2 | 1 | 2 | Biggest loser nahi, second biggest loser pick hoga |
 | **action** → Short | Long | Short | Losers nahi, gainers me se pick hoga |
@@ -499,18 +510,42 @@ Kyun? Code me sirf do conditions ka handler hai:
 | **profitPercent** → 2% | 1.5% | 2.0% | Target zyada door → bada profit but time lagega |
 | **riskPerTrade** → 2% | 1% | 2% | Double amount allocate hoga → double profit/loss |
 | **trailingSL** → 0% (off) | 0.2% | 0 | Trailing band → fixed SL (price upar jayega to SL nahi hilega) |
-| **preSelectTime** → 09:10 | 09:15 | 09:10 | Stock selection 5 min pehle hoga |
-| **algo_entry_time** → 09:25 | 09:20 | 09:25 | Trade 5 min late lagegi (zyada candle data) |
-| **algo_preopen_fetch_time** → 09:10 | 09:08 | 09:10 | Pre-open data 2 min late aayega |
+| **entryTime** (per-strategy) → 09:25 | 09:20 | 09:25 | Sirf is strategy ki trade 5 min late lagegi |
+| **preSelectTime** (per-strategy) → 09:10 | 09:15 | 09:10 | Sirf is strategy ka stock selection 5 min pehle hoga |
+| **checkIntervalSec** (per-strategy) → 120 | 60 | 120 | Sirf is strategy ke trades har 2 min monitor honge |
+| **algo_preopen_fetch_time** (global) → 09:10 | 09:08 | 09:10 | Saari strategies ke liye pre-open data 2 min late aayega |
+| **algo_token_refresh_time** (global) → 07:30 | 08:00 | 07:30 | Saari strategies ke liye token 30 min pehle refresh hoga |
 | **client.capital** → 1,00,000 | 50,000 | 1,00,000 | Zyada amount cap → zyada shares |
 | **conditions** → add filter | [] | [{Pre Open Change % < -1.5}] | Sirf -1.5%+ girne wale stocks pick honge |
 
 ---
 
-## 7. Algo Engine — Strategy Apply Kaise Hoti Hai (Complete Code Logic)
+## 7. Algo Engine — Scheduler Flow (Per-Strategy Timing)
 
 ```
-executePreOpenTrades() — Har client ke liye:
+SCHEDULER LOOP — har 60 second:
+
+┌──────────────────────────────────────────────────────────────┐
+│ 1. GLOBAL: Pre-open fetch                                   │
+│    currentTime == algo_preopen_fetch_time?                   │
+│    → fetch NSE data (once for all strategies)               │
+├──────────────────────────────────────────────────────────────┤
+│ 2. PER-STRATEGY LOOP                                        │
+│    for each active strategy:                                │
+│      read configJson → basicInfo.{preSelectTime, entryTime} │
+│                                                              │
+│      if currentTime == strategy.preSelectTime AND not done: │
+│        → preSelectAllClients(strategy.id)                    │
+│        → filter → sort → pick position → Map store          │
+│                                                              │
+│      if currentTime == strategy.entryTime AND not done:     │
+│        → executePreOpenTrades(adminId, undefined, strategy.id)│
+│        → sirf is strategy ke clients process hote hain       │
+└──────────────────────────────────────────────────────────────┘
+```
+
+```
+executePreOpenTrades(strategyId?) — Har client ke liye:
 
 ┌─────────────────────────────────────────────────────────────┐
 │ 1. strategy.configJson READ                                 │
@@ -561,8 +596,8 @@ executePreOpenTrades() — Har client ke liye:
 │    Target% = config.target.profitPercent                   │
 │    Target₹ = entryPrice × (1 + Target%/100)                │
 ├─────────────────────────────────────────────────────────────┤
-│ 9. MONITOR (har 60 sec)                                    │
-│    Kite se latest price fetch                              │
+│ 9. MONITOR (per-strategy checkIntervalSec)                  │
+│    Kite se latest price fetch                               │
 │    Trailing SL = config.stoploss.trailingSL                │
 │    Trailing Target = config.target.trailingTarget          │
 │    currentPrice <= SL? → SELL                              │
@@ -575,13 +610,16 @@ executePreOpenTrades() — Har client ke liye:
 ## 8. Ek Hi Page Mein — Quick Summary
 
 ```
-⏰ TIMING (Admin App Settings se change)
+⏰ TIMING
 ─────────────────────────────────────────
-08:00 → Token refresh (algo_token_refresh_time)
-09:08 → Pre-open fetch (algo_preopen_fetch_time)
-09:15 → Stock select  (preSelectTime from strategy config)
-09:20 → Trade execute (algo_entry_time)
-09:20-15:15 → Monitor (algo_check_interval_sec)
+🌍 Global (Admin → Settings → Algo Timings):
+  08:00 → Token refresh (algo_token_refresh_time)
+  09:08 → Pre-open fetch (algo_preopen_fetch_time)
+
+📋 Per-Strategy (Admin → Strategy → Basic Info → Timing):
+  XX:XX → Stock select  (basicInfo.preSelectTime)
+  XX:XX → Trade execute (basicInfo.entryTime)
+  XX:XX → Monitor       (basicInfo.checkIntervalSec — default 60)
 
 🔍 STOCK SELECTION (Admin Strategy Config se change)
 ─────────────────────────────────────────────────────
@@ -604,13 +642,15 @@ Target        → target.profitPercent + trailingTarget
 
 📊 CURRENT SETUP (19 June 2026)
 ────────────────────────────────
-Strategy: Pre Open Momentum Breakout
-Client:   RZJ500 (capital ₹50,000)
-Segment:  NSE F&O
-Position: #1 Loser (selectPosition = 1)
-Entry:    LIMIT @ candle high + 0.1%
-Amount:   1% of live balance (capped at ₹50,000)
-SL:       0.5% trailing (0.2% trail)
-Target:   1.5% trailing (0.5% trail)
-Conditions: None (empty)
+Global Timings:  08:00 token | 09:08 pre-open fetch
+Strategy:        Pre Open Momentum Breakout
+  preSelectTime: 09:15 | entryTime: 09:20 | checkIntervalSec: 60
+Client:          RZJ500 (capital ₹50,000)
+Segment:         NSE F&O
+Position:        #1 Loser (selectPosition = 1)
+Entry:           LIMIT @ candle high + 0.1%
+Amount:          1% of live balance (capped at ₹50,000)
+SL:              0.5% trailing (0.2% trail)
+Target:          1.5% trailing (0.5% trail)
+Conditions:      None (empty)
 ```
