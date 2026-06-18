@@ -131,7 +131,8 @@ export default function ClientPerformancePage() {
 
   // Metric calculation
   const totalTradesCount = clientTrades.length;
-  const closedTrades = clientTrades.filter(t => t.status === 'closed');
+  const closedTrades = clientTrades.filter(t => t.status.toLowerCase() !== 'open');
+  const openTradesCount = clientTrades.filter(t => t.status.toLowerCase() === 'open').length;
   
   const winningTrades = closedTrades.filter(t => Number(t.pnl || 0) > 0);
   const losingTrades = closedTrades.filter(t => Number(t.pnl || 0) < 0);
@@ -139,7 +140,7 @@ export default function ClientPerformancePage() {
 
   const winCount = winningTrades.length;
   const lossCount = losingTrades.length;
-  const drawCount = breakevenTrades.length + (totalTradesCount - closedTrades.length); // Open trades are considered neutral/breakeven here
+  const drawCount = breakevenTrades.length + openTradesCount; // Open trades are considered neutral/breakeven here
 
   const winRate = closedTrades.length ? (winCount / closedTrades.length) * 100 : 0;
   const lossRate = closedTrades.length ? (lossCount / closedTrades.length) * 100 : 0;
@@ -445,7 +446,7 @@ export default function ClientPerformancePage() {
             {totalTradesCount}
           </h3>
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, marginTop: '4px' }}>
-            {closedTrades.length} closed, {totalTradesCount - closedTrades.length} open
+            {closedTrades.length} closed, {openTradesCount} open
           </span>
           <div style={{ position: 'absolute', bottom: '8px', right: '12px', width: '90px', height: '24px' }}>
             <svg width="90" height="24">
