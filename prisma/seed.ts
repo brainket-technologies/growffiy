@@ -12,70 +12,9 @@ const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log('Seeding default strategy and admin user...');
+  console.log('Seeding admin user, plans, and settings...');
 
-  // 1. Seed Strategy
-  const strategy = await prisma.strategy.upsert({
-    where: { id: 'pre-open-breakout' },
-    update: {
-      name: 'Pre-Open Momentum Breakout',
-      description: 'Scans Nifty 200 for maximum gap-downs at 09:08 AM, buys high of 5-min candle with 1% risk.',
-      status: 'active',
-      configJson: JSON.stringify({
-        basicInfo: {
-          name: 'Pre-Open Momentum Breakout',
-          description: 'Scans Nifty 200 for maximum gap-downs at 09:08 AM, buys high of 5-min candle with 1% risk.',
-          tradeType: 'Intraday',
-          exchange: 'NSE',
-          segment: 'NSE F&O',
-          timeframe: '5m',
-          entryTime: '09:20',
-          exitTime: '15:15',
-          maxTradesPerDay: 3,
-          status: 'active'
-        },
-        tradeAction: { action: 'Long', orderType: 'Limit', bufferPercent: 0.1 },
-        stoploss: { type: 'Trailing SL', orderType: 'Market', fixedPercent: 0.5, fixedPoints: 5, trailingSL: 0.2, riskPercent: 1.0 },
-        target: { type: 'Trailing Target', profitPercent: 1.5, riskRewardRatio: 3.0, partialExit: 50, trailingTarget: 0.5 },
-        riskManagement: { capitalAllocation: 10.0, riskPerTrade: 1.0, maxDailyLoss: 5000, maxDailyProfit: 15000, maxOpenPositions: 2, killSwitch: false },
-        conditions: [
-          { logical: 'AND', indicator: 'Gap Down', operator: '>', value: '1.5' },
-          { logical: 'AND', indicator: 'RSI', operator: '<', value: '30' }
-        ]
-      })
-    },
-    create: {
-      id: 'pre-open-breakout',
-      name: 'Pre-Open Momentum Breakout',
-      description: 'Scans Nifty 200 for maximum gap-downs at 09:08 AM, buys high of 5-min candle with 1% risk.',
-      status: 'active',
-      configJson: JSON.stringify({
-        basicInfo: {
-          name: 'Pre-Open Momentum Breakout',
-          description: 'Scans Nifty 200 for maximum gap-downs at 09:08 AM, buys high of 5-min candle with 1% risk.',
-          tradeType: 'Intraday',
-          exchange: 'NSE',
-          segment: 'NSE F&O',
-          timeframe: '5m',
-          entryTime: '09:20',
-          exitTime: '15:15',
-          maxTradesPerDay: 3,
-          status: 'active'
-        },
-        tradeAction: { action: 'Long', orderType: 'Limit', bufferPercent: 0.1 },
-        stoploss: { type: 'Trailing SL', orderType: 'Market', fixedPercent: 0.5, fixedPoints: 5, trailingSL: 0.2, riskPercent: 1.0 },
-        target: { type: 'Trailing Target', profitPercent: 1.5, riskRewardRatio: 3.0, partialExit: 50, trailingTarget: 0.5 },
-        riskManagement: { capitalAllocation: 10.0, riskPerTrade: 1.0, maxDailyLoss: 5000, maxDailyProfit: 15000, maxOpenPositions: 2, killSwitch: false },
-        conditions: [
-          { logical: 'AND', indicator: 'Gap Down', operator: '>', value: '1.5' },
-          { logical: 'AND', indicator: 'RSI', operator: '<', value: '30' }
-        ]
-      })
-    }
-  });
-  console.log('Strategy seeded:', strategy.id);
-
-  // 2. Seed Admin User
+  // 1. Seed Admin User
   const admin = await prisma.user.upsert({
     where: { email: 'firoz@gmail.com' },
     update: {
@@ -96,7 +35,7 @@ async function main() {
   });
   console.log('Admin user seeded:', admin.email);
 
-  // 3. Seed Subscription Plans
+  // 2. Seed Subscription Plans
   const plans = [
     {
       id: 'plan-monthly',
@@ -139,7 +78,7 @@ async function main() {
     console.log('Subscription plan seeded:', plan.id);
   }
 
-  // 4. Seed App Settings (Algo timings)
+  // 3. Seed App Settings (Algo timings)
   const appSettingsData = [
     { settingKey: 'algo_preopen_fetch_time', settingValue: '09:08', type: 'string' },
     { settingKey: 'algo_entry_time', settingValue: '09:20', type: 'string' },
