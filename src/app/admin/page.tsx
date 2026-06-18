@@ -171,8 +171,19 @@ export default function AdminDashboard() {
 
   const dateRangeStr = `${startDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}`;
 
-  // Filter trades displayed in table
-  const displayTrades = trades.slice(0, 5);
+  // Filter trades displayed in table by selected date range
+
+  const filteredTrades = trades.filter(t => {
+    const tradeDate = new Date(t.createdAt);
+    const startLimit = new Date(startDate);
+    startLimit.setHours(0, 0, 0, 0);
+    const endLimit = new Date(endDate);
+    endLimit.setHours(23, 59, 59, 999);
+    return tradeDate >= startLimit && tradeDate <= endLimit;
+  });
+
+  const displayTrades = filteredTrades.slice(0, 5);
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1400px', margin: '0 auto', fontFamily: 'var(--font-body)' }}>
