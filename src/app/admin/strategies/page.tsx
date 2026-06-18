@@ -44,6 +44,7 @@ interface StrategyConfig {
     segment: 'Cash' | 'Equity' | 'Futures' | 'Options' | 'NSE F&O' | 'Nifty 50' | 'Bank Nifty';
     timeframe: string;
     entryTime: string;
+    preSelectTime: string;
     exitTime: string;
     maxTradesPerDay: number;
     selectPosition: number;
@@ -97,6 +98,7 @@ const INITIAL_CONFIG: StrategyConfig = {
     segment: 'NSE F&O',
     timeframe: '5m',
     entryTime: '09:20',
+    preSelectTime: '09:15',
     exitTime: '15:15',
     maxTradesPerDay: 3,
     selectPosition: 1,
@@ -1308,7 +1310,7 @@ export default function StrategiesPage() {
                       </select>
                     </div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: '12px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <label style={{ fontSize: '11px', fontWeight: 600 }}>Entry Time</label>
                       <input
@@ -1317,6 +1319,18 @@ export default function StrategiesPage() {
                         onChange={(e) => setFormData({
                           ...formData,
                           basicInfo: { ...formData.basicInfo, entryTime: e.target.value }
+                        })}
+                        style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 600 }}>Pre-Select Time</label>
+                      <input
+                        type="time"
+                        value={formData.basicInfo.preSelectTime}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          basicInfo: { ...formData.basicInfo, preSelectTime: e.target.value }
                         })}
                         style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                       />

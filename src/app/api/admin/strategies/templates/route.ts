@@ -17,6 +17,7 @@ const DEFAULT_TEMPLATES = [
         entryTime: '09:30',
         exitTime: '15:15',
         maxTradesPerDay: 4,
+        preSelectTime: '09:15',
         status: 'active'
       },
       tradeAction: {
@@ -68,6 +69,7 @@ const DEFAULT_TEMPLATES = [
         entryTime: '09:30',
         exitTime: '15:00',
         maxTradesPerDay: 1,
+        preSelectTime: '09:15',
         status: 'active'
       },
       tradeAction: {

@@ -58,6 +58,9 @@ class AlgoEngineService {
   private lastPreOpenFetchTime: number = 0;
   private preOpenCacheDate: string = '';
 
+  // Pre-selected stock per client (set at preSelectTime, consumed at entryTime)
+  private preselectedForClient: Map<string, StockQuote> = new Map();
+
   constructor() {
     this.initializeKiteLiveFeed();
     this.startDailyTokenRefreshScheduler();
@@ -83,13 +86,26 @@ class AlgoEngineService {
 
     let lastExecutedDate = '';
     let lastFetchedDate = '';
+    let lastPreSelectedDate = '';
     let cachedFetchTime = '09:08';
+    let cachedPreSelectTime = '09:15';
     let cachedEntryTime = '09:20';
 
     const checkAndExecute = async () => {
       try {
         cachedFetchTime = await this.getAlgoSetting('algo_preopen_fetch_time', '09:08');
         cachedEntryTime = await this.getAlgoSetting('algo_entry_time', '09:20');
+
+        // Also check strategy config for preSelectTime (could vary per strategy, use first active as default)
+        if (!lastPreSelectedDate) {
+          const firstStrategy = await prisma.strategy.findFirst({ where: { status: 'active' }, orderBy: { createdAt: 'asc' } });
+          if (firstStrategy?.configJson) {
+            try {
+              const parsed = JSON.parse(firstStrategy.configJson);
+              cachedPreSelectTime = parsed.basicInfo?.preSelectTime || '09:15';
+            } catch {}
+          }
+        }
 
         const istDateStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
         const istDate = new Date(istDateStr);
@@ -103,6 +119,13 @@ class AlgoEngineService {
           console.log(`AlgoEngine Scheduler: Pre-open fetch time ${cachedFetchTime} reached. Fetching NSE pre-open data...`);
           lastFetchedDate = currentDateKey;
           await this.getPreOpenStocks();
+        }
+
+        // Stage 1.5: Pre-select stocks for each client (filter + sort + rank)
+        if (currentTimeStr === cachedPreSelectTime && lastPreSelectedDate !== currentDateKey) {
+          console.log(`AlgoEngine Scheduler: Pre-select time ${cachedPreSelectTime} reached. Running stock pre-selection...`);
+          lastPreSelectedDate = currentDateKey;
+          await this.preSelectAllClients();
         }
 
         // Stage 2: Execute trades at entry time
@@ -730,6 +753,98 @@ class AlgoEngineService {
     return this.getActiveCredentials();
   }
 
+  private async preSelectAllClients(): Promise<void> {
+    const preOpenStocks = this.preOpenCache.length > 0
+      ? this.preOpenCache
+      : await this.getPreOpenStocks();
+
+    if (!preOpenStocks || preOpenStocks.length === 0) {
+      console.log('AlgoEngine preSelect: No pre-open stocks available. Skipping.');
+      return;
+    }
+
+    const clients = await prisma.client.findMany({
+      where: {
+        tradingStatus: 'active',
+        subscriptionStatus: 'active',
+        strategyId: { not: null }
+      },
+      include: { user: true, strategy: true }
+    });
+
+    if (clients.length === 0) {
+      console.log('AlgoEngine preSelect: No active clients.');
+      return;
+    }
+
+    this.preselectedForClient.clear();
+
+    for (const client of clients) {
+      try {
+        const strategy = client.strategy;
+        if (!strategy || strategy.status !== 'active') continue;
+
+        const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
+        if (!config) continue;
+
+        const segment = config.basicInfo?.segment || 'NSE F&O';
+        const matchingStocks = preOpenStocks.filter(stock => {
+          if (segment === 'NSE F&O' || segment === 'Futures' || segment === 'Options') {
+            if (!stock.isFo) return false;
+          } else if (segment === 'Nifty 50' || segment === 'Nifty') {
+            if (!stock.isNifty50) return false;
+          } else if (segment === 'Bank Nifty' || segment === 'BankNifty') {
+            if (!stock.isBankNifty) return false;
+          }
+          if (config.conditions && Array.isArray(config.conditions)) {
+            for (const cond of config.conditions) {
+              if (cond.indicator === 'Pre Open Change %') {
+                const val = Number(cond.value);
+                if (cond.operator === '<' && !(stock.changePercent < val)) return false;
+                if (cond.operator === '>' && !(stock.changePercent > val)) return false;
+                if (cond.operator === '<=' && !(stock.changePercent <= val)) return false;
+                if (cond.operator === '>=' && !(stock.changePercent >= val)) return false;
+                if (cond.operator === '===' && !(stock.changePercent === val)) return false;
+                if (cond.operator === '==' && !(stock.changePercent == val)) return false;
+              } else if (cond.indicator === 'Price Action') {
+                if (cond.value === 'Previous 5m High') {
+                  const prevHigh = stock.high || stock.prevClose || stock.ltp;
+                  if (cond.operator === '>' && !(stock.ltp > prevHigh)) return false;
+                  if (cond.operator === '>=' && !(stock.ltp >= prevHigh)) return false;
+                }
+              }
+            }
+          }
+          return true;
+        });
+
+        if (matchingStocks.length === 0) {
+          console.log(`AlgoEngine preSelect: No matching stocks for client ${client.user.name}.`);
+          continue;
+        }
+
+        const action = config.tradeAction?.action || 'Long';
+        const selectPosition = config.basicInfo?.selectPosition || 1;
+        const sortedStocks = [...matchingStocks].sort((a, b) =>
+          action === 'Long' ? a.changePercent - b.changePercent : b.changePercent - a.changePercent
+        );
+
+        if (sortedStocks.length < selectPosition) {
+          console.log(`AlgoEngine preSelect: Only ${sortedStocks.length} stocks for ${client.user.name}, cannot pick #${selectPosition}.`);
+          continue;
+        }
+
+        const selected = sortedStocks[selectPosition - 1];
+        this.preselectedForClient.set(client.id, selected);
+        console.log(`AlgoEngine preSelect: ${client.user.name} → #${selectPosition} ${selected.symbol}(${selected.changePercent}%)`);
+      } catch (err) {
+        console.error(`AlgoEngine preSelect: Error for client ${client.user.name}:`, err);
+      }
+    }
+
+    console.log(`AlgoEngine preSelect: ${this.preselectedForClient.size}/${clients.length} clients have a preselected stock ready.`);
+  }
+
   public async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[]): Promise<void> {
     console.log('AlgoEngine: executePreOpenTrades started.');
     try {
@@ -796,62 +911,63 @@ class AlgoEngineService {
           const tradeType = config.basicInfo?.tradeType || 'Intraday';
           const productParam = tradeType === 'Delivery' ? 'CNC' : (tradeType === 'Carry Forward' || tradeType === 'Normal' || tradeType === 'NRML') ? 'NRML' : 'MIS';
 
-          // 3. Filter preOpenStocks dynamically based on database strategy segment and conditions
-          const segment = config.basicInfo?.segment || 'NSE F&O';
+          // 3. Check preselected stock (set at preSelectTime 09:15), fallback to filter now
+          let candidateStock: StockQuote | null = this.preselectedForClient.get(client.id) || null;
+          this.preselectedForClient.delete(client.id);
 
-          const matchingStocks = preOpenStocks.filter(stock => {
-            // Apply segment filter dynamically based on DB strategy configuration
-            if (segment === 'NSE F&O' || segment === 'Futures' || segment === 'Options') {
-              if (!stock.isFo) return false;
-            } else if (segment === 'Nifty 50' || segment === 'Nifty') {
-              if (!stock.isNifty50) return false;
-            } else if (segment === 'Bank Nifty' || segment === 'BankNifty') {
-              if (!stock.isBankNifty) return false;
-            }
-            
-            if (config.conditions && Array.isArray(config.conditions)) {
-              for (const cond of config.conditions) {
-                if (cond.indicator === 'Pre Open Change %') {
-                  const val = Number(cond.value);
-                  if (cond.operator === '<' && !(stock.changePercent < val)) return false;
-                  if (cond.operator === '>' && !(stock.changePercent > val)) return false;
-                  if (cond.operator === '<=' && !(stock.changePercent <= val)) return false;
-                  if (cond.operator === '>=' && !(stock.changePercent >= val)) return false;
-                  if (cond.operator === '===' && !(stock.changePercent === val)) return false;
-                  if (cond.operator === '==' && !(stock.changePercent == val)) return false;
-                } else if (cond.indicator === 'Price Action') {
-                  if (cond.value === 'Previous 5m High') {
-                    const prevHigh = stock.high || stock.prevClose || stock.ltp;
-                    if (cond.operator === '>' && !(stock.ltp > prevHigh)) return false;
-                    if (cond.operator === '>=' && !(stock.ltp >= prevHigh)) return false;
+          if (!candidateStock) {
+            const segment = config.basicInfo?.segment || 'NSE F&O';
+            const matchingStocks = preOpenStocks.filter(stock => {
+              if (segment === 'NSE F&O' || segment === 'Futures' || segment === 'Options') {
+                if (!stock.isFo) return false;
+              } else if (segment === 'Nifty 50' || segment === 'Nifty') {
+                if (!stock.isNifty50) return false;
+              } else if (segment === 'Bank Nifty' || segment === 'BankNifty') {
+                if (!stock.isBankNifty) return false;
+              }
+
+              if (config.conditions && Array.isArray(config.conditions)) {
+                for (const cond of config.conditions) {
+                  if (cond.indicator === 'Pre Open Change %') {
+                    const val = Number(cond.value);
+                    if (cond.operator === '<' && !(stock.changePercent < val)) return false;
+                    if (cond.operator === '>' && !(stock.changePercent > val)) return false;
+                    if (cond.operator === '<=' && !(stock.changePercent <= val)) return false;
+                    if (cond.operator === '>=' && !(stock.changePercent >= val)) return false;
+                    if (cond.operator === '===' && !(stock.changePercent === val)) return false;
+                    if (cond.operator === '==' && !(stock.changePercent == val)) return false;
+                  } else if (cond.indicator === 'Price Action') {
+                    if (cond.value === 'Previous 5m High') {
+                      const prevHigh = stock.high || stock.prevClose || stock.ltp;
+                      if (cond.operator === '>' && !(stock.ltp > prevHigh)) return false;
+                      if (cond.operator === '>=' && !(stock.ltp >= prevHigh)) return false;
+                    }
                   }
                 }
               }
+              return true;
+            });
+
+            if (matchingStocks.length === 0) {
+              console.log(`AlgoEngine: No F&O stocks matched strategy conditions for client ${client.user.name}.`);
+              continue;
             }
-            return true;
-          });
 
-          if (matchingStocks.length === 0) {
-            console.log(`AlgoEngine: No F&O stocks matched strategy conditions for client ${client.user.name}.`);
-            continue;
+            const action = config.tradeAction?.action || 'Long';
+            const selectPosition = config.basicInfo?.selectPosition || 1;
+            const sortedStocks = [...matchingStocks].sort((a, b) =>
+              action === 'Long' ? a.changePercent - b.changePercent : b.changePercent - a.changePercent
+            );
+
+            if (sortedStocks.length < selectPosition) {
+              console.log(`AlgoEngine: Only ${sortedStocks.length} stocks available, cannot pick position #${selectPosition} for client ${client.user.name}. Skipping.`);
+              continue;
+            }
+
+            candidateStock = sortedStocks[selectPosition - 1];
           }
 
-          // 4. Select position-based target stock (Long = sorted by changePercent ascending, Short = descending)
-          const action = config.tradeAction?.action || 'Long';
-          const selectPosition = config.basicInfo?.selectPosition || 1;
-
-          const sortedStocks = [...matchingStocks].sort((a, b) =>
-            action === 'Long' ? a.changePercent - b.changePercent : b.changePercent - a.changePercent
-          );
-
-          if (sortedStocks.length < selectPosition) {
-            console.log(`AlgoEngine: Only ${sortedStocks.length} stocks available, cannot pick position #${selectPosition} for client ${client.user.name}. Skipping.`);
-            continue;
-          }
-
-          const candidateStock = sortedStocks[selectPosition - 1];
-
-          console.log(`AlgoEngine: Client ${client.user.name} | Strategy "${strategy.name}" | Position #${selectPosition} (${action === 'Long' ? 'Long/Loser' : 'Short/Gainer'}): ${candidateStock.symbol}(${candidateStock.changePercent}%)`);
+          console.log(`AlgoEngine: Client ${client.user.name} | Stock ${candidateStock.symbol}(${candidateStock.changePercent}%)`);
 
           // 5. Candle breakout check for the selected stock
           let targetStock: StockQuote | null = null;
@@ -871,7 +987,7 @@ class AlgoEngineService {
               continue;
             }
 
-            // Fetch minute candles from Kite for candle high check
+            // Fetch 5-min candle from Kite for candle high check (09:15-09:20)
             let candleHigh = 0;
             if (client.zerodhaApiKey && client.accessToken) {
               const instTokenStr = Object.entries(this.instrumentToSymbol).find(([, sym]) => sym === candidateStock.symbol)?.[0];
@@ -881,9 +997,9 @@ class AlgoEngineService {
                   const formatKiteDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
                   const from = `${formatKiteDate(today)}%2009:15`;
                   const to = `${formatKiteDate(today)}%20${(await this.getAlgoSetting('algo_entry_time', '09:20')).replace(':', '%20')}`;
-                  const res = await KiteClient.getHistoricalData(client.zerodhaApiKey, client.accessToken, instTokenStr, 'minute', from, to);
+                  const res = await KiteClient.getHistoricalData(client.zerodhaApiKey, client.accessToken, instTokenStr, '5minute', from, to);
                   if (res.status === 'success' && Array.isArray(res.data?.candles) && res.data.candles.length > 0) {
-                    candleHigh = Math.max(...res.data.candles.map((c: any) => Number(c[2])));
+                    candleHigh = Number(res.data.candles[0][2]);
                   }
                 } catch {}
               }
