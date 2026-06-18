@@ -9,7 +9,7 @@ const port = process.env.PORT || 3000;
 const isNumeric = !isNaN(port) && !isNaN(parseFloat(port));
 const parsedPort = isNumeric ? parseInt(port, 10) : port;
 
-const app = next({ dev, port: isNumeric ? parsedPort : undefined });
+const app = next({ dev });
 const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
