@@ -1,185 +1,131 @@
+import { createHash } from 'crypto';
 import { generateTOTP } from './totp';
-import { KiteClient } from './kite';
 import { prisma } from './db';
 
-// Helper to parse cookies from Set-Cookie headers
-function parseCookies(cookieHeaders: string[] | null): string {
-  if (!cookieHeaders) return '';
-  return cookieHeaders
-    .map(header => {
-      const parts = header.split(';')[0];
-      return parts;
-    })
-    .join('; ');
+function extractCookies(res: Response): string {
+  return res.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
 }
 
-export async function performKiteAutoLogin(clientId: string): Promise<{ success: boolean; accessToken?: string; error?: string }> {
+function mergeCookies(existing: string, incoming: string): string {
+  const map = new Map<string, string>();
+  for (const cookie of [existing, incoming]) {
+    for (const pair of cookie.split('; ').filter(Boolean)) {
+      const [name] = pair.split('=');
+      map.set(name, pair);
+    }
+  }
+  return Array.from(map.values()).join('; ');
+}
+
+export async function performKiteAutoLogin(clientId: string): Promise<{ success: boolean; accessToken?: string; error?: string; user_name?: string }> {
   try {
     if (process.env.KITE_AUTO_LOGIN_ENABLED !== 'true') {
-      console.log(`KiteAutoLogin: Auto-login is disabled (KITE_AUTO_LOGIN_ENABLED is not 'true')`);
       return { success: false, error: 'Auto-login is disabled via environment configuration' };
     }
 
-    console.log(`KiteAutoLogin: Initiating auto-login for client ID: ${clientId}`);
-
-    // 1. Fetch Client Credentials from Database
     const client = await prisma.client.findUnique({
       where: { id: clientId },
       include: { user: true }
     });
 
-    if (!client) {
-      return { success: false, error: 'Client not found in database' };
-    }
+    if (!client) return { success: false, error: 'Client not found in database' };
 
-    const {
-      zerodhaClientId: userId,
-      zerodhaPassword: password,
-      zerodhaTotpSecret: totpSecret,
-      zerodhaApiKey: apiKey,
-      zerodhaApiSecret: apiSecret
-    } = client;
+    const { zerodhaClientId: userId, zerodhaPassword: password, zerodhaTotpSecret: totpSecret, zerodhaApiKey: apiKey, zerodhaApiSecret: apiSecret } = client;
 
     if (!userId || !password || !totpSecret || !apiKey || !apiSecret) {
-      return { 
-        success: false, 
-        error: 'Missing required credentials (ClientID, Password, TOTP Secret, API Key, or API Secret)' 
-      };
+      return { success: false, error: 'Missing required credentials' };
     }
 
-    // 2. Step 1: Login request (Post Client ID + Password)
-    console.log(`KiteAutoLogin: Sending login request for Zerodha user ${userId}...`);
-    const loginParams = new URLSearchParams();
-    loginParams.append('user_id', userId);
-    loginParams.append('password', password);
+    const KITE = 'https://kite.zerodha.com';
+    const API = 'https://api.kite.trade';
 
-    const loginRes = await fetch(`${KiteClient.KITE_FRONTEND_URL}/api/login`, {
+    // 1. Initial connect page visit (get kf_session cookie)
+    let res = await fetch(`${KITE}/connect/login?v=3&api_key=${apiKey}`, { redirect: 'manual' });
+    let allCookies = extractCookies(res);
+
+    // 2. Login
+    res = await fetch(`${KITE}/api/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      },
-      body: loginParams.toString()
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': allCookies },
+      body: new URLSearchParams({ user_id: userId, password })
     });
-
-    const loginData = await loginRes.json();
+    const loginData = await res.json();
     if (loginData.status !== 'success' || !loginData.data?.request_id) {
-      return { 
-        success: false, 
-        error: `Login step failed: ${loginData.message || 'Invalid Client ID or Password'}` 
-      };
+      return { success: false, error: `Login failed: ${loginData.message || 'Invalid credentials'}` };
     }
+    allCookies = mergeCookies(allCookies, extractCookies(res));
 
-    const requestId = loginData.data.request_id;
-    const twofaType = loginData.data.twofa_type || 'totp';
-    // Capture session cookies
-    const loginCookieHeaders = loginRes.headers.getSetCookie();
-    let cookies = parseCookies(loginCookieHeaders);
-
-    // 3. Step 2: Two-Factor Authentication (TOTP/App Code Verification)
-    console.log(`KiteAutoLogin: Generating TOTP code and submitting 2FA (type: ${twofaType})...`);
-    const totpCode = generateTOTP(totpSecret);
-    
-    const twofaParams = new URLSearchParams();
-    twofaParams.append('user_id', userId);
-    twofaParams.append('request_id', requestId);
-    twofaParams.append('twofa_value', totpCode);
-    twofaParams.append('twofa_type', twofaType);
-
-    const twofaRes = await fetch(`${KiteClient.KITE_FRONTEND_URL}/api/twofa`, {
+    // 3. 2FA with skip_session=true
+    const totp = generateTOTP(totpSecret);
+    res = await fetch(`${KITE}/api/twofa`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Cookie': cookies,
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      },
-      body: twofaParams.toString()
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': allCookies },
+      body: new URLSearchParams({ user_id: userId, request_id: loginData.data.request_id, twofa_value: totp, twofa_type: 'totp', skip_session: 'true' })
     });
-
-    const twofaData = await twofaRes.json();
+    const twofaData = await res.json();
     if (twofaData.status !== 'success') {
-      return { 
-        success: false, 
-        error: `2FA step failed: ${twofaData.message || 'Invalid TOTP/2FA Secret Key'}` 
-      };
+      return { success: false, error: `2FA failed: ${twofaData.message || 'Invalid TOTP'}` };
     }
+    allCookies = mergeCookies(allCookies, extractCookies(res));
 
-    // Capture main session cookies (like enctoken, public_token)
-    const twofaCookieHeaders = twofaRes.headers.getSetCookie();
-    cookies = parseCookies(twofaCookieHeaders);
-
-    // 4. Step 3: Kite Connect authorization redirection
-    console.log('KiteAutoLogin: Requesting connect redirection to fetch request token...');
-    const connectUrl = KiteClient.getLoginUrl(apiKey, clientId);
-
-    const connectRes = await fetch(connectUrl, {
-      method: 'GET',
-      headers: {
-        'Cookie': cookies,
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      },
-      redirect: 'manual' // Capture redirect details manually to fetch request_token
+    // 4. Connect redirect
+    res = await fetch(`${KITE}/connect/login?v=3&api_key=${apiKey}&skip_session=true`, {
+      redirect: 'manual', headers: { Cookie: allCookies }
     });
-
-    const locationHeader = connectRes.headers.get('location');
-    if (!locationHeader) {
-      return { 
-        success: false, 
-        error: 'Kite Connect redirection failed: Location header was missing in response.' 
-      };
+    const location1 = res.headers.get('location') || '';
+    if (!location1) {
+      return { success: false, error: 'No redirect after connect step' };
     }
 
-    // Parse request_token out of the Location URL query parameters
-    const redirectUrl = new URL(locationHeader);
-    const requestToken = redirectUrl.searchParams.get('request_token');
-
-    if (!requestToken) {
-      return { 
-        success: false, 
-        error: `Kite Connect redirect parameters did not contain request_token. Redirect URL: ${locationHeader}` 
-      };
+    // 5. Follow to /connect/finish or get request_token directly
+    const finishRes = await fetch(location1, {
+      redirect: 'manual', headers: { Cookie: allCookies }
+    });
+    const location2 = finishRes.headers.get('location') || '';
+    if (!location2) {
+      return { success: false, error: 'No redirect from finish page' };
     }
 
-    // 5. Step 4: Token exchange (generate access token via standard Kite Connect exchange)
-    console.log('KiteAutoLogin: Exchanging request_token for access_token...');
-    const kiteData = await KiteClient.generateSession(apiKey, apiSecret, requestToken);
+    // 6. Extract request_token
+    const rtMatch = location2.match(/request_token=([A-Za-z0-9]+)/);
+    if (!rtMatch) {
+      return { success: false, error: `No request_token in redirect: ${location2.substring(0, 100)}` };
+    }
+    const requestToken = rtMatch[1];
 
-    if (kiteData.status !== 'success' || !kiteData.data?.access_token) {
-      return { 
-        success: false, 
-        error: `Kite session token exchange failed: ${kiteData.message || 'Invalid request token'}` 
-      };
+    // 7. Exchange for access token
+    const checksum = createHash('sha256').update(apiKey + requestToken + apiSecret).digest('hex');
+    const sessionRes = await fetch(`${API}/session/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Kite-Version': '3' },
+      body: new URLSearchParams({ api_key: apiKey, request_token: requestToken, checksum })
+    });
+    const sessionData = await sessionRes.json();
+    if (sessionData.status !== 'success' || !sessionData.data?.access_token) {
+      return { success: false, error: `Session exchange failed: ${sessionData.message || 'Invalid request_token'}` };
     }
 
-    const accessToken = kiteData.data.access_token;
+    const accessToken = sessionData.data.access_token;
+    const userName = sessionData.data.user_name;
 
-    // 6. Step 5: Save token to database
+    // 8. Save to DB
     await prisma.client.update({
       where: { id: clientId },
-      data: {
-        accessToken: accessToken,
-        zerodhaSession: JSON.stringify(kiteData)
-      }
+      data: { accessToken, zerodhaSession: JSON.stringify(sessionData.data) }
     });
 
-    // 7. Write Audit Log
     try {
       const admin = await prisma.user.findFirst({ where: { role: 'admin' } });
       if (admin) {
         await prisma.auditLog.create({
-          data: {
-            adminId: admin.id,
-            action: 'Kite Token Auto-Refreshed',
-            newValue: `Automatically refreshed Kite token for ${client.user?.name || 'Client'} via TOTP auto-login.`,
-          }
+          data: { adminId: admin.id, action: 'Kite Token Auto-Refreshed', newValue: `Token refreshed for ${client.user?.name || userName || 'Client'}` }
         });
       }
     } catch {}
 
-    console.log(`KiteAutoLogin: Auto-login completed successfully. New access_token saved for client: ${client.user?.name || 'Client'}`);
-    return { success: true, accessToken };
+    return { success: true, accessToken, user_name: userName };
   } catch (err: any) {
-    console.error('KiteAutoLogin: Critical auto-login failure:', err);
-    return { success: false, error: err.message || 'Auto-login crashed unexpectedly' };
+    console.error('KiteAutoLogin error:', err);
+    return { success: false, error: err.message || 'Auto-login crashed' };
   }
 }

@@ -3,6 +3,19 @@ import { prisma } from '../../../../lib/db';
 import { inMemoryClients } from '../../clients/route';
 import { KiteClient } from '../../../../lib/kite';
 
+function getRedirectUrl(path: string, request: Request): string {
+  const envUrl = process.env.NEXT_PUBLIC_URL || process.env.NEXT_PUBLIC_SITE_URL;
+  if (envUrl) {
+    return new URL(path, envUrl).toString();
+  }
+  const host = request.headers.get('host');
+  if (host && !host.includes('0.0.0.0')) {
+    const protocol = request.headers.get('x-forwarded-proto') || 'https';
+    return new URL(path, `${protocol}://${host}`).toString();
+  }
+  return new URL(path, request.url).toString();
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const requestToken = searchParams.get('request_token');
@@ -10,11 +23,11 @@ export async function GET(request: Request) {
   const status = searchParams.get('status');
 
   if (!clientId) {
-    return NextResponse.redirect(new URL('/admin/clients?error=missing_client_id', request.url));
+    return NextResponse.redirect(getRedirectUrl('/admin/clients?error=missing_client_id', request));
   }
 
   if (!requestToken) {
-    return NextResponse.redirect(new URL(`/admin/clients/${clientId}?error=missing_request_token`, request.url));
+    return NextResponse.redirect(getRedirectUrl(`/admin/clients/${clientId}?error=missing_request_token`, request));
   }
 
   try {
@@ -34,14 +47,14 @@ export async function GET(request: Request) {
     }
 
     if (!client) {
-      return NextResponse.redirect(new URL(`/admin/clients?error=client_not_found`, request.url));
+      return NextResponse.redirect(getRedirectUrl(`/admin/clients?error=client_not_found`, request));
     }
 
     const apiKey = client.zerodhaApiKey;
     const apiSecret = client.zerodhaApiSecret;
 
     if (!apiKey || !apiSecret) {
-      return NextResponse.redirect(new URL(`/admin/clients/${clientId}?error=missing_api_credentials`, request.url));
+      return NextResponse.redirect(getRedirectUrl(`/admin/clients/${clientId}?error=missing_api_credentials`, request));
     }
 
     // 2. Request Session Access Token from Zerodha Kite Connect API using helper
@@ -50,7 +63,7 @@ export async function GET(request: Request) {
     if (kiteData.status !== 'success' || !kiteData.data || !kiteData.data.access_token) {
       const errorMsg = kiteData.message || 'Kite token exchange failed';
       return NextResponse.redirect(
-        new URL(`/admin/clients/${clientId}?error=${encodeURIComponent(errorMsg)}`, request.url)
+        getRedirectUrl(`/admin/clients/${clientId}?error=${encodeURIComponent(errorMsg)}`, request)
       );
     }
 
@@ -101,11 +114,11 @@ export async function GET(request: Request) {
     }
 
     // 5. Redirect back to client details page
-    return NextResponse.redirect(new URL(`/admin/clients/${clientId}?success=connected`, request.url));
+    return NextResponse.redirect(getRedirectUrl(`/admin/clients/${clientId}?success=connected`, request));
   } catch (err: any) {
     console.error('Zerodha OAuth Callback Error:', err);
     return NextResponse.redirect(
-      new URL(`/admin/clients/${clientId}?error=${encodeURIComponent(err.message || 'OAuth execution error')}`, request.url)
+      getRedirectUrl(`/admin/clients/${clientId}?error=${encodeURIComponent(err.message || 'OAuth execution error')}`, request)
     );
   }
 }
