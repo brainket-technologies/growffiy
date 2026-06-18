@@ -900,17 +900,31 @@ export default function StrategiesPage() {
               <ArrowLeft size={14} /> Strategies
             </button>
           )}
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '10px' }}>
             {viewMode === 'list' && 'Strategies'}
             {viewMode === 'create' && 'Create Algo Strategy'}
             {viewMode === 'edit' && `Edit Strategy`}
-            {viewMode === 'detail' && 'Strategy Detail'}
+            {viewMode === 'detail' && (
+              <>
+                {selectedStrategy?.name}
+                <span style={{ 
+                  padding: '2px 8px', 
+                  borderRadius: '4px', 
+                  fontSize: '11px', 
+                  fontWeight: 600,
+                  backgroundColor: selectedStrategy?.status === 'active' ? '#e6f7f4' : '#fee2e2',
+                  color: selectedStrategy?.status === 'active' ? '#00a389' : '#ef4444'
+                }}>
+                  {selectedStrategy?.status.toUpperCase()}
+                </span>
+              </>
+            )}
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
             {viewMode === 'list' && 'Deploy, configure, and monitor advanced algorithmic strategies.'}
             {viewMode === 'create' && 'Build a new strategy block with custom entry, target, and trailing rules.'}
             {viewMode === 'edit' && `Editing: ${selectedStrategy?.name}`}
-            {viewMode === 'detail' && 'Overview of settings, performance history, and client deployment.'}
+            {viewMode === 'detail' && (selectedStrategy?.description || 'Overview of settings, performance history, and client deployment.')}
           </p>
         </div>
 
@@ -1595,157 +1609,107 @@ export default function StrategiesPage() {
 
       {viewMode === 'detail' && selectedStrategy && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          
-          {/* Header Panel */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ 
-                width: '48px', 
-                height: '48px', 
-                borderRadius: '10px', 
-                background: '#eff6ff', 
-                color: '#2563eb', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: '18px',
-                fontFamily: 'var(--font-title)'
-              }}>
-                {selectedStrategy.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+          {/* Controls Panel */}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-start', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', marginBottom: '8px' }}>
+            {/* Date Filter Pill */}
+            <div ref={dropdownRef} style={{ position: 'relative' }}>
+              <div 
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  padding: '8px 16px', 
+                  borderRadius: '8px', 
+                  background: 'white', 
+                  border: '1px solid #e2e8f0', 
+                  fontSize: '13px', 
+                  color: '#334155',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                  userSelect: 'none'
+                }}
+              >
+                <Calendar size={14} color="#0052cc" />
+                <span>{dateRangeStr}</span>
+                <ChevronDown size={14} color="#64748b" />
               </div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', fontFamily: 'var(--font-title)' }}>
-                    {selectedStrategy.name}
-                  </h2>
-                  <span style={{ 
-                    padding: '2px 8px', 
-                    borderRadius: '4px', 
-                    fontSize: '11px', 
-                    fontWeight: 600,
-                    backgroundColor: selectedStrategy.status === 'active' ? '#e6f7f4' : '#fee2e2',
-                    color: selectedStrategy.status === 'active' ? '#00a389' : '#ef4444'
-                  }}>
-                    {selectedStrategy.status.toUpperCase()}
-                  </span>
-                </div>
-                {selectedStrategy.description && (
-                  <p style={{ fontSize: '13px', color: '#64748b', margin: '6px 0 8px 0', lineHeight: '1.4' }}>
-                    {selectedStrategy.description}
-                  </p>
-                )}
-                <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-                  <span>Strategy Type: <strong>{(() => { try { return JSON.parse(selectedStrategy.configJson).basicInfo.tradeType } catch(e) { return 'Intraday' } })()}</strong></span>
-                  <span>Asset Class: <strong>Equity (Cash)</strong></span>
-                  <span>Timeframe: <strong>{(() => { try { return JSON.parse(selectedStrategy.configJson).basicInfo.timeframe } catch(e) { return '5 min' } })()}</strong></span>
-                  <span>Created On: <strong>{new Date(selectedStrategy.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></span>
-                  <span>Last Updated: <strong>{new Date(selectedStrategy.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></span>
-                </div>
-              </div>
-            </div>
 
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              {/* Date Filter Pill */}
-              <div ref={dropdownRef} style={{ position: 'relative' }}>
-                <div 
-                  onClick={() => setIsFilterOpen(!isFilterOpen)}
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '8px', 
-                    padding: '8px 16px', 
-                    borderRadius: '8px', 
-                    background: 'white', 
-                    border: '1px solid #e2e8f0', 
-                    fontSize: '13px', 
-                    color: '#334155',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                    userSelect: 'none'
-                  }}
-                >
-                  <Calendar size={14} color="#0052cc" />
-                  <span>{dateRangeStr}</span>
-                  <ChevronDown size={14} color="#64748b" />
-                </div>
+              {isFilterOpen && (
+                <div style={{ 
+                  position: 'absolute',
+                  top: 'calc(100% + 8px)',
+                  left: 0,
+                  width: '320px',
+                  background: 'white',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)',
+                  padding: '16px',
+                  zIndex: 1000,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                    <span style={{ fontWeight: 600, fontSize: '14px', color: '#0f172a' }}>Filter Range</span>
+                    <button 
+                      onClick={clearFilters}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Reset
+                    </button>
+                  </div>
 
-                {isFilterOpen && (
-                  <div style={{ 
-                    position: 'absolute',
-                    top: 'calc(100% + 8px)',
-                    right: 0,
-                    width: '320px',
-                    background: 'white',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)',
-                    padding: '16px',
-                    zIndex: 1000,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                      <span style={{ fontWeight: 600, fontSize: '14px', color: '#0f172a' }}>Filter Range</span>
-                      <button 
-                        onClick={clearFilters}
-                        style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
-                      >
-                        Reset
-                      </button>
-                    </div>
+                  <div style={{ display: 'flex', background: '#f1f5f9', padding: '2px', borderRadius: '6px' }}>
+                    <button onClick={() => setFilterTypeTab('month')} style={{ flex: 1, border: 'none', background: filterTypeTab === 'month' ? 'white' : 'transparent', color: '#334155', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterTypeTab === 'month' ? 600 : 500, cursor: 'pointer' }}>Month</button>
+                    <button onClick={() => setFilterTypeTab('year')} style={{ flex: 1, border: 'none', background: filterTypeTab === 'year' ? 'white' : 'transparent', color: '#334155', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterTypeTab === 'year' ? 600 : 500, cursor: 'pointer' }}>Year</button>
+                    <button onClick={() => setFilterTypeTab('custom')} style={{ flex: 1, border: 'none', background: filterTypeTab === 'custom' ? 'white' : 'transparent', color: '#334155', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterTypeTab === 'custom' ? 600 : 500, cursor: 'pointer' }}>Custom</button>
+                  </div>
 
-                    <div style={{ display: 'flex', background: '#f1f5f9', padding: '2px', borderRadius: '6px' }}>
-                      <button onClick={() => setFilterTypeTab('month')} style={{ flex: 1, border: 'none', background: filterTypeTab === 'month' ? 'white' : 'transparent', color: '#334155', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterTypeTab === 'month' ? 600 : 500, cursor: 'pointer' }}>Month</button>
-                      <button onClick={() => setFilterTypeTab('year')} style={{ flex: 1, border: 'none', background: filterTypeTab === 'year' ? 'white' : 'transparent', color: '#334155', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterTypeTab === 'year' ? 600 : 500, cursor: 'pointer' }}>Year</button>
-                      <button onClick={() => setFilterTypeTab('custom')} style={{ flex: 1, border: 'none', background: filterTypeTab === 'custom' ? 'white' : 'transparent', color: '#334155', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterTypeTab === 'custom' ? 600 : 500, cursor: 'pointer' }}>Custom</button>
-                    </div>
-
-                    {filterTypeTab === 'month' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} style={{ flex: 1, padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
-                            {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-                          </select>
-                          <select value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))} style={{ flex: 1.5, padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
-                            {MONTHS.map((m, idx) => <option key={m} value={idx}>{m}</option>)}
-                          </select>
-                        </div>
-                        <Button onClick={applyMonthFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: '#0052cc', color: 'white' }}>Apply</Button>
-                      </div>
-                    )}
-
-                    {filterTypeTab === 'year' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
+                  {filterTypeTab === 'month' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} style={{ flex: 1, padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
                           {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
-                        <Button onClick={applyYearFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: '#0052cc', color: 'white' }}>Apply</Button>
+                        <select value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))} style={{ flex: 1.5, padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
+                          {MONTHS.map((m, idx) => <option key={m} value={idx}>{m}</option>)}
+                        </select>
                       </div>
-                    )}
+                      <Button onClick={applyMonthFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: '#0052cc', color: 'white' }}>Apply</Button>
+                    </div>
+                  )}
 
-                    {filterTypeTab === 'custom' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', width: '100%' }} />
-                        <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', width: '100%' }} />
-                        <Button onClick={applyCustomFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: '#0052cc', color: 'white' }}>Apply</Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                  {filterTypeTab === 'year' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
+                        {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                      </select>
+                      <Button onClick={applyYearFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: '#0052cc', color: 'white' }}>Apply</Button>
+                    </div>
+                  )}
 
-              {/* Sub-tabs switch */}
-              <div style={{ display: 'flex', background: '#f1f5f9', padding: '2px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <button onClick={() => setDetailTab('overview')} style={{ border: 'none', background: detailTab === 'overview' ? 'white' : 'transparent', color: detailTab === 'overview' ? '#0f172a' : '#64748b', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Performance</button>
-                <button onClick={() => setDetailTab('assignment')} style={{ border: 'none', background: detailTab === 'assignment' ? 'white' : 'transparent', color: detailTab === 'assignment' ? '#0f172a' : '#64748b', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Assignments</button>
-                <button onClick={() => setDetailTab('logs')} style={{ border: 'none', background: detailTab === 'logs' ? 'white' : 'transparent', color: detailTab === 'logs' ? '#0f172a' : '#64748b', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Logs</button>
-              </div>
-
-              <Button variant="secondary" onClick={() => handleEdit(selectedStrategy)} style={{ fontSize: '13px', fontWeight: 600 }}>Edit Config</Button>
+                  {filterTypeTab === 'custom' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', width: '100%' }} />
+                      <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', width: '100%' }} />
+                      <Button onClick={applyCustomFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: '#0052cc', color: 'white' }}>Apply</Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
+            {/* Sub-tabs switch */}
+            <div style={{ display: 'flex', background: '#f1f5f9', padding: '2px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <button onClick={() => setDetailTab('overview')} style={{ border: 'none', background: detailTab === 'overview' ? 'white' : 'transparent', color: detailTab === 'overview' ? '#0f172a' : '#64748b', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Performance</button>
+              <button onClick={() => setDetailTab('assignment')} style={{ border: 'none', background: detailTab === 'assignment' ? 'white' : 'transparent', color: detailTab === 'assignment' ? '#0f172a' : '#64748b', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Assignments</button>
+              <button onClick={() => setDetailTab('logs')} style={{ border: 'none', background: detailTab === 'logs' ? 'white' : 'transparent', color: detailTab === 'logs' ? '#0f172a' : '#64748b', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Logs</button>
+            </div>
+
+            <Button variant="secondary" onClick={() => handleEdit(selectedStrategy)} style={{ fontSize: '13px', fontWeight: 600 }}>Edit Config</Button>
           </div>
 
           {/* TAB: OVERVIEW & PERFORMANCE (REDESIGNED TO MATCH SCREENSHOT) */}
