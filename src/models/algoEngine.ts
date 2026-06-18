@@ -836,79 +836,78 @@ class AlgoEngineService {
             continue;
           }
 
-          // 4. Select top N target stocks (Long = sorted by changePercent ascending, Short = descending)
+          // 4. Select position-based target stock (Long = sorted by changePercent ascending, Short = descending)
           const action = config.tradeAction?.action || 'Long';
-          const maxPositions = config.basicInfo?.maxTradesPerDay || 1;
+          const selectPosition = config.basicInfo?.selectPosition || 1;
 
           const sortedStocks = [...matchingStocks].sort((a, b) =>
             action === 'Long' ? a.changePercent - b.changePercent : b.changePercent - a.changePercent
           );
-          const candidateStocks = sortedStocks.slice(0, maxPositions);
 
-          if (candidateStocks.length === 0) {
-            console.log(`AlgoEngine: No target stocks selected for client ${client.user.name}.`);
+          if (sortedStocks.length < selectPosition) {
+            console.log(`AlgoEngine: Only ${sortedStocks.length} stocks available, cannot pick position #${selectPosition} for client ${client.user.name}. Skipping.`);
             continue;
           }
 
-          console.log(`AlgoEngine: Client ${client.user.name} | Strategy "${strategy.name}" | Top ${candidateStocks.length} candidates: ${candidateStocks.map(s => `${s.symbol}(${s.changePercent}%)`).join(', ')}`);
+          const candidateStock = sortedStocks[selectPosition - 1];
 
-          // 5. Candle breakout check for each candidate stock
+          console.log(`AlgoEngine: Client ${client.user.name} | Strategy "${strategy.name}" | Position #${selectPosition} (${action === 'Long' ? 'Long/Loser' : 'Short/Gainer'}): ${candidateStock.symbol}(${candidateStock.changePercent}%)`);
+
+          // 5. Candle breakout check for the selected stock
           let targetStock: StockQuote | null = null;
           let breakoutEntryPrice = 0;
 
-          for (const stock of candidateStocks) {
-            try {
-              const existingTrade = await prisma.trade.findFirst({
-                where: {
-                  clientId: client.id,
-                  strategyId: strategy.id,
-                  symbol: stock.symbol,
-                  createdAt: { gte: todayStart }
-                }
-              });
-              if (existingTrade) {
-                console.log(`AlgoEngine: Trade already exists today for ${stock.symbol} (${client.user.name}). Skipping.`);
-                continue;
+          try {
+            const existingTrade = await prisma.trade.findFirst({
+              where: {
+                clientId: client.id,
+                strategyId: strategy.id,
+                symbol: candidateStock.symbol,
+                createdAt: { gte: todayStart }
               }
-
-              // Fetch minute candles from Kite for candle high check
-              let candleHigh = 0;
-              if (client.zerodhaApiKey && client.accessToken) {
-                const instTokenStr = Object.entries(this.instrumentToSymbol).find(([, sym]) => sym === stock.symbol)?.[0];
-                if (instTokenStr) {
-                  try {
-                    const today = new Date();
-                    const formatKiteDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-                    const from = `${formatKiteDate(today)}%2009:15`;
-                    const to = `${formatKiteDate(today)}%20${(await this.getAlgoSetting('algo_entry_time', '09:20')).replace(':', '%20')}`;
-                    const res = await KiteClient.getHistoricalData(client.zerodhaApiKey, client.accessToken, instTokenStr, 'minute', from, to);
-                    if (res.status === 'success' && Array.isArray(res.data?.candles) && res.data.candles.length > 0) {
-                      candleHigh = Math.max(...res.data.candles.map((c: any) => Number(c[2])));
-                    }
-                  } catch {}
-                }
-              }
-
-              if (candleHigh === 0) {
-                candleHigh = stock.high || stock.ltp || stock.prevClose || 100;
-              }
-
-              const bufferPct = config.tradeAction?.bufferPercent || 0.1;
-              breakoutEntryPrice = candleHigh * (1 + bufferPct / 100);
-
-              // Check if current LTP breaks candle high
-              const currentLtp = stock.ltp || stock.iep || breakoutEntryPrice;
-              const hasPriceAction = config.conditions?.some((c: any) => c.indicator === 'Price Action');
-
-              if (!hasPriceAction || currentLtp >= candleHigh) {
-                targetStock = stock;
-                console.log(`AlgoEngine: Breakout confirmed for ${stock.symbol} | Candle High: ${candleHigh} | LTP: ${currentLtp} | Entry: ${breakoutEntryPrice}`);
-                break;
-              }
-              console.log(`AlgoEngine: Breakout not met for ${stock.symbol} | Candle High: ${candleHigh} | LTP: ${currentLtp}. Trying next candidate...`);
-            } catch (checkErr) {
-              console.error(`AlgoEngine: Error checking breakout for ${stock.symbol}:`, checkErr);
+            });
+            if (existingTrade) {
+              console.log(`AlgoEngine: Trade already exists today for ${candidateStock.symbol} (${client.user.name}). Skipping.`);
+              continue;
             }
+
+            // Fetch minute candles from Kite for candle high check
+            let candleHigh = 0;
+            if (client.zerodhaApiKey && client.accessToken) {
+              const instTokenStr = Object.entries(this.instrumentToSymbol).find(([, sym]) => sym === candidateStock.symbol)?.[0];
+              if (instTokenStr) {
+                try {
+                  const today = new Date();
+                  const formatKiteDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                  const from = `${formatKiteDate(today)}%2009:15`;
+                  const to = `${formatKiteDate(today)}%20${(await this.getAlgoSetting('algo_entry_time', '09:20')).replace(':', '%20')}`;
+                  const res = await KiteClient.getHistoricalData(client.zerodhaApiKey, client.accessToken, instTokenStr, 'minute', from, to);
+                  if (res.status === 'success' && Array.isArray(res.data?.candles) && res.data.candles.length > 0) {
+                    candleHigh = Math.max(...res.data.candles.map((c: any) => Number(c[2])));
+                  }
+                } catch {}
+              }
+            }
+
+            if (candleHigh === 0) {
+              candleHigh = candidateStock.high || candidateStock.ltp || candidateStock.prevClose || 100;
+            }
+
+            const bufferPct = config.tradeAction?.bufferPercent || 0.1;
+            breakoutEntryPrice = candleHigh * (1 + bufferPct / 100);
+
+            // Check if current LTP breaks candle high
+            const currentLtp = candidateStock.ltp || candidateStock.iep || breakoutEntryPrice;
+            const hasPriceAction = config.conditions?.some((c: any) => c.indicator === 'Price Action');
+
+            if (!hasPriceAction || currentLtp >= candleHigh) {
+              targetStock = candidateStock;
+              console.log(`AlgoEngine: Breakout confirmed for ${candidateStock.symbol} | Candle High: ${candleHigh} | LTP: ${currentLtp} | Entry: ${breakoutEntryPrice}`);
+            } else {
+              console.log(`AlgoEngine: Breakout not met for ${candidateStock.symbol} | Candle High: ${candleHigh} | LTP: ${currentLtp}. Skipping.`);
+            }
+          } catch (checkErr) {
+            console.error(`AlgoEngine: Error checking breakout for ${candidateStock.symbol}:`, checkErr);
           }
 
           if (!targetStock) {

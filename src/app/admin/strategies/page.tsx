@@ -46,6 +46,7 @@ interface StrategyConfig {
     entryTime: string;
     exitTime: string;
     maxTradesPerDay: number;
+    selectPosition: number;
     status: 'active' | 'inactive';
   };
   tradeAction: {
@@ -98,6 +99,7 @@ const INITIAL_CONFIG: StrategyConfig = {
     entryTime: '09:20',
     exitTime: '15:15',
     maxTradesPerDay: 3,
+    selectPosition: 1,
     status: 'inactive'
   },
   tradeAction: {
@@ -129,10 +131,7 @@ const INITIAL_CONFIG: StrategyConfig = {
     maxOpenPositions: 3,
     killSwitch: false
   },
-  conditions: [
-    { logical: 'AND', indicator: 'Pre Open Change %', operator: '<', value: '-1.5' },
-    { logical: 'AND', indicator: 'Price Action', operator: '>', value: 'Previous 5m High' }
-  ]
+  conditions: []
 };
 
 const YEARS = [2024, 2025, 2026, 2027, 2028];
@@ -1309,7 +1308,7 @@ export default function StrategiesPage() {
                       </select>
                     </div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <label style={{ fontSize: '11px', fontWeight: 600 }}>Entry Time</label>
                       <input
@@ -1345,6 +1344,28 @@ export default function StrategiesPage() {
                         })}
                         style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                       />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 600 }}>Select Position</label>
+                      <select
+                        value={formData.basicInfo.selectPosition}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          basicInfo: { ...formData.basicInfo, selectPosition: Number(e.target.value) }
+                        })}
+                        style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                      >
+                        <option value={1}>1st</option>
+                        <option value={2}>2nd</option>
+                        <option value={3}>3rd</option>
+                        <option value={4}>4th</option>
+                        <option value={5}>5th</option>
+                        <option value={6}>6th</option>
+                        <option value={7}>7th</option>
+                        <option value={8}>8th</option>
+                        <option value={9}>9th</option>
+                        <option value={10}>10th</option>
+                      </select>
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
