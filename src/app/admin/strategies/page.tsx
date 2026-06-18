@@ -95,28 +95,28 @@ const INITIAL_CONFIG: StrategyConfig = {
     exchange: 'NSE',
     segment: 'NSE F&O',
     timeframe: '5m',
-    entryTime: '09:15',
+    entryTime: '09:20',
     exitTime: '15:15',
     maxTradesPerDay: 3,
     status: 'inactive'
   },
   tradeAction: {
     action: 'Long',
-    orderType: 'Market',
-    bufferPercent: 0.0,
+    orderType: 'Limit',
+    bufferPercent: 0.1,
     marketProtection: -1
   },
   stoploss: {
     type: 'Fixed %',
     orderType: 'Market',
-    fixedPercent: 1.0,
+    fixedPercent: 0.5,
     fixedPoints: 10,
     trailingSL: 0.2,
     riskPercent: 1.0
   },
   target: {
     type: 'Profit %',
-    profitPercent: 2.0,
+    profitPercent: 1.5,
     riskRewardRatio: 2.0,
     partialExit: 100,
     trailingTarget: 0.5
@@ -129,7 +129,10 @@ const INITIAL_CONFIG: StrategyConfig = {
     maxOpenPositions: 3,
     killSwitch: false
   },
-  conditions: []
+  conditions: [
+    { logical: 'AND', indicator: 'Pre Open Change %', operator: '<', value: '-1.5' },
+    { logical: 'AND', indicator: 'Price Action', operator: '>', value: 'Previous 5m High' }
+  ]
 };
 
 const YEARS = [2024, 2025, 2026, 2027, 2028];
