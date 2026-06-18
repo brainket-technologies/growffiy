@@ -78,34 +78,20 @@ class AlgoEngineService {
   }
 
   private startDailyPreOpenStrategyScheduler() {
-    console.log('AlgoEngine: Initialized Daily Pre-Open Strategy Execution Scheduler');
+    console.log('AlgoEngine: Initialized Daily Pre-Open Strategy Execution Scheduler (per-strategy timing)');
     
     if ((global as any).preOpenStrategyInterval) {
       clearInterval((global as any).preOpenStrategyInterval);
     }
 
-    let lastExecutedDate = '';
     let lastFetchedDate = '';
-    let lastPreSelectedDate = '';
+    const lastPreSelectByStrategy: Map<string, string> = new Map();
+    const lastEntryByStrategy: Map<string, string> = new Map();
     let cachedFetchTime = '09:08';
-    let cachedPreSelectTime = '09:15';
-    let cachedEntryTime = '09:20';
 
     const checkAndExecute = async () => {
       try {
         cachedFetchTime = await this.getAlgoSetting('algo_preopen_fetch_time', '09:08');
-        cachedEntryTime = await this.getAlgoSetting('algo_entry_time', '09:20');
-
-        // Also check strategy config for preSelectTime (could vary per strategy, use first active as default)
-        if (!lastPreSelectedDate) {
-          const firstStrategy = await prisma.strategy.findFirst({ where: { status: 'active' }, orderBy: { createdAt: 'asc' } });
-          if (firstStrategy?.configJson) {
-            try {
-              const parsed = JSON.parse(firstStrategy.configJson);
-              cachedPreSelectTime = parsed.basicInfo?.preSelectTime || '09:15';
-            } catch {}
-          }
-        }
 
         const istDateStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
         const istDate = new Date(istDateStr);
@@ -114,31 +100,46 @@ class AlgoEngineService {
         const currentDateKey = istDate.toLocaleDateString();
         const currentTimeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 
-        // Stage 1: Fetch and cache NSE pre-open data
+        // Stage 1: Fetch and cache NSE pre-open data (global)
         if (currentTimeStr === cachedFetchTime && lastFetchedDate !== currentDateKey) {
           console.log(`AlgoEngine Scheduler: Pre-open fetch time ${cachedFetchTime} reached. Fetching NSE pre-open data...`);
           lastFetchedDate = currentDateKey;
           await this.getPreOpenStocks();
         }
 
-        // Stage 1.5: Pre-select stocks for each client (filter + sort + rank)
-        if (currentTimeStr === cachedPreSelectTime && lastPreSelectedDate !== currentDateKey) {
-          console.log(`AlgoEngine Scheduler: Pre-select time ${cachedPreSelectTime} reached. Running stock pre-selection...`);
-          lastPreSelectedDate = currentDateKey;
-          await this.preSelectAllClients();
-        }
+        // Stage 2: Check each active strategy's preSelectTime and entryTime
+        const strategies = await prisma.strategy.findMany({ where: { status: 'active' } });
 
-        // Stage 2: Execute trades at entry time
-        if (currentTimeStr === cachedEntryTime && lastExecutedDate !== currentDateKey) {
-          console.log(`AlgoEngine Scheduler: Entry time ${cachedEntryTime} reached. Starting daily strategy execution...`);
-          lastExecutedDate = currentDateKey;
+        for (const strategy of strategies) {
+          if (!strategy.configJson) continue;
 
-          const firstAdmin = await prisma.user.findFirst({
-            where: { role: 'admin' }
-          });
-          const adminId = firstAdmin ? firstAdmin.id : 'system-scheduler';
+          let config: any;
+          try {
+            config = JSON.parse(strategy.configJson);
+          } catch {
+            continue;
+          }
 
-          await this.executePreOpenTrades(adminId);
+          const preSelectTime = config.basicInfo?.preSelectTime;
+          const entryTime = config.basicInfo?.entryTime;
+
+          if (preSelectTime && currentTimeStr === preSelectTime && lastPreSelectByStrategy.get(strategy.id) !== currentDateKey) {
+            console.log(`AlgoEngine Scheduler: Pre-select time ${preSelectTime} reached for strategy "${strategy.name}".`);
+            lastPreSelectByStrategy.set(strategy.id, currentDateKey);
+            await this.preSelectAllClients(strategy.id);
+          }
+
+          if (entryTime && currentTimeStr === entryTime && lastEntryByStrategy.get(strategy.id) !== currentDateKey) {
+            console.log(`AlgoEngine Scheduler: Entry time ${entryTime} reached for strategy "${strategy.name}". Starting execution...`);
+            lastEntryByStrategy.set(strategy.id, currentDateKey);
+
+            const firstAdmin = await prisma.user.findFirst({
+              where: { role: 'admin' }
+            });
+            const adminId = firstAdmin ? firstAdmin.id : 'system-scheduler';
+
+            await this.executePreOpenTrades(adminId, undefined, strategy.id);
+          }
         }
       } catch (err) {
         console.error('AlgoEngine Scheduler: Error in Pre-Open Strategy cron interval execution:', err);
@@ -210,11 +211,13 @@ class AlgoEngineService {
   }
 
   private startActiveTradesMonitoringScheduler() {
-    console.log('AlgoEngine: Initialized Active Trades Exit Monitoring Scheduler (running SL/Target checks every 1 minute on 5m candle)');
+    console.log('AlgoEngine: Initialized Active Trades Exit Monitoring Scheduler (per-strategy check interval)');
 
     if ((global as any).activeTradesMonitoringInterval) {
       clearInterval((global as any).activeTradesMonitoringInterval);
     }
+
+    const lastMonitoredByTrade: Map<string, number> = new Map();
 
     const checkOpenTradesExits = async () => {
       try {
@@ -230,12 +233,30 @@ class AlgoEngineService {
           return;
         }
 
-        console.log(`AlgoEngine Monitor: Checking exit conditions for ${openTrades.length} open trade(s)...`);
+        const now = Date.now();
 
         for (const trade of openTrades) {
           try {
             const client = trade.client;
             const strategy = trade.strategy;
+
+            // Read per-strategy checkIntervalSec from strategy config
+            let checkIntervalMs = 60 * 1000;
+            if (strategy.configJson) {
+              try {
+                const config = JSON.parse(strategy.configJson);
+                const intervalSec = config?.basicInfo?.checkIntervalSec;
+                if (intervalSec && Number(intervalSec) > 0) {
+                  checkIntervalMs = Number(intervalSec) * 1000;
+                }
+              } catch {}
+            }
+
+            const lastCheck = lastMonitoredByTrade.get(trade.id) || 0;
+            if (now - lastCheck < checkIntervalMs) {
+              continue;
+            }
+            lastMonitoredByTrade.set(trade.id, now);
 
             if (!client.zerodhaApiKey || !client.accessToken) {
               console.warn(`AlgoEngine Monitor: Skipping trade ${trade.id} - missing client API key or access token.`);
@@ -390,7 +411,7 @@ class AlgoEngineService {
       }
     };
 
-    (global as any).activeTradesMonitoringInterval = setInterval(checkOpenTradesExits, 60 * 1000);
+    (global as any).activeTradesMonitoringInterval = setInterval(checkOpenTradesExits, 10 * 1000);
   }
 
   // Initialize Kite Live Socket feed from Environment variables or Database
@@ -753,7 +774,7 @@ class AlgoEngineService {
     return this.getActiveCredentials();
   }
 
-  private async preSelectAllClients(): Promise<void> {
+  private async preSelectAllClients(strategyId?: string): Promise<void> {
     const preOpenStocks = this.preOpenCache.length > 0
       ? this.preOpenCache
       : await this.getPreOpenStocks();
@@ -763,12 +784,17 @@ class AlgoEngineService {
       return;
     }
 
+    const where: any = {
+      tradingStatus: 'active',
+      subscriptionStatus: 'active',
+      strategyId: { not: null }
+    };
+    if (strategyId) {
+      where.strategyId = strategyId;
+    }
+
     const clients = await prisma.client.findMany({
-      where: {
-        tradingStatus: 'active',
-        subscriptionStatus: 'active',
-        strategyId: { not: null }
-      },
+      where,
       include: { user: true, strategy: true }
     });
 
@@ -777,7 +803,14 @@ class AlgoEngineService {
       return;
     }
 
-    this.preselectedForClient.clear();
+    // Clear only relevant entries (all if no strategyId filter, or just this strategy's clients)
+    if (!strategyId) {
+      this.preselectedForClient.clear();
+    } else {
+      for (const client of clients) {
+        this.preselectedForClient.delete(client.id);
+      }
+    }
 
     for (const client of clients) {
       try {
@@ -845,7 +878,7 @@ class AlgoEngineService {
     console.log(`AlgoEngine preSelect: ${this.preselectedForClient.size}/${clients.length} clients have a preselected stock ready.`);
   }
 
-  public async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[]): Promise<void> {
+  public async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyId?: string): Promise<void> {
     console.log('AlgoEngine: executePreOpenTrades started.');
     try {
       // 1. Fetch pre-open stocks
@@ -859,12 +892,17 @@ class AlgoEngineService {
       }
 
       // 2. Find active clients assigned to a strategy with an active subscription
+      const where: any = {
+        tradingStatus: 'active',
+        subscriptionStatus: 'active',
+        strategyId: { not: null }
+      };
+      if (strategyId) {
+        where.strategyId = strategyId;
+      }
+
       const clients = await prisma.client.findMany({
-        where: {
-          tradingStatus: 'active',
-          subscriptionStatus: 'active',
-          strategyId: { not: null }
-        },
+        where,
         include: {
           user: true,
           strategy: true

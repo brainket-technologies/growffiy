@@ -25,9 +25,7 @@ export async function GET() {
     settings['support_phone'] = '+91 98765 43210';
     settings['support_timings'] = 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)';
     settings['algo_preopen_fetch_time'] = '09:08';
-    settings['algo_entry_time'] = '09:20';
     settings['algo_token_refresh_time'] = '08:00';
-    settings['algo_check_interval_sec'] = '60';
 
 
     dbSettings.forEach((s) => {
@@ -57,9 +55,7 @@ export async function GET() {
         support_phone: '+91 98765 43210',
         support_timings: 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)',
         algo_preopen_fetch_time: '09:08',
-        algo_entry_time: '09:20',
-        algo_token_refresh_time: '08:00',
-        algo_check_interval_sec: '60'
+        algo_token_refresh_time: '08:00'
       } 
     });
   }
@@ -87,9 +83,7 @@ export async function PUT(request: Request) {
       support_phone,
       support_timings,
       algo_preopen_fetch_time,
-      algo_entry_time,
-      algo_token_refresh_time,
-      algo_check_interval_sec
+      algo_token_refresh_time
     } = body;
 
     const updates = {
@@ -111,9 +105,7 @@ export async function PUT(request: Request) {
       support_phone,
       support_timings,
       algo_preopen_fetch_time,
-      algo_entry_time,
-      algo_token_refresh_time,
-      algo_check_interval_sec
+      algo_token_refresh_time
     };
 
 

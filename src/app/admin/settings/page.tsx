@@ -39,11 +39,9 @@ export default function SettingsPage() {
   const [supportPhone, setSupportPhone] = useState('+91 98765 43210');
   const [supportTimings, setSupportTimings] = useState('Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)');
 
-  // Algo Timings
+  // Algo Timings (global infrastructure only)
   const [algoPreopenFetchTime, setAlgoPreopenFetchTime] = useState('09:08');
-  const [algoEntryTime, setAlgoEntryTime] = useState('09:20');
   const [algoTokenRefreshTime, setAlgoTokenRefreshTime] = useState('08:00');
-  const [algoCheckIntervalSec, setAlgoCheckIntervalSec] = useState('60');
 
   // UI Status
   const [loading, setLoading] = useState(true);
@@ -82,9 +80,7 @@ export default function SettingsPage() {
           setSupportTimings(res.settings.support_timings || 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)');
 
           setAlgoPreopenFetchTime(res.settings.algo_preopen_fetch_time || '09:08');
-          setAlgoEntryTime(res.settings.algo_entry_time || '09:20');
           setAlgoTokenRefreshTime(res.settings.algo_token_refresh_time || '08:00');
-          setAlgoCheckIntervalSec(res.settings.algo_check_interval_sec || '60');
         }
       } catch (err: any) {
         console.error('Error fetching settings:', err);
@@ -120,9 +116,7 @@ export default function SettingsPage() {
         support_phone: supportPhone,
         support_timings: supportTimings,
         algo_preopen_fetch_time: algoPreopenFetchTime,
-        algo_entry_time: algoEntryTime,
         algo_token_refresh_time: algoTokenRefreshTime,
-        algo_check_interval_sec: algoCheckIntervalSec,
       });
 
 
@@ -965,37 +959,6 @@ export default function SettingsPage() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Pre-Select Time
-                </label>
-                <input
-                  type="time"
-                  value={algoPreopenFetchTime}
-                  readOnly
-                  style={{ height: '38px', fontSize: '13px', opacity: 0.7, cursor: 'not-allowed' }}
-                />
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  Set per-strategy in Strategy Config (default: 09:15)
-                </p>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Entry Time
-                </label>
-                <input
-                  type="time"
-                  value={algoEntryTime}
-                  onChange={(e) => setAlgoEntryTime(e.target.value)}
-                  required
-                  style={{ height: '38px', fontSize: '13px' }}
-                />
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  When to execute breakout entry trades (default: 09:20)
-                </p>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Token Refresh Time
                 </label>
                 <input
@@ -1009,25 +972,13 @@ export default function SettingsPage() {
                   Daily Zerodha token refresh for all active clients (default: 08:00)
                 </p>
               </div>
+            </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Check Interval (seconds)
-                </label>
-                <input
-                  type="number"
-                  min="10"
-                  max="300"
-                  step="10"
-                  value={algoCheckIntervalSec}
-                  onChange={(e) => setAlgoCheckIntervalSec(e.target.value)}
-                  required
-                  style={{ height: '38px', fontSize: '13px' }}
-                />
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  How often the scheduler checks if it's time to run (default: 60)
-                </p>
-              </div>
+            <div style={{ marginTop: '20px', padding: '16px 20px', borderRadius: '10px', backgroundColor: 'rgba(14, 165, 233, 0.04)', border: '1px solid rgba(14, 165, 233, 0.12)' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-body)', lineHeight: 1.6 }}>
+                <strong style={{ color: 'var(--primary)' }}>Per-Strategy Settings:</strong> Pre-Select Time, Entry Time, and Check Interval are now configured per-strategy in{' '}
+                <strong>Strategies → Edit → Basic Strategy Info</strong>. This allows different strategies to run on different schedules.
+              </p>
             </div>
 
             {/* Submit Action inside Box */}

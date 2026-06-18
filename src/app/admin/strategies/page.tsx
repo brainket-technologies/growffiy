@@ -49,6 +49,7 @@ interface StrategyConfig {
     exitTime: string;
     maxTradesPerDay: number;
     selectPosition: number;
+    checkIntervalSec: number;
     status: 'active' | 'inactive';
   };
   tradeAction: {
@@ -103,6 +104,7 @@ const INITIAL_CONFIG: StrategyConfig = {
     exitTime: '15:15',
     maxTradesPerDay: 3,
     selectPosition: 1,
+    checkIntervalSec: 60,
     status: 'inactive'
   },
   tradeAction: {
@@ -1429,6 +1431,22 @@ export default function StrategiesPage() {
                         style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                       />
                       <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Maximum number of trades allowed per day</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '12px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Check Interval (sec)</label>
+                      <input
+                        type="number"
+                        min={10}
+                        max={300}
+                        step={10}
+                        value={formData.basicInfo.checkIntervalSec}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          basicInfo: { ...formData.basicInfo, checkIntervalSec: Number(e.target.value) }
+                        })}
+                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                      />
+                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>How often the engine checks/monitors this strategy (default: 60)</span>
                     </div>
                   </div>
 
