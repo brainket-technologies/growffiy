@@ -677,7 +677,10 @@ export default function ClientPerformancePage() {
                   return (
                     <tr 
                       key={trade.id}
-                      onClick={() => setSelectedTrade(trade)}
+                      onClick={() => {
+                        console.log('Selected trade:', trade);
+                        setSelectedTrade(trade);
+                      }}
                       style={{ cursor: 'pointer' }}
                       title="Click to view full trade details"
                     >
