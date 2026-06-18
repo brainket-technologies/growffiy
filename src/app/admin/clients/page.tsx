@@ -6,7 +6,7 @@ import { Card } from '../../../views/components/Card';
 import { Button } from '../../../views/components/Button';
 import { Modal } from '../../../views/components/Modal';
 import Link from 'next/link';
-import { Plus, Eye, Trash2, Search, Filter, Download } from 'lucide-react';
+import { Plus, Eye, Trash2, Search, Filter, Download, TrendingUp } from 'lucide-react';
 
 export default function ClientsPage() {
   const { clients, addClient, deleteClient, updateClient } = useAppViewModel();
@@ -331,6 +331,20 @@ export default function ClientsPage() {
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                          <Link
+                            href={`/admin/clients/${client.id}/performance`}
+                            style={{
+                              color: 'var(--accent)',
+                              cursor: 'pointer',
+                              padding: '6px',
+                              borderRadius: '6px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                            }}
+                            title="View Client Performance Curve"
+                          >
+                            <TrendingUp size={18} />
+                          </Link>
                           <Link
                             href={`/admin/clients/${client.id}`}
                             style={{
