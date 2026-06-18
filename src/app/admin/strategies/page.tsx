@@ -1949,11 +1949,24 @@ export default function StrategiesPage() {
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
                       <span style={{ color: '#64748b' }}>Sharpe Ratio</span>
-                      <strong>1.48</strong>
+                      <strong>{(() => {
+                        if (closedTrades.length < 2) return '—';
+                        const returns = closedTrades.map(t => Number(t.pnl || 0));
+                        const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
+                        const std = Math.sqrt(returns.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / returns.length);
+                        return std === 0 ? '—' : (mean / std).toFixed(2);
+                      })()}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: '#64748b' }}>Sortino Ratio</span>
-                      <strong>2.12</strong>
+                      <strong>{(() => {
+                        if (closedTrades.length < 2) return '—';
+                        const returns = closedTrades.map(t => Number(t.pnl || 0));
+                        const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
+                        const downReturns = returns.filter(r => r < 0);
+                        const downStd = downReturns.length === 0 ? 0 : Math.sqrt(downReturns.reduce((a, b) => a + Math.pow(b, 2), 0) / downReturns.length);
+                        return downStd === 0 ? '—' : (mean / downStd).toFixed(2);
+                      })()}</strong>
                     </div>
                   </div>
                 </Card>
@@ -2011,9 +2024,21 @@ export default function StrategiesPage() {
                       </tr>
                       <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '8px 0', color: '#475569' }}>Max Drawdown (%)</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>{selectedStrategyTradesCount > 0 ? '12.4%' : '0.0%'}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#64748b' }}>-</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#64748b' }}>-</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>{(() => {
+                           if (closedTrades.length === 0) return '0.00%';
+                           let peak = 0; let maxDd = 0; let running = 0;
+                           for (const t of closedTrades) {
+                             const invested = Number(t.entryPrice || 0) * Number(t.quantity || 1);
+                             running += Number(t.pnl || 0);
+                             if (running > peak) peak = running;
+                             const dd = peak - running;
+                             if (dd > maxDd) maxDd = dd;
+                           }
+                           const totalInvested = closedTrades.reduce((s, t) => s + Number(t.entryPrice || 0) * Number(t.quantity || 1), 0);
+                           return totalInvested > 0 ? `${((maxDd / totalInvested) * 100).toFixed(2)}%` : '0.00%';
+                         })()}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#64748b' }}>—</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#64748b' }}>—</td>
                       </tr>
                       <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '8px 0', color: '#475569' }}>Total Trades</td>
@@ -2091,19 +2116,16 @@ export default function StrategiesPage() {
                       <strong>{(() => { try { return JSON.parse(selectedStrategy.configJson).basicInfo.tradeType } catch(e) { return 'Intraday' } })()}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#64748b' }}>Asset Class</span>
-                      <strong>Equity (Cash)</strong>
+                      <span style={{ color: '#64748b' }}>Segment</span>
+                      <strong>{(() => { try { return JSON.parse(selectedStrategy.configJson).basicInfo.segment } catch(e) { return 'N/A' } })()}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: '#64748b' }}>Timeframe</span>
                       <strong>{(() => { try { return JSON.parse(selectedStrategy.configJson).basicInfo.timeframe } catch(e) { return '5 min' } })()}</strong>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: '#64748b' }}>Tags</span>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        <span style={{ padding: '1px 6px', backgroundColor: '#f1f5f9', borderRadius: '4px', fontSize: '10px', color: '#64748b' }}>Breakout</span>
-                        <span style={{ padding: '1px 6px', backgroundColor: '#f1f5f9', borderRadius: '4px', fontSize: '10px', color: '#64748b' }}>Momentum</span>
-                      </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>Entry / Exit</span>
+                      <strong>{(() => { try { const c = JSON.parse(selectedStrategy.configJson).basicInfo; return `${c.entryTime || '--'} – ${c.exitTime || '--'}` } catch(e) { return '--' } })()}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: '#64748b' }}>Created On</span>
