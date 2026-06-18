@@ -482,11 +482,15 @@ export default function StrategiesPage() {
     const wins = last30DaysTrades.filter(t => Number(t.pnl || 0) > 0).length;
     return last30dTradesCount === 0 ? 0 : (wins / last30dTradesCount) * 100;
   }, [last30DaysTrades, last30dTradesCount]);
+  const last30dLossesSum = React.useMemo(() => {
+    return last30DaysTrades.filter(t => Number(t.pnl || 0) < 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0);
+  }, [last30DaysTrades]);
+
   const last30dProfitFactor = React.useMemo(() => {
     const winsSum = last30DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0);
-    const lossesSum = last30DaysTrades.filter(t => Number(t.pnl || 0) < 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0);
-    return lossesSum === 0 ? (winsSum > 0 ? 99.99 : 1.0) : winsSum / Math.abs(lossesSum);
-  }, [last30DaysTrades]);
+    return last30dLossesSum === 0 ? (winsSum > 0 ? 99.99 : 1.0) : winsSum / Math.abs(last30dLossesSum);
+  }, [last30DaysTrades, last30dLossesSum]);
+
   const last30dDrawdown = React.useMemo(() => {
     let peak = 0;
     let maxDd = 0;
@@ -511,11 +515,16 @@ export default function StrategiesPage() {
     const wins = last90DaysTrades.filter(t => Number(t.pnl || 0) > 0).length;
     return last90dTradesCount === 0 ? 0 : (wins / last90dTradesCount) * 100;
   }, [last90DaysTrades, last90dTradesCount]);
+
+  const last90dLossesSum = React.useMemo(() => {
+    return last90DaysTrades.filter(t => Number(t.pnl || 0) < 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0);
+  }, [last90DaysTrades]);
+
   const last90dProfitFactor = React.useMemo(() => {
     const winsSum = last90DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0);
-    const lossesSum = last90DaysTrades.filter(t => Number(t.pnl || 0) < 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0);
-    return lossesSum === 0 ? (winsSum > 0 ? 99.99 : 1.0) : winsSum / Math.abs(lossesSum);
-  }, [last90DaysTrades]);
+    return last90dLossesSum === 0 ? (winsSum > 0 ? 99.99 : 1.0) : winsSum / Math.abs(last90dLossesSum);
+  }, [last90DaysTrades, last90dLossesSum]);
+
   const last90dDrawdown = React.useMemo(() => {
     let peak = 0;
     let maxDd = 0;
