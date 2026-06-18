@@ -1,9 +1,25 @@
+const { execSync, exec } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+// Auto-install dependencies if missing on the server
+try {
+  require.resolve('next');
+  require.resolve('@prisma/client');
+  require.resolve('ws');
+} catch (e) {
+  console.log('AlgoEngine Deployer: Missing dependencies. Running npm install on server...');
+  try {
+    execSync('npm install --production=false', { stdio: 'inherit' });
+    console.log('AlgoEngine Deployer: npm install completed successfully!');
+  } catch (installErr) {
+    console.error('AlgoEngine Deployer: npm install failed:', installErr);
+  }
+}
+
 const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
-const { exec } = require('child_process');
-const fs = require('fs');
-const path = require('path');
 
 const dev = process.env.NODE_ENV === 'development';
 
