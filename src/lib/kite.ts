@@ -98,6 +98,82 @@ export class KiteClient {
   }
 
   /**
+   * Fetches all orders for the current day.
+   */
+  public static async getOrders(apiKey: string, accessToken: string) {
+    const response = await fetch(`${this.BASE_URL}/orders`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `token ${apiKey}:${accessToken}`,
+        'X-Kite-Version': this.KITE_VERSION,
+      },
+    });
+    return response.json();
+  }
+
+  /**
+   * Fetches a single order by order_id.
+   */
+  public static async getOrderById(apiKey: string, accessToken: string, orderId: string) {
+    const response = await fetch(`${this.BASE_URL}/orders/${orderId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `token ${apiKey}:${accessToken}`,
+        'X-Kite-Version': this.KITE_VERSION,
+      },
+    });
+    return response.json();
+  }
+
+  /**
+   * Modifies an existing order (e.g., trailing SL trigger price).
+   */
+  public static async modifyOrder(
+    apiKey: string,
+    accessToken: string,
+    orderId: string,
+    params: {
+      order_type?: 'MARKET' | 'LIMIT' | 'SL' | 'SL-M';
+      quantity?: number;
+      price?: number;
+      trigger_price?: number;
+      validity?: 'DAY' | 'IOC';
+    }
+  ) {
+    const bodyParams = new URLSearchParams();
+    if (params.order_type) bodyParams.append('order_type', params.order_type);
+    if (params.quantity !== undefined) bodyParams.append('quantity', String(params.quantity));
+    if (params.price !== undefined) bodyParams.append('price', String(params.price));
+    if (params.trigger_price !== undefined) bodyParams.append('trigger_price', String(params.trigger_price));
+    if (params.validity) bodyParams.append('validity', params.validity);
+
+    const response = await fetch(`${this.BASE_URL}/orders/${orderId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `token ${apiKey}:${accessToken}`,
+        'X-Kite-Version': this.KITE_VERSION,
+      },
+      body: bodyParams.toString(),
+    });
+    return response.json();
+  }
+
+  /**
+   * Cancels an order by order_id.
+   */
+  public static async cancelOrder(apiKey: string, accessToken: string, orderId: string, variety: string = 'regular') {
+    const response = await fetch(`${this.BASE_URL}/orders/${variety}/${orderId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `token ${apiKey}:${accessToken}`,
+        'X-Kite-Version': this.KITE_VERSION,
+      },
+    });
+    return response.json();
+  }
+
+  /**
    * Places a regular order on Zerodha Kite.
    */
    public static async placeOrder(

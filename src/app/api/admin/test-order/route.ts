@@ -29,8 +29,9 @@ export async function GET() {
       transaction_type: 'BUY',
       quantity: 1,
       order_type: 'MARKET',
-      product: 'CNC',
-      validity: 'DAY'
+      product: 'MIS',
+      validity: 'DAY',
+      market_protection: -1
     });
 
     return NextResponse.json({

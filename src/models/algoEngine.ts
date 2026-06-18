@@ -292,66 +292,159 @@ class AlgoEngineService {
             const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
             const slPercent = config?.stoploss?.fixedPercent || 0.5;
             const targetPercent = config?.target?.profitPercent || 2.0;
+            const trailingSlStep = config?.stoploss?.trailingSL || 0.2;
+            const trailingTgtStep = config?.target?.trailingTarget || 0.5;
+            const marketProtectionVal = config?.tradeAction?.marketProtection !== undefined 
+              ? Number(config.tradeAction.marketProtection) : -1;
 
-            // Determine timeframe dynamically from config, default to 5minute
-            let intervalParam = '5minute';
-            const tf = config?.basicInfo?.timeframe;
-            if (tf === '1m' || tf === '1minute' || tf === 'minute') intervalParam = 'minute';
-            else if (tf === '3m' || tf === '3minute') intervalParam = '3minute';
-            else if (tf === '5m' || tf === '5minute') intervalParam = '5minute';
-            else if (tf === '10m' || tf === '10minute') intervalParam = '10minute';
-            else if (tf === '15m' || tf === '15minute') intervalParam = '15minute';
-            else if (tf === '30m' || tf === '30minute') intervalParam = '30minute';
-            else if (tf === '60m' || tf === '60minute' || tf === 'hour') intervalParam = '60minute';
-            else if (tf === '1d' || tf === 'day') intervalParam = 'day';
-
-            const res = await KiteClient.getHistoricalData(
-              client.zerodhaApiKey,
-              client.accessToken,
-              instrumentTokenStr,
-              intervalParam,
-              fromDateStr,
-              toDateStr
-            );
-
-            if (res.status !== 'success' || !Array.isArray(res.data?.candles)) {
-              console.warn(`AlgoEngine Monitor: Failed to fetch candles for ${trade.symbol}:`, res.message);
-              continue;
-            }
-
-            const candles = res.data.candles;
-            if (candles.length === 0) {
-              continue;
-            }
-
-            const latestCandle = candles[candles.length - 1];
-            const currentClosePrice = Number(latestCandle[4]);
-
-            // Calculate SL and Target based on DB configuration
             const entryPrice = Number(trade.entryPrice);
-            const stopLossLevel = entryPrice * (1 - slPercent / 100);
-            const targetLevel = entryPrice * (1 + targetPercent / 100);
-
-            console.log(`AlgoEngine Monitor: Trade ${trade.id} (${trade.symbol}) | Entry: ₹${entryPrice.toFixed(2)} | Current: ₹${currentClosePrice.toFixed(2)} | SL: ₹${stopLossLevel.toFixed(2)} | Target: ₹${targetLevel.toFixed(2)}`);
-
+            const exchangeParam = config?.basicInfo?.exchange || 'NSE';
             let exitTriggered = false;
-            let exitPrice = currentClosePrice;
+            let exitPrice = 0;
             let exitReason = '';
 
-            if (currentClosePrice <= stopLossLevel) {
-              exitTriggered = true;
-              exitPrice = stopLossLevel;
-              exitReason = `Stop Loss (${slPercent}%) hit`;
-            } else if (currentClosePrice >= targetLevel) {
-              exitTriggered = true;
-              exitPrice = targetLevel;
-              exitReason = `Target (${targetPercent}%) hit`;
+            // --- Priority 1: Check SL/Target order status via API ---
+            if (trade.slOrderId || trade.targetOrderId) {
+              let slComplete = false;
+              let targetComplete = false;
+              let slAvgPrice = 0;
+              let targetAvgPrice = 0;
+
+              if (trade.slOrderId) {
+                try {
+                  const slStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.slOrderId);
+                  if (slStatus?.status === 'success' && slStatus?.data) {
+                    const slData = slStatus.data;
+                    if (slData.status === 'COMPLETE') {
+                      slComplete = true;
+                      slAvgPrice = Number(slData.average_price || slData.filled_price || 0);
+                      console.log(`AlgoEngine Monitor: SL order ${trade.slOrderId} COMPLETE for ${trade.symbol} @ ₹${slAvgPrice}`);
+                    } else if (slData.status === 'CANCELLED' || slData.status === 'REJECTED') {
+                      console.log(`AlgoEngine Monitor: SL order ${trade.slOrderId} ${slData.status}`);
+                    }
+                  }
+                } catch (e) { /* silent */ }
+              }
+
+              if (trade.targetOrderId) {
+                try {
+                  const tgtStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.targetOrderId);
+                  if (tgtStatus?.status === 'success' && tgtStatus?.data) {
+                    const tgtData = tgtStatus.data;
+                    if (tgtData.status === 'COMPLETE') {
+                      targetComplete = true;
+                      targetAvgPrice = Number(tgtData.average_price || tgtData.filled_price || 0);
+                      console.log(`AlgoEngine Monitor: Target order ${trade.targetOrderId} COMPLETE for ${trade.symbol} @ ₹${targetAvgPrice}`);
+                    } else if (tgtData.status === 'CANCELLED' || tgtData.status === 'REJECTED') {
+                      console.log(`AlgoEngine Monitor: Target order ${trade.targetOrderId} ${tgtData.status}`);
+                    }
+                  }
+                } catch (e) { /* silent */ }
+              }
+
+              // OCO Logic: Cancel opposite order
+              if (slComplete) {
+                exitTriggered = true;
+                exitPrice = slAvgPrice > 0 ? slAvgPrice : Number(trade.stopLoss || entryPrice * (1 - slPercent / 100));
+                exitReason = `SL Hit`;
+                if (trade.targetOrderId) {
+                  try {
+                    await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.targetOrderId);
+                    console.log(`AlgoEngine Monitor: Cancelled target order ${trade.targetOrderId} (SL hit first)`);
+                  } catch (e) { /* silent */ }
+                }
+              } else if (targetComplete) {
+                exitTriggered = true;
+                exitPrice = targetAvgPrice > 0 ? targetAvgPrice : Number(trade.target || entryPrice * (1 + targetPercent / 100));
+                exitReason = `Target Hit`;
+                if (trade.slOrderId) {
+                  try {
+                    await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.slOrderId);
+                    console.log(`AlgoEngine Monitor: Cancelled SL order ${trade.slOrderId} (Target hit first)`);
+                  } catch (e) { /* silent */ }
+                }
+              }
+
+              // --- Trailing SL (only if no exit yet) ---
+              if (!exitTriggered && trade.slOrderId && trade.slTriggerPrice) {
+                const price = this.getStockLtp(trade.symbol);
+                if (price > 0 && price > entryPrice) {
+                  const currentSlTrigger = Number(trade.slTriggerPrice);
+                  const trailStepValue = entryPrice * (trailingSlStep / 100);
+                  const priceMovePct = ((price - entryPrice) / entryPrice) * 100;
+                  const trailsToApply = Math.floor(priceMovePct / trailingSlStep);
+                  if (trailsToApply > 0) {
+                    const newSlTrigger = entryPrice + (trailsToApply * trailStepValue);
+                    if (newSlTrigger > currentSlTrigger) {
+                      try {
+                        const modRes = await KiteClient.modifyOrder(client.zerodhaApiKey, client.accessToken, trade.slOrderId, {
+                          trigger_price: Number(newSlTrigger.toFixed(2))
+                        });
+                        if (modRes?.status === 'success') {
+                          await prisma.trade.update({
+                            where: { id: trade.id },
+                            data: { slTriggerPrice: Number(newSlTrigger.toFixed(2)) }
+                          });
+                          console.log(`AlgoEngine Monitor: Trailing SL for ${trade.symbol}: ${currentSlTrigger} → ${newSlTrigger.toFixed(2)} (price: ${price})`);
+                        }
+                      } catch (e) { /* silent */ }
+                    }
+                  }
+                }
+              }
             }
 
+            // --- Priority 2: Fallback candle-based check (if no order IDs) ---
+            if (!exitTriggered && !trade.slOrderId && !trade.targetOrderId) {
+              const instrumentTokenStr = Object.entries(this.instrumentToSymbol).find(([token, sym]) => sym === trade.symbol)?.[0];
+              if (instrumentTokenStr) {
+                const today = new Date();
+                const formatKiteDate = (date: Date) => {
+                  const y = date.getFullYear();
+                  const m = String(date.getMonth() + 1).padStart(2, '0');
+                  const d = String(date.getDate()).padStart(2, '0');
+                  return `${y}-${m}-${d}`;
+                };
+                const fromDateStr = formatKiteDate(new Date(today.getTime() - 24 * 60 * 60 * 1000));
+                const toDateStr = formatKiteDate(today);
+
+                let intervalParam = '5minute';
+                const tf = config?.basicInfo?.timeframe;
+                if (tf === '1m' || tf === '1minute' || tf === 'minute') intervalParam = 'minute';
+                else if (tf === '3m' || tf === '3minute') intervalParam = '3minute';
+                else if (tf === '5m' || tf === '5minute') intervalParam = '5minute';
+                else if (tf === '10m' || tf === '10minute') intervalParam = '10minute';
+                else if (tf === '15m' || tf === '15minute') intervalParam = '15minute';
+                else if (tf === '30m' || tf === '30minute') intervalParam = '30minute';
+                else if (tf === '60m' || tf === '60minute' || tf === 'hour') intervalParam = '60minute';
+                else if (tf === '1d' || tf === 'day') intervalParam = 'day';
+
+                const res = await KiteClient.getHistoricalData(client.zerodhaApiKey, client.accessToken, instrumentTokenStr, intervalParam, fromDateStr, toDateStr);
+                if (res.status === 'success' && Array.isArray(res.data?.candles) && res.data.candles.length > 0) {
+                  const latestCandle = res.data.candles[res.data.candles.length - 1];
+                  const currentClosePrice = Number(latestCandle[4]);
+                  const stopLossLevel = entryPrice * (1 - slPercent / 100);
+                  const targetLevel = entryPrice * (1 + targetPercent / 100);
+
+                  console.log(`AlgoEngine Monitor: Trade ${trade.id} (${trade.symbol}) | Entry: ₹${entryPrice.toFixed(2)} | Current: ₹${currentClosePrice.toFixed(2)} | SL: ₹${stopLossLevel.toFixed(2)} | Target: ₹${targetLevel.toFixed(2)}`);
+
+                  if (currentClosePrice <= stopLossLevel) {
+                    exitTriggered = true;
+                    exitPrice = currentClosePrice;
+                    exitReason = `SL Hit (candle)`;
+                  } else if (currentClosePrice >= targetLevel) {
+                    exitTriggered = true;
+                    exitPrice = currentClosePrice;
+                    exitReason = `Target Hit (candle)`;
+                  }
+                }
+              }
+            }
+
+            // --- Exit Execution ---
             if (exitTriggered) {
               console.log(`AlgoEngine Monitor: EXIT TRIGGERED for trade ${trade.id} (${trade.symbol}) due to ${exitReason} at ₹${exitPrice.toFixed(2)}.`);
 
-              const exchangeParam = config?.basicInfo?.exchange || 'NSE';
               const sellParams = {
                 exchange: exchangeParam,
                 tradingsymbol: trade.symbol,
@@ -360,25 +453,22 @@ class AlgoEngineService {
                 order_type: 'MARKET' as const,
                 product: trade.orderType as any,
                 validity: 'DAY' as const,
-                market_protection: 5
+                market_protection: marketProtectionVal
               };
 
-              const sellRes = await KiteClient.placeOrder(
-                client.zerodhaApiKey,
-                client.accessToken,
-                sellParams
-              );
-
+              const sellRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, sellParams);
               if (sellRes && sellRes.status === 'success') {
                 const sellOrderId = sellRes.data?.order_id || 'manual-exit';
                 const pnlValue = (exitPrice - entryPrice) * trade.quantity;
+                const newStatus = exitReason.toLowerCase().includes('sl') ? 'sl_hit' : 'target_hit';
 
                 await prisma.trade.update({
                   where: { id: trade.id },
                   data: {
-                    status: 'closed',
+                    status: newStatus,
                     exitPrice: exitPrice,
                     exitTime: new Date(),
+                    exitReason: exitReason,
                     pnl: pnlValue,
                     kiteResponse: sellRes
                   }
@@ -387,7 +477,7 @@ class AlgoEngineService {
                 await prisma.strategyLog.create({
                   data: {
                     strategyId: strategy.id,
-                    message: `Intraday Trade Closed for ${client.user.name}: Sold ${trade.quantity} shares of ${trade.symbol} at exit price ₹${exitPrice.toFixed(2)} due to ${exitReason}. Total P&L: ₹${pnlValue.toFixed(2)}. Order ID: ${sellOrderId}`,
+                    message: `Trade Closed for ${client.user.name}: Sold ${trade.quantity} ${trade.symbol} @ ₹${exitPrice.toFixed(2)} (${exitReason}). P&L: ₹${pnlValue.toFixed(2)}`,
                     logType: 'trade'
                   }
                 });
@@ -397,15 +487,15 @@ class AlgoEngineService {
                     adminId: 'system-scheduler',
                     action: 'AUTO TRADE CLOSED',
                     oldValue: `Trade ID: ${trade.id}`,
-                    newValue: `Sold ${trade.quantity} shares of ${trade.symbol} @ ₹${exitPrice.toFixed(2)} | P&L: ₹${pnlValue.toFixed(2)}`
+                    newValue: `Sold ${trade.quantity} ${trade.symbol} @ ₹${exitPrice.toFixed(2)} | ${exitReason} | P&L: ₹${pnlValue.toFixed(2)}`
                   }
                 }).catch(() => {});
               } else {
-                console.error(`AlgoEngine Monitor: Failed to place sell order for ${trade.symbol}:`, sellRes.message);
+                console.error(`AlgoEngine Monitor: Failed to place exit order for ${trade.symbol}:`, sellRes?.message);
                 await prisma.strategyLog.create({
                   data: {
                     strategyId: strategy.id,
-                    message: `Failed to place exit order for ${client.user.name} (${trade.symbol}): ${sellRes.message || 'Unknown Zerodha error'}`,
+                    message: `Failed to place exit order for ${client.user.name} (${trade.symbol}): ${sellRes?.message || 'Unknown error'}`,
                     logType: 'error'
                   }
                 });
@@ -451,6 +541,13 @@ class AlgoEngineService {
     } catch (err) {
       console.error('Failed to configure Kite Connect socket feed:', err);
     }
+  }
+
+  private getStockLtp(symbol: string): number {
+    const stock = this.stocksState.find(s => s.symbol === symbol);
+    if (stock && stock.ltp > 0) return stock.ltp;
+    if (stock && stock.iep > 0) return stock.iep;
+    return 0;
   }
 
   private async ensureInstrumentMapping() {
@@ -1311,59 +1408,35 @@ class AlgoEngineService {
               } else {
                 const errMsg = orderRes?.message || 'Zerodha API returned error status';
                 console.warn(`AlgoEngine: Kite order response status was not success for ${client.user.name}. Error: ${errMsg}`);
-                
-                // Save failed trade in Database so it shows up in UI
                 await prisma.trade.create({
                   data: {
-                    clientId: client.id,
-                    strategyId: strategy.id,
-                    symbol: targetStock.symbol,
-                    orderType: productParam,
-                    entryPrice: entryPrice,
-                    quantity: quantity,
-                    stopLoss: stopLoss,
-                    target: target,
-                    status: 'FAILED',
-                    entryTime: new Date(),
+                    clientId: client.id, strategyId: strategy.id,
+                    symbol: targetStock.symbol, orderType: productParam,
+                    entryPrice: entryPrice, quantity: quantity,
+                    stopLoss: stopLoss, target: target,
+                    status: 'FAILED', entryTime: new Date(),
                     kiteResponse: orderRes || { error: errMsg }
                   }
                 });
-
                 await prisma.strategyLog.create({
-                  data: {
-                    strategyId: strategy.id,
-                    message: `Kite order failed for ${client.user.name}: ${errMsg}`,
-                    logType: 'error'
-                  }
+                  data: { strategyId: strategy.id, message: `Kite order failed for ${client.user.name}: ${errMsg}`, logType: 'error' }
                 });
                 continue;
               }
             } catch (kiteErr: any) {
               console.error(`AlgoEngine: Failed to place order on Zerodha Kite for ${client.user.name}:`, kiteErr);
-              
-              // Save failed trade in Database so it shows up in UI
               await prisma.trade.create({
                 data: {
-                  clientId: client.id,
-                  strategyId: strategy.id,
-                  symbol: targetStock.symbol,
-                  orderType: productParam,
-                  entryPrice: entryPrice,
-                  quantity: quantity,
-                  stopLoss: stopLoss,
-                  target: target,
-                  status: 'FAILED',
-                  entryTime: new Date(),
+                  clientId: client.id, strategyId: strategy.id,
+                  symbol: targetStock.symbol, orderType: productParam,
+                  entryPrice: entryPrice, quantity: quantity,
+                  stopLoss: stopLoss, target: target,
+                  status: 'FAILED', entryTime: new Date(),
                   kiteResponse: { error: kiteErr.message || String(kiteErr) }
                 }
               });
-
               await prisma.strategyLog.create({
-                data: {
-                  strategyId: strategy.id,
-                  message: `Kite order failed for ${client.user.name}: ${kiteErr.message || 'API error'}. Trade aborted.`,
-                  logType: 'error'
-                }
+                data: { strategyId: strategy.id, message: `Kite order failed for ${client.user.name}: ${kiteErr.message || 'API error'}.`, logType: 'error' }
               });
               continue;
             }
@@ -1372,29 +1445,126 @@ class AlgoEngineService {
             continue;
           }
 
-          // 6. Save trade in Database referencing the database strategy ID
+          // ---- 3-STEP ORDER FLOW ----
+          let actualEntryPrice = entryPrice;
+          let slOrderId = '';
+          let targetOrderId = '';
+
+          // Step 2: Poll entry order until COMPLETE
+          if (orderId && client.zerodhaApiKey && activeAccessToken) {
+            console.log(`AlgoEngine: Polling entry order ${orderId} for completion...`);
+            for (let attempt = 0; attempt < 10; attempt++) {
+              await new Promise(r => setTimeout(r, 2000));
+              try {
+                const orderStatusRes = await KiteClient.getOrderById(client.zerodhaApiKey, activeAccessToken, orderId);
+                if (orderStatusRes?.status === 'success' && orderStatusRes?.data?.status === 'COMPLETE') {
+                  const filledAvgPrice = orderStatusRes.data.average_price || orderStatusRes.data.filled_price;
+                  if (filledAvgPrice && Number(filledAvgPrice) > 0) {
+                    actualEntryPrice = Number(filledAvgPrice);
+                  }
+                  console.log(`AlgoEngine: Entry order ${orderId} COMPLETE at avg price ₹${actualEntryPrice}`);
+                  break;
+                }
+                if (orderStatusRes?.data?.status === 'CANCELLED' || orderStatusRes?.data?.status === 'REJECTED') {
+                  console.warn(`AlgoEngine: Entry order ${orderId} ${orderStatusRes.data.status}. Aborting trade.`);
+                  orderId = '';
+                  break;
+                }
+                console.log(`AlgoEngine: Entry order status: ${orderStatusRes?.data?.status || 'unknown'} (attempt ${attempt + 1})`);
+              } catch (pollErr) {
+                console.warn(`AlgoEngine: Error polling entry order (attempt ${attempt + 1}):`, pollErr);
+              }
+            }
+          }
+
+          if (!orderId) {
+            await prisma.trade.create({
+              data: {
+                clientId: client.id, strategyId: strategy.id,
+                symbol: targetStock.symbol, orderType: productParam,
+                entryPrice: actualEntryPrice, quantity: quantity,
+                stopLoss: stopLoss, target: target,
+                status: 'FAILED', entryTime: new Date(),
+                kiteResponse: { error: 'Entry order did not complete' }
+              }
+            });
+            continue;
+          }
+
+          // Step 3: Place SL-M order (SELL, trigger_price = stopLoss, market_protection from config)
+          if (client.zerodhaApiKey && activeAccessToken) {
+            try {
+              const slParams = {
+                exchange: exchangeParam,
+                tradingsymbol: targetStock.symbol,
+                transaction_type: 'SELL' as const,
+                quantity: quantity,
+                order_type: 'SL-M' as const,
+                product: productParam as any,
+                validity: 'DAY' as const,
+                trigger_price: Number(stopLoss.toFixed(2)),
+                market_protection: marketProtectionVal
+              };
+              const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slParams);
+              if (slRes?.status === 'success' && slRes.data?.order_id) {
+                slOrderId = slRes.data.order_id;
+                console.log(`AlgoEngine: SL-M order placed: ${slOrderId} for ${targetStock.symbol} @ trigger ₹${stopLoss.toFixed(2)}`);
+              } else {
+                console.warn(`AlgoEngine: SL-M order failed: ${slRes?.message || 'unknown'}`);
+              }
+            } catch (slErr) {
+              console.error(`AlgoEngine: Error placing SL-M order:`, slErr);
+            }
+          }
+
+          // Step 4: Place Target LIMIT order (SELL, price = target)
+          if (client.zerodhaApiKey && activeAccessToken) {
+            try {
+              const targetParams = {
+                exchange: exchangeParam,
+                tradingsymbol: targetStock.symbol,
+                transaction_type: 'SELL' as const,
+                quantity: quantity,
+                order_type: 'LIMIT' as const,
+                product: productParam as any,
+                validity: 'DAY' as const,
+                price: Number(target.toFixed(2))
+              };
+              const targetRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, targetParams);
+              if (targetRes?.status === 'success' && targetRes.data?.order_id) {
+                targetOrderId = targetRes.data.order_id;
+                console.log(`AlgoEngine: Target LIMIT order placed: ${targetOrderId} for ${targetStock.symbol} @ ₹${target.toFixed(2)}`);
+              } else {
+                console.warn(`AlgoEngine: Target LIMIT order failed: ${targetRes?.message || 'unknown'}`);
+              }
+            } catch (tgtErr) {
+              console.error(`AlgoEngine: Error placing Target LIMIT order:`, tgtErr);
+            }
+          }
+
+          // 6. Save trade in Database with all order IDs
           await prisma.trade.create({
             data: {
-              clientId: client.id,
-              strategyId: strategy.id,
-              symbol: targetStock.symbol,
-              orderType: productParam,
-              entryPrice: entryPrice,
-              quantity: quantity,
-              stopLoss: stopLoss,
-              target: target,
-              status: orderStatus,
+              clientId: client.id, strategyId: strategy.id,
+              symbol: targetStock.symbol, orderType: productParam,
+              entryPrice: actualEntryPrice, quantity: quantity,
+              stopLoss: stopLoss, target: target,
+              status: 'open',
               entryTime: new Date(),
+              entryOrderId: orderId,
+              slOrderId: slOrderId || null,
+              targetOrderId: targetOrderId || null,
+              slTriggerPrice: stopLoss,
               kiteResponse: orderRes
             }
           });
           this.subscribeSymbols([targetStock.symbol]);
 
-          // 7. Write strategy log referencing the database strategy ID
+          // 7. Write strategy log
           await prisma.strategyLog.create({
             data: {
               strategyId: strategy.id,
-              message: `Intraday Trade Initiated for ${client.user.name}: Bought ${quantity} shares of ${targetStock.symbol} at entry price ₹${entryPrice.toFixed(2)} using config from DB strategy "${strategy.name}". Capital allocated (1%): ₹${allocatedAmount.toFixed(2)}. Target: ₹${target.toFixed(2)} (${targetPercent}%), Stop Loss: ₹${stopLoss.toFixed(2)} (${slPercent}%).`,
+              message: `Intraday Trade Initiated for ${client.user.name}: Bought ${quantity} shares of ${targetStock.symbol} at entry price ₹${actualEntryPrice.toFixed(2)} using config from DB strategy "${strategy.name}". Capital allocated: ₹${allocatedAmount.toFixed(2)}. Target: ₹${target.toFixed(2)} (${targetPercent}%), Stop Loss: ₹${stopLoss.toFixed(2)} (${slPercent}%). Entry Order: ${orderId}, SL Order: ${slOrderId || 'N/A'}, Target Order: ${targetOrderId || 'N/A'}`,
               logType: 'trade'
             }
           });
@@ -1406,7 +1576,7 @@ class AlgoEngineService {
                 adminId: finalAdminId,
                 action: 'AUTO TRADE INITIATED',
                 oldValue: null,
-                newValue: `Client: ${client.user.name} | Strategy: ${strategy.name} | Stock: ${targetStock.symbol} | Qty: ${quantity} | Entry: ${entryPrice.toFixed(2)}`
+                newValue: `Client: ${client.user.name} | Strategy: ${strategy.name} | Stock: ${targetStock.symbol} | Qty: ${quantity} | Entry: ${actualEntryPrice.toFixed(2)}`
               }
             }).catch(() => {});
           }
