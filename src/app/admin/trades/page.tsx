@@ -236,7 +236,7 @@ export default function LiveTradingPage() {
           border: '1px solid var(--border-color)'
         }}>
           {/* Search box */}
-          <div style={{ position: 'relative', flex: '1 1 200px' }}>
+          <div style={{ position: 'relative', flex: '2 1 200px', minWidth: '200px' }}>
             <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
             <input
               type="text"
@@ -251,7 +251,7 @@ export default function LiveTradingPage() {
           <select
             value={clientFilter}
             onChange={(e) => setClientFilter(e.target.value)}
-            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white' }}
+            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white', flex: '1 1 130px', minWidth: '130px', width: 'auto' }}
           >
             <option value="all">All Clients</option>
             {uniqueClients.map(client => (
@@ -263,7 +263,7 @@ export default function LiveTradingPage() {
           <select
             value={strategyFilter}
             onChange={(e) => setStrategyFilter(e.target.value)}
-            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white' }}
+            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white', flex: '1 1 140px', minWidth: '140px', width: 'auto' }}
           >
             <option value="all">All Strategies</option>
             {uniqueStrategies.map(strategy => (
@@ -275,7 +275,7 @@ export default function LiveTradingPage() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white' }}
+            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white', flex: '1 1 110px', minWidth: '110px', width: 'auto' }}
           >
             <option value="all">All Types</option>
             <option value="BUY">BUY</option>
@@ -286,7 +286,7 @@ export default function LiveTradingPage() {
           <select
             value={symbolFilter}
             onChange={(e) => setSymbolFilter(e.target.value)}
-            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white' }}
+            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white', flex: '1 1 120px', minWidth: '120px', width: 'auto' }}
           >
             <option value="all">All Symbols</option>
             {uniqueSymbols.map(sym => (
@@ -298,7 +298,7 @@ export default function LiveTradingPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white' }}
+            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white', flex: '1 1 120px', minWidth: '120px', width: 'auto' }}
           >
             <option value="all">All Status</option>
             <option value="open">Open</option>
@@ -308,7 +308,7 @@ export default function LiveTradingPage() {
           </select>
 
           {/* Export Action */}
-          <Button variant="secondary" onClick={handleExportCSV} style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '34px', fontSize: '12px', padding: '0 12px' }}>
+          <Button variant="secondary" onClick={handleExportCSV} style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '34px', fontSize: '12px', padding: '0 12px', flex: '0 0 auto' }}>
             <Download size={14} /> Export
           </Button>
         </div>
