@@ -1,44 +1,73 @@
 const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
-const { execSync } = require('child_process');
+const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
 const dev = process.env.NODE_ENV === 'development';
 
-// Permanent deployment solution: Automatically run prisma generate & next build on server startup
-// if .next is missing, or if a Git auto-pull was detected (.git/index is newer than .next folder).
-if (!dev) {
-  try {
-    const nextDir = path.join(__dirname, '.next');
-    const gitIndex = path.join(__dirname, '.git', 'index');
-    const prismaClientDir = path.join(__dirname, 'node_modules', '.prisma', 'client');
-    
-    let shouldBuild = !fs.existsSync(nextDir) || !fs.existsSync(prismaClientDir);
-    
-    if (!shouldBuild && fs.existsSync(gitIndex)) {
+let app = null;
+let handle = null;
+let isBuilding = false;
+let buildError = null;
+
+function runBuildCheck() {
+  if (dev) {
+    prepareNextApp();
+    return;
+  }
+  
+  const nextDir = path.join(__dirname, '.next');
+  const gitIndex = path.join(__dirname, '.git', 'index');
+  const prismaClientDir = path.join(__dirname, 'node_modules', '.prisma', 'client');
+  
+  let shouldBuild = !fs.existsSync(nextDir) || !fs.existsSync(prismaClientDir);
+  
+  if (!shouldBuild && fs.existsSync(gitIndex)) {
+    try {
       const nextMtime = fs.statSync(nextDir).mtimeMs;
       const gitMtime = fs.statSync(gitIndex).mtimeMs;
       if (gitMtime > nextMtime) {
         console.log('AlgoEngine Deployer: Detected fresh Git pull. Rebuilding Next.js application...');
         shouldBuild = true;
       }
+    } catch (err) {
+      console.error('Error checking mtimes:', err);
     }
-    
-    if (shouldBuild) {
-      console.log('--- STARTING REMOTE PRISMA GENERATION & NEXT.JS BUILD ---');
-      execSync('npx prisma generate', { stdio: 'inherit' });
-      execSync('npx next build', { stdio: 'inherit' });
-      console.log('--- REMOTE NEXT.JS BUILD COMPLETED SUCCESSFULLY ---');
-      
-      // Update .next folder modification time to prevent infinite rebuild loop
-      const now = new Date();
-      fs.utimesSync(nextDir, now, now);
-    }
-  } catch (buildErr) {
-    console.error('AlgoEngine Deployer Error during auto-build:', buildErr);
   }
+  
+  if (shouldBuild) {
+    isBuilding = true;
+    console.log('--- STARTING REMOTE PRISMA GENERATION & NEXT.JS BUILD ---');
+    exec('npx prisma generate && npx next build', (err, stdout, stderr) => {
+      isBuilding = false;
+      if (err) {
+        console.error('AlgoEngine Deployer Error during auto-build:', err);
+        buildError = err;
+      } else {
+        console.log('--- REMOTE NEXT.JS BUILD COMPLETED SUCCESSFULLY ---');
+        try {
+          const now = new Date();
+          fs.utimesSync(nextDir, now, now);
+        } catch (e) {}
+        prepareNextApp();
+      }
+    });
+  } else {
+    prepareNextApp();
+  }
+}
+
+function prepareNextApp() {
+  app = next({ dev });
+  handle = app.getRequestHandler();
+  app.prepare().then(() => {
+    console.log('Next.js app prepared and ready to handle requests.');
+  }).catch((err) => {
+    console.error('Failed to prepare Next.js app:', err);
+    buildError = err;
+  });
 }
 
 // Hostinger or other host might pass the port or default to 3000.
@@ -47,29 +76,68 @@ const port = process.env.PORT || 3000;
 const isNumeric = !isNaN(port) && !isNaN(parseFloat(port));
 const parsedPort = isNumeric ? parseInt(port, 10) : port;
 
-const app = next({ dev });
-const handle = app.getRequestHandler();
+const server = createServer(async (req, res) => {
+  if (isBuilding) {
+    res.statusCode = 503;
+    res.setHeader('Content-Type', 'text/html');
+    res.end(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Updating Application...</title>
+        <meta http-equiv="refresh" content="5">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 80px 20px; background: #f8fafc; color: #1e293b; }
+          .card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); display: inline-block; max-width: 450px; border: 1px solid #e2e8f0; }
+          .spinner { border: 3px solid #f1f5f9; width: 40px; height: 40px; border-radius: 50%; border-left-color: #3b82f6; animation: spin 1s linear infinite; display: inline-block; margin-bottom: 24px; }
+          h2 { margin: 0 0 10px 0; font-size: 20px; font-weight: 600; }
+          p { margin: 0; color: #64748b; font-size: 14px; line-height: 1.5; }
+          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="spinner"></div>
+          <h2>Updating Platform</h2>
+          <p>We are compiling the latest updates and preparing the trading engine. This will take about 15-30 seconds.</p>
+          <p style="color: #94a3b8; font-size: 12px; margin-top: 15px;">Page will auto-refresh automatically.</p>
+        </div>
+      </body>
+      </html>
+    `);
+    return;
+  }
+  
+  if (buildError) {
+    res.statusCode = 500;
+    res.setHeader('Content-Type', 'text/plain');
+    res.end(`Build Error:\n${buildError.message}\n\nPlease check server logs.`);
+    return;
+  }
 
-app.prepare().then(() => {
-  createServer(async (req, res) => {
-    try {
-      const parsedUrl = parse(req.url, true);
-      await handle(req, res, parsedUrl);
-    } catch (err) {
-      console.error('Error occurred handling', req.url, err);
-      res.statusCode = 500;
-      res.end('Internal Server Error');
-    }
-  })
-  .once('error', (err) => {
-    console.error(err);
-    process.exit(1);
-  })
-  .listen(parsedPort, () => {
-    console.log(`> Ready on ${isNumeric ? `http://localhost:${parsedPort}` : `socket/pipe ${parsedPort}`}`);
-  });
-}).catch((err) => {
-  console.error('Failed to start next server:', err);
+  if (!handle) {
+    res.statusCode = 503;
+    res.end('Server is initializing. Please refresh in a few seconds.');
+    return;
+  }
+
+  try {
+    const parsedUrl = parse(req.url, true);
+    await handle(req, res, parsedUrl);
+  } catch (err) {
+    console.error('Error occurred handling', req.url, err);
+    res.statusCode = 500;
+    res.end('Internal Server Error');
+  }
+});
+
+server.once('error', (err) => {
+  console.error(err);
   process.exit(1);
 });
 
+server.listen(parsedPort, () => {
+  console.log(`> Ready on ${isNumeric ? `http://localhost:${parsedPort}` : `socket/pipe ${parsedPort}`}`);
+  // Run the build check asynchronously after server listens to prevent Passenger startup timeout
+  runBuildCheck();
+});
