@@ -1012,217 +1012,164 @@ export default function StrategiesPage() {
             </div>
           </div>
 
-          {/* Search + Filter Bar */}
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div style={{ flex: 1, position: 'relative' }}>
-              <svg style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input
-                type="text"
-                placeholder="Search strategies..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px 10px 40px', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-              />
+          {/* Strategy Table - same style as Live Trading page */}
+          <Card>
+            {/* Card header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h4 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
+                All Strategies
+              </h4>
             </div>
-            <div style={{ display: 'flex', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '10px', overflow: 'hidden' }}>
-              {['all', 'active', 'inactive'].map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setFilterType(tab)}
-                  style={{
-                    padding: '10px 18px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: filterType === tab ? 'var(--color-primary)' : 'transparent',
-                    color: filterType === tab ? '#fff' : 'var(--text-secondary)',
-                    transition: 'all 0.2s',
-                    textTransform: 'capitalize'
-                  }}
-                >
-                  {tab === 'all' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
 
-          {/* Strategy Table */}
-          {(() => {
-            const filtered = strategies.filter(s =>
-              (filterType === 'all' || s.status === filterType) &&
-              (searchQuery === '' || s.name.toLowerCase().includes(searchQuery.toLowerCase()) || (s.description || '').toLowerCase().includes(searchQuery.toLowerCase()))
-            );
-
-            if (filtered.length === 0) {
-              return (
-                <div style={{ textAlign: 'center', padding: '60px 24px', background: 'var(--bg-secondary)', borderRadius: '16px', border: '1px dashed var(--border-color)' }}>
-                  <FileCode size={40} color="var(--text-secondary)" style={{ opacity: 0.4, marginBottom: '12px' }} />
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>No strategies found. Click <strong>+ Create Strategy</strong> to get started.</p>
-                </div>
-              );
-            }
-
-            return (
-              <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '16px', overflow: 'hidden' }}>
-                {/* Table Header */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 180px',
-                  padding: '12px 20px',
-                  background: 'rgba(255,255,255,0.025)',
-                  borderBottom: '1px solid var(--border-color)',
-                  gap: '12px',
-                  alignItems: 'center'
-                }}>
-                  {['Strategy', 'Segment', 'Type', 'Timeframe', 'Clients', 'Trades', 'Actions'].map(col => (
-                    <span key={col} style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.07em', textTransform: 'uppercase' }}>{col}</span>
-                  ))}
-                </div>
-
-                {/* Table Rows */}
-                {filtered.map((strat, idx) => {
-                  let segment = 'N/A';
-                  let tradeType = 'N/A';
-                  let timeframe = 'N/A';
-                  let entryTime = '';
-                  let exitTime = '';
-                  try {
-                    const parsed = JSON.parse(strat.configJson);
-                    segment = parsed.basicInfo?.segment || segment;
-                    tradeType = parsed.basicInfo?.tradeType || tradeType;
-                    timeframe = parsed.basicInfo?.timeframe || timeframe;
-                    entryTime = parsed.basicInfo?.entryTime || '';
-                    exitTime = parsed.basicInfo?.exitTime || '';
-                  } catch (e) {}
-
-                  const assignedCount = clients.filter(c => c.strategyId === strat.id).length;
-                  const tradeCount = (trades || []).filter(t => t.strategyId === strat.id).length;
-                  const isActive = strat.status === 'active';
-
-                  return (
-                    <div
-                      key={strat.id}
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 180px',
-                        padding: '14px 20px',
-                        gap: '12px',
-                        alignItems: 'center',
-                        borderBottom: idx < filtered.length - 1 ? '1px solid var(--border-color)' : 'none',
-                        transition: 'background 0.15s',
-                        cursor: 'pointer'
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                    >
-                      {/* Strategy Name + Status Dot */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                        <div style={{
-                          width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0,
-                          background: isActive ? '#22c55e' : '#475569',
-                          boxShadow: isActive ? '0 0 6px rgba(34,197,94,0.7)' : 'none'
-                        }} />
-                        <div style={{ minWidth: 0 }}>
-                          <p style={{ margin: 0, fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{strat.name}</p>
-                          {strat.description && (
-                            <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{strat.description}</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Segment */}
-                      <span style={{ padding: '3px 10px', borderRadius: '6px', background: 'rgba(14,165,233,0.1)', color: '#38bdf8', fontSize: '11px', fontWeight: 600, border: '1px solid rgba(14,165,233,0.15)', display: 'inline-block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{segment}</span>
-
-                      {/* Trade Type */}
-                      <span style={{ padding: '3px 10px', borderRadius: '6px', background: 'rgba(139,92,246,0.1)', color: '#a78bfa', fontSize: '11px', fontWeight: 600, border: '1px solid rgba(139,92,246,0.15)', display: 'inline-block', whiteSpace: 'nowrap' }}>{tradeType}</span>
-
-                      {/* Timeframe + Time window */}
-                      <div>
-                        <span style={{ padding: '3px 10px', borderRadius: '6px', background: 'rgba(251,191,36,0.1)', color: '#fbbf24', fontSize: '11px', fontWeight: 600, border: '1px solid rgba(251,191,36,0.15)', display: 'inline-block' }}>{timeframe}</span>
-                        {entryTime && <p style={{ margin: '3px 0 0', fontSize: '10px', color: 'var(--text-secondary)' }}>{entryTime} – {exitTime}</p>}
-                      </div>
-
-                      {/* Clients */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Users size={13} color={assignedCount > 0 ? '#eab308' : 'var(--text-secondary)'} />
-                        <span style={{ fontWeight: 700, fontSize: '14px', color: assignedCount > 0 ? '#eab308' : 'var(--text-secondary)' }}>{assignedCount}</span>
-                      </div>
-
-                      {/* Trades */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Activity size={13} color="var(--text-secondary)" />
-                        <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>{tradeCount}</span>
-                      </div>
-
-                      {/* Actions */}
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        {/* Status toggle */}
-                        <button
-                          onClick={e => { e.stopPropagation(); handleToggleStatus(strat); }}
-                          title={isActive ? 'Deactivate' : 'Activate'}
-                          style={{
-                            padding: '5px 10px',
-                            borderRadius: '20px',
-                            border: `1px solid ${isActive ? 'rgba(34,197,94,0.3)' : 'rgba(148,163,184,0.25)'}`,
-                            background: isActive ? 'rgba(34,197,94,0.08)' : 'rgba(148,163,184,0.06)',
-                            color: isActive ? '#22c55e' : '#94a3b8',
-                            fontSize: '10px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            letterSpacing: '0.04em',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {isActive ? '● ON' : '○ OFF'}
-                        </button>
-
-                        <button
-                          onClick={() => { setSelectedStrategy(strat); setViewMode('detail'); setDetailTab('overview'); }}
-                          title="View"
-                          style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-primary)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'var(--color-primary)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
-                        >
-                          <Eye size={13} />
-                        </button>
-
-                        <button
-                          onClick={() => handleEdit(strat)}
-                          title="Edit"
-                          style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                        >
-                          <Edit3 size={13} />
-                        </button>
-
-                        <button
-                          onClick={() => handleClone(strat.id)}
-                          title="Clone"
-                          style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                        >
-                          <Copy size={13} />
-                        </button>
-
-                        <button
-                          onClick={() => handleDelete(strat)}
-                          title="Delete"
-                          style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.05)', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.05)'; }}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+            {/* Filters panel */}
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              marginBottom: '20px',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              background: 'var(--bg-secondary)',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              border: '1px solid var(--border-color)'
+            }}>
+              {/* Search */}
+              <div style={{ position: 'relative', flex: '2 1 200px', minWidth: '200px' }}>
+                <svg style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input
+                  type="text"
+                  placeholder="Search strategies..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  style={{ paddingLeft: '32px', height: '34px', fontSize: '12px', width: '100%', outline: 'none' }}
+                />
               </div>
-            );
-          })()}
+              {/* Status filter */}
+              <select
+                value={filterType}
+                onChange={e => setFilterType(e.target.value)}
+                style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', flex: '1 1 130px', minWidth: '130px' }}
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+
+            {/* Table */}
+            {(() => {
+              const filtered = strategies.filter(s =>
+                (filterType === 'all' || s.status === filterType) &&
+                (searchQuery === '' || s.name.toLowerCase().includes(searchQuery.toLowerCase()) || (s.description || '').toLowerCase().includes(searchQuery.toLowerCase()))
+              );
+              const stratPageSize = 15;
+              const [stratPage, setStratPage] = React.useState(1);
+              const stratTotalPages = Math.ceil(filtered.length / stratPageSize) || 1;
+              const stratStart = (stratPage - 1) * stratPageSize;
+              const paginated = filtered.slice(stratStart, stratStart + stratPageSize);
+
+              return (
+                <>
+                  <div className="table-responsive">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Strategy</th>
+                          <th>Segment</th>
+                          <th>Type</th>
+                          <th>Timeframe</th>
+                          <th>Clients</th>
+                          <th>Trades</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginated.length === 0 ? (
+                          <tr>
+                            <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
+                              No strategies found. Click <strong>+ Create Strategy</strong> to get started.
+                            </td>
+                          </tr>
+                        ) : (
+                          paginated.map(strat => {
+                            let segment = 'N/A', tradeType = 'N/A', timeframe = 'N/A', entryTime = '', exitTime = '';
+                            try {
+                              const p = JSON.parse(strat.configJson);
+                              segment = p.basicInfo?.segment || segment;
+                              tradeType = p.basicInfo?.tradeType || tradeType;
+                              timeframe = p.basicInfo?.timeframe || timeframe;
+                              entryTime = p.basicInfo?.entryTime || '';
+                              exitTime = p.basicInfo?.exitTime || '';
+                            } catch (e) {}
+                            const assignedCount = clients.filter(c => c.strategyId === strat.id).length;
+                            const tradeCount = (trades || []).filter(t => t.strategyId === strat.id).length;
+                            const isActive = strat.status === 'active';
+
+                            return (
+                              <tr
+                                key={strat.id}
+                                style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
+                                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'}
+                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                              >
+                                <td>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0, background: isActive ? '#22c55e' : '#475569', boxShadow: isActive ? '0 0 6px rgba(34,197,94,0.8)' : 'none' }} />
+                                    <div>
+                                      <div style={{ fontWeight: 600, fontSize: '13px' }}>{strat.name}</div>
+                                      {strat.description && <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{strat.description}</div>}
+                                    </div>
+                                  </div>
+                                </td>
+                                <td><span className="badge badge-blue" style={{ padding: '3px 8px', fontSize: '10px' }}>{segment}</span></td>
+                                <td><span className="badge" style={{ padding: '3px 8px', fontSize: '10px', background: 'rgba(139,92,246,0.1)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.2)', borderRadius: '4px' }}>{tradeType}</span></td>
+                                <td>
+                                  <span className="badge" style={{ padding: '3px 8px', fontSize: '10px', background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '4px' }}>{timeframe}</span>
+                                  {entryTime && <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '3px' }}>{entryTime} – {exitTime}</div>}
+                                </td>
+                                <td style={{ fontWeight: 600, color: assignedCount > 0 ? '#eab308' : 'var(--text-secondary)' }}>{assignedCount}</td>
+                                <td style={{ fontWeight: 500 }}>{tradeCount}</td>
+                                <td>
+                                  <button
+                                    onClick={e => { e.stopPropagation(); handleToggleStatus(strat); }}
+                                    title="Click to toggle"
+                                    style={{ padding: '4px 10px', fontSize: '10px', fontWeight: 700, cursor: 'pointer', borderRadius: '20px', letterSpacing: '0.04em', border: isActive ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(148,163,184,0.3)', background: isActive ? 'rgba(34,197,94,0.1)' : 'rgba(148,163,184,0.08)', color: isActive ? '#22c55e' : '#94a3b8' }}
+                                  >
+                                    {isActive ? '● ACTIVE' : '○ INACTIVE'}
+                                  </button>
+                                </td>
+                                <td>
+                                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                    <button onClick={() => { setSelectedStrategy(strat); setViewMode('detail'); setDetailTab('overview'); }} title="View" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-primary)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'var(--color-primary)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}><Eye size={13} /></button>
+                                    <button onClick={() => handleEdit(strat)} title="Edit" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}><Edit3 size={13} /></button>
+                                    <button onClick={() => handleClone(strat.id)} title="Clone" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}><Copy size={13} /></button>
+                                    <button onClick={() => handleDelete(strat)} title="Delete" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.05)', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.05)'; }}><Trash2 size={13} /></button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination Footer */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', flexWrap: 'wrap', gap: '12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    <span>Showing {filtered.length ? stratStart + 1 : 0} to {Math.min(stratStart + stratPageSize, filtered.length)} of {filtered.length} entries</span>
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <button onClick={() => setStratPage(p => Math.max(p - 1, 1))} disabled={stratPage === 1} style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', cursor: stratPage === 1 ? 'not-allowed' : 'pointer', color: 'var(--text-primary)' }}>&lt;</button>
+                      {Array.from({ length: stratTotalPages }).map((_, i) => (
+                        <button key={i} onClick={() => setStratPage(i + 1)} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', background: stratPage === i + 1 ? 'var(--color-primary)' : 'var(--bg-secondary)', color: stratPage === i + 1 ? 'white' : 'var(--text-primary)', fontWeight: 600, cursor: 'pointer' }}>{i + 1}</button>
+                      ))}
+                      <button onClick={() => setStratPage(p => Math.min(p + 1, stratTotalPages))} disabled={stratPage === stratTotalPages} style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', cursor: stratPage === stratTotalPages ? 'not-allowed' : 'pointer', color: 'var(--text-primary)' }}>&gt;</button>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+          </Card>
         </>
       )}
 
