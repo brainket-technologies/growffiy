@@ -509,6 +509,69 @@ if (hours === 15 && minutes === 15) {
 
 ---
 
+## 📍 Admin Reference — Konsi Value Kaha Se Change Hogi
+
+### 1. Admin Strategy Form (`/admin/strategies` → Create/Edit)
+
+| Field | Form Section | Default | `configJson` Path |
+|---|---|---|---|
+| Entry Time | Basic Info → Entry Time | `09:20` | `basicInfo.entryTime` |
+| Exit Time | Basic Info → Exit Time | `15:15` | `basicInfo.exitTime` |
+| Max Positions (Top N losers) | Basic Info → Max Trades/Day | `3` | `basicInfo.maxTradesPerDay` |
+| Timeframe | Basic Info → Timeframe | `5m` | `basicInfo.timeframe` |
+| Segment (F&O/Nifty/BankNifty) | Basic Info → Segment | `NSE F&O` | `basicInfo.segment` |
+| Action (Long/Short) | Trade Action → Action Direction | `Long` | `tradeAction.action` |
+| Order Type | Trade Action → Order Type | `Limit` | `tradeAction.orderType` |
+| Buffer % | Trade Action → Buffer % | `0.1` | `tradeAction.bufferPercent` |
+| Stop Loss % | Target & Stoploss → SL Target Value | `0.5` | `stoploss.fixedPercent` |
+| Target % | Target & Stoploss → Target Value | `1.5` | `target.profitPercent` |
+| Risk Per Trade % | Risk Guard → Risk Per Trade % | `1.0` | `riskManagement.riskPerTrade` |
+| Conditions (add/remove) | Entry Conditions → Add Rule | (see below) | `conditions[]` |
+
+**Default conditions (admin add/remove/modify karega):**
+```
+1. Pre Open Change %  <  -1.5   (Gap Down filter)
+2. Price Action       >  Previous 5m High  (Breakout check)
+```
+
+---
+
+### 2. Admin Settings Page (`/admin/settings`)
+
+| Setting Key | Default Value | Kya Control Karta Hai |
+|---|---|---|
+| `algo_preopen_fetch_time` | `09:08` | Pre-open data fetch time |
+| `algo_entry_time` | `09:20` | Candle breakout + entry time |
+| `algo_token_refresh_time` | `08:00` | Daily Kite token auto-refresh time |
+| `algo_check_interval_sec` | `60` | Har kitne sec mein scheduler loop check kare |
+
+---
+
+### 3. Client Table (Admin → Clients → Edit)
+
+| Field | Location | Description |
+|---|---|---|
+| `client.capital` | Client edit form | **Total account limit** — 1% trade amount isse zyada nahi hoga |
+| `client.tradingStatus` | Client edit form | `active` = trade allow, `inactive` = trade block |
+| `client.subscriptionStatus` | Client edit form | `active` / `expired` / `pending` |
+| `client.strategy` | Client assignment form | Kaunsi strategy assign hai |
+| `client.zerodhaApiKey` | Client edit form | Zerodha API Key |
+| `client.zerodhaApiSecret` | Client edit form | Zerodha API Secret |
+| `client.zerodhaClientId` | Client edit form | Zerodha User ID |
+| `client.zerodhaPassword` | Client edit form | Zerodha Password (auto-login ke liye) |
+| `client.zerodhaTotpSecret` | Client edit form | TOTP Secret (auto-login ke liye) |
+
+---
+
+### 4. Environment Variables (`.env` file)
+
+| Key | Values | Description |
+|---|---|---|
+| `KITE_AUTO_LOGIN_ENABLED` | `true` / `false` | TOTP auto-login on ya off |
+| `USE_HTTP_POLLING` | `true` / `false` | `true` = HTTP polling (Vercel), `false` = WebSocket (VPS) |
+
+---
+
 ## Edge Cases (Actual Code Behavior)
 
 | Scenario | Actual Behavior |
