@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Card } from '../../../../../views/components/Card';
 import { Button } from '../../../../../views/components/Button';
 import { PerformanceChart } from '../../../../../views/components/PerformanceChart';
+import { Modal } from '../../../../../views/components/Modal';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -23,7 +24,8 @@ import {
   Copy,
   CheckCircle,
   FileSpreadsheet,
-  Percent
+  Percent,
+  XCircle
 } from 'lucide-react';
 import { useAppViewModel } from '../../../../../viewmodels/AppContext';
 import { api } from '../../../../../lib/api';
@@ -36,9 +38,9 @@ const formatDateTime = (timeStr: string | Date | null) => {
     return date.toLocaleString('en-US', {
       day: '2-digit',
       month: 'short',
-      year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      second: '2-digit',
       hour12: true
     });
   } catch (e) {
@@ -786,214 +788,105 @@ export default function ClientPerformancePage() {
         </div>
       </Card>
 
-      {/* Trade Details Modal */}
-      {selectedTrade && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.6)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '20px'
-        }} onClick={() => setSelectedTrade(null)}>
-          <div style={{
-            background: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            width: '100%',
-            maxWidth: '600px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            display: 'flex',
-            flexDirection: 'column'
-          }} onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header */}
-            <div style={{
-              padding: '20px 24px',
-              borderBottom: '1px solid var(--border-color)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
+      {/* Trade Details / Failure Reason Modal */}
+      <Modal 
+        isOpen={!!selectedTrade} 
+        onClose={() => setSelectedTrade(null)} 
+        title="Order Execution details"
+      >
+        {selectedTrade && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
               <div>
-                <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-heading)', margin: 0, fontFamily: 'var(--font-title)' }}>
-                  Trade Details
-                </h3>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ID: {selectedTrade.id}</span>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Symbol</span>
+                <strong style={{ fontSize: '15px' }}>{selectedTrade.symbol}</strong>
               </div>
-              <button 
-                onClick={() => setSelectedTrade(null)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '20px',
-                  fontWeight: 600,
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  padding: '4px'
-                }}
-              >
-                &times;
-              </button>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Strategy Name</span>
+                <strong>{selectedTrade.strategy?.name || selectedTrade.strategyName || 'Pre-Open Momentum'}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Client Name</span>
+                <strong>{clientName}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Order Product / Type</span>
+                <span>{selectedTrade.orderType} / MIS</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Quantity</span>
+                <span>{selectedTrade.quantity} shares</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Total Invested</span>
+                <span>₹{(Number(selectedTrade.entryPrice || 0) * selectedTrade.quantity).toFixed(2)}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Time</span>
+                <span>{formatDateTime(selectedTrade.entryTime || selectedTrade.createdAt)}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Price</span>
+                <span>₹{Number(selectedTrade.entryPrice || 0).toFixed(2)}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Exit Time</span>
+                <span>{formatDateTime(selectedTrade.exitTime)}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Exit Price</span>
+                <span>{selectedTrade.exitPrice ? `₹${Number(selectedTrade.exitPrice).toFixed(2)}` : '--'}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Status</span>
+                <span className={`badge ${selectedTrade.status.toLowerCase() === 'open' ? 'badge-info' : selectedTrade.status.toLowerCase() === 'failed' ? 'badge-red' : 'badge-success'}`}>
+                  {selectedTrade.status.toUpperCase()}
+                </span>
+              </div>
             </div>
 
-            {/* Modal Body */}
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Top Row Strategy & Status */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '16px' }}>
+            {/* Failure/Kite Response Details */}
+            {selectedTrade.status.toLowerCase() === 'failed' && (
+              <div style={{ padding: '12px 16px', borderRadius: '10px', backgroundColor: '#fef2f2', border: '1px solid #fee2e2', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                <XCircle size={18} color="#ef4444" style={{ marginTop: '2px', flexShrink: 0 }} />
                 <div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Strategy</span>
-                  <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
-                    {selectedTrade.strategy?.name || selectedTrade.strategyName || 'Pre-Open Momentum'}
-                  </div>
-                </div>
-                <div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Execution Status</span>
-                  <div style={{ marginTop: '4px' }}>
-                    <span className={`badge ${
-                      selectedTrade.status.toLowerCase() === 'open' 
-                        ? 'badge-info' 
-                        : selectedTrade.status.toLowerCase() === 'failed' 
-                          ? 'badge-danger' 
-                          : selectedTrade.status.toLowerCase() === 'cancelled'
-                            ? 'badge-warning'
-                            : 'badge-success'
-                    }`} style={{ fontSize: '11px', padding: '4px 12px' }}>
-                      {selectedTrade.status.toUpperCase()}
-                    </span>
-                  </div>
+                  <h5 style={{ color: '#991b1b', fontWeight: 600, fontSize: '13px' }}>Kite Rejection Reason:</h5>
+                  <p style={{ color: '#b91c1c', fontSize: '13px', marginTop: '4px', lineHeight: '1.4' }}>
+                    {selectedTrade.kiteResponse?.message || selectedTrade.kiteResponse?.status || 'No specific error message received from Zerodha API.'}
+                  </p>
                 </div>
               </div>
+            )}
 
-              {/* Price & Quantity Grid */}
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(3, 1fr)', 
-                gap: '16px',
-                padding: '16px',
-                backgroundColor: '#f8fafc',
-                borderRadius: '12px',
-                border: '1px solid #e2e8f0'
-              }}>
-                <div>
-                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Symbol</span>
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-heading)', marginTop: '2px' }}>{selectedTrade.symbol}</div>
-                </div>
-                <div>
-                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Type</span>
-                  <div style={{ marginTop: '2px' }}>
-                    <span className={`badge ${selectedTrade.orderType?.toUpperCase() === 'BUY' ? 'badge-blue' : 'badge-red'}`} style={{ padding: '2px 8px', fontSize: '9px' }}>
-                      {selectedTrade.orderType}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Quantity</span>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>{selectedTrade.quantity}</div>
-                </div>
-
-                <div>
-                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Entry Price</span>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
-                    ₹{Number(selectedTrade.entryPrice || 0).toFixed(2)}
-                  </div>
-                </div>
-                <div>
-                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Exit Price</span>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
-                    {selectedTrade.exitPrice ? `₹${Number(selectedTrade.exitPrice).toFixed(2)}` : '--'}
-                  </div>
-                </div>
-                <div>
-                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Net P&L</span>
-                  <div style={{ 
-                    fontSize: '14px', 
-                    fontWeight: 800, 
-                    marginTop: '2px',
-                    color: Number(selectedTrade.pnl || 0) >= 0 ? 'var(--color-success)' : 'var(--color-danger)'
-                  }}>
-                    {Number(selectedTrade.pnl || 0) >= 0 ? `+₹${Number(selectedTrade.pnl || 0).toFixed(2)}` : `-₹${Math.abs(Number(selectedTrade.pnl || 0)).toFixed(2)}`}
-                  </div>
-                </div>
-
-                <div>
-                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Stop Loss</span>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    {selectedTrade.stopLoss ? `₹${Number(selectedTrade.stopLoss).toFixed(2)}` : '--'}
-                  </div>
-                </div>
-                <div>
-                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Target</span>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    {selectedTrade.target ? `₹${Number(selectedTrade.target).toFixed(2)}` : '--'}
-                  </div>
-                </div>
-                <div></div>
-              </div>
-
-              {/* Time stamps */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Entry Time</span>
-                  <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginTop: '4px' }}>
-                    {formatDateTime(selectedTrade.entryTime || selectedTrade.createdAt)}
-                  </div>
-                </div>
-                <div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Exit Time</span>
-                  <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginTop: '4px' }}>
-                    {selectedTrade.exitTime ? formatDateTime(selectedTrade.exitTime) : '--'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Kite API Response Logs */}
+            {/* Raw JSON logs */}
+            {selectedTrade.kiteResponse && (
               <div>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Kite Response / Execution logs</span>
-                <div style={{ 
-                  marginTop: '6px', 
-                  backgroundColor: '#0f172a', 
-                  color: '#e2e8f0', 
-                  padding: '16px', 
-                  borderRadius: '10px', 
-                  fontSize: '12px',
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>
+                  Raw Zerodha API Response Logs
+                </span>
+                <pre style={{ 
+                  backgroundColor: 'var(--bg-secondary)', 
+                  border: '1px solid var(--border-color)', 
+                  padding: '12px', 
+                  borderRadius: '8px', 
+                  fontSize: '11px', 
                   fontFamily: 'monospace',
                   overflowX: 'auto',
                   maxHeight: '180px',
-                  whiteSpace: 'pre-wrap',
-                  border: '1px solid #1e293b'
+                  lineHeight: '1.4',
+                  color: 'var(--text-primary)'
                 }}>
-                  {selectedTrade.kiteResponse 
-                    ? JSON.stringify(selectedTrade.kiteResponse, null, 2) 
-                    : 'No broker response received.'
-                  }
-                </div>
+                  {JSON.stringify(selectedTrade.kiteResponse, null, 2)}
+                </pre>
               </div>
-            </div>
+            )}
 
-            {/* Modal Footer */}
-            <div style={{ 
-              padding: '16px 24px', 
-              borderTop: '1px solid var(--border-color)', 
-              display: 'flex', 
-              justifyContent: 'flex-end',
-              background: '#f8fafc',
-              borderBottomLeftRadius: '16px',
-              borderBottomRightRadius: '16px'
-            }}>
-              <Button onClick={() => setSelectedTrade(null)} variant="secondary" style={{ padding: '8px 16px', fontSize: '13px' }}>
-                Close
-              </Button>
-            </div>
+            <Button onClick={() => setSelectedTrade(null)} style={{ marginTop: '8px' }}>
+              Close
+            </Button>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }
