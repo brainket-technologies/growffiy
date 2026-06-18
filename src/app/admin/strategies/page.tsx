@@ -24,7 +24,8 @@ import {
   FileCode,
   AlertCircle,
   Calendar,
-  ChevronDown
+  ChevronDown,
+  Save
 } from 'lucide-react';
 import { Modal } from '../../../views/components/Modal';
 
@@ -1208,42 +1209,44 @@ export default function StrategiesPage() {
         </>
       )}
 
-      {/* VIEW: CREATE / EDIT STRATEGY FORM */}
-      {(viewMode === 'create' || viewMode === 'edit') && (
-        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
-          {formErrors && (
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: 'var(--color-danger)', fontSize: '13px' }}>
-              <AlertCircle size={16} />
-              <span>{formErrors}</span>
-            </div>
-          )}
-
-          {viewMode === 'create' && templates.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(255,255,255,0.01)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <h4 style={{ fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-                <TrendingUp size={16} color={colors.PRIMARY} /> Start with a Template Config (Optional)
-              </h4>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-                {templates.map(tmpl => (
-                  <div key={tmpl.id} onClick={() => handleLoadTemplate(tmpl)} style={{ cursor: 'pointer', padding: '12px', borderRadius: '6px', border: `1px solid var(--border-color)`, background: 'transparent', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = colors.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}>
-                    <h5 style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>{tmpl.name}</h5>
-                    <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>{tmpl.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-            {/* LEFT: BASIC INFO & TRADE ACTIONS */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* VIEW: CREATE / EDIT STRATEGY FORM */}
+          {(viewMode === 'create' || viewMode === 'edit') && (
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '24px', animation: 'fadeIn 0.3s ease', background: 'rgba(255,255,255,0.3)', padding: '24px', borderRadius: '20px', border: '1px solid rgba(226,232,240,0.5)' }}>
               
-              {/* Basic Information */}
-              <Card>
-                <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Settings size={18} color={colors.PRIMARY} /> Basic Strategy Info
-                </h3>
+              {formErrors && (
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '12px 16px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '12px', color: 'var(--color-danger)', fontSize: '13px' }}>
+                  <AlertCircle size={16} />
+                  <span>{formErrors}</span>
+                </div>
+              )}
+  
+              {viewMode === 'create' && templates.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(255,255,255,0.01)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                    <TrendingUp size={16} color={colors.PRIMARY} /> Start with a Template Config (Optional)
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                    {templates.map(tmpl => (
+                      <div key={tmpl.id} onClick={() => handleLoadTemplate(tmpl)} style={{ cursor: 'pointer', padding: '14px', borderRadius: '10px', border: `1px solid var(--border-color)`, background: 'rgba(255,255,255,0.02)', transition: 'all 0.25s ease' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = colors.PRIMARY; e.currentTarget.style.background = 'rgba(14,165,233,0.04)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 16px rgba(0,0,0,0.06)'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
+                        <h5 style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>{tmpl.name}</h5>
+                        <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>{tmpl.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+  
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '28px' }}>
+                {/* LEFT: BASIC INFO & TRADE ACTIONS */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                  
+                  {/* Basic Information */}
+                  <Card hoverable>
+                    <div style={{ background: 'linear-gradient(135deg, rgba(14,165,233,0.06) 0%, rgba(99,102,241,0.04) 100%)', margin: '-24px -24px 16px -24px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', borderRadius: '16px 16px 0 0' }}>
+                      <h3 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                        <Settings size={16} color={colors.PRIMARY} /> Basic Strategy Info
+                      </h3>
+                    </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 600 }}>Strategy Name *</label>
@@ -1431,10 +1434,12 @@ export default function StrategiesPage() {
               </Card>
 
               {/* Trade Action config */}
-              <Card>
-                <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Play size={18} color="var(--color-success)" /> Trade Action
-                </h3>
+              <Card hoverable>
+                <div style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.06) 0%, rgba(5,150,105,0.04) 100%)', margin: '-24px -24px 16px -24px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', borderRadius: '16px 16px 0 0' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                    <Play size={16} color="var(--color-success)" /> Trade Action
+                  </h3>
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 600 }}>Action Direction</label>
@@ -1511,19 +1516,19 @@ export default function StrategiesPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               
               {/* Dynamic Condition Builder */}
-              <Card>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                    <FileCode size={18} color="var(--color-info)" /> Dynamic Entry Conditions
+              <Card hoverable>
+                <div style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(79,70,229,0.04) 100%)', margin: '-24px -24px 16px -24px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', borderRadius: '16px 16px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                    <FileCode size={16} color="var(--color-info)" /> Dynamic Entry Conditions
                   </h3>
-                  <Button type="button" variant="secondary" onClick={addCondition} style={{ padding: '4px 10px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Plus size={12} /> Add Rule
+                  <Button type="button" variant="secondary" onClick={addCondition} style={{ padding: '6px 14px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', color: 'var(--color-primary)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.08)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.2)'; }}>
+                    <Plus size={14} /> Add Rule
                   </Button>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {formData.conditions.map((cond, idx) => (
-                    <div key={idx} style={{ display: 'grid', gridTemplateColumns: idx > 0 ? '56px 1fr 120px 130px 28px' : '1fr 120px 130px 28px', gap: '8px', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <div key={idx} style={{ display: 'grid', gridTemplateColumns: idx > 0 ? '56px 1fr 120px 130px 28px' : '1fr 120px 130px 28px', gap: '8px', alignItems: 'center', background: idx % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border-color)', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = colors.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}>
                       {idx > 0 && (
                         <select
                           value={cond.logical}
@@ -1566,26 +1571,33 @@ export default function StrategiesPage() {
                       <button
                         type="button"
                         onClick={() => removeCondition(idx)}
-                        style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', transition: 'all 0.2s' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.transform = 'none'; }}
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   ))}
                   {formData.conditions.length === 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', gap: '8px', color: 'var(--text-secondary)' }}>
-                      <FileCode size={28} style={{ opacity: 0.3 }} />
-                      <p style={{ fontSize: '12px', textAlign: 'center' }}>No conditions set. Trades will trigger at entry time automatically.</p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px', gap: '12px', color: 'var(--text-secondary)', background: 'rgba(99,102,241,0.03)', borderRadius: '12px', border: '1px dashed var(--border-color)' }}>
+                      <FileCode size={24} style={{ opacity: 0.3 }} />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <p style={{ fontSize: '13px', textAlign: 'center', margin: 0 }}>No conditions set.</p>
+                        <p style={{ fontSize: '11px', textAlign: 'center', margin: 0, opacity: 0.7 }}>Trades will trigger at entry time automatically.</p>
+                      </div>
                     </div>
                   )}
                 </div>
               </Card>
 
               {/* Stoploss & Target Module */}
-              <Card>
-                <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <ShieldAlert size={18} color="var(--color-danger)" /> Target & Stoploss Rules
-                </h3>
+              <Card hoverable>
+                <div style={{ background: 'linear-gradient(135deg, rgba(239,68,68,0.06) 0%, rgba(220,38,38,0.04) 100%)', margin: '-24px -24px 16px -24px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', borderRadius: '16px 16px 0 0' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                    <ShieldAlert size={16} color="var(--color-danger)" /> Target & Stoploss Rules
+                  </h3>
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 600 }}>Stoploss Type</label>
@@ -1698,10 +1710,12 @@ export default function StrategiesPage() {
               </Card>
 
               {/* Risk Management */}
-              <Card>
-                <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <ShieldAlert size={18} color="var(--color-info)" /> Risk Guard System
-                </h3>
+              <Card hoverable>
+                <div style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.06) 0%, rgba(217,119,6,0.04) 100%)', margin: '-24px -24px 16px -24px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', borderRadius: '16px 16px 0 0' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                    <ShieldAlert size={16} color="var(--color-info)" /> Risk Guard System
+                  </h3>
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 600 }}>Capital Allocation %</label>
@@ -1787,9 +1801,9 @@ export default function StrategiesPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '12px' }}>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
             <Button type="button" variant="secondary" onClick={() => setViewMode('list')}>Cancel</Button>
-            <Button type="submit">Save Strategy Settings</Button>
+            <button type="submit" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 24px', background: 'linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%)', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 12px rgba(14,165,233,0.25)', transition: 'all 0.25s ease' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(14,165,233,0.35)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(14,165,233,0.25)'; }}><Save size={16} /> Save Strategy Settings</button>
           </div>
         </form>
       )}
