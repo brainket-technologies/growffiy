@@ -697,10 +697,12 @@ Engine har trade se pehle Zerodha ka LIVE balance fetch karta hai:
   ⚠️  DB capital = ₹50,000 (yeh sirf ek MAX LIMIT cap hai)
   ⚠️  Real balance sirf ₹1,709.80 hai
 
-  🔴 PROBLEM: 1% of ₹1,709.80 = ₹17.09
-     ₹17.09 / ₹196.99 (entry price) = 0 shares
-     → Trade SKIP ho jayegi (quantity 0)
-     → Vikash ke account me trade lagaane ke liye paise nahi hai!
+  ✅ FIX: riskPerTrade ab 1% nahi — 50% kar diya gaya hai
+     riskPerTrade = 50 (strategy config me update)
+     
+     50% of ₹1,709.80 = ₹854.90
+     ₹854.90 / ₹196.99 (entry price) = 4 shares ✅
+     → Trade LAGEGI! Vikash ke account me ab trade ho sakti hai
 ```
 
 ### 9.3 Position Sizing — Step by Step (Real Data)
@@ -716,74 +718,69 @@ Engine har trade se pehle Zerodha ka LIVE balance fetch karta hai:
 ├──────────────────────────────────────────────────────────────────┤
 │ STEP 2: RISK PERCENT APPLY                                      │
 ├──────────────────────────────────────────────────────────────────┤
-│ riskPerTrade = 1% (strategy config se)                           │
-│ allocatedAmount = ₹1,709.80 × 1% = ₹17.09                       │
+│ riskPerTrade = 50% (strategy config se — ab 50 kar diya)        │
+│ allocatedAmount = ₹1,709.80 × 50% = ₹854.90                     │
 │                                                                  │
-│ 📌 Sirf ₹17 allocate hoga — bahut kam!                          │
+│ 📌 ₹854 allocate hoga — ab trade laga sakta hai!                │
 ├──────────────────────────────────────────────────────────────────┤
 │ STEP 3: DB CAP CHECK                                            │
 ├──────────────────────────────────────────────────────────────────┤
 │ client.capital (DB) = ₹50,000                                    │
-│ finalAmount = min(₹17.09, ₹50,000) = ₹17.09                     │
+│ finalAmount = min(₹854.90, ₹50,000) = ₹854.90                   │
 │                                                                  │
-│ 📌 DB cap ₹50,000 hai lekin live balance hi ₹1,709 hai          │
-│    Isliye cap irrelevant hai — live balance hi decide karega     │
+│ 📌 DB cap ₹50,000 hai, allocated ₹854 hai — cap issue nahi     │
 ├──────────────────────────────────────────────────────────────────┤
 │ STEP 4: QUANTITY                                                │
 ├──────────────────────────────────────────────────────────────────┤
 │ entryPrice = ₹196.99 (candle high + 0.1% buffer)                │
-│ quantity = floor(₹17.09 / ₹196.99) = 0 ❌                        │
+│ quantity = floor(₹854.90 / ₹196.99) = 4 shares ✅               │
 │                                                                  │
-│ 📌 ENTRY PRICE (₹196.99) > ALLOCATED AMOUNT (₹17.09)            │
-│    → Quantity 0 → Trade FAILED → SKIP                           │
-│    → StrategyLog: "Calculated quantity is 0"                    │
-│    → Trade status: "FAILED"                                     │
+│ 📌 Trade value = 4 × ₹196.99 = ₹787.96                          │
+│    ₹854 me se ₹787 lag gaye, baki ₹66 leftover                   │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
 ### 9.4 Different Scenarios — Real Balance Comparison
 
 ```
-╔═════════════════════════════════════════════════════════════════════╗
-║  SCENARIO     LIVE BALANCE   1% ALLOCATION   DB CAP    QTY    TRADE║
-║               (Zerodha)                          (50K)         ║
-╠═════════════════════════════════════════════════════════════════════╣
-║  A (REAL)     ₹1,709         ₹17             ₹50,000   0      ❌  ║
-║  B (₹50K)     ₹50,000        ₹500            ₹50,000   2      ✅  ║
-║  C (₹2L)      ₹2,00,000      ₹2,000          ₹50,000   10     ✅  ║
-║  D (₹8L)      ₹8,00,000      ₹8,000          ₹50,000   40     ✅  ║
-║  E (₹20L)     ₹20,00,000     ₹20,000         ₹50,000   101    ✅  ║
-║  F (₹1Cr)     ₹1,00,00,000   ₹1,00,000       ₹50,000   253    ✅  ║ ← capped
-╚═════════════════════════════════════════════════════════════════════╝
+╔══════════════════════════════════════════════════════════════════════╗
+║  SCENARIO     LIVE BALANCE   50% ALLOCATION  DB CAP    QTY   TRADE ║
+║               (Zerodha)                          (50K)           ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  A (REAL ✅)  ₹1,709         ₹854            ₹50,000   4     ✅   ║
+║  B (₹50K)     ₹50,000        ₹25,000         ₹50,000   126   ✅   ║
+║  C (₹2L)      ₹2,00,000      ₹1,00,000       ₹50,000   253   ✅   ║ ← capped
+║  D (₹8L)      ₹8,00,000      ₹4,00,000       ₹50,000   253   ✅   ║ ← capped
+╚══════════════════════════════════════════════════════════════════════╝
 
 🔑 KEY TAKEAWAY:
-  Vikash ke account me abhi sirf ₹1,709 hai → koi trade nahi lagegi.
-  Admin ko chaahiye ki Vikash apne Zerodha account me paise add kare,
-  ya admin DB capital badhane se kuch nahi hoga — live balance decide karta hai.
+  riskPerTrade = 50% karne se Vikash ki trade lag gayi — 4 shares.
+  Lekin 50% risk means aadha balance ek trade me lag raha hai.
+  Agar SL hit hua to ₹39.60 loss nahi, ₹787.96 loss hoga (50% of ₹1,709).
 ```
 
 ### 9.5 Admin Kya Change Kar Sakta Hai
 
 | Admin Change | Effect |
-|---|---|
-| **DB capital ₹50,000 → ₹1,00,000** | ❌ Koi fark nahi. Live balance ₹1,709 hai — DB cap irrelevant |
-| **riskPerTrade 1% → 10%** | ₹1,709 × 10% = ₹170 → qty = floor(170/196.99) = 0 ❌ Still skip |
-| **riskPerTrade 1% → 100%** | ₹1,709 × 100% = ₹1,709 → qty = floor(1709/196.99) = 8 ✅ Trade lagegi |
-| **Vikash Zerodha me paise daale** | ₹50,000 add → balance ₹51,709 → 1% = ₹517 → qty = 2 ✅ |
+|---|---|---|
+| **riskPerTrade 1% → 50% (KAR DIYA)** | ₹1,709 × 50% = ₹854 → qty = 4 ✅ Trade lag gayi |
+| **riskPerTrade 50% → 100%** | ₹1,709 × 100% = ₹1,709 → qty = 8 ✅ Zyada shares |
+| **DB capital ₹50,000 → ₹1,00,000** | ❌ Koi fark nahi. Live balance ₹1,709 hai — cap lagega hi nahi |
+| **Vikash Zerodha me paise daale** | ₹50,000 add → balance ₹51,709 → 50% = ₹25,854 → qty = 131 ✅ |
 
-| Admin Kya Nahi Kar Sakta | Reason |
+| ⚠️ Warning | Explanation |
 |---|---|
-| DB capital badhake trade laga dena | Live balance Kite se aata hai, DB cap sirf limit hai. Agar Zerodha me paise nahi to trade nahi lagegi |
+| **50% risk = HIGH RISK** | 1% normal hota hai. 50% ka matlab aadha balance ek trade me. Agar SL laga to ₹787 loss (46% of balance) |
+| **Best practice** | Vikash ko Zerodha me paise daalne chahiye (₹50,000+) aur riskPerTrade 1-2% rakhna chahiye |
 
-### 9.6 Trade Example — Agar Vikash Ke Account Me Paise Hote
+### 9.6 Real Trade Example — Vikash Ke Saath Ab Kya Hoga (50% risk)
 
 ```
 ═══════════════════════════════════════════════════════════════
 CLIENT: Vikash Sharma (RZJ500) | DATE: 19 June 2026
 ═══════════════════════════════════════════════════════════════
 
-📌 REALITY: Live Balance = ₹1,709 → TRADE SKIP ❌
-📌 SCENARIO: Agar balance = ₹8,00,000 hota to:
+📌 REALITY: Live Balance = ₹1,709.80 | riskPerTrade = 50% ✅
 
 Pre-Open Data:
   HINDALCO -4.20% → sortedStocks[0] → selected ✅
@@ -791,17 +788,32 @@ Pre-Open Data:
 5-min Candle High: ₹196.80
 Entry Price (SL-M trigger): ₹196.80 × 1.001 = ₹196.99
 
-Kite.getMargins() → ₹8,00,000
-1% = ₹8,000 → DB cap ₹50,000 → min(8000, 50000) = ₹8,000
-Quantity: floor(8000 / 196.99) = 40 shares
+Kite.getMargins() → ₹1,709.80
+50% = ₹854.90 → DB cap ₹50,000 → min(854.90, 50000) = ₹854.90
+Quantity: floor(854.90 / 196.99) = 4 shares ✅
 
 ✅ ORDER PLACED:
-  BUY 40 HINDALCO @ SL-Market trigger ₹196.99
+  BUY 4 HINDALCO @ SL-Market trigger ₹196.99
   SL: ₹196.00 (0.5% trailing)
   Target: ₹200.02 (1.5% trailing)
 
-📊 VIKASH KA EXPOSURE (agar balance hota):
-  Trade Value: 40 × ₹196.99 = ₹7,879.60
+📊 VIKASH KA EXPOSURE:
+  Trade Value: 4 × ₹196.99 = ₹787.96
+  50% of balance trade me lag gayi
+  
+  ✅ TARGET HIT (₹200.02):
+    Profit = 4 × ₹3.03 = ₹12.12
+    New balance = ₹1,709.80 + ₹12.12 = ₹1,721.92
+  
+  ❌ STOP LOSS HIT (₹196.00):
+    Loss = 4 × ₹0.99 = ₹3.96
+    Actual loss sirf ₹3.96 (SL tight hai)
+    New balance = ₹1,709.80 - ₹3.96 = ₹1,705.84
+
+  ⚠️ REAL RISK: 50% risk hone ke baad bhi actual loss ₹3.96
+     Kyunki SL sirf 0.5% hai — tight SL small loss deta hai
+     50% risk ka matlab ₹854 trade me laga, lekin SL pe ₹3.96 loss
+```
   Risk: 1% of ₹8,00,000 = ₹8,000 (max loss agar SL hit)
   Actual SL loss: 40 × ₹0.99 = ₹39.60 (agar ₹196.00 pe SL hit)
   Profit if target hit: 40 × ₹3.03 = ₹121.20
