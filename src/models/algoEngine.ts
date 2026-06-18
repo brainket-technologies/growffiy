@@ -60,13 +60,10 @@ class AlgoEngineService {
 
   // Pre-selected stock per client (set at preSelectTime, consumed at entryTime)
   private preselectedForClient: Map<string, StockQuote> = new Map();
+  private subscribedSymbols: Set<string> = new Set();
 
   constructor() {
-    if (process.env.USE_HTTP_POLLING !== 'true') {
-      this.initializeKiteLiveFeed();
-    } else {
-      console.log('USE_HTTP_POLLING=true, skipping WebSocket connection. Using HTTP polling for live quotes.');
-    }
+    this.initializeKiteLiveFeed();
     this.startDailyTokenRefreshScheduler();
     this.startDailyPreOpenStrategyScheduler();
     this.startActiveTradesMonitoringScheduler();
@@ -235,6 +232,13 @@ class AlgoEngineService {
 
         if (openTrades.length === 0) {
           return;
+        }
+
+        // Ensure we're subscribed to all open trade symbols
+        for (const trade of openTrades) {
+          if (!this.subscribedSymbols.has(trade.symbol)) {
+            this.subscribeSymbols([trade.symbol]);
+          }
         }
 
         const now = Date.now();
@@ -504,37 +508,37 @@ class AlgoEngineService {
       
       await this.ensureInstrumentMapping();
       
-      if (process.env.USE_HTTP_POLLING === 'true') {
-        console.log('USE_HTTP_POLLING=true, skipping WebSocket subscription.');
-        return;
-      }
-      
       // Seed stocksState from preOpenCache if empty
       if (this.stocksState.length === 0 && this.preOpenCache.length > 0) {
         this.stocksState = [...this.preOpenCache];
       }
 
-      // Only subscribe to F&O stocks (plus a few defaults) — NOT all pre-open stocks
-      let symbols = this.preOpenCache
-        .filter(s => s.isFo)
-        .map(s => s.symbol);
+      // Subscribe only to top pre-open movers (avoid 1799 subscriptions on shared hosting)
+      let symbols = this.preOpenCache.slice(0, 50).map(s => s.symbol);
       if (symbols.length === 0) {
         symbols = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'LT', 'ITC'];
       }
-      
+
+      // Also subscribe any pre-selected stocks
+      for (const stock of this.preselectedForClient.values()) {
+        if (!symbols.includes(stock.symbol)) {
+          symbols.push(stock.symbol);
+        }
+      }
+
       const tokens: number[] = [];
       for (const [tokenStr, sym] of Object.entries(this.instrumentToSymbol)) {
-        if (symbols.includes(sym)) {
+        if (symbols.includes(sym) && !tokens.includes(Number(tokenStr))) {
           tokens.push(Number(tokenStr));
         }
       }
-      
+
       if (tokens.length === 0) {
         console.warn('No instrument tokens found for active symbols. WebSocket subscription standby.');
         return;
       }
 
-      console.log(`Subscribing to ${tokens.length} live stock tokens on Kite WebSocket (F&O only).`);
+      console.log(`Subscribing to ${tokens.length} live stock tokens on Kite WebSocket.`);
       const subMsg = {
         a: 'subscribe',
         v: tokens
@@ -546,6 +550,7 @@ class AlgoEngineService {
         v: ['quote', tokens]
       };
       this.ws?.send(JSON.stringify(modeMsg));
+      for (const sym of symbols) this.subscribedSymbols.add(sym);
     });
 
     this.ws.on('message', (data: any) => {
@@ -564,6 +569,25 @@ class AlgoEngineService {
         this.connectKiteWebSocket(apiKey, accessToken);
       }, 5000);
     });
+  }
+
+  private subscribeSymbols(symbols: string[]) {
+    const tokens: number[] = [];
+    for (const sym of symbols) {
+      if (this.subscribedSymbols.has(sym)) continue;
+      for (const [tokenStr, s] of Object.entries(this.instrumentToSymbol)) {
+        if (s === sym) {
+          tokens.push(Number(tokenStr));
+          break;
+        }
+      }
+    }
+    if (tokens.length === 0) return;
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    this.ws.send(JSON.stringify({ a: 'subscribe', v: tokens }));
+    this.ws.send(JSON.stringify({ a: 'mode', v: ['quote', tokens] }));
+    for (const sym of symbols) this.subscribedSymbols.add(sym);
+    console.log(`WebSocket subscribed ${tokens.length} additional token(s): ${symbols.join(', ')}`);
   }
 
   // Parse standard 44-byte quote ticking package
@@ -881,6 +905,7 @@ class AlgoEngineService {
 
         const selected = sortedStocks[selectPosition - 1];
         this.preselectedForClient.set(client.id, selected);
+        this.subscribeSymbols([selected.symbol]);
         console.log(`AlgoEngine preSelect: ${client.user.name} → #${selectPosition} ${selected.symbol}(${selected.changePercent}%)`);
       } catch (err) {
         console.error(`AlgoEngine preSelect: Error for client ${client.user.name}:`, err);
@@ -1363,6 +1388,7 @@ class AlgoEngineService {
               kiteResponse: orderRes
             }
           });
+          this.subscribeSymbols([targetStock.symbol]);
 
           // 7. Write strategy log referencing the database strategy ID
           await prisma.strategyLog.create({
@@ -1497,13 +1523,17 @@ class AlgoEngineService {
       this.preOpenCacheDate = dateStr;
       this.lastPreOpenFetchTime = Date.now();
 
-      // Re-subscribe WebSocket to F&O stocks only (not all pre-open stocks)
-      if (this.ws && this.ws.readyState === WebSocket.OPEN && process.env.USE_HTTP_POLLING !== 'true') {
-        console.log('NSE pre-open fetch completed. Re-subscribing WebSocket to F&O symbols...');
-        const symbols = freshStocks.filter(s => s.isFo).map(s => s.symbol);
+      // Re-subscribe WebSocket to top pre-open movers only
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        console.log('NSE pre-open fetch completed. Re-subscribing WebSocket to top 50 movers...');
+        const symbols = freshStocks.slice(0, 50).map(s => s.symbol);
+        // Also keep any previously subscribed symbols
+        for (const sym of this.subscribedSymbols) {
+          if (!symbols.includes(sym)) symbols.push(sym);
+        }
         const tokens: number[] = [];
         for (const [tokenStr, sym] of Object.entries(this.instrumentToSymbol)) {
-          if (symbols.includes(sym)) {
+          if (symbols.includes(sym) && !tokens.includes(Number(tokenStr))) {
             tokens.push(Number(tokenStr));
           }
         }
@@ -1511,6 +1541,7 @@ class AlgoEngineService {
           this.ws.send(JSON.stringify({ a: 'subscribe', v: tokens }));
           this.ws.send(JSON.stringify({ a: 'mode', v: ['quote', tokens] }));
         }
+        this.subscribedSymbols = new Set(symbols);
       }
 
       return freshStocks;
@@ -1556,18 +1587,15 @@ class AlgoEngineService {
     }
 
     if (this.stocksState.length === 0 && this.preOpenCache.length > 0) {
-      this.stocksState = this.preOpenCache.filter(s => s.isFo);
+      this.stocksState = [...this.preOpenCache];
     }
 
     const symbols = this.stocksState.map(s => s.symbol);
     if (symbols.length === 0) return;
 
-    // Limit to 50 symbols per poll to avoid oversized URL and API rate limits
-    const pollSymbols = symbols.slice(0, 50);
-
     try {
-      console.log(`Fetching HTTP live quotes for ${pollSymbols.length} symbols from Kite API...`);
-      const queryParams = pollSymbols.map(sym => `i=NSE:${sym}`).join('&');
+      console.log(`Fetching HTTP live quotes for ${symbols.length} symbols from Kite API...`);
+      const queryParams = symbols.map(sym => `i=NSE:${sym}`).join('&');
       const url = `${API_ENDPOINTS.KITE_BASE}/quote?${queryParams}`;
 
       const res = await fetch(url, {
