@@ -62,6 +62,7 @@ class AlgoEngineService {
     this.initializeKiteLiveFeed();
     this.startDailyTokenRefreshScheduler();
     this.startDailyPreOpenStrategyScheduler();
+    this.startActiveTradesMonitoringScheduler();
   }
 
   private startDailyPreOpenStrategyScheduler() {
@@ -169,6 +170,176 @@ class AlgoEngineService {
 
     // Run check every 60 seconds
     (global as any).tokenRefreshInterval = setInterval(checkAndRefresh, 60 * 1000);
+  }
+
+  private startActiveTradesMonitoringScheduler() {
+    console.log('AlgoEngine: Initialized Active Trades Exit Monitoring Scheduler (running SL/Target checks every 1 minute on 5m candle)');
+
+    if ((global as any).activeTradesMonitoringInterval) {
+      clearInterval((global as any).activeTradesMonitoringInterval);
+    }
+
+    const checkOpenTradesExits = async () => {
+      try {
+        const openTrades = await prisma.trade.findMany({
+          where: { status: 'open' },
+          include: {
+            client: { include: { user: true } },
+            strategy: true
+          }
+        });
+
+        if (openTrades.length === 0) {
+          return;
+        }
+
+        console.log(`AlgoEngine Monitor: Checking exit conditions for ${openTrades.length} open trade(s)...`);
+
+        for (const trade of openTrades) {
+          try {
+            const client = trade.client;
+            const strategy = trade.strategy;
+
+            if (!client.zerodhaApiKey || !client.accessToken) {
+              console.warn(`AlgoEngine Monitor: Skipping trade ${trade.id} - missing client API key or access token.`);
+              continue;
+            }
+
+            // Find the instrument token from instrumentToSymbol mapping
+            const instrumentTokenStr = Object.entries(this.instrumentToSymbol).find(([token, sym]) => sym === trade.symbol)?.[0];
+            if (!instrumentTokenStr) {
+              console.warn(`AlgoEngine Monitor: Skipping trade ${trade.id} - could not find instrument token for symbol ${trade.symbol}.`);
+              continue;
+            }
+
+            const today = new Date();
+            const formatKiteDate = (date: Date) => {
+              const y = date.getFullYear();
+              const m = String(date.getMonth() + 1).padStart(2, '0');
+              const d = String(date.getDate()).padStart(2, '0');
+              return `${y}-${m}-${d}`;
+            };
+            const fromDateStr = formatKiteDate(new Date(today.getTime() - 24 * 60 * 60 * 1000));
+            const toDateStr = formatKiteDate(today);
+
+            const res = await KiteClient.getHistoricalData(
+              client.zerodhaApiKey,
+              client.accessToken,
+              instrumentTokenStr,
+              '5minute',
+              fromDateStr,
+              toDateStr
+            );
+
+            if (res.status !== 'success' || !Array.isArray(res.data?.candles)) {
+              console.warn(`AlgoEngine Monitor: Failed to fetch candles for ${trade.symbol}:`, res.message);
+              continue;
+            }
+
+            const candles = res.data.candles;
+            if (candles.length === 0) {
+              continue;
+            }
+
+            const latestCandle = candles[candles.length - 1];
+            const currentClosePrice = Number(latestCandle[4]);
+
+            // Calculate SL and Target based on DB configuration
+            const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
+            const slPercent = config?.stoploss?.fixedPercent || 0.5;
+            const targetPercent = config?.target?.profitPercent || 2.0;
+
+            const entryPrice = Number(trade.entryPrice);
+            const stopLossLevel = entryPrice * (1 - slPercent / 100);
+            const targetLevel = entryPrice * (1 + targetPercent / 100);
+
+            console.log(`AlgoEngine Monitor: Trade ${trade.id} (${trade.symbol}) | Entry: ₹${entryPrice.toFixed(2)} | Current: ₹${currentClosePrice.toFixed(2)} | SL: ₹${stopLossLevel.toFixed(2)} | Target: ₹${targetLevel.toFixed(2)}`);
+
+            let exitTriggered = false;
+            let exitPrice = currentClosePrice;
+            let exitReason = '';
+
+            if (currentClosePrice <= stopLossLevel) {
+              exitTriggered = true;
+              exitPrice = stopLossLevel;
+              exitReason = 'Stop Loss (0.5%) hit';
+            } else if (currentClosePrice >= targetLevel) {
+              exitTriggered = true;
+              exitPrice = targetLevel;
+              exitReason = 'Target (2.0%) hit';
+            }
+
+            if (exitTriggered) {
+              console.log(`AlgoEngine Monitor: EXIT TRIGGERED for trade ${trade.id} (${trade.symbol}) due to ${exitReason} at ₹${exitPrice.toFixed(2)}.`);
+
+              const sellParams = {
+                exchange: 'NSE',
+                tradingsymbol: trade.symbol,
+                transaction_type: 'SELL' as const,
+                quantity: trade.quantity,
+                order_type: 'MARKET' as const,
+                product: 'MIS' as const,
+                validity: 'DAY' as const
+              };
+
+              const sellRes = await KiteClient.placeOrder(
+                client.zerodhaApiKey,
+                client.accessToken,
+                sellParams
+              );
+
+              if (sellRes && sellRes.status === 'success') {
+                const sellOrderId = sellRes.data?.order_id || 'manual-exit';
+                const pnlValue = (exitPrice - entryPrice) * trade.quantity;
+
+                await prisma.trade.update({
+                  where: { id: trade.id },
+                  data: {
+                    status: 'closed',
+                    exitPrice: exitPrice,
+                    exitTime: new Date(),
+                    pnl: pnlValue,
+                    kiteResponse: sellRes
+                  }
+                });
+
+                await prisma.strategyLog.create({
+                  data: {
+                    strategyId: strategy.id,
+                    message: `Intraday Trade Closed for ${client.user.name}: Sold ${trade.quantity} shares of ${trade.symbol} at exit price ₹${exitPrice.toFixed(2)} due to ${exitReason}. Total P&L: ₹${pnlValue.toFixed(2)}. Order ID: ${sellOrderId}`,
+                    logType: 'trade'
+                  }
+                });
+
+                await prisma.auditLog.create({
+                  data: {
+                    adminId: 'system-scheduler',
+                    action: 'AUTO TRADE CLOSED',
+                    oldValue: `Trade ID: ${trade.id}`,
+                    newValue: `Sold ${trade.quantity} shares of ${trade.symbol} @ ₹${exitPrice.toFixed(2)} | P&L: ₹${pnlValue.toFixed(2)}`
+                  }
+                }).catch(() => {});
+              } else {
+                console.error(`AlgoEngine Monitor: Failed to place sell order for ${trade.symbol}:`, sellRes.message);
+                await prisma.strategyLog.create({
+                  data: {
+                    strategyId: strategy.id,
+                    message: `Failed to place exit order for ${client.user.name} (${trade.symbol}): ${sellRes.message || 'Unknown Zerodha error'}`,
+                    logType: 'error'
+                  }
+                });
+              }
+            }
+          } catch (tradeErr: any) {
+            console.error(`AlgoEngine Monitor: Error processing trade ${trade.id}:`, tradeErr);
+          }
+        }
+      } catch (err) {
+        console.error('AlgoEngine Monitor: Error in open trades monitoring cron loop:', err);
+      }
+    };
+
+    (global as any).activeTradesMonitoringInterval = setInterval(checkOpenTradesExits, 60 * 1000);
   }
 
   // Initialize Kite Live Socket feed from Environment variables or Database
@@ -728,17 +899,30 @@ class AlgoEngineService {
           }
 
           const riskPercent = config?.riskManagement?.riskPerTrade || config?.stoploss?.riskPercent || 1;
-          const allocatedAmount = clientCapital * (riskPercent / 100); 
+          let allocatedAmount = clientCapital * (riskPercent / 100); 
+
+          // Cap the allocated trade size at the configured database capital limit
+          const dbCapitalLimit = Number(client.capital);
+          if (allocatedAmount > dbCapitalLimit) {
+            allocatedAmount = dbCapitalLimit;
+          }
 
           const entryPrice = targetStock.iep || targetStock.ltp || targetStock.prevClose || 100.0;
           const slPercent = config?.stoploss?.fixedPercent || 0.5;
-          const targetPercent = config?.target?.profitPercent || 1.5;
+          const targetPercent = config?.target?.profitPercent || 2.0;
 
-          // Calculate quantity based on stoploss risk sizing
-          const lossPerShare = entryPrice * (slPercent / 100);
-          let quantity = Math.floor(allocatedAmount / lossPerShare);
+          // Calculate quantity based on direct capital allocation (allocatedAmount / entryPrice)
+          let quantity = Math.floor(allocatedAmount / entryPrice);
           if (quantity <= 0) {
-            quantity = 1; // Minimum 1 share
+            console.log(`AlgoEngine: Calculated quantity is 0 for client ${client.user.name} (Allocated: ₹${allocatedAmount.toFixed(2)}, Entry Price: ₹${entryPrice.toFixed(2)}). Skipping trade.`);
+            await prisma.strategyLog.create({
+              data: {
+                strategyId: strategy.id,
+                message: `Skipped trade execution for ${client.user.name}: Calculated quantity is 0 (Allocated amount ₹${allocatedAmount.toFixed(2)} is less than entry price ₹${entryPrice.toFixed(2)}).`,
+                logType: 'info'
+              }
+            });
+            continue;
           }
 
           const marketProtectionVal = config?.tradeAction?.marketProtection !== undefined 

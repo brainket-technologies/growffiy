@@ -142,5 +142,29 @@ export class KiteClient {
 
     return response.json();
   }
+
+  /**
+   * Fetches historical candle data from Zerodha Kite.
+   */
+  public static async getHistoricalData(
+    apiKey: string,
+    accessToken: string,
+    instrumentToken: string,
+    interval: string,
+    from: string,
+    to: string
+  ) {
+    const response = await fetch(
+      `${this.BASE_URL}/instruments/historical/${instrumentToken}/${interval}?from=${from}&to=${to}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `token ${apiKey}:${accessToken}`,
+          'X-Kite-Version': this.KITE_VERSION,
+        },
+      }
+    );
+    return response.json();
+  }
 }
 
