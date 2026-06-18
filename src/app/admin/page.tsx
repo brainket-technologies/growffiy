@@ -7,6 +7,23 @@ import { Button } from '../../views/components/Button';
 import { PerformanceChart } from '../../views/components/PerformanceChart';
 import { Users, TrendingUp, ShieldAlert, Award, Play, Square } from 'lucide-react';
 
+const formatDateTime = (timeStr: string | Date | null) => {
+  if (!timeStr) return '--';
+  try {
+    const date = new Date(timeStr);
+    return date.toLocaleString('en-US', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+  } catch (e) {
+    return '--';
+  }
+};
+
 export default function AdminDashboard() {
   const {
     clients,
@@ -189,7 +206,9 @@ export default function AdminDashboard() {
                 <th>Client</th>
                 <th>Order Type</th>
                 <th>Qty</th>
+                <th>Entry Time</th>
                 <th>Entry Price</th>
+                <th>Exit Time</th>
                 <th>Exit Price</th>
                 <th>P&L (₹)</th>
                 <th>Status</th>
@@ -198,7 +217,7 @@ export default function AdminDashboard() {
             <tbody>
               {trades.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                  <td colSpan={10} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                     No trades placed today. Start Auto Trading to generate signals.
                   </td>
                 </tr>
@@ -212,7 +231,9 @@ export default function AdminDashboard() {
                       <td>{clientName}</td>
                       <td>{trade.orderType}</td>
                       <td>{trade.quantity}</td>
+                      <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{formatDateTime(trade.entryTime)}</td>
                       <td>₹{Number(trade.entryPrice || 0).toFixed(2)}</td>
+                      <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{formatDateTime(trade.exitTime)}</td>
                       <td>{trade.exitPrice ? `₹${Number(trade.exitPrice).toFixed(2)}` : '--'}</td>
                       <td style={{ fontWeight: 600, color: pnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
                         {pnl >= 0 ? `+₹${pnl.toFixed(2)}` : `-₹${Math.abs(pnl).toFixed(2)}`}

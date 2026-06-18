@@ -70,6 +70,23 @@ export default function ClientDashboardOverview() {
     return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }); // e.g. "14 June 2026"
   };
 
+  const formatDateTime = (timeStr: string | Date | null | undefined) => {
+    if (!timeStr) return '--';
+    try {
+      const date = new Date(timeStr);
+      return date.toLocaleString('en-US', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+    } catch (e) {
+      return '--';
+    }
+  };
+
   const startDateStr = activeSub?.startDate ? formatDate(activeSub.startDate) : '--';
   const endDateStr = activeSub?.endDate ? formatDate(activeSub.endDate) : '--';
 
@@ -324,7 +341,9 @@ export default function ClientDashboardOverview() {
                 <th>Strategy</th>
                 <th>Order Type</th>
                 <th>Quantity</th>
+                <th>Entry Time</th>
                 <th>Entry Price</th>
+                <th>Exit Time</th>
                 <th>Exit Price</th>
                 <th>P&L (₹)</th>
                 <th>Status</th>
@@ -333,7 +352,7 @@ export default function ClientDashboardOverview() {
             <tbody>
               {clientTrades.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                  <td colSpan={10} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                     No trades executed today. Trading engine is waiting for signal breakouts.
                   </td>
                 </tr>
@@ -346,7 +365,9 @@ export default function ClientDashboardOverview() {
                       <td>Pre-Open Breakout</td>
                       <td>{trade.orderType}</td>
                       <td>{trade.quantity}</td>
+                      <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{formatDateTime(trade.entryTime)}</td>
                       <td>₹{Number(trade.entryPrice || 0).toFixed(2)}</td>
+                      <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{formatDateTime(trade.exitTime)}</td>
                       <td>{trade.exitPrice ? `₹${Number(trade.exitPrice).toFixed(2)}` : '--'}</td>
                       <td style={{ fontWeight: 600, color: pnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
                         {pnl >= 0 ? `+₹${pnl.toFixed(2)}` : `-₹${Math.abs(pnl).toFixed(2)}`}

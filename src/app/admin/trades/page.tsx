@@ -7,6 +7,23 @@ import { Button } from '../../../views/components/Button';
 import { Activity, Play, Square, RefreshCw, AlertTriangle, Info, XCircle } from 'lucide-react';
 import { Modal } from '../../../views/components/Modal';
 
+const formatDateTime = (timeStr: string | Date | null) => {
+  if (!timeStr) return '--';
+  try {
+    const date = new Date(timeStr);
+    return date.toLocaleString('en-US', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+  } catch (e) {
+    return '--';
+  }
+};
+
 export default function LiveTradingPage() {
   const { trades, isTradingActive, toggleTrading } = useAppViewModel();
   const [selectedTrade, setSelectedTrade] = useState<any | null>(null);
@@ -113,7 +130,9 @@ export default function LiveTradingPage() {
                 <th>Client</th>
                 <th>Qty</th>
                 <th>Invested (₹)</th>
+                <th>Entry Time</th>
                 <th>Entry Price</th>
+                <th>Exit Time</th>
                 <th>Exit Price</th>
                 <th>P&L (₹)</th>
                 <th>Status</th>
@@ -122,7 +141,7 @@ export default function LiveTradingPage() {
             <tbody>
               {trades.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                  <td colSpan={11} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                     No active trades. Deploy strategies to generate live market orders.
                   </td>
                 </tr>
@@ -145,7 +164,9 @@ export default function LiveTradingPage() {
                       <td>{clientName}</td>
                       <td>{trade.quantity}</td>
                       <td>₹{investedAmt.toFixed(2)}</td>
+                      <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{formatDateTime(trade.entryTime)}</td>
                       <td>₹{Number(trade.entryPrice || 0).toFixed(2)}</td>
+                      <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{formatDateTime(trade.exitTime)}</td>
                       <td>{trade.exitPrice ? `₹${Number(trade.exitPrice).toFixed(2)}` : '--'}</td>
                       <td style={{ fontWeight: 600, color: pnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
                         {pnl >= 0 ? `+₹${pnl.toFixed(2)}` : `-₹${Math.abs(pnl).toFixed(2)}`}
@@ -204,8 +225,20 @@ export default function LiveTradingPage() {
                 <span>₹{(Number(selectedTrade.entryPrice || 0) * selectedTrade.quantity).toFixed(2)}</span>
               </div>
               <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Time</span>
+                <span>{formatDateTime(selectedTrade.entryTime)}</span>
+              </div>
+              <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Price</span>
                 <span>₹{Number(selectedTrade.entryPrice || 0).toFixed(2)}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Exit Time</span>
+                <span>{formatDateTime(selectedTrade.exitTime)}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Exit Price</span>
+                <span>{selectedTrade.exitPrice ? `₹${Number(selectedTrade.exitPrice).toFixed(2)}` : '--'}</span>
               </div>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Status</span>
