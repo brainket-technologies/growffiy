@@ -29,7 +29,7 @@ async function main() {
           exchange: 'NSE',
           segment: 'NSE F&O',
           timeframe: '5m',
-          entryTime: '09:15',
+          entryTime: '09:20',
           exitTime: '15:15',
           maxTradesPerDay: 3,
           status: 'active'
@@ -38,10 +38,7 @@ async function main() {
         stoploss: { type: 'Trailing SL', orderType: 'Market', fixedPercent: 0.5, fixedPoints: 5, trailingSL: 0.2, riskPercent: 1.0 },
         target: { type: 'Trailing Target', profitPercent: 1.5, riskRewardRatio: 3.0, partialExit: 50, trailingTarget: 0.5 },
         riskManagement: { capitalAllocation: 10.0, riskPerTrade: 1.0, maxDailyLoss: 5000, maxDailyProfit: 15000, maxOpenPositions: 2, killSwitch: false },
-        conditions: [
-          { logical: 'AND', indicator: 'Gap Down', operator: '>', value: '1.5' },
-          { logical: 'AND', indicator: 'RSI', operator: '<', value: '30' }
-        ]
+        conditions: []
       })
     },
     create: {
@@ -57,7 +54,7 @@ async function main() {
           exchange: 'NSE',
           segment: 'NSE F&O',
           timeframe: '5m',
-          entryTime: '09:15',
+          entryTime: '09:20',
           exitTime: '15:15',
           maxTradesPerDay: 3,
           status: 'active'
@@ -66,10 +63,7 @@ async function main() {
         stoploss: { type: 'Trailing SL', orderType: 'Market', fixedPercent: 0.5, fixedPoints: 5, trailingSL: 0.2, riskPercent: 1.0 },
         target: { type: 'Trailing Target', profitPercent: 1.5, riskRewardRatio: 3.0, partialExit: 50, trailingTarget: 0.5 },
         riskManagement: { capitalAllocation: 10.0, riskPerTrade: 1.0, maxDailyLoss: 5000, maxDailyProfit: 15000, maxOpenPositions: 2, killSwitch: false },
-        conditions: [
-          { logical: 'AND', indicator: 'Gap Down', operator: '>', value: '1.5' },
-          { logical: 'AND', indicator: 'RSI', operator: '<', value: '30' }
-        ]
+        conditions: []
       })
     }
   });
@@ -137,6 +131,23 @@ async function main() {
       create: p
     });
     console.log('Subscription plan seeded:', plan.id);
+  }
+
+  // 4. Seed App Settings (Algo timings)
+  const appSettingsData = [
+    { settingKey: 'algo_preopen_fetch_time', settingValue: '09:08', type: 'string' },
+    { settingKey: 'algo_entry_time', settingValue: '09:20', type: 'string' },
+    { settingKey: 'algo_token_refresh_time', settingValue: '08:00', type: 'string' },
+    { settingKey: 'algo_check_interval_sec', settingValue: '60', type: 'string' },
+  ];
+
+  for (const s of appSettingsData) {
+    const setting = await prisma.appSettings.upsert({
+      where: { settingKey: s.settingKey },
+      update: { settingValue: s.settingValue, type: s.type },
+      create: s
+    });
+    console.log('App setting seeded:', setting.settingKey);
   }
 }
 
