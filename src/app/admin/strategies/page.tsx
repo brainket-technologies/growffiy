@@ -1047,23 +1047,41 @@ export default function StrategiesPage() {
             </div>
           </div>
 
-          {/* Strategy Cards Grid */}
-          {strategies.filter(s =>
-            (filterType === 'all' || s.status === filterType) &&
-            (searchQuery === '' || s.name.toLowerCase().includes(searchQuery.toLowerCase()) || (s.description || '').toLowerCase().includes(searchQuery.toLowerCase()))
-          ).length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 24px', background: 'var(--bg-secondary)', borderRadius: '16px', border: '1px dashed var(--border-color)' }}>
-              <FileCode size={40} color="var(--text-secondary)" style={{ opacity: 0.4, marginBottom: '12px' }} />
-              <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>No strategies found. Click <strong>+ Create Strategy</strong> to get started.</p>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
-              {strategies
-                .filter(s =>
-                  (filterType === 'all' || s.status === filterType) &&
-                  (searchQuery === '' || s.name.toLowerCase().includes(searchQuery.toLowerCase()) || (s.description || '').toLowerCase().includes(searchQuery.toLowerCase()))
-                )
-                .map(strat => {
+          {/* Strategy Table */}
+          {(() => {
+            const filtered = strategies.filter(s =>
+              (filterType === 'all' || s.status === filterType) &&
+              (searchQuery === '' || s.name.toLowerCase().includes(searchQuery.toLowerCase()) || (s.description || '').toLowerCase().includes(searchQuery.toLowerCase()))
+            );
+
+            if (filtered.length === 0) {
+              return (
+                <div style={{ textAlign: 'center', padding: '60px 24px', background: 'var(--bg-secondary)', borderRadius: '16px', border: '1px dashed var(--border-color)' }}>
+                  <FileCode size={40} color="var(--text-secondary)" style={{ opacity: 0.4, marginBottom: '12px' }} />
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>No strategies found. Click <strong>+ Create Strategy</strong> to get started.</p>
+                </div>
+              );
+            }
+
+            return (
+              <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '16px', overflow: 'hidden' }}>
+                {/* Table Header */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 180px',
+                  padding: '12px 20px',
+                  background: 'rgba(255,255,255,0.025)',
+                  borderBottom: '1px solid var(--border-color)',
+                  gap: '12px',
+                  alignItems: 'center'
+                }}>
+                  {['Strategy', 'Segment', 'Type', 'Timeframe', 'Clients', 'Trades', 'Actions'].map(col => (
+                    <span key={col} style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.07em', textTransform: 'uppercase' }}>{col}</span>
+                  ))}
+                </div>
+
+                {/* Table Rows */}
+                {filtered.map((strat, idx) => {
                   let segment = 'N/A';
                   let tradeType = 'N/A';
                   let timeframe = 'N/A';
@@ -1079,114 +1097,121 @@ export default function StrategiesPage() {
                   } catch (e) {}
 
                   const assignedCount = clients.filter(c => c.strategyId === strat.id).length;
+                  const tradeCount = (trades || []).filter(t => t.strategyId === strat.id).length;
                   const isActive = strat.status === 'active';
 
                   return (
                     <div
                       key={strat.id}
                       style={{
-                        background: 'var(--bg-secondary)',
-                        border: `1px solid ${isActive ? 'rgba(34,197,94,0.2)' : 'var(--border-color)'}`,
-                        borderRadius: '16px',
-                        padding: '20px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '14px',
-                        transition: 'all 0.2s',
-                        cursor: 'pointer',
-                        boxShadow: isActive ? '0 0 0 1px rgba(34,197,94,0.08)' : 'none'
+                        display: 'grid',
+                        gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 180px',
+                        padding: '14px 20px',
+                        gap: '12px',
+                        alignItems: 'center',
+                        borderBottom: idx < filtered.length - 1 ? '1px solid var(--border-color)' : 'none',
+                        transition: 'background 0.15s',
+                        cursor: 'pointer'
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isActive ? '0 0 0 1px rgba(34,197,94,0.08)' : 'none'; }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                     >
-                      {/* Card Header */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isActive ? '#22c55e' : '#94a3b8', flexShrink: 0, boxShadow: isActive ? '0 0 6px #22c55e' : 'none' }} />
-                            <h4 style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{strat.name}</h4>
-                          </div>
-                          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{strat.description || 'No description provided'}</p>
+                      {/* Strategy Name + Status Dot */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                        <div style={{
+                          width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0,
+                          background: isActive ? '#22c55e' : '#475569',
+                          boxShadow: isActive ? '0 0 6px rgba(34,197,94,0.7)' : 'none'
+                        }} />
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ margin: 0, fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{strat.name}</p>
+                          {strat.description && (
+                            <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{strat.description}</p>
+                          )}
                         </div>
+                      </div>
+
+                      {/* Segment */}
+                      <span style={{ padding: '3px 10px', borderRadius: '6px', background: 'rgba(14,165,233,0.1)', color: '#38bdf8', fontSize: '11px', fontWeight: 600, border: '1px solid rgba(14,165,233,0.15)', display: 'inline-block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{segment}</span>
+
+                      {/* Trade Type */}
+                      <span style={{ padding: '3px 10px', borderRadius: '6px', background: 'rgba(139,92,246,0.1)', color: '#a78bfa', fontSize: '11px', fontWeight: 600, border: '1px solid rgba(139,92,246,0.15)', display: 'inline-block', whiteSpace: 'nowrap' }}>{tradeType}</span>
+
+                      {/* Timeframe + Time window */}
+                      <div>
+                        <span style={{ padding: '3px 10px', borderRadius: '6px', background: 'rgba(251,191,36,0.1)', color: '#fbbf24', fontSize: '11px', fontWeight: 600, border: '1px solid rgba(251,191,36,0.15)', display: 'inline-block' }}>{timeframe}</span>
+                        {entryTime && <p style={{ margin: '3px 0 0', fontSize: '10px', color: 'var(--text-secondary)' }}>{entryTime} – {exitTime}</p>}
+                      </div>
+
+                      {/* Clients */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Users size={13} color={assignedCount > 0 ? '#eab308' : 'var(--text-secondary)'} />
+                        <span style={{ fontWeight: 700, fontSize: '14px', color: assignedCount > 0 ? '#eab308' : 'var(--text-secondary)' }}>{assignedCount}</span>
+                      </div>
+
+                      {/* Trades */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Activity size={13} color="var(--text-secondary)" />
+                        <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>{tradeCount}</span>
+                      </div>
+
+                      {/* Actions */}
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        {/* Status toggle */}
                         <button
                           onClick={e => { e.stopPropagation(); handleToggleStatus(strat); }}
+                          title={isActive ? 'Deactivate' : 'Activate'}
                           style={{
-                            padding: '4px 10px',
+                            padding: '5px 10px',
                             borderRadius: '20px',
-                            border: `1px solid ${isActive ? 'rgba(34,197,94,0.3)' : 'rgba(148,163,184,0.3)'}`,
-                            background: isActive ? 'rgba(34,197,94,0.1)' : 'rgba(148,163,184,0.08)',
+                            border: `1px solid ${isActive ? 'rgba(34,197,94,0.3)' : 'rgba(148,163,184,0.25)'}`,
+                            background: isActive ? 'rgba(34,197,94,0.08)' : 'rgba(148,163,184,0.06)',
                             color: isActive ? '#22c55e' : '#94a3b8',
-                            fontSize: '11px',
+                            fontSize: '10px',
                             fontWeight: 700,
                             cursor: 'pointer',
                             letterSpacing: '0.04em',
-                            flexShrink: 0,
-                            marginLeft: '10px'
+                            whiteSpace: 'nowrap'
                           }}
                         >
-                          {isActive ? '● ACTIVE' : '○ INACTIVE'}
+                          {isActive ? '● ON' : '○ OFF'}
                         </button>
-                      </div>
 
-                      {/* Tags Row */}
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        <span style={{ padding: '3px 10px', borderRadius: '6px', background: 'rgba(14,165,233,0.1)', color: '#38bdf8', fontSize: '11px', fontWeight: 600, border: '1px solid rgba(14,165,233,0.15)' }}>{segment}</span>
-                        <span style={{ padding: '3px 10px', borderRadius: '6px', background: 'rgba(139,92,246,0.1)', color: '#a78bfa', fontSize: '11px', fontWeight: 600, border: '1px solid rgba(139,92,246,0.15)' }}>{tradeType}</span>
-                        <span style={{ padding: '3px 10px', borderRadius: '6px', background: 'rgba(251,191,36,0.1)', color: '#fbbf24', fontSize: '11px', fontWeight: 600, border: '1px solid rgba(251,191,36,0.15)' }}>{timeframe}</span>
-                        {entryTime && <span style={{ padding: '3px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.04)', color: 'var(--text-secondary)', fontSize: '11px', border: '1px solid var(--border-color)' }}>{entryTime} – {exitTime}</span>}
-                      </div>
-
-                      {/* Stats Row */}
-                      <div style={{ display: 'flex', gap: '0', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
-                        <div style={{ flex: 1, textAlign: 'center' }}>
-                          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '0 0 2px' }}>Clients</p>
-                          <p style={{ fontSize: '18px', fontWeight: 700, color: assignedCount > 0 ? '#eab308' : 'var(--text-secondary)', margin: 0 }}>{assignedCount}</p>
-                        </div>
-                        <div style={{ width: '1px', background: 'var(--border-color)' }} />
-                        <div style={{ flex: 1, textAlign: 'center' }}>
-                          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '0 0 2px' }}>Status</p>
-                          <p style={{ fontSize: '13px', fontWeight: 700, color: isActive ? '#22c55e' : '#94a3b8', margin: 0 }}>{isActive ? 'Live' : 'Paused'}</p>
-                        </div>
-                        <div style={{ width: '1px', background: 'var(--border-color)' }} />
-                        <div style={{ flex: 1, textAlign: 'center' }}>
-                          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '0 0 2px' }}>Trades</p>
-                          <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{(trades || []).filter(t => t.strategyId === strat.id).length}</p>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div style={{ display: 'flex', gap: '8px' }}>
                         <button
                           onClick={() => { setSelectedStrategy(strat); setViewMode('detail'); setDetailTab('overview'); }}
-                          style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', transition: 'all 0.15s' }}
+                          title="View"
+                          style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
                           onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-primary)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'var(--color-primary)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
                         >
-                          <Eye size={13} /> View
+                          <Eye size={13} />
                         </button>
+
                         <button
                           onClick={() => handleEdit(strat)}
-                          style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.15s' }}
                           title="Edit"
+                          style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
                           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
                           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                         >
                           <Edit3 size={13} />
                         </button>
+
                         <button
                           onClick={() => handleClone(strat.id)}
-                          style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.15s' }}
                           title="Clone"
+                          style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
                           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
                           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                         >
                           <Copy size={13} />
                         </button>
+
                         <button
                           onClick={() => handleDelete(strat)}
-                          style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.05)', color: '#ef4444', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.15s' }}
                           title="Delete"
-                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; }}
+                          style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.05)', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; }}
                           onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.05)'; }}
                         >
                           <Trash2 size={13} />
@@ -1195,8 +1220,9 @@ export default function StrategiesPage() {
                     </div>
                   );
                 })}
-            </div>
-          )}
+              </div>
+            );
+          })()}
         </>
       )}
 
