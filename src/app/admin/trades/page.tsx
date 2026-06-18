@@ -4,7 +4,15 @@ import React, { useState } from 'react';
 import { useAppViewModel } from '../../../viewmodels/AppContext';
 import { Card } from '../../../views/components/Card';
 import { Button } from '../../../views/components/Button';
-import { Activity, Play, Square, RefreshCw, AlertTriangle, Info, XCircle } from 'lucide-react';
+import { 
+  Activity, 
+  RefreshCw, 
+  AlertTriangle, 
+  XCircle, 
+  Search, 
+  Filter, 
+  Download 
+} from 'lucide-react';
 import { Modal } from '../../../views/components/Modal';
 
 const formatDateTime = (timeStr: string | Date | null) => {
@@ -25,8 +33,98 @@ const formatDateTime = (timeStr: string | Date | null) => {
 };
 
 export default function LiveTradingPage() {
-  const { trades, isTradingActive, toggleTrading } = useAppViewModel();
+  const { trades, isTradingActive } = useAppViewModel();
   const [selectedTrade, setSelectedTrade] = useState<any | null>(null);
+
+  // Filter local states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [clientFilter, setClientFilter] = useState('all');
+  const [strategyFilter, setStrategyFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [symbolFilter, setSymbolFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+
+  // Dynamic filter lists
+  const uniqueClients = Array.from(new Set(trades.map(t => t.client?.user?.name || t.clientName).filter(Boolean)));
+  const uniqueStrategies = Array.from(new Set(trades.map(t => t.strategy?.name || t.strategyName).filter(Boolean)));
+  const uniqueSymbols = Array.from(new Set(trades.map(t => t.symbol).filter(Boolean)));
+
+  const getTransactionType = (trade: any) => {
+    try {
+      const config = JSON.parse(trade.strategy?.configJson || '{}');
+      const action = config?.tradeAction?.action || 'Long';
+      if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
+        return 'SELL';
+      }
+    } catch (e) {}
+    return 'BUY';
+  };
+
+  const filteredTrades = trades.filter(trade => {
+    const symbol = (trade.symbol || '').toLowerCase();
+    const strategy = (trade.strategy?.name || trade.strategyName || '').toLowerCase();
+    const client = (trade.client?.user?.name || trade.clientName || '').toLowerCase();
+    const status = (trade.status || '').toLowerCase();
+    const txType = getTransactionType(trade).toLowerCase();
+    const query = searchQuery.toLowerCase();
+
+    const matchesSearch = symbol.includes(query) || strategy.includes(query) || client.includes(query);
+    const matchesClient = clientFilter === 'all' || client === clientFilter.toLowerCase();
+    const matchesStrategy = strategyFilter === 'all' || strategy === strategyFilter.toLowerCase();
+    const matchesType = typeFilter === 'all' || txType === typeFilter.toLowerCase();
+    const matchesSymbol = symbolFilter === 'all' || symbol === symbolFilter.toLowerCase();
+    const matchesStatus = statusFilter === 'all' || status === statusFilter.toLowerCase();
+
+    return matchesSearch && matchesClient && matchesStrategy && matchesType && matchesSymbol && matchesStatus;
+  });
+
+  // Paginated trades
+  const totalPages = Math.ceil(filteredTrades.length / pageSize) || 1;
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedTrades = filteredTrades.slice(startIndex, startIndex + pageSize);
+
+  const handleExportCSV = () => {
+    const headers = ['Date & Time', 'Client', 'Strategy', 'Type', 'Symbol', 'Qty', 'Entry Price', 'Exit Price', 'P&L (INR)', 'Status'];
+    const rows = filteredTrades.map(trade => {
+      const pnl = Number(trade.pnl || 0);
+      const entryPriceVal = Number(trade.entryPrice || 0);
+      const exitPriceVal = Number(trade.exitPrice || 0);
+      const clientName = trade.client?.user?.name || trade.clientName || 'System Client';
+      const strategyName = trade.strategy?.name || trade.strategyName || 'Pre-Open Momentum';
+      const txType = getTransactionType(trade);
+      return [
+        formatDateTime(trade.entryTime || trade.createdAt),
+        clientName,
+        strategyName,
+        txType,
+        trade.symbol,
+        trade.quantity,
+        entryPriceVal.toFixed(2),
+        exitPriceVal ? exitPriceVal.toFixed(2) : '--',
+        pnl.toFixed(2),
+        trade.status.toUpperCase()
+      ];
+    });
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `trades_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -99,9 +197,10 @@ export default function LiveTradingPage() {
 
       {/* Live Trades Table */}
       <Card>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        {/* Table Header and Control bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
           <h4 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
-            Live Open & Recent Orders (Click row to see failure reason/details)
+            Live Open & Recent Orders
           </h4>
           <button
             onClick={() => window.location.reload()}
@@ -121,36 +220,138 @@ export default function LiveTradingPage() {
           </button>
         </div>
 
+        {/* Filters Panel matching reference layout */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '10px', 
+          marginBottom: '20px', 
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          background: 'var(--bg-secondary)',
+          padding: '12px 16px',
+          borderRadius: '12px',
+          border: '1px solid var(--border-color)'
+        }}>
+          {/* Search box */}
+          <div style={{ position: 'relative', flex: '1 1 200px' }}>
+            <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
+            <input
+              type="text"
+              placeholder="Search transactions..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ paddingLeft: '32px', height: '34px', fontSize: '12px', width: '100%', outline: 'none' }}
+            />
+          </div>
+
+          {/* Client Filter */}
+          <select
+            value={clientFilter}
+            onChange={(e) => setClientFilter(e.target.value)}
+            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white' }}
+          >
+            <option value="all">All Clients</option>
+            {uniqueClients.map(client => (
+              <option key={client} value={client}>{client}</option>
+            ))}
+          </select>
+
+          {/* Strategy Filter */}
+          <select
+            value={strategyFilter}
+            onChange={(e) => setStrategyFilter(e.target.value)}
+            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white' }}
+          >
+            <option value="all">All Strategies</option>
+            {uniqueStrategies.map(strategy => (
+              <option key={strategy} value={strategy}>{strategy}</option>
+            ))}
+          </select>
+
+          {/* Type Filter */}
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white' }}
+          >
+            <option value="all">All Types</option>
+            <option value="BUY">BUY</option>
+            <option value="SELL">SELL</option>
+          </select>
+
+          {/* Symbol Filter */}
+          <select
+            value={symbolFilter}
+            onChange={(e) => setSymbolFilter(e.target.value)}
+            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white' }}
+          >
+            <option value="all">All Symbols</option>
+            {uniqueSymbols.map(sym => (
+              <option key={sym} value={sym}>{sym}</option>
+            ))}
+          </select>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white' }}
+          >
+            <option value="all">All Status</option>
+            <option value="open">Open</option>
+            <option value="closed">Closed</option>
+            <option value="failed">Failed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+
+          {/* Export Action */}
+          <Button variant="secondary" onClick={handleExportCSV} style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '34px', fontSize: '12px', padding: '0 12px' }}>
+            <Download size={14} /> Export
+          </Button>
+        </div>
+
+        {/* Live Trades Table */}
         <div className="table-responsive">
           <table>
             <thead>
               <tr>
-                <th>Symbol</th>
-                <th>Strategy</th>
+                <th>Date & Time</th>
                 <th>Client</th>
+                <th>Strategy</th>
+                <th>Type</th>
+                <th>Symbol</th>
                 <th>Qty</th>
-                <th>Invested (₹)</th>
-                <th>Entry Time</th>
                 <th>Entry Price</th>
-                <th>Exit Time</th>
                 <th>Exit Price</th>
                 <th>P&L (₹)</th>
+                <th>P&L (%)</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {trades.length === 0 ? (
+              {paginatedTrades.length === 0 ? (
                 <tr>
                   <td colSpan={11} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                    No active trades. Deploy strategies to generate live market orders.
+                    No active trades match the filter criteria.
                   </td>
                 </tr>
               ) : (
-                trades.map((trade) => {
+                paginatedTrades.map((trade) => {
                   const pnl = Number(trade.pnl || 0);
+                  const entryPriceVal = Number(trade.entryPrice || 0);
+                  const exitPriceVal = Number(trade.exitPrice || 0);
+
+                  // Calculate P&L %
+                  let pnlPercent = 0;
+                  if (entryPriceVal > 0) {
+                    pnlPercent = (pnl / (entryPriceVal * trade.quantity)) * 100;
+                  }
+
                   const clientName = trade.client?.user?.name || trade.clientName || 'System Client';
                   const strategyName = trade.strategy?.name || trade.strategyName || 'Pre-Open Momentum';
-                  const investedAmt = Number(trade.entryPrice || 0) * trade.quantity;
+                  const txType = getTransactionType(trade);
+                  const isBuy = txType === 'BUY';
+
                   return (
                     <tr 
                       key={trade.id} 
@@ -158,28 +359,39 @@ export default function LiveTradingPage() {
                       style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      title="Click row to see failure reason/details"
                     >
+                      <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        {formatDateTime(trade.entryTime || trade.createdAt)}
+                      </td>
+                      <td style={{ fontWeight: 500 }}>{clientName}</td>
+                      <td>{strategyName}</td>
+                      <td>
+                        <span className={`badge ${isBuy ? 'badge-blue' : 'badge-red'}`} style={{ padding: '3px 8px', fontSize: '10px' }}>
+                          {txType}
+                        </span>
+                      </td>
                       <td style={{ fontWeight: 600 }}>{trade.symbol}</td>
-                      <td style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{strategyName}</td>
-                      <td>{clientName}</td>
                       <td>{trade.quantity}</td>
-                      <td>₹{investedAmt.toFixed(2)}</td>
-                      <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{formatDateTime(trade.entryTime)}</td>
-                      <td>₹{Number(trade.entryPrice || 0).toFixed(2)}</td>
-                      <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{formatDateTime(trade.exitTime)}</td>
-                      <td>{trade.exitPrice ? `₹${Number(trade.exitPrice).toFixed(2)}` : '--'}</td>
+                      <td>₹{entryPriceVal.toFixed(2)}</td>
+                      <td>{exitPriceVal ? `₹${exitPriceVal.toFixed(2)}` : '--'}</td>
                       <td style={{ fontWeight: 600, color: pnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
                         {pnl >= 0 ? `+₹${pnl.toFixed(2)}` : `-₹${Math.abs(pnl).toFixed(2)}`}
+                      </td>
+                      <td style={{ fontWeight: 600, color: pnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                        {pnlPercent >= 0 ? `+${pnlPercent.toFixed(2)}%` : `${pnlPercent.toFixed(2)}%`}
                       </td>
                       <td>
                         <span className={`badge ${
                           trade.status.toLowerCase() === 'open' 
                             ? 'badge-info' 
                             : trade.status.toLowerCase() === 'failed' 
-                              ? 'badge-red' 
-                              : 'badge-success'
+                              ? 'badge-danger' 
+                              : trade.status.toLowerCase() === 'cancelled'
+                                ? 'badge-warning'
+                                : 'badge-success'
                         }`}>
-                          {trade.status}
+                          {trade.status.toUpperCase()}
                         </span>
                       </td>
                     </tr>
@@ -188,6 +400,68 @@ export default function LiveTradingPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Table Pagination Footer */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', flexWrap: 'wrap', gap: '12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+          <span>
+            Showing {filteredTrades.length ? startIndex + 1 : 0} to {Math.min(startIndex + pageSize, filteredTrades.length)} of {filteredTrades.length} entries
+          </span>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {/* Page selection controls */}
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+              <button 
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+              >
+                &lt;
+              </button>
+              
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentPage(i + 1)}
+                  style={{ 
+                    padding: '4px 10px', 
+                    borderRadius: '6px', 
+                    border: '1px solid var(--border-color)', 
+                    background: currentPage === i + 1 ? 'var(--primary)' : 'white', 
+                    color: currentPage === i + 1 ? 'white' : 'var(--text-body)',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {i + 1}
+                </button>
+              ))}
+              
+              <button 
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'white', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
+              >
+                &gt;
+              </button>
+            </div>
+            
+            {/* Page size dropdown */}
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'white', cursor: 'pointer', outline: 'none' }}
+            >
+              <option value={5}>5 / page</option>
+              <option value={10}>10 / page</option>
+              <option value={15}>15 / page</option>
+              <option value={30}>30 / page</option>
+              <option value={50}>50 / page</option>
+            </select>
+          </div>
         </div>
       </Card>
 
@@ -226,7 +500,7 @@ export default function LiveTradingPage() {
               </div>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Time</span>
-                <span>{formatDateTime(selectedTrade.entryTime)}</span>
+                <span>{formatDateTime(selectedTrade.entryTime || selectedTrade.createdAt)}</span>
               </div>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Price</span>
@@ -249,7 +523,7 @@ export default function LiveTradingPage() {
             </div>
 
             {/* Failure/Kite Response Details */}
-            {selectedTrade.status === 'failed' && (
+            {selectedTrade.status.toLowerCase() === 'failed' && (
               <div style={{ padding: '12px 16px', borderRadius: '10px', backgroundColor: '#fef2f2', border: '1px solid #fee2e2', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                 <XCircle size={18} color="#ef4444" style={{ marginTop: '2px', flexShrink: 0 }} />
                 <div>
