@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../../../views/components/Card';
 import { Button } from '../../../views/components/Button';
-import { Shield, Server, RefreshCw, Key, Eye, EyeOff, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight, Mail, CreditCard, Sliders, Globe, Info, LifeBuoy, Clock } from 'lucide-react';
+import { Shield, Server, RefreshCw, Key, Eye, EyeOff, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight, Mail, CreditCard, Globe, Info, LifeBuoy, Clock } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { Modal } from '../../../views/components/Modal';
 import { API_ENDPOINTS } from '../../../lib/constants';
 
 
-type TabType = 'payments' | 'smtp' | 'risk' | 'support' | 'algo';
+type TabType = 'payments' | 'smtp' | 'support' | 'algo';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('payments');
@@ -29,10 +29,6 @@ export default function SettingsPage() {
   const [smtpSenderName, setSmtpSenderName] = useState('Growffiy');
   const [smtpEncryption, setSmtpEncryption] = useState('tls');
   const [smtpStatus, setSmtpStatus] = useState('false'); // 'true' or 'false'
-
-  // Risk
-  const [defaultRisk, setDefaultRisk] = useState('1.00');
-  const [slippage, setSlippage] = useState('0.10');
 
   // Support contact info
   const [supportEmail, setSupportEmail] = useState('support@growffiy.com');
@@ -72,9 +68,6 @@ export default function SettingsPage() {
           setSmtpEncryption(res.settings.smtp_encryption || 'tls');
           setSmtpStatus(res.settings.smtp_status || 'false');
 
-          setDefaultRisk(res.settings.default_risk || '1.00');
-          setSlippage(res.settings.slippage || '0.10');
-
           setSupportEmail(res.settings.support_email || 'support@growffiy.com');
           setSupportPhone(res.settings.support_phone || '+91 98765 43210');
           setSupportTimings(res.settings.support_timings || 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)');
@@ -110,8 +103,6 @@ export default function SettingsPage() {
         smtp_sender_name: smtpSenderName,
         smtp_encryption: smtpEncryption,
         smtp_status: smtpStatus,
-        default_risk: defaultRisk,
-        slippage: slippage,
         support_email: supportEmail,
         support_phone: supportPhone,
         support_timings: supportTimings,
@@ -234,28 +225,6 @@ export default function SettingsPage() {
         >
           <Mail size={16} />
           SMTP Mail Configuration
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('risk')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '14px 4px',
-            fontSize: '14px',
-            fontWeight: 600,
-            border: 'none',
-            borderBottom: activeTab === 'risk' ? '2px solid var(--primary)' : '2px solid transparent',
-            color: activeTab === 'risk' ? 'var(--primary)' : 'var(--text-secondary)',
-            background: 'none',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-          }}
-        >
-          <Sliders size={16} />
-          Risk Parameters
         </button>
 
         <button
@@ -753,72 +722,6 @@ export default function SettingsPage() {
                     </button>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Submit Action inside Box */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '24px' }}>
-              <Button
-                type="submit"
-                disabled={saving}
-                style={{
-                  padding: '10px 28px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
-                  color: 'white',
-                  boxShadow: 'var(--shadow-blue)'
-                }}
-              >
-                {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
-                Save & Apply Settings
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {/* Global Risk View Tab */}
-        {activeTab === 'risk' && (
-          <Card style={{ padding: '24px 28px' }}>
-            <div style={{ marginBottom: '28px', borderBottom: '1px solid var(--border-light)', paddingBottom: '20px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-                Global Risk Parameters
-              </h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Define default risk ceilings and maximum slippage filters for strategies.
-              </p>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Default Risk Size per trade (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.05"
-                  value={defaultRisk}
-                  onChange={(e) => setDefaultRisk(e.target.value)}
-                  required
-                  style={{ height: '38px', fontSize: '13px' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Max Slippage tolerance (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={slippage}
-                  onChange={(e) => setSlippage(e.target.value)}
-                  required
-                  style={{ height: '38px', fontSize: '13px' }}
-                />
               </div>
             </div>
 
