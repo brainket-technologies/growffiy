@@ -44,6 +44,7 @@ class AlgoEngineService {
   private stocksState: StockQuote[] = [];
   private isTradingActive: boolean = false;
   private ws: WebSocket | null = null;
+  private static isReconnecting = false;
   private lastUpdate: { [symbol: string]: number } = {};
 
   // Kite credentials for live API fetches
@@ -799,6 +800,10 @@ class AlgoEngineService {
 
   // Establish connection to Zerodha's wss streaming gateway
   private connectKiteWebSocket(apiKey: string, accessToken: string) {
+    if (AlgoEngineService.isReconnecting) {
+      console.log('Kite Socket: Reconnect in progress. Skipping new connection attempt.');
+      return;
+    }
     this.activeApiKey = apiKey;
     this.activeAccessToken = accessToken;
 
@@ -869,14 +874,22 @@ class AlgoEngineService {
     });
 
     this.ws.on('error', (err: any) => {
-      console.error('Kite Socket error:', err);
+      console.error('Kite Socket error:', err?.message || err);
+      // Close the socket so 'close' event triggers reconnect
+      try { this.ws?.close(); } catch (e) { }
     });
 
     this.ws.on('close', () => {
-      console.log('Kite Socket disconnected. Reconnecting in 5 seconds...');
+      if (AlgoEngineService.isReconnecting) {
+        console.log('Kite Socket disconnected. Reconnect already scheduled. Skipping.');
+        return;
+      }
+      AlgoEngineService.isReconnecting = true;
+      console.log('Kite Socket disconnected. Reconnecting in 30 seconds...');
       setTimeout(() => {
+        AlgoEngineService.isReconnecting = false;
         this.connectKiteWebSocket(apiKey, accessToken);
-      }, 5000);
+      }, 30000);
     });
   }
 
