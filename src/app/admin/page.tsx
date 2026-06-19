@@ -366,20 +366,18 @@ export default function AdminDashboard() {
             </div>
           ) : (
             <>
-              <div style={{ padding: '6px 12px', borderRadius: '8px', backgroundColor: isTradingActive ? '#e0f2fe' : '#f1f5f9', color: isTradingActive ? '#0284c7' : '#64748b', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ padding: '6px 14px', borderRadius: '8px', backgroundColor: isTradingActive ? '#e0f2fe' : '#f1f5f9', color: isTradingActive ? '#0284c7' : '#64748b', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isTradingActive ? '#0284c7' : '#94a3b8', display: 'inline-block' }} />
-                {isTradingActive ? 'AUTO TRADING LIVE' : 'ENGINE STOPPED'}
+                <span>{isTradingActive ? 'AUTO TRADING LIVE' : 'ENGINE STOPPED'}</span>
+                <span style={{ width: '1px', height: '14px', background: isTradingActive ? 'rgba(2,132,199,0.2)' : 'rgba(100,116,139,0.2)' }} />
+                <span style={{ fontSize: '11px', fontWeight: 500, opacity: 0.8 }}>
+                  {!autoTradeEnabled ? 'Auto Trade OFF' : holidays.includes(new Date().toLocaleDateString('en-CA')) ? 'Holiday - Skip' : tradingDays.includes(new Date().toLocaleDateString('en-US', { weekday: 'short' })) || specialDays.includes(new Date().toLocaleDateString('en-CA')) ? '✅ Trading Day' : '❌ Not a Trading Day'}
+                </span>
               </div>
 
               <Button variant={isTradingActive ? 'danger' : 'success'} onClick={() => toggleTrading(!isTradingActive)} style={{ fontSize: '13px', padding: '8px 16px', fontWeight: 600 }}>
                 {isTradingActive ? 'Stop Trading' : 'Start Auto Trading'}
               </Button>
-              {tradingDays.length > 0 && (
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                  <Calendar size={12} />
-                  {autoTradeEnabled ? 'Auto Trade ON' : 'Auto Trade OFF'} · Trading Days: {tradingDays.join(', ')}
-                </div>
-              )}
             </>
           )}
         </div>
