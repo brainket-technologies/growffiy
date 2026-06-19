@@ -28,6 +28,8 @@ import {
   Save
 } from 'lucide-react';
 import { Modal } from '../../../views/components/Modal';
+import StrategyFlowPreview from '../../../components/StrategyFlowPreview';
+import StrategyTestPanel from '../../../components/StrategyTestPanel';
 
 interface StrategyCondition {
   logical: 'AND' | 'OR';
@@ -190,6 +192,7 @@ export default function StrategiesPage() {
   const { colors, trades } = useAppViewModel();
 
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [previewTab, setPreviewTab] = useState<'flow' | 'test'>('flow');
 
   // Mode state: 'list' | 'create' | 'edit' | 'detail'
   const [viewMode, setViewMode] = useState<'list' | 'create' | 'edit' | 'detail'>('list');
@@ -1217,6 +1220,7 @@ export default function StrategiesPage() {
 
           {/* VIEW: CREATE / EDIT STRATEGY FORM */}
           {(viewMode === 'create' || viewMode === 'edit') && (
+            <React.Fragment>
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '24px', animation: 'fadeIn 0.3s ease', background: 'rgba(255,255,255,0.3)', padding: '24px', borderRadius: '20px', border: '1px solid rgba(226,232,240,0.5)' }}>
               
               {formErrors && (
@@ -1890,6 +1894,36 @@ export default function StrategiesPage() {
             <button type="submit" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 24px', background: 'linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%)', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 12px rgba(14,165,233,0.25)', transition: 'all 0.25s ease' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(14,165,233,0.35)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(14,165,233,0.25)'; }}><Save size={16} /> Save Strategy Settings</button>
           </div>
         </form>
+
+        {/* Strategy Preview & Test Tabs */}
+        <div style={{ marginTop: '24px' }}>
+          <div style={{ display: 'flex', gap: '0', background: 'var(--bg-secondary)', padding: '3px', borderRadius: '10px', border: '1px solid var(--border-color)', width: 'fit-content', marginBottom: '20px' }}>
+            {['flow', 'test'].map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setPreviewTab(tab as 'flow' | 'test')}
+                style={{
+                  padding: '8px 20px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  background: previewTab === tab ? 'var(--bg-primary)' : 'transparent',
+                  color: previewTab === tab ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  boxShadow: previewTab === tab ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.15s'
+                }}
+              >
+                {tab === 'flow' ? '📋 Flow Preview' : '🧪 Test Strategy'}
+              </button>
+            ))}
+          </div>
+          {previewTab === 'flow' && <StrategyFlowPreview config={formData as any} />}
+          {previewTab === 'test' && <StrategyTestPanel config={formData as any} />}
+        </div>
+        </React.Fragment>
       )}
 
       {viewMode === 'detail' && selectedStrategy && (
