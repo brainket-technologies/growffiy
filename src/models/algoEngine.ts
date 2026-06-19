@@ -142,12 +142,14 @@ class AlgoEngineService {
           const rsi = calculateRSI(closePrices, 14);
           if (!applyOperator(rsi, cond.operator, val)) return false;
         } else if (cond.indicator === 'EMA') {
-          const ema = calculateEMA(closePrices, val || 9);
+          if (isNaN(val) || val <= 0) return true;
+          const ema = calculateEMA(closePrices, val);
           const sma = calculateSMA(closePrices, 20);
           if (cond.value === 'SMA' && !applyOperator(ema, cond.operator, sma)) return false;
           if (!applyOperator(ema, cond.operator, val)) return false;
         } else if (cond.indicator === 'SMA') {
-          const sma = calculateSMA(closePrices, val || 20);
+          if (isNaN(val) || val <= 0) return true;
+          const sma = calculateSMA(closePrices, val);
           if (!applyOperator(sma, cond.operator, val)) return false;
         } else if (cond.indicator === 'VWAP') {
           const vwap = calculateVWAP(candles);
@@ -157,10 +159,12 @@ class AlgoEngineService {
           const compareVal = cond.value === 'Signal' ? macd.signal : (Number(cond.value) || macd.signal);
           if (!applyOperator(macd.macd, cond.operator, compareVal)) return false;
         } else if (cond.indicator === 'ATR') {
-          const atr = calculateATR(candles, val || 14);
+          if (isNaN(val) || val <= 0) return true;
+          const atr = calculateATR(candles, val);
           if (!applyOperator(atr, cond.operator, val)) return false;
         } else if (cond.indicator === 'Bollinger Bands') {
-          const bb = calculateBollingerBands(closePrices, val || 20);
+          if (isNaN(val) || val <= 0) return true;
+          const bb = calculateBollingerBands(closePrices, val);
           const bbVal = cond.value === 'Upper' ? bb.upper : (cond.value === 'Lower' ? bb.lower : bb.middle);
           if (!applyOperator(stock.ltp, cond.operator, bbVal)) return false;
         } else if (cond.indicator === 'SuperTrend') {
@@ -406,17 +410,21 @@ class AlgoEngineService {
 
             // Parse configuration
             const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
-            const slPercent = config?.stoploss?.fixedPercent || 1;
-            const targetPercent = config?.target?.profitPercent || 2;
-            const slType = config?.stoploss?.type || 'Fixed %';
-            const targetType = config?.target?.type || 'Profit %';
-            const trailingSlStep = config?.stoploss?.trailingSL || 0.2;
-            const trailingTgtStep = config?.target?.trailingTarget || 0.5;
+            if (!config?.stoploss?.fixedPercent || !config?.target?.profitPercent || !config?.stoploss?.type || !config?.target?.type || !config?.basicInfo?.exchange) {
+              console.log(`AlgoEngine Monitor: Strategy ${strategy.name} has incomplete config for trade ${trade.id}. Skipping check.`);
+              continue;
+            }
+            const slPercent = config.stoploss.fixedPercent;
+            const targetPercent = config.target.profitPercent;
+            const slType = config.stoploss.type;
+            const targetType = config.target.type;
+            const trailingSlStep = config?.stoploss?.trailingSL;
+            const trailingTgtStep = config?.target?.trailingTarget;
             const marketProtectionVal = config?.tradeAction?.marketProtection !== undefined 
               ? Number(config.tradeAction.marketProtection) : -1;
 
             const entryPrice = Number(trade.entryPrice);
-            const exchangeParam = config?.basicInfo?.exchange || 'NSE';
+            const exchangeParam = config.basicInfo.exchange;
             let exitTriggered = false;
             let exitPrice = 0;
             let exitReason = '';
@@ -483,8 +491,8 @@ class AlgoEngineService {
                 }
               }
 
-              // --- Trailing SL (only if no exit yet) ---
-              if (!exitTriggered && trade.slOrderId && trade.slTriggerPrice) {
+              // --- Trailing SL (only if no exit yet AND trailingSlStep configured) ---
+              if (!exitTriggered && trade.slOrderId && trade.slTriggerPrice && trailingSlStep) {
                 const price = this.getStockLtp(trade.symbol);
                 if (price > 0 && price > entryPrice) {
                   const currentSlTrigger = Number(trade.slTriggerPrice);
@@ -543,7 +551,11 @@ class AlgoEngineService {
                   const currentClosePrice = Number(latestCandle[4]);
                   let fallbackSlPoints: number;
                   if (slType === 'Fixed Points') {
-                    fallbackSlPoints = config?.stoploss?.fixedPoints || 10;
+                    if (!config?.stoploss?.fixedPoints) {
+                      console.log(`AlgoEngine Monitor: stoploss.fixedPoints not configured for trade ${trade.id}. Skipping check.`);
+                      continue;
+                    }
+                    fallbackSlPoints = config.stoploss.fixedPoints;
                   } else {
                     fallbackSlPoints = entryPrice * (slPercent / 100);
                   }
@@ -551,7 +563,11 @@ class AlgoEngineService {
                   const stopLossLevel = entryPrice - fallbackSlPoints;
                   let targetLevel: number;
                   if (targetType === 'Risk Reward Ratio') {
-                    const rr = config?.target?.riskRewardRatio || 2;
+                    if (!config?.target?.riskRewardRatio) {
+                      console.log(`AlgoEngine Monitor: target.riskRewardRatio not configured for trade ${trade.id}. Skipping check.`);
+                      continue;
+                    }
+                    const rr = config.target.riskRewardRatio;
                     targetLevel = entryPrice + (fallbackSlPoints * rr);
                   } else {
                     targetLevel = entryPrice * (1 + targetPercent / 100);
@@ -1084,7 +1100,14 @@ class AlgoEngineService {
         const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
         if (!config) continue;
 
-        const segment = config.basicInfo?.segment || 'NSE F&O';
+        if (!config.basicInfo?.segment || !config.tradeAction?.action || !config.basicInfo?.selectPosition) {
+          console.log(`AlgoEngine preSelect: Strategy config missing required fields (segment/action/selectPosition) for client ${client.user.name}. Skipping.`);
+          continue;
+        }
+        const segment = config.basicInfo.segment;
+        const action = config.tradeAction.action;
+        const selectPosition = config.basicInfo.selectPosition;
+
         let matchingStocks = preOpenStocks.filter(stock => {
           if (segment === 'NSE F&O' || segment === 'Futures' || segment === 'Options') {
             if (!stock.isFo) return false;
@@ -1114,9 +1137,6 @@ class AlgoEngineService {
           console.log(`AlgoEngine preSelect: No stocks passed conditions for client ${client.user.name}.`);
           continue;
         }
-
-        const action = config.tradeAction?.action || 'Long';
-        const selectPosition = config.basicInfo?.selectPosition || 1;
         const sortedStocks = [...matchingStocks].sort((a, b) =>
           action === 'Long' ? a.changePercent - b.changePercent : b.changePercent - a.changePercent
         );
@@ -1205,8 +1225,12 @@ class AlgoEngineService {
             continue;
           }
 
-          const exchangeParam = config.basicInfo?.exchange || 'NSE';
-          const tradeType = config.basicInfo?.tradeType || 'Intraday';
+          if (!config.basicInfo?.exchange || !config.basicInfo?.tradeType) {
+            console.log(`AlgoEngine: Strategy config missing exchange/tradeType for client ${client.user.name}. Skipping.`);
+            continue;
+          }
+          const exchangeParam = config.basicInfo.exchange;
+          const tradeType = config.basicInfo.tradeType;
           const productParam = tradeType === 'Delivery' ? 'CNC' : (tradeType === 'Carry Forward' || tradeType === 'Normal' || tradeType === 'NRML') ? 'NRML' : 'MIS';
 
           // 3. Check preselected stock (set at preSelectTime 09:15), fallback to filter now
@@ -1214,7 +1238,13 @@ class AlgoEngineService {
           this.preselectedForClient.delete(client.id);
 
           if (!candidateStock) {
-            const segment = config.basicInfo?.segment || 'NSE F&O';
+            if (!config.basicInfo?.segment || !config.tradeAction?.action || !config.basicInfo?.selectPosition) {
+              console.log(`AlgoEngine: Strategy config missing required fields (segment/action/selectPosition) for fallback filter for client ${client.user.name}. Skipping.`);
+              continue;
+            }
+            const segment = config.basicInfo.segment;
+            const action = config.tradeAction.action;
+            const selectPosition = config.basicInfo.selectPosition;
             let matchingStocks = preOpenStocks.filter(stock => {
               if (segment === 'NSE F&O' || segment === 'Futures' || segment === 'Options') {
                 if (!stock.isFo) return false;
@@ -1240,8 +1270,6 @@ class AlgoEngineService {
               continue;
             }
 
-            const action = config.tradeAction?.action || 'Long';
-            const selectPosition = config.basicInfo?.selectPosition || 1;
             const sortedStocks = [...matchingStocks].sort((a, b) =>
               action === 'Long' ? a.changePercent - b.changePercent : b.changePercent - a.changePercent
             );
@@ -1293,10 +1321,15 @@ class AlgoEngineService {
             }
 
             if (candleHigh === 0) {
-              candleHigh = candidateStock.high || candidateStock.ltp || candidateStock.prevClose || 100;
+              console.log(`AlgoEngine: Could not determine candle high for ${candidateStock.symbol}. Skipping.`);
+              continue;
             }
 
-            const bufferPct = config.tradeAction?.bufferPercent || 0.1;
+            if (!config.tradeAction?.bufferPercent) {
+              console.log(`AlgoEngine: tradeAction.bufferPercent not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+              continue;
+            }
+            const bufferPct = config.tradeAction.bufferPercent;
             breakoutEntryPrice = candleHigh * (1 + bufferPct / 100);
 
             // Check if current LTP breaks candle high
@@ -1319,8 +1352,17 @@ class AlgoEngineService {
           }
 
           const entryPrice = breakoutEntryPrice;
-          const slPercent = config?.stoploss?.fixedPercent || 1;
-          const targetPercent = config?.target?.profitPercent || 2;
+
+          if (!config?.stoploss?.fixedPercent) {
+            console.log(`AlgoEngine: stoploss.fixedPercent not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+            continue;
+          }
+          if (!config?.target?.profitPercent) {
+            console.log(`AlgoEngine: target.profitPercent not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+            continue;
+          }
+          const slPercent = config.stoploss.fixedPercent;
+          const targetPercent = config.target.profitPercent;
 
           let activeAccessToken = client.accessToken;
           const isAutoLoginPossible = process.env.KITE_AUTO_LOGIN_ENABLED === 'true' && client.zerodhaPassword && client.zerodhaTotpSecret;
@@ -1428,12 +1470,24 @@ class AlgoEngineService {
           }
 
           // Step 3: SL Points based on type (Fixed %, Fixed Points, Risk %)
-          const slType = config?.stoploss?.type || 'Fixed %';
+          if (!config?.stoploss?.type) {
+            console.log(`AlgoEngine: stoploss.type not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+            continue;
+          }
+          const slType = config.stoploss.type;
           let slPoints: number;
           if (slType === 'Fixed Points') {
-            slPoints = config?.stoploss?.fixedPoints || 10;
+            if (!config?.stoploss?.fixedPoints) {
+              console.log(`AlgoEngine: stoploss.fixedPoints not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+              continue;
+            }
+            slPoints = config.stoploss.fixedPoints;
           } else if (slType === 'Risk %') {
-            slPoints = entryPrice * ((config?.stoploss?.riskPercent || 1) / 100);
+            if (!config?.stoploss?.riskPercent) {
+              console.log(`AlgoEngine: stoploss.riskPercent not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+              continue;
+            }
+            slPoints = entryPrice * (config.stoploss.riskPercent / 100);
           } else {
             slPoints = entryPrice * (slPercent / 100);
           }
@@ -1478,7 +1532,11 @@ class AlgoEngineService {
             continue;
           }
 
-          const maxOpen = config?.riskManagement?.maxOpenPositions || 99;
+          if (!config?.riskManagement?.maxOpenPositions) {
+            console.log(`AlgoEngine: riskManagement.maxOpenPositions not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+            continue;
+          }
+          const maxOpen = config.riskManagement.maxOpenPositions;
           const openCount = await prisma.trade.count({
             where: { clientId: client.id, strategyId: strategy.id, status: 'open' }
           });
@@ -1493,13 +1551,13 @@ class AlgoEngineService {
             where: { clientId: client.id, createdAt: { gte: todayStart }, pnl: { not: null } }
           });
           const todayPnl = todayTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
-          const maxDailyLoss = config?.riskManagement?.maxDailyLoss || 0;
-          if (maxDailyLoss > 0 && todayPnl <= -maxDailyLoss) {
+          const maxDailyLoss = config?.riskManagement?.maxDailyLoss;
+          if (maxDailyLoss !== undefined && maxDailyLoss !== null && todayPnl <= -Number(maxDailyLoss)) {
             console.log(`AlgoEngine: Max daily loss (₹${maxDailyLoss}) reached for ${client.user.name} (PnL: ₹${todayPnl}). Skipping.`);
             continue;
           }
-          const maxDailyProfit = config?.riskManagement?.maxDailyProfit || 0;
-          if (maxDailyProfit > 0 && todayPnl >= maxDailyProfit) {
+          const maxDailyProfit = config?.riskManagement?.maxDailyProfit;
+          if (maxDailyProfit !== undefined && maxDailyProfit !== null && todayPnl >= Number(maxDailyProfit)) {
             console.log(`AlgoEngine: Max daily profit (₹${maxDailyProfit}) reached for ${client.user.name} (PnL: ₹${todayPnl}). Skipping.`);
             continue;
           }
@@ -1510,10 +1568,18 @@ class AlgoEngineService {
 
           const stopLoss = entryPrice - slPoints;
 
-          const targetType = config?.target?.type || 'Profit %';
+          if (!config?.target?.type) {
+            console.log(`AlgoEngine: target.type not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+            continue;
+          }
+          const targetType = config.target.type;
           let target: number;
           if (targetType === 'Risk Reward Ratio') {
-            const rr = config?.target?.riskRewardRatio || 2;
+            if (!config?.target?.riskRewardRatio) {
+              console.log(`AlgoEngine: target.riskRewardRatio not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+              continue;
+            }
+            const rr = config.target.riskRewardRatio;
             target = entryPrice + (slPoints * rr);
           } else {
             target = entryPrice * (1 + targetPercent / 100);
@@ -1522,7 +1588,11 @@ class AlgoEngineService {
           let orderTypeParam: 'MARKET' | 'LIMIT' | 'SL' | 'SL-M' = 'MARKET';
           let priceParam: number | undefined = undefined;
           let triggerPriceParam: number | undefined = undefined;
-          const configOrderType = config?.tradeAction?.orderType || 'Market';
+          if (!config?.tradeAction?.orderType) {
+            console.log(`AlgoEngine: tradeAction.orderType not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+            continue;
+          }
+          const configOrderType = config.tradeAction.orderType;
 
           if (configOrderType === 'Limit') {
             orderTypeParam = 'LIMIT';
@@ -1530,7 +1600,11 @@ class AlgoEngineService {
           } else if (configOrderType === 'SL-Limit') {
             orderTypeParam = 'SL';
             triggerPriceParam = Number(entryPrice.toFixed(2));
-            const bufferPercent = config?.tradeAction?.bufferPercent || 0.1;
+            if (!config?.tradeAction?.bufferPercent) {
+              console.log(`AlgoEngine: tradeAction.bufferPercent not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+              continue;
+            }
+            const bufferPercent = config.tradeAction.bufferPercent;
             priceParam = Number((entryPrice * (1 + bufferPercent / 100)).toFixed(2));
           } else if (configOrderType === 'SL-Market') {
             orderTypeParam = 'SL-M';
