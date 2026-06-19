@@ -116,21 +116,21 @@ const INITIAL_CONFIG: StrategyConfig = {
   stoploss: {
     type: 'Fixed %',
     orderType: 'Market',
-    fixedPercent: 0.5,
+    fixedPercent: 1,
     fixedPoints: 10,
     trailingSL: 0.2,
     riskPercent: 1.0
   },
   target: {
     type: 'Profit %',
-    profitPercent: 1.5,
+    profitPercent: 2,
     riskRewardRatio: 2.0,
     partialExit: 100,
     trailingTarget: 0.5
   },
   riskManagement: {
     capitalAllocation: 10.0,
-    riskPerTrade: 1.0,
+    riskPerTrade: 3,
     maxDailyLoss: 5000,
     maxDailyProfit: 15000,
     maxOpenPositions: 3,
@@ -1776,7 +1776,7 @@ export default function StrategiesPage() {
                     />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Risk Per Trade %</label>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Risk % (of Total Capital)</label>
                     <input
                       type="number"
                       step="0.1"

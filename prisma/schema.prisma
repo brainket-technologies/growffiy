@@ -43,7 +43,6 @@ model Client {
   accessToken        String?   @map("access_token")
   zerodhaSession     String?   @map("zerodha_session")
   capital            Decimal   @db.Decimal(12, 2)
-  riskPercentage     Decimal   @default(1.00) @map("risk_percentage") @db.Decimal(5, 2)
   strategyId         String?   @map("strategy_id")
   strategy           Strategy? @relation(fields: [strategyId], references: [id])
   tradingStatus      String    @default("inactive") @map("trading_status") // active, inactive

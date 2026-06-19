@@ -28,30 +28,27 @@ const DEFAULT_TEMPLATES = [
       stoploss: {
         type: 'Trailing SL',
         orderType: 'Market',
-        fixedPercent: 0.8,
+        fixedPercent: 1,
         fixedPoints: 10,
         trailingSL: 0.3,
         riskPercent: 1.0
       },
       target: {
         type: 'Trailing Target',
-        profitPercent: 2.0,
+        profitPercent: 2,
         riskRewardRatio: 2.5,
         partialExit: 50,
         trailingTarget: 0.5
       },
       riskManagement: {
         capitalAllocation: 10.0,
-        riskPerTrade: 1.0,
+        riskPerTrade: 3,
         maxDailyLoss: 5000,
         maxDailyProfit: 15000,
         maxOpenPositions: 3,
         killSwitch: false
       },
-      conditions: [
-        { logical: 'AND', indicator: 'RSI', operator: '>', value: '55' },
-        { logical: 'AND', indicator: 'EMA', operator: '>', value: 'SMA' }
-      ]
+      conditions: []
     })
   },
   {
@@ -80,30 +77,27 @@ const DEFAULT_TEMPLATES = [
       stoploss: {
         type: 'Fixed Points',
         orderType: 'Market',
-        fixedPercent: 1.0,
+        fixedPercent: 1,
         fixedPoints: 15,
         trailingSL: 0.0,
         riskPercent: 1.0
       },
       target: {
         type: 'Profit %',
-        profitPercent: 3.0,
+        profitPercent: 2,
         riskRewardRatio: 3.0,
         partialExit: 100,
         trailingTarget: 0.0
       },
       riskManagement: {
         capitalAllocation: 20.0,
-        riskPerTrade: 2.0,
+        riskPerTrade: 3,
         maxDailyLoss: 8000,
         maxDailyProfit: 24000,
         maxOpenPositions: 1,
         killSwitch: false
       },
-      conditions: [
-        { logical: 'AND', indicator: 'Previous High', operator: '>', value: 'VWAP' },
-        { logical: 'AND', indicator: 'Volume', operator: '>', value: 'Pre Open Volume' }
-      ]
+      conditions: []
     })
   }
 ];

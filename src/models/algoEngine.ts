@@ -11,6 +11,7 @@ import { prisma } from '../lib/db';
 import { API_ENDPOINTS } from '../lib/constants';
 import { KiteClient } from '../lib/kite';
 import { performKiteAutoLogin } from '../lib/kiteAutoLogin';
+import { applyOperator, calculateRSI, calculateEMA, calculateSMA, calculateMACD, calculateATR, calculateVWAP, calculateBollingerBands, calculateSuperTrend, calculateADX } from '../lib/indicators';
 
 
 
@@ -76,6 +77,121 @@ class AlgoEngineService {
     } catch {
       return defaultValue;
     }
+  }
+
+  private async fetchHistoricalCandles(client: any, symbol: string, interval: string, days = 1): Promise<number[][]> {
+    const instTokenStr = Object.entries(this.instrumentToSymbol).find(([, sym]) => sym === symbol)?.[0];
+    if (!instTokenStr || !client.zerodhaApiKey || !client.accessToken) return [];
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    const from = `${y}-${m}-${String(Math.max(1, Number(d) - days)).padStart(2, '0')}%2009:15`;
+    const to = `${y}-${m}-${d}%2015:30`;
+    try {
+      const res = await KiteClient.getHistoricalData(client.zerodhaApiKey, client.accessToken, instTokenStr, interval, from, to);
+      if (res.status === 'success' && Array.isArray(res.data?.candles)) {
+        return res.data.candles;
+      }
+    } catch {}
+    return [];
+  }
+
+  private async matchesConditions(stock: any, conditions: any[], client?: any): Promise<boolean> {
+    if (!conditions || !Array.isArray(conditions) || conditions.length === 0) return true;
+    for (const cond of conditions) {
+      const val = Number(cond.value);
+      if (cond.indicator === 'Pre Open Change %') {
+        if (cond.operator === '<' && !(stock.changePercent < val)) return false;
+        if (cond.operator === '>' && !(stock.changePercent > val)) return false;
+        if (cond.operator === '<=' && !(stock.changePercent <= val)) return false;
+        if (cond.operator === '>=' && !(stock.changePercent >= val)) return false;
+        if (cond.operator === '==' && !(stock.changePercent == val)) return false;
+      } else if (cond.indicator === 'Price Action') {
+        if (cond.value === 'Previous 5m High') {
+          const prevHigh = stock.high || stock.prevClose || stock.ltp;
+          if (cond.operator === '>' && !(stock.ltp > prevHigh)) return false;
+          if (cond.operator === '>=' && !(stock.ltp >= prevHigh)) return false;
+        }
+      } else if (cond.indicator === 'Gap Up') {
+        const gapPct = stock.prevClose ? ((stock.iep - stock.prevClose) / stock.prevClose) * 100 : 0;
+        if (!applyOperator(gapPct, cond.operator, val)) return false;
+      } else if (cond.indicator === 'Gap Down') {
+        const gapPct = stock.prevClose ? ((stock.iep - stock.prevClose) / stock.prevClose) * 100 : 0;
+        if (!applyOperator(gapPct, cond.operator, -val)) return false;
+      } else if (cond.indicator === 'Previous High') {
+        if (!applyOperator(stock.ltp, cond.operator, stock.nm52wH || stock.high || stock.ltp)) return false;
+      } else if (cond.indicator === 'Previous Low') {
+        if (!applyOperator(stock.ltp, cond.operator, stock.nm52wL || stock.low || stock.ltp)) return false;
+      } else if (cond.indicator === 'Previous Close') {
+        if (!applyOperator(stock.ltp, cond.operator, stock.prevClose)) return false;
+      } else if (cond.indicator === 'Pre Open Price') {
+        if (!applyOperator(stock.ltp, cond.operator, stock.iep)) return false;
+      } else if (cond.indicator === 'Pre Open Volume') {
+        if (!applyOperator(stock.finalQuantity || stock.volume, cond.operator, val)) return false;
+      } else if (cond.indicator === 'Volume') {
+        if (!applyOperator(stock.volume, cond.operator, val)) return false;
+      } else if (cond.indicator === 'Open Interest') {
+        if (!applyOperator(stock.openInterest || 0, cond.operator, val)) return false;
+      } else if (['RSI', 'EMA', 'SMA', 'VWAP', 'MACD', 'ATR', 'Bollinger Bands', 'SuperTrend', 'ADX', 'Candle Pattern'].includes(cond.indicator)) {
+        if (!client) return true;
+        const candles = await this.fetchHistoricalCandles(client, stock.symbol, '5minute', 5);
+        if (candles.length < 2) return true;
+        const closePrices = candles.map(c => c[4]);
+        if (cond.indicator === 'RSI') {
+          const rsi = calculateRSI(closePrices, 14);
+          if (!applyOperator(rsi, cond.operator, val)) return false;
+        } else if (cond.indicator === 'EMA') {
+          const ema = calculateEMA(closePrices, val || 9);
+          const sma = calculateSMA(closePrices, 20);
+          if (cond.value === 'SMA' && !applyOperator(ema, cond.operator, sma)) return false;
+          if (!applyOperator(ema, cond.operator, val)) return false;
+        } else if (cond.indicator === 'SMA') {
+          const sma = calculateSMA(closePrices, val || 20);
+          if (!applyOperator(sma, cond.operator, val)) return false;
+        } else if (cond.indicator === 'VWAP') {
+          const vwap = calculateVWAP(candles);
+          if (!applyOperator(stock.ltp, cond.operator, vwap)) return false;
+        } else if (cond.indicator === 'MACD') {
+          const macd = calculateMACD(closePrices);
+          const compareVal = cond.value === 'Signal' ? macd.signal : (Number(cond.value) || macd.signal);
+          if (!applyOperator(macd.macd, cond.operator, compareVal)) return false;
+        } else if (cond.indicator === 'ATR') {
+          const atr = calculateATR(candles, val || 14);
+          if (!applyOperator(atr, cond.operator, val)) return false;
+        } else if (cond.indicator === 'Bollinger Bands') {
+          const bb = calculateBollingerBands(closePrices, val || 20);
+          const bbVal = cond.value === 'Upper' ? bb.upper : (cond.value === 'Lower' ? bb.lower : bb.middle);
+          if (!applyOperator(stock.ltp, cond.operator, bbVal)) return false;
+        } else if (cond.indicator === 'SuperTrend') {
+          const st = calculateSuperTrend(candles, 10, 3);
+          if (cond.value === 'Up' && st.direction !== 'up') return false;
+          if (cond.value === 'Down' && st.direction !== 'down') return false;
+          if (!applyOperator(st.value, cond.operator, val)) return false;
+        } else if (cond.indicator === 'ADX') {
+          const adx = calculateADX(candles);
+          if (!applyOperator(adx, cond.operator, val)) return false;
+        } else if (cond.indicator === 'Candle Pattern') {
+          const last = candles[candles.length - 1];
+          const prev = candles.length > 1 ? candles[candles.length - 2] : last;
+          if (cond.value === 'Doji') {
+            const body = Math.abs(last[4] - last[1]);
+            const range = last[2] - last[3];
+            if (range > 0 && (body / range) > 0.1) return false;
+          } else if (cond.value === 'Bullish Engulfing') {
+            if (!(prev[4] < prev[1] && last[4] > last[1] && last[4] > prev[1] && last[1] < prev[4])) return false;
+          } else if (cond.value === 'Bearish Engulfing') {
+            if (!(prev[4] > prev[1] && last[4] < last[1] && last[1] < prev[4] && last[4] > prev[1])) return false;
+          } else if (cond.value === 'Hammer') {
+            const body = Math.abs(last[4] - last[1]);
+            const lowerWick = Math.min(last[4], last[1]) - last[3];
+            const upperWick = last[2] - Math.max(last[4], last[1]);
+            if (!(lowerWick > body * 2 && upperWick < body * 0.3)) return false;
+          }
+        }
+      }
+    }
+    return true;
   }
 
   private startDailyPreOpenStrategyScheduler() {
@@ -290,8 +406,10 @@ class AlgoEngineService {
 
             // Parse configuration
             const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
-            const slPercent = config?.stoploss?.fixedPercent || 0.5;
-            const targetPercent = config?.target?.profitPercent || 2.0;
+            const slPercent = config?.stoploss?.fixedPercent || 1;
+            const targetPercent = config?.target?.profitPercent || 2;
+            const slType = config?.stoploss?.type || 'Fixed %';
+            const targetType = config?.target?.type || 'Profit %';
             const trailingSlStep = config?.stoploss?.trailingSL || 0.2;
             const trailingTgtStep = config?.target?.trailingTarget || 0.5;
             const marketProtectionVal = config?.tradeAction?.marketProtection !== undefined 
@@ -423,8 +541,21 @@ class AlgoEngineService {
                 if (res.status === 'success' && Array.isArray(res.data?.candles) && res.data.candles.length > 0) {
                   const latestCandle = res.data.candles[res.data.candles.length - 1];
                   const currentClosePrice = Number(latestCandle[4]);
-                  const stopLossLevel = entryPrice * (1 - slPercent / 100);
-                  const targetLevel = entryPrice * (1 + targetPercent / 100);
+                  let fallbackSlPoints: number;
+                  if (slType === 'Fixed Points') {
+                    fallbackSlPoints = config?.stoploss?.fixedPoints || 10;
+                  } else {
+                    fallbackSlPoints = entryPrice * (slPercent / 100);
+                  }
+                  if (fallbackSlPoints <= 0) fallbackSlPoints = 1;
+                  const stopLossLevel = entryPrice - fallbackSlPoints;
+                  let targetLevel: number;
+                  if (targetType === 'Risk Reward Ratio') {
+                    const rr = config?.target?.riskRewardRatio || 2;
+                    targetLevel = entryPrice + (fallbackSlPoints * rr);
+                  } else {
+                    targetLevel = entryPrice * (1 + targetPercent / 100);
+                  }
 
                   console.log(`AlgoEngine Monitor: Trade ${trade.id} (${trade.symbol}) | Entry: ₹${entryPrice.toFixed(2)} | Current: ₹${currentClosePrice.toFixed(2)} | SL: ₹${stopLossLevel.toFixed(2)} | Target: ₹${targetLevel.toFixed(2)}`);
 
@@ -954,7 +1085,7 @@ class AlgoEngineService {
         if (!config) continue;
 
         const segment = config.basicInfo?.segment || 'NSE F&O';
-        const matchingStocks = preOpenStocks.filter(stock => {
+        let matchingStocks = preOpenStocks.filter(stock => {
           if (segment === 'NSE F&O' || segment === 'Futures' || segment === 'Options') {
             if (!stock.isFo) return false;
           } else if (segment === 'Nifty 50' || segment === 'Nifty') {
@@ -962,30 +1093,25 @@ class AlgoEngineService {
           } else if (segment === 'Bank Nifty' || segment === 'BankNifty') {
             if (!stock.isBankNifty) return false;
           }
-          if (config.conditions && Array.isArray(config.conditions)) {
-            for (const cond of config.conditions) {
-              if (cond.indicator === 'Pre Open Change %') {
-                const val = Number(cond.value);
-                if (cond.operator === '<' && !(stock.changePercent < val)) return false;
-                if (cond.operator === '>' && !(stock.changePercent > val)) return false;
-                if (cond.operator === '<=' && !(stock.changePercent <= val)) return false;
-                if (cond.operator === '>=' && !(stock.changePercent >= val)) return false;
-                if (cond.operator === '===' && !(stock.changePercent === val)) return false;
-                if (cond.operator === '==' && !(stock.changePercent == val)) return false;
-              } else if (cond.indicator === 'Price Action') {
-                if (cond.value === 'Previous 5m High') {
-                  const prevHigh = stock.high || stock.prevClose || stock.ltp;
-                  if (cond.operator === '>' && !(stock.ltp > prevHigh)) return false;
-                  if (cond.operator === '>=' && !(stock.ltp >= prevHigh)) return false;
-                }
-              }
-            }
-          }
           return true;
         });
 
         if (matchingStocks.length === 0) {
           console.log(`AlgoEngine preSelect: No matching stocks for client ${client.user.name}.`);
+          continue;
+        }
+
+        // Apply conditions filter (async)
+        const filteredStocks: any[] = [];
+        for (const stock of matchingStocks) {
+          if (await this.matchesConditions(stock, config.conditions, client)) {
+            filteredStocks.push(stock);
+          }
+        }
+        matchingStocks = filteredStocks;
+
+        if (matchingStocks.length === 0) {
+          console.log(`AlgoEngine preSelect: No stocks passed conditions for client ${client.user.name}.`);
           continue;
         }
 
@@ -1089,7 +1215,7 @@ class AlgoEngineService {
 
           if (!candidateStock) {
             const segment = config.basicInfo?.segment || 'NSE F&O';
-            const matchingStocks = preOpenStocks.filter(stock => {
+            let matchingStocks = preOpenStocks.filter(stock => {
               if (segment === 'NSE F&O' || segment === 'Futures' || segment === 'Options') {
                 if (!stock.isFo) return false;
               } else if (segment === 'Nifty 50' || segment === 'Nifty') {
@@ -1097,28 +1223,17 @@ class AlgoEngineService {
               } else if (segment === 'Bank Nifty' || segment === 'BankNifty') {
                 if (!stock.isBankNifty) return false;
               }
-
-              if (config.conditions && Array.isArray(config.conditions)) {
-                for (const cond of config.conditions) {
-                  if (cond.indicator === 'Pre Open Change %') {
-                    const val = Number(cond.value);
-                    if (cond.operator === '<' && !(stock.changePercent < val)) return false;
-                    if (cond.operator === '>' && !(stock.changePercent > val)) return false;
-                    if (cond.operator === '<=' && !(stock.changePercent <= val)) return false;
-                    if (cond.operator === '>=' && !(stock.changePercent >= val)) return false;
-                    if (cond.operator === '===' && !(stock.changePercent === val)) return false;
-                    if (cond.operator === '==' && !(stock.changePercent == val)) return false;
-                  } else if (cond.indicator === 'Price Action') {
-                    if (cond.value === 'Previous 5m High') {
-                      const prevHigh = stock.high || stock.prevClose || stock.ltp;
-                      if (cond.operator === '>' && !(stock.ltp > prevHigh)) return false;
-                      if (cond.operator === '>=' && !(stock.ltp >= prevHigh)) return false;
-                    }
-                  }
-                }
-              }
               return true;
             });
+
+            // Apply conditions filter (async)
+            const filteredStocks: any[] = [];
+            for (const stock of matchingStocks) {
+              if (await this.matchesConditions(stock, config.conditions, client)) {
+                filteredStocks.push(stock);
+              }
+            }
+            matchingStocks = filteredStocks;
 
             if (matchingStocks.length === 0) {
               console.log(`AlgoEngine: No F&O stocks matched strategy conditions for client ${client.user.name}.`);
@@ -1204,8 +1319,8 @@ class AlgoEngineService {
           }
 
           const entryPrice = breakoutEntryPrice;
-          const slPercent = config?.stoploss?.fixedPercent || 0.5;
-          const targetPercent = config?.target?.profitPercent || 2.0;
+          const slPercent = config?.stoploss?.fixedPercent || 1;
+          const targetPercent = config?.target?.profitPercent || 2;
 
           let activeAccessToken = client.accessToken;
           const isAutoLoginPossible = process.env.KITE_AUTO_LOGIN_ENABLED === 'true' && client.zerodhaPassword && client.zerodhaTotpSecret;
@@ -1295,20 +1410,38 @@ class AlgoEngineService {
             console.error(`AlgoEngine: Error fetching live Zerodha margins for ${client.user.name}. Falling back to DB capital: ₹${clientCapital}`, marginErr);
           }
 
-          const riskPercent = config?.riskManagement?.riskPerTrade || config?.stoploss?.riskPercent || 1;
-          let allocatedAmount = clientCapital * (riskPercent / 100); 
+          const configRisk = config?.riskManagement?.riskPerTrade || config?.stoploss?.riskPercent || 3;
+          const riskPercent = configRisk;
+          const MIS_MARGIN_RATE = 0.20;
 
-          // Cap the allocated trade size at the configured database capital limit
+          // Step 1: Capital at Risk = TotalCapital × riskPercent%
+          let capitalAtRisk = clientCapital * (riskPercent / 100);
+
+          // Step 2: Cap with DB capital (client.capital = max limit)
           const dbCapitalLimit = Number(client.capital);
-          if (allocatedAmount > dbCapitalLimit) {
-            allocatedAmount = dbCapitalLimit;
+          if (capitalAtRisk > dbCapitalLimit) {
+            capitalAtRisk = dbCapitalLimit;
           }
 
-          // Calculate quantity based on direct capital allocation (allocatedAmount / entryPrice)
-          let quantity = Math.floor(allocatedAmount / entryPrice);
+          // Step 3: SL Points based on type (Fixed %, Fixed Points, Risk %)
+          const slType = config?.stoploss?.type || 'Fixed %';
+          let slPoints: number;
+          if (slType === 'Fixed Points') {
+            slPoints = config?.stoploss?.fixedPoints || 10;
+          } else if (slType === 'Risk %') {
+            slPoints = entryPrice * ((config?.stoploss?.riskPercent || 1) / 100);
+          } else {
+            slPoints = entryPrice * (slPercent / 100);
+          }
+          if (slPoints <= 0) slPoints = 1;
+
+          // Step 4: Quantity = min(risk-based, buying-power-based)
+          const qtyByRisk = Math.floor(capitalAtRisk / slPoints);
+          const qtyByBuyingPower = Math.floor(clientCapital / (entryPrice * MIS_MARGIN_RATE));
+          let quantity = Math.min(qtyByRisk, qtyByBuyingPower);
           if (quantity <= 0) {
-            const errMsg = `Skipped: Calculated quantity is 0 (Allocated amount ₹${allocatedAmount.toFixed(2)} is less than entry price ₹${entryPrice.toFixed(2)}).`;
-            console.log(`AlgoEngine: Calculated quantity is 0 for client ${client.user.name} (Allocated: ₹${allocatedAmount.toFixed(2)}, Entry Price: ₹${entryPrice.toFixed(2)}). Skipping trade.`);
+            const errMsg = `Skipped: Calculated quantity is 0 (capitalAtRisk ₹${capitalAtRisk.toFixed(2)} / slPoints ₹${slPoints.toFixed(2)} = 0, or buying power insufficient).`;
+            console.log(`AlgoEngine: Calculated quantity is 0 for client ${client.user.name} (CapitalAtRisk: ₹${capitalAtRisk.toFixed(2)}, SL Points: ₹${slPoints.toFixed(2)}). Skipping trade.`);
             
             await prisma.trade.create({
               data: {
@@ -1334,12 +1467,53 @@ class AlgoEngineService {
             continue;
           }
 
+          // Risk Guards: check from strategy config before placing trade
+          const killSwitch = config?.riskManagement?.killSwitch === true;
+          if (killSwitch) {
+            console.log(`AlgoEngine: KillSwitch ON for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+            continue;
+          }
+
+          const maxOpen = config?.riskManagement?.maxOpenPositions || 99;
+          const openCount = await prisma.trade.count({
+            where: { clientId: client.id, strategyId: strategy.id, status: 'open' }
+          });
+          if (openCount >= maxOpen) {
+            console.log(`AlgoEngine: Max open positions (${maxOpen}) reached for ${client.user.name}. Skipping.`);
+            continue;
+          }
+
+          const todayStart = new Date();
+          todayStart.setHours(0, 0, 0, 0);
+          const todayTrades = await prisma.trade.findMany({
+            where: { clientId: client.id, createdAt: { gte: todayStart }, pnl: { not: null } }
+          });
+          const todayPnl = todayTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
+          const maxDailyLoss = config?.riskManagement?.maxDailyLoss || 0;
+          if (maxDailyLoss > 0 && todayPnl <= -maxDailyLoss) {
+            console.log(`AlgoEngine: Max daily loss (₹${maxDailyLoss}) reached for ${client.user.name} (PnL: ₹${todayPnl}). Skipping.`);
+            continue;
+          }
+          const maxDailyProfit = config?.riskManagement?.maxDailyProfit || 0;
+          if (maxDailyProfit > 0 && todayPnl >= maxDailyProfit) {
+            console.log(`AlgoEngine: Max daily profit (₹${maxDailyProfit}) reached for ${client.user.name} (PnL: ₹${todayPnl}). Skipping.`);
+            continue;
+          }
+
           const marketProtectionVal = config?.tradeAction?.marketProtection !== undefined 
             ? Number(config.tradeAction.marketProtection) 
             : -1;
 
-          const stopLoss = entryPrice * (1 - slPercent / 100);
-          const target = entryPrice * (1 + targetPercent / 100);
+          const stopLoss = entryPrice - slPoints;
+
+          const targetType = config?.target?.type || 'Profit %';
+          let target: number;
+          if (targetType === 'Risk Reward Ratio') {
+            const rr = config?.target?.riskRewardRatio || 2;
+            target = entryPrice + (slPoints * rr);
+          } else {
+            target = entryPrice * (1 + targetPercent / 100);
+          }
 
           let orderTypeParam: 'MARKET' | 'LIMIT' | 'SL' | 'SL-M' = 'MARKET';
           let priceParam: number | undefined = undefined;
@@ -1564,7 +1738,7 @@ class AlgoEngineService {
           await prisma.strategyLog.create({
             data: {
               strategyId: strategy.id,
-              message: `Intraday Trade Initiated for ${client.user.name}: Bought ${quantity} shares of ${targetStock.symbol} at entry price ₹${actualEntryPrice.toFixed(2)} using config from DB strategy "${strategy.name}". Capital allocated: ₹${allocatedAmount.toFixed(2)}. Target: ₹${target.toFixed(2)} (${targetPercent}%), Stop Loss: ₹${stopLoss.toFixed(2)} (${slPercent}%). Entry Order: ${orderId}, SL Order: ${slOrderId || 'N/A'}, Target Order: ${targetOrderId || 'N/A'}`,
+              message: `Intraday Trade Initiated for ${client.user.name}: Bought ${quantity} shares of ${targetStock.symbol} at entry price ₹${actualEntryPrice.toFixed(2)} using config from DB strategy "${strategy.name}". Capital at risk: ₹${capitalAtRisk.toFixed(2)}. Target: ₹${target.toFixed(2)} (${targetPercent}%), Stop Loss: ₹${stopLoss.toFixed(2)} (${slPercent}%). Entry Order: ${orderId}, SL Order: ${slOrderId || 'N/A'}, Target Order: ${targetOrderId || 'N/A'}`,
               logType: 'trade'
             }
           });

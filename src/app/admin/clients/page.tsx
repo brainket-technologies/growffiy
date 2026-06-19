@@ -41,7 +41,6 @@ export default function ClientsPage() {
       zerodhaPassword,
       zerodhaTotpSecret,
       capital: Number(capital),
-      riskPercentage: 1.00,
     });
     if (result && result.success) {
       setGeneratedCreds(result.credentials);

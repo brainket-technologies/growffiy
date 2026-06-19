@@ -317,8 +317,8 @@ export default function ClientDashboardOverview() {
                     <strong>{matchedClient.zerodhaApiKey ? `${matchedClient.zerodhaApiKey.slice(0, 6)}***` : '--'}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Risk Limit:</span>
-                    <strong>{matchedClient.riskPercentage ? `${Number(matchedClient.riskPercentage).toFixed(2)}%` : '1.00%'}</strong>
+                    <span style={{ color: 'var(--text-secondary)' }}>Risk Per Trade:</span>
+                    <strong>Config Based</strong>
                   </div>
                 </>
               )}
