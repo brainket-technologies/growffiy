@@ -1275,24 +1275,26 @@ class AlgoEngineService {
         }
       }
 
-      for (const client of clients) {
+      const BATCH_SIZE = 10;
+
+      const processClientEntry = async (client: any): Promise<void> => {
         try {
           const strategy = client.strategy;
           if (!strategy || strategy.status !== 'active') {
             console.log(`AlgoEngine: Skipping client ${client.user.name} - Strategy "${strategy?.name || 'Unknown'}" is missing or status is not active.`);
-            continue;
+            return;
           }
 
           // Parse config from the strategy record in the database
           const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
           if (!config) {
             console.log(`AlgoEngine: Skipping client ${client.user.name} - Strategy configJson is missing.`);
-            continue;
+            return;
           }
 
           if (!config.basicInfo?.exchange || !config.basicInfo?.tradeType || !config.basicInfo?.preSelectTime || !config.basicInfo?.entryTime) {
             console.log(`AlgoEngine: Strategy config missing exchange/tradeType/preSelectTime/entryTime for client ${client.user.name}. Skipping.`);
-            continue;
+            return;
           }
           const exchangeParam = config.basicInfo.exchange;
           const tradeType = config.basicInfo.tradeType;
@@ -1305,7 +1307,7 @@ class AlgoEngineService {
           if (!candidateStock) {
             if (!config.basicInfo?.segment || !config.tradeAction?.action || !config.basicInfo?.selectPosition) {
               console.log(`AlgoEngine: Strategy config missing required fields (segment/action/selectPosition) for fallback filter for client ${client.user.name}. Skipping.`);
-              continue;
+              return;
             }
             const segment = config.basicInfo.segment;
             const action = config.tradeAction.action;
@@ -1332,7 +1334,7 @@ class AlgoEngineService {
 
             if (matchingStocks.length === 0) {
               console.log(`AlgoEngine: No F&O stocks matched strategy conditions for client ${client.user.name}.`);
-              continue;
+              return;
             }
 
             const sortedStocks = [...matchingStocks].sort((a, b) =>
@@ -1341,7 +1343,7 @@ class AlgoEngineService {
 
             if (sortedStocks.length < selectPosition) {
               console.log(`AlgoEngine: Only ${sortedStocks.length} stocks available, cannot pick position #${selectPosition} for client ${client.user.name}. Skipping.`);
-              continue;
+              return;
             }
 
             candidateStock = sortedStocks[selectPosition - 1];
@@ -1364,13 +1366,13 @@ class AlgoEngineService {
             });
             if (existingTrade) {
               console.log(`AlgoEngine: Trade already exists today for ${candidateStock.symbol} (${client.user.name}). Skipping.`);
-              continue;
+              return;
             }
 
             // Fetch 5-min candle from Kite for candle high check (preSelectTime to entryTime)
             if (!config.basicInfo?.preSelectTime || !config.basicInfo?.entryTime) {
               console.log(`AlgoEngine: basicInfo.preSelectTime or entryTime not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
-              continue;
+              return;
             }
             let candlePrice = 0;
             if (client.zerodhaApiKey && client.accessToken) {
@@ -1393,7 +1395,7 @@ class AlgoEngineService {
 
             if (candlePrice === 0) {
               console.log(`AlgoEngine: Could not determine candle price for ${candidateStock.symbol}. Skipping.`);
-              continue;
+              return;
             }
 
             const bufferPct = config.tradeAction?.bufferPercent;
@@ -1419,18 +1421,18 @@ class AlgoEngineService {
 
           if (!targetStock) {
             console.log(`AlgoEngine: No breakout candidate found for client ${client.user.name}. Skipping trades for today.`);
-            continue;
+            return;
           }
 
           const entryPrice = breakoutEntryPrice;
 
           if (!config?.stoploss?.fixedPercent) {
             console.log(`AlgoEngine: stoploss.fixedPercent not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
-            continue;
+            return;
           }
           if (!config?.target?.profitPercent) {
             console.log(`AlgoEngine: target.profitPercent not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
-            continue;
+            return;
           }
           const slPercent = config.stoploss.fixedPercent;
           const targetPercent = config.target.profitPercent;
@@ -1463,7 +1465,7 @@ class AlgoEngineService {
                 logType: 'warning'
               }
             });
-            continue;
+            return;
           }
 
           if (process.env.KITE_AUTO_LOGIN_ENABLED === 'true') {
@@ -1505,7 +1507,7 @@ class AlgoEngineService {
                 logType: 'error'
               }
             });
-            continue;
+            return;
           }
 
           // 6. Position sizing: perday 1% amount stock me lagana (allocate 1% of client's live Zerodha Net Cash Balance)
@@ -1526,7 +1528,7 @@ class AlgoEngineService {
           const configRisk = config?.riskManagement?.riskPerTrade;
           if (!configRisk || configRisk <= 0) {
             console.log(`AlgoEngine: riskManagement.riskPerTrade not configured (or invalid) for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
-            continue;
+            return;
           }
           const riskPercent = configRisk;
           const marginRate = config?.riskManagement?.misMarginRate;
@@ -1543,20 +1545,20 @@ class AlgoEngineService {
           // Step 3: SL Points based on type (Fixed %, Fixed Points, Risk %)
           if (!config?.stoploss?.type) {
             console.log(`AlgoEngine: stoploss.type not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
-            continue;
+            return;
           }
           const slType = config.stoploss.type;
           let slPoints: number;
           if (slType === 'Fixed Points') {
             if (!config?.stoploss?.fixedPoints) {
               console.log(`AlgoEngine: stoploss.fixedPoints not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
-              continue;
+              return;
             }
             slPoints = config.stoploss.fixedPoints;
           } else if (slType === 'Risk %') {
             if (!config?.stoploss?.riskPercent) {
               console.log(`AlgoEngine: stoploss.riskPercent not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
-              continue;
+              return;
             }
             slPoints = entryPrice * (config.stoploss.riskPercent / 100);
           } else {
@@ -1598,14 +1600,14 @@ class AlgoEngineService {
                 logType: 'info'
               }
             });
-            continue;
+            return;
           }
 
           // Risk Guards: check from strategy config before placing trade
           const killSwitch = config?.riskManagement?.killSwitch === true;
           if (killSwitch) {
             console.log(`AlgoEngine: KillSwitch ON for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
-            continue;
+            return;
           }
 
           const maxOpen = config?.riskManagement?.maxOpenPositions;
@@ -1615,25 +1617,25 @@ class AlgoEngineService {
             });
             if (openCount >= maxOpen) {
               console.log(`AlgoEngine: Max open positions (${maxOpen}) reached for ${client.user.name}. Skipping.`);
-              continue;
+              return;
             }
           }
 
-          const todayStart = new Date();
-          todayStart.setHours(0, 0, 0, 0);
+          const todayStartLocal = new Date();
+          todayStartLocal.setHours(0, 0, 0, 0);
           const todayTrades = await prisma.trade.findMany({
-            where: { clientId: client.id, createdAt: { gte: todayStart }, pnl: { not: null } }
+            where: { clientId: client.id, createdAt: { gte: todayStartLocal }, pnl: { not: null } }
           });
           const todayPnl = todayTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
           const maxDailyLoss = config?.riskManagement?.maxDailyLoss;
           if (maxDailyLoss !== undefined && maxDailyLoss !== null && maxDailyLoss !== -1 && todayPnl <= -Number(maxDailyLoss)) {
             console.log(`AlgoEngine: Max daily loss (₹${maxDailyLoss}) reached for ${client.user.name} (PnL: ₹${todayPnl}). Skipping.`);
-            continue;
+            return;
           }
           const maxDailyProfit = config?.riskManagement?.maxDailyProfit;
           if (maxDailyProfit !== undefined && maxDailyProfit !== null && maxDailyProfit !== -1 && todayPnl >= Number(maxDailyProfit)) {
             console.log(`AlgoEngine: Max daily profit (₹${maxDailyProfit}) reached for ${client.user.name} (PnL: ₹${todayPnl}). Skipping.`);
-            continue;
+            return;
           }
 
           const marketProtectionVal = config?.tradeAction?.marketProtection !== undefined 
@@ -1644,14 +1646,14 @@ class AlgoEngineService {
 
           if (!config?.target?.type) {
             console.log(`AlgoEngine: target.type not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
-            continue;
+            return;
           }
           const targetType = config.target.type;
           let target: number;
           if (targetType === 'Risk Reward Ratio') {
             if (!config?.target?.riskRewardRatio) {
               console.log(`AlgoEngine: target.riskRewardRatio not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
-              continue;
+              return;
             }
             const rr = config.target.riskRewardRatio;
             target = entryPrice + (slPoints * rr);
@@ -1664,7 +1666,7 @@ class AlgoEngineService {
           let triggerPriceParam: number | undefined = undefined;
           if (!config?.tradeAction?.orderType) {
             console.log(`AlgoEngine: tradeAction.orderType not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
-            continue;
+            return;
           }
           const configOrderType = config.tradeAction.orderType;
 
@@ -1676,7 +1678,7 @@ class AlgoEngineService {
             triggerPriceParam = Number(entryPrice.toFixed(2));
             if (!config?.tradeAction?.bufferPercent) {
               console.log(`AlgoEngine: tradeAction.bufferPercent not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
-              continue;
+              return;
             }
             const bufferPercent = config.tradeAction.bufferPercent;
             priceParam = Number((entryPrice * (1 + bufferPercent / 100)).toFixed(2));
@@ -1747,7 +1749,7 @@ class AlgoEngineService {
                 await prisma.strategyLog.create({
                   data: { strategyId: strategy.id, message: `Kite order failed for ${client.user.name}: ${errMsg}`, logType: 'error' }
                 });
-                continue;
+                return;
               }
             } catch (kiteErr: any) {
               console.error(`AlgoEngine: Failed to place order on Zerodha Kite for ${client.user.name}:`, kiteErr);
@@ -1764,11 +1766,11 @@ class AlgoEngineService {
               await prisma.strategyLog.create({
                 data: { strategyId: strategy.id, message: `Kite order failed for ${client.user.name}: ${kiteErr.message || 'API error'}.`, logType: 'error' }
               });
-              continue;
+              return;
             }
           } else {
             console.warn(`AlgoEngine: Missing API key or access token for ${client.user.name}. Aborting trade.`);
-            continue;
+            return;
           }
 
           // ---- 3-STEP ORDER FLOW ----
@@ -1814,7 +1816,7 @@ class AlgoEngineService {
                 kiteResponse: { error: 'Entry order did not complete' }
               }
             });
-            continue;
+            return;
           }
 
           // Step 3: Place SL-M order (SELL, trigger_price = stopLoss, market_protection from config)
@@ -1910,6 +1912,12 @@ class AlgoEngineService {
         } catch (clientErr: any) {
           console.error(`AlgoEngine: Error executing pre-open trade for client ${client.id}:`, clientErr);
         }
+      };
+
+      for (let i = 0; i < clients.length; i += BATCH_SIZE) {
+        const batch = clients.slice(i, i + BATCH_SIZE);
+        await Promise.allSettled(batch.map(client => processClientEntry(client)));
+        console.log(`AlgoEngine: Batch processed ${batch.length} clients (${Math.min(i + BATCH_SIZE, clients.length)}/${clients.length})`);
       }
 
     } catch (e: any) {
