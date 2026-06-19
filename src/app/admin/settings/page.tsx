@@ -161,6 +161,15 @@ export default function SettingsPage() {
     );
   }
 
+  const StatusRow = ({ label, value, status }: { label: string; value?: string; status?: boolean }) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-color)' }}>
+      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{label}</span>
+      <span style={{ fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+        {value ? value : status !== undefined ? (status ? <span style={{ color: '#059669' }}>✅ {label === 'Holiday' ? 'Not a holiday' : label === 'Special Day' ? 'Special session' : 'Yes'}</span> : <span style={{ color: '#dc2626' }}>❌ No</span>) : ''}
+      </span>
+    </div>
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '1200px', margin: '0 auto' }}>
       
@@ -872,273 +881,344 @@ export default function SettingsPage() {
 
         {/* Algo Timings View Tab */}
         {activeTab === 'algo' && (
-          <Card style={{ padding: '24px 28px' }}>
-            <div style={{ marginBottom: '28px', borderBottom: '1px solid var(--border-light)', paddingBottom: '20px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                Algo Engine Timings
-              </h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Configure the daily schedule for the automated trading engine. All times are in IST (24-hour format).
-              </p>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Pre-Open Fetch Time
-                </label>
-                <input
-                  type="time"
-                  value={algoPreopenFetchTime}
-                  onChange={(e) => setAlgoPreopenFetchTime(e.target.value)}
-                  required
-                  style={{ height: '38px', fontSize: '13px' }}
-                />
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  When to fetch NSE pre-open data (default: 09:08)
-                </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <Card style={{ padding: '28px 32px' }}>
+              <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'linear-gradient(135deg, #0ea5e9, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                      <Clock size={16} />
+                    </div>
+                    Algo Engine Timings
+                  </div>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '6px', marginLeft: '42px' }}>
+                    Daily schedule for the automated trading engine. All times in IST (24-hour format).
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Token Refresh Time
-                </label>
-                <input
-                  type="time"
-                  value={algoTokenRefreshTime}
-                  onChange={(e) => setAlgoTokenRefreshTime(e.target.value)}
-                  required
-                  style={{ height: '38px', fontSize: '13px' }}
-                />
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  Daily Zerodha token refresh for all active clients (default: 08:00)
-                </p>
+              <div style={{ position: 'relative', paddingLeft: '32px' }}>
+                {/* Timeline line */}
+                <div style={{ position: 'absolute', left: '11px', top: '8px', bottom: '8px', width: '2px', background: 'linear-gradient(to bottom, #0ea5e9, #3b82f6)', borderRadius: '1px', opacity: 0.3 }} />
+
+                {/* Token Refresh */}
+                <div style={{ display: 'flex', gap: '20px', marginBottom: '32px', position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '-26px', top: '18px', width: '14px', height: '14px', borderRadius: '50%', background: '#3b82f6', border: '3px solid rgba(59,130,246,0.15)', zIndex: 1 }} />
+                  <div style={{ flex: 1, padding: '18px 22px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'rgba(59,130,246,0.03)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)' }}>🔑 Token Refresh</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Daily Zerodha auto-login for all active clients</div>
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--bg-secondary)', padding: '4px 10px', borderRadius: '6px' }}>default: 08:00</div>
+                    </div>
+                    <input
+                      type="time"
+                      value={algoTokenRefreshTime}
+                      onChange={(e) => setAlgoTokenRefreshTime(e.target.value)}
+                      required
+                      style={{ marginTop: '12px', width: '100%', height: '42px', fontSize: '14px', padding: '0 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Pre-Open Fetch */}
+                <div style={{ display: 'flex', gap: '20px', marginBottom: '32px', position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '-26px', top: '18px', width: '14px', height: '14px', borderRadius: '50%', background: '#0ea5e9', border: '3px solid rgba(14,165,233,0.15)', zIndex: 1 }} />
+                  <div style={{ flex: 1, padding: '18px 22px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'rgba(14,165,233,0.03)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)' }}>📊 Pre-Open Fetch</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>NSE pre-open data fetch for all strategies</div>
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--bg-secondary)', padding: '4px 10px', borderRadius: '6px' }}>default: 09:08</div>
+                    </div>
+                    <input
+                      type="time"
+                      value={algoPreopenFetchTime}
+                      onChange={(e) => setAlgoPreopenFetchTime(e.target.value)}
+                      required
+                      style={{ marginTop: '12px', width: '100%', height: '42px', fontSize: '14px', padding: '0 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Pre-Select & Entry */}
+                <div style={{ display: 'flex', gap: '20px', position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '-26px', top: '18px', width: '14px', height: '14px', borderRadius: '50%', background: '#8b5cf6', border: '3px solid rgba(139,92,246,0.15)', zIndex: 1 }} />
+                  <div style={{ flex: 1, padding: '18px 22px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'rgba(139,92,246,0.03)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)' }}>⚡ Pre-Select & Entry</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Per-strategy timing configured individually</div>
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#8b5cf6', background: 'rgba(139,92,246,0.1)', padding: '4px 10px', borderRadius: '6px', fontWeight: 600 }}>Per-Strategy</div>
+                    </div>
+                    <div style={{ marginTop: '12px', padding: '12px 16px', borderRadius: '8px', background: 'rgba(139,92,246,0.04)', border: '1px solid rgba(139,92,246,0.1)' }}>
+                      <p style={{ fontSize: '12px', color: 'var(--text-body)', margin: 0, lineHeight: 1.6 }}>
+                        Pre-Select Time, Entry Time, and Check Interval are configured per-strategy in{' '}
+                        <strong style={{ color: '#8b5cf6' }}>Strategies → Edit → Basic Strategy Info</strong>.
+                        This allows different strategies to run on different schedules.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <div style={{ marginTop: '20px', padding: '16px 20px', borderRadius: '10px', backgroundColor: 'rgba(14, 165, 233, 0.04)', border: '1px solid rgba(14, 165, 233, 0.12)' }}>
-              <p style={{ fontSize: '13px', color: 'var(--text-body)', lineHeight: 1.6 }}>
-                <strong style={{ color: 'var(--primary)' }}>Per-Strategy Settings:</strong> Pre-Select Time, Entry Time, and Check Interval are now configured per-strategy in{' '}
-                <strong>Strategies → Edit → Basic Strategy Info</strong>. This allows different strategies to run on different schedules.
-              </p>
-            </div>
-
-            {/* Submit Action inside Box */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '24px' }}>
-              <Button
-                type="submit"
-                disabled={saving}
-                style={{
-                  padding: '10px 28px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
-                  color: 'white',
-                  boxShadow: 'var(--shadow-blue)'
-                }}
-              >
-                {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
-                Save & Apply Settings
-              </Button>
-            </div>
-          </Card>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '28px' }}>
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  style={{
+                    padding: '10px 28px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
+                    color: 'white',
+                    boxShadow: 'var(--shadow-blue)'
+                  }}
+                >
+                  {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
+                  Save & Apply Settings
+                </Button>
+              </div>
+            </Card>
+          </div>
         )}
 
         {/* Market Calendar Tab */}
         {activeTab === 'calendar' && (
-          <Card style={{ padding: '24px 28px' }}>
-            <div style={{ marginBottom: '28px', borderBottom: '1px solid var(--border-light)', paddingBottom: '20px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Calendar size={20} /> Auto Trade Execution Calendar
-              </h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Control which days the auto trading engine executes. Market holidays aur special trading days manage karein.
-              </p>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', padding: '16px 20px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'rgba(16,185,129,0.03)' }}>
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: 700 }}>Auto Trade</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>Global auto trading engine</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Header Card */}
+            <Card style={{ padding: '28px 32px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+                <div>
+                  <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                      <Calendar size={16} />
+                    </div>
+                    Market Calendar
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setAutoTradeEnabled(!autoTradeEnabled)}
-                    style={{
-                      padding: '8px 20px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      background: autoTradeEnabled ? 'linear-gradient(135deg, #059669, #10b981)' : '#e2e8f0',
-                      color: autoTradeEnabled ? 'white' : '#64748b',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {autoTradeEnabled ? 'ON' : 'OFF'}
-                  </button>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '6px', marginLeft: '42px' }}>
+                    Control trading days, market holidays, and special sessions for the auto engine.
+                  </p>
+                </div>
+              </div>
+
+              {/* Auto Trade Status Bar */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 22px', borderRadius: '12px', background: autoTradeEnabled ? 'linear-gradient(135deg, rgba(5,150,105,0.08), rgba(16,185,129,0.04))' : 'rgba(148,163,184,0.06)', border: `1px solid ${autoTradeEnabled ? 'rgba(5,150,105,0.2)' : 'var(--border-color)'}`, marginBottom: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: autoTradeEnabled ? 'linear-gradient(135deg, #059669, #10b981)' : '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                    <RefreshCw size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: autoTradeEnabled ? '#059669' : '#64748b' }}>
+                      Auto Trading {autoTradeEnabled ? 'Active' : 'Disabled'}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '1px' }}>
+                      {autoTradeEnabled ? 'Engine will execute trades on approved days' : 'No trades will be executed regardless of day'}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAutoTradeEnabled(!autoTradeEnabled)}
+                  style={{
+                    padding: '10px 28px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    fontSize: '14px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    background: autoTradeEnabled ? 'linear-gradient(135deg, #dc2626, #ef4444)' : 'linear-gradient(135deg, #059669, #10b981)',
+                    color: 'white',
+                    transition: 'all 0.2s',
+                    boxShadow: autoTradeEnabled ? '0 2px 8px rgba(239,68,68,0.25)' : '0 2px 8px rgba(16,185,129,0.25)'
+                  }}
+                >
+                  {autoTradeEnabled ? 'Turn OFF' : 'Turn ON'}
+                </button>
+              </div>
+
+              {/* Two Column Layout */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                {/* Left: Trading Days */}
+                <div style={{ padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--primary)' }} />
+                    <span style={{ fontSize: '14px', fontWeight: 700 }}>Trading Days</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400, marginLeft: '4px' }}>Select weekdays for trading</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {[
+                      { label: 'Mon', key: 'Mon' },
+                      { label: 'Tue', key: 'Tue' },
+                      { label: 'Wed', key: 'Wed' },
+                      { label: 'Thu', key: 'Thu' },
+                      { label: 'Fri', key: 'Fri' },
+                      { label: 'Sat', key: 'Sat' },
+                      { label: 'Sun', key: 'Sun' },
+                    ].map(({ label, key }) => {
+                      const isSelected = tradingDays.includes(key);
+                      const isWeekend = key === 'Sat' || key === 'Sun';
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setTradingDays(prev => prev.includes(key) ? prev.filter(d => d !== key) : [...prev, key])}
+                          style={{
+                            flex: 1,
+                            minWidth: '60px',
+                            padding: '12px 8px',
+                            borderRadius: '10px',
+                            border: '2px solid',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            background: isSelected ? 'linear-gradient(135deg, var(--primary), #6366f1)' : 'var(--bg-secondary)',
+                            borderColor: isSelected ? 'var(--primary)' : 'var(--border-color)',
+                            color: isSelected ? 'white' : isWeekend ? '#94a3b8' : 'var(--text-primary)',
+                            opacity: isWeekend && !isSelected ? 0.5 : 1,
+                            transition: 'all 0.15s'
+                          }}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                <div style={{ marginBottom: '24px' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '12px' }}>Default Trading Days</div>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((day) => (
-                      <button
-                        key={day}
-                        type="button"
-                        onClick={() => {
-                          setTradingDays(prev =>
-                            prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
-                          );
-                        }}
-                        style={{
-                          padding: '8px 16px',
-                          borderRadius: '8px',
-                          border: '2px solid',
-                          fontSize: '13px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          background: tradingDays.includes(day) ? 'var(--primary)' : 'transparent',
-                          borderColor: tradingDays.includes(day) ? 'var(--primary)' : 'var(--border-color)',
-                          color: tradingDays.includes(day) ? 'white' : 'var(--text-secondary)',
-                          opacity: (day === 'Sat' || day === 'Sun') && !tradingDays.includes(day) ? 0.5 : 1,
-                          transition: 'all 0.15s'
-                        }}
-                      >
-                        {day}
-                      </button>
-                    ))}
+                {/* Right: Today's Status */}
+                <div style={{ padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b' }} />
+                    <span style={{ fontSize: '14px', fontWeight: 700 }}>Today's Status</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <StatusRow label="Date" value={new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })} />
+                    <StatusRow label="Weekday" value={new Date().toLocaleDateString('en-US', { weekday: 'long' })} />
+                    <StatusRow label="Trading Day" status={tradingDays.includes(new Date().toLocaleDateString('en-US', { weekday: 'short' }))} />
+                    <StatusRow label="Holiday" status={!holidays.includes(new Date().toLocaleDateString('en-CA'))} />
+                    <StatusRow label="Special Day" status={specialDays.includes(new Date().toLocaleDateString('en-CA'))} />
+                    <div style={{ marginTop: '8px', padding: '10px 14px', borderRadius: '8px', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', fontSize: '12px', fontWeight: 600, textAlign: 'center', color: !autoTradeEnabled ? '#64748b' : holidays.includes(new Date().toLocaleDateString('en-CA')) ? '#dc2626' : (tradingDays.includes(new Date().toLocaleDateString('en-US', { weekday: 'short' })) || specialDays.includes(new Date().toLocaleDateString('en-CA')) ? '#059669' : '#dc2626') }}>
+                      {!autoTradeEnabled ? '🔴 Engine Stopped — Auto Trade OFF' :
+                       holidays.includes(new Date().toLocaleDateString('en-CA')) ? '🔴 Trade SKIP — Market Holiday' :
+                       tradingDays.includes(new Date().toLocaleDateString('en-US', { weekday: 'short' })) || specialDays.includes(new Date().toLocaleDateString('en-CA')) ? '🟢 Trade will EXECUTE Today' :
+                       '🔴 Trade SKIP — Not a Trading Day'}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ color: '#059669' }}>●</span> Special Market Days
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>(Saturday/Sunday ko trade karega)</span>
+              {/* Special Days & Holidays */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '24px' }}>
+                {/* Special Market Days */}
+                <div style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(5,150,105,0.2)', background: 'rgba(5,150,105,0.03)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                    <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'linear-gradient(135deg, #059669, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: 700 }}>+</div>
+                    <span style={{ fontSize: '14px', fontWeight: 700 }}>Special Market Days</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>Weekends pe trading enable karein</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
                     <input
                       type="date"
                       value={newSpecialDay}
                       onChange={(e) => setNewSpecialDay(e.target.value)}
-                      style={{ flex: 1, height: '38px', fontSize: '13px' }}
+                      style={{ flex: 1, height: '40px', fontSize: '13px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }}
                     />
                     <Button
                       type="button"
                       variant="primary"
-                      onClick={() => {
-                        if (newSpecialDay && !specialDays.includes(newSpecialDay)) {
-                          setSpecialDays([...specialDays, newSpecialDay]);
-                          setNewSpecialDay('');
-                        }
-                      }}
-                      style={{ padding: '8px 16px', fontSize: '12px' }}
+                      onClick={() => { if (newSpecialDay && !specialDays.includes(newSpecialDay)) { setSpecialDays([...specialDays, newSpecialDay]); setNewSpecialDay(''); } }}
+                      style={{ height: '40px', padding: '0 18px', fontSize: '12px', fontWeight: 600, borderRadius: '8px' }}
                     >
                       <Plus size={14} /> Add
                     </Button>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {specialDays.length === 0 && (
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>No special days added</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
+                    {specialDays.length === 0 ? (
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', padding: '8px 0', textAlign: 'center' }}>No special days added yet</div>
+                    ) : (
+                      specialDays.map((date, i) => (
+                        <div key={date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: '8px', background: 'rgba(5,150,105,0.06)', border: '1px solid rgba(5,150,105,0.08)', fontSize: '13px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontWeight: 500 }}>{new Date(date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>({new Date(date).toLocaleDateString('en-US', { weekday: 'long' })})</span>
+                          </div>
+                          <button type="button" onClick={() => setSpecialDays(specialDays.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', opacity: 0.6 }}><Trash2 size={14} /></button>
+                        </div>
+                      ))
                     )}
-                    {specialDays.map((date, i) => (
-                      <div key={date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: '8px', background: 'rgba(5,150,105,0.06)', fontSize: '13px' }}>
-                        <span>{date} <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>({new Date(date).toLocaleDateString('en-US', { weekday: 'long' })})</span></span>
-                        <button type="button" onClick={() => setSpecialDays(specialDays.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px' }}>
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
                   </div>
                 </div>
 
-                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ color: '#ef4444' }}>●</span> Market Holidays
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>(Inn dinon trade skip karega)</span>
+                {/* Market Holidays */}
+                <div style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.03)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                    <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'linear-gradient(135deg, #dc2626, #ef4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: 700 }}>✕</div>
+                    <span style={{ fontSize: '14px', fontWeight: 700 }}>Market Holidays</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>Inn dinon trade skip hoga</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
                     <input
                       type="date"
                       value={newHoliday}
                       onChange={(e) => setNewHoliday(e.target.value)}
-                      style={{ flex: 1, height: '38px', fontSize: '13px' }}
+                      style={{ flex: 1, height: '40px', fontSize: '13px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }}
                     />
                     <Button
                       type="button"
-                      variant="primary"
-                      onClick={() => {
-                        if (newHoliday && !holidays.includes(newHoliday)) {
-                          setHolidays([...holidays, newHoliday]);
-                          setNewHoliday('');
-                        }
-                      }}
-                      style={{ padding: '8px 16px', fontSize: '12px' }}
+                      variant="danger"
+                      onClick={() => { if (newHoliday && !holidays.includes(newHoliday)) { setHolidays([...holidays, newHoliday]); setNewHoliday(''); } }}
+                      style={{ height: '40px', padding: '0 18px', fontSize: '12px', fontWeight: 600, borderRadius: '8px' }}
                     >
                       <Plus size={14} /> Add
                     </Button>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {holidays.length === 0 && (
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>No holidays added</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
+                    {holidays.length === 0 ? (
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', padding: '8px 0', textAlign: 'center' }}>No holidays added yet</div>
+                    ) : (
+                      holidays.map((date, i) => (
+                        <div key={date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: '8px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.08)', fontSize: '13px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontWeight: 500 }}>{new Date(date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>({new Date(date).toLocaleDateString('en-US', { weekday: 'long' })})</span>
+                          </div>
+                          <button type="button" onClick={() => setHolidays(holidays.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', opacity: 0.6 }}><Trash2 size={14} /></button>
+                        </div>
+                      ))
                     )}
-                    {holidays.map((date, i) => (
-                      <div key={date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: '8px', background: 'rgba(239,68,68,0.06)', fontSize: '13px' }}>
-                        <span>{date} <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>({new Date(date).toLocaleDateString('en-US', { weekday: 'long' })})</span></span>
-                        <button type="button" onClick={() => setHolidays(holidays.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px' }}>
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Logic Summary */}
-            <div style={{ marginTop: '24px', padding: '16px 20px', borderRadius: '10px', background: 'rgba(14, 165, 233, 0.04)', border: '1px solid rgba(14, 165, 233, 0.12)' }}>
-              <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '8px' }}>Execution Logic</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-body)', lineHeight: 1.8 }}>
-                <div>1. Auto Trade <strong>{autoTradeEnabled ? 'ON' : 'OFF'}</strong> → {autoTradeEnabled ? 'Engine active' : 'Engine stopped'}</div>
-                <div>2. Today is {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                <div>3. Weekday: <strong>{tradingDays.includes(new Date().toLocaleDateString('en-US', { weekday: 'short' })) ? '✅ Trading day' : '❌ Not a trading day'}</strong></div>
-                <div>4. Holiday: <strong>{holidays.includes(new Date().toLocaleDateString('en-CA')) ? '❌ Holiday - skip' : '✅ Not a holiday'}</strong></div>
-                <div>5. Special Day: <strong>{specialDays.includes(new Date().toLocaleDateString('en-CA')) ? '✅ Special day - will trade' : '—'}</strong></div>
-                <div style={{ marginTop: '4px', fontWeight: 700, color: 'var(--primary)' }}>
-                  → Final: {autoTradeEnabled ? (holidays.includes(new Date().toLocaleDateString('en-CA')) ? '❌ Trade SKIP (holiday)' : (tradingDays.includes(new Date().toLocaleDateString('en-US', { weekday: 'short' })) || specialDays.includes(new Date().toLocaleDateString('en-CA')) ? '✅ Trade will EXECUTE' : '❌ Trade SKIP (not a trading day)' )) : '❌ Trade SKIP (auto trade off)'}
-                </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '28px' }}>
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  style={{
+                    padding: '10px 28px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
+                    color: 'white',
+                    boxShadow: 'var(--shadow-blue)'
+                  }}
+                >
+                  {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
+                  Save & Apply Settings
+                </Button>
               </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '24px' }}>
-              <Button
-                type="submit"
-                disabled={saving}
-                style={{
-                  padding: '10px 28px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
-                  color: 'white',
-                  boxShadow: 'var(--shadow-blue)'
-                }}
-              >
-                {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
-                Save & Apply Settings
-              </Button>
-            </div>
-          </Card>
+            </Card>
+          </div>
         )}
 
       {/* Info Help Modal */}
