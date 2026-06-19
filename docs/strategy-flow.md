@@ -71,7 +71,7 @@
       "orderType": "Market",
       "fixedPercent": 1,
       "fixedPoints": 10,
-      "trailingSL": 0.5,
+      "trailingSL": -1,
       "riskPercent": 1
     },
     "target": {
@@ -79,7 +79,7 @@
       "profitPercent": 2,
       "riskRewardRatio": 2,
       "partialExit": 100,
-      "trailingTarget": 0.5
+      "trailingTarget": -1
     },
     "tradeAction": {
       "action": "Long",
@@ -439,8 +439,8 @@ Step 8: STOP LOSS & TARGET
   Target% = 2% (from config)
   target = 199.40 × (1 + 2/100) = ₹203.39
 
-  Trailing SL = 0.5%
-  Trailing Target = 0.5%
+  Trailing SL = -1 (disabled)
+  Trailing Target = -1 (disabled)
 
 Step 9: PLACE ENTRY ORDER — SL-Market
   Kite.placeOrder({
@@ -537,7 +537,7 @@ Per-trade filter: strategy.configJson.basicInfo.checkIntervalSec = 60
 │    → Cancel SL order (OCO)                                   │
 │    → P&L calculated → trade closed                          │
 │                                                              │
-│ 5. TRAILING SL (if no exit yet + SL exists)                 │
+│ 5. TRAILING SL (if trailingSL > 0; -1 = disabled)          │
 │    LTP from WebSocket = 205.00                               │
 │    trailingSL = 0.5%                                         │
 │    Price move = (205-200.10)/200.10 = 2.45%                 │
@@ -548,7 +548,12 @@ Per-trade filter: strategy.configJson.basicInfo.checkIntervalSec = 60
 │    204.10 > 198.10 → Kite.modifyOrder(trigger_price=204.10) │
 │    DB update: slTriggerPrice = 204.10                        │
 │                                                              │
-│ 6. MARKET CLOSE CHECK                                       │
+│ 6. TRAILING TARGET (if trailingTarget > 0; -1 = disabled)   │
+│    Mirrors Trailing SL logic but modifies LIMIT order price  │
+│    Kite.modifyOrder(price=newTarget)                         │
+│    DB update: target = newTarget                             │
+│                                                              │
+│ 7. MARKET CLOSE CHECK                                        │
 │    currentTime >= "15:25"? → FORCE SELL                     │
 │    Kite.placeOrder(MARKET SELL)                              │
 │    P&L = (exitPrice - entryPrice) × qty                     │
@@ -606,7 +611,7 @@ Trade update:
 |-------|:------------:|-------------------------|
 | **type** | `Trailing SL` | `Fixed %` → trailing band off, fixed SL percentage. `Fixed Points` → points-based SL |
 | **fixedPercent** | `1` | `2` → SL 2% door (more room, more loss potential). `0.5` → tight SL |
-| **trailingSL** | `0.5` | `0` → trailing off (fixed SL). `1` → har 1% move par trail |
+| **trailingSL** | `-1 (disabled)` | `0.5` → har 0.5% move par SL trail karega. `-1` ya `0` → trailing off |
 | **orderType** | `Market` | `Limit` → exact price SL (partial fill risk) |
 
 ### 5.3 target Fields
@@ -616,6 +621,7 @@ Trade update:
 | **type** | `Trailing Target` | `Profit %` → fixed target %. `Risk Reward Ratio` → target = SL points × RR |
 | **profitPercent** | `2` | `3` → 3% target (bigger profit, less likely to hit). `1` → quick small profit |
 | **riskRewardRatio** | `2` | `3` → target = SL points × 3 |
+| **trailingTarget** | `-1 (disabled)` | `0.5` → har 0.5% move par target trail karega (LIMIT order price modify). `-1` ya `0` → trailing off |
 
 ### 5.4 tradeAction Fields
 
@@ -899,10 +905,12 @@ trigger_price: Number(stopLoss.toFixed(2));
 ║    → After fill: Target LIMIT SELL 2562 @ price ₹204.10            ║
 ║    → Trade saved in DB with all 3 order IDs                  ║
 ║                                                              ║
-║  [09:20-15:25] MONITOR (OCO + TRAILING SL)                   ║
+║  [09:20-15:25] MONITOR (OCO + TRAILING SL/TARGET)             ║
 ║    → Every 60 sec: check SL/Target order status via Kite API ║
 ║    → OCO: one hits → cancel the other                        ║
-║    → Trailing: LTP up → SL trigger up modify                 ║
+║    → Trailing SL: LTP up → SL trigger up modify              ║
+║    → Trailing Target: LTP up → Target LIMIT price up modify  ║
+║    → -1 se dono trailing disable                             ║
 ║                                                              ║
 ║  [15:25] MARKET CLOSE                                        ║
 ║    → Force MARKET SELL → exit                                ║
