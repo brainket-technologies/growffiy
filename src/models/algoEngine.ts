@@ -1473,7 +1473,11 @@ class AlgoEngineService {
             continue;
           }
           const riskPercent = configRisk;
-          const MIS_MARGIN_RATE = 0.20;
+          if (!config?.riskManagement?.misMarginRate) {
+            console.log(`AlgoEngine: riskManagement.misMarginRate not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+            continue;
+          }
+          const MIS_MARGIN_RATE = config.riskManagement.misMarginRate;
 
           // Step 1: Capital at Risk = TotalCapital × riskPercent%
           let capitalAtRisk = clientCapital * (riskPercent / 100);

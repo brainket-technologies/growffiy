@@ -43,6 +43,7 @@ const DEFAULT_TEMPLATES = [
       riskManagement: {
         capitalAllocation: 10.0,
         riskPerTrade: 3,
+        misMarginRate: 0.20,
         maxDailyLoss: 5000,
         maxDailyProfit: 15000,
         maxOpenPositions: 3,
@@ -92,6 +93,7 @@ const DEFAULT_TEMPLATES = [
       riskManagement: {
         capitalAllocation: 20.0,
         riskPerTrade: 3,
+        misMarginRate: 0.20,
         maxDailyLoss: 8000,
         maxDailyProfit: 24000,
         maxOpenPositions: 1,

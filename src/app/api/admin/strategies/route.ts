@@ -24,7 +24,7 @@ let inMemoryStrategies: any[] = [
       tradeAction: { action: 'Long', orderType: 'SL-Market', bufferPercent: 0.1 },
       stoploss: { type: 'Trailing SL', orderType: 'Market', fixedPercent: 1, fixedPoints: 10, trailingSL: 0.5, riskPercent: 1.0 },
       target: { type: 'Trailing Target', profitPercent: 2, riskRewardRatio: 2.0, partialExit: 100, trailingTarget: 0.5 },
-      riskManagement: { capitalAllocation: 10.0, riskPerTrade: 3, maxDailyLoss: 5000, maxDailyProfit: 15000, maxOpenPositions: 3, killSwitch: false },
+      riskManagement: { capitalAllocation: 10.0, riskPerTrade: 3, misMarginRate: 0.20, maxDailyLoss: 5000, maxDailyProfit: 15000, maxOpenPositions: 3, killSwitch: false },
       conditions: []
     }),
     createdAt: new Date().toISOString(),

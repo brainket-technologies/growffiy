@@ -76,6 +76,7 @@ interface StrategyConfig {
   riskManagement: {
     capitalAllocation: number;
     riskPerTrade: number;
+    misMarginRate: number;
     maxDailyLoss: number;
     maxDailyProfit: number;
     maxOpenPositions: number;
@@ -131,6 +132,7 @@ const INITIAL_CONFIG: StrategyConfig = {
   riskManagement: {
     capitalAllocation: 10.0,
     riskPerTrade: 3,
+    misMarginRate: 0.20,
     maxDailyLoss: 5000,
     maxDailyProfit: 15000,
     maxOpenPositions: 3,
@@ -1784,6 +1786,21 @@ export default function StrategiesPage() {
                       onChange={(e) => setFormData({
                         ...formData,
                         riskManagement: { ...formData.riskManagement, riskPerTrade: Number(e.target.value) }
+                      })}
+                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>MIS Margin Rate (%)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.riskManagement.misMarginRate}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        riskManagement: { ...formData.riskManagement, misMarginRate: Number(e.target.value) }
                       })}
                       style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                     />
