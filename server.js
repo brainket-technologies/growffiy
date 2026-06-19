@@ -29,23 +29,28 @@ let isBuilding = false;
 let buildError = null;
 
 function runBuildCheck() {
-  if (dev) {
+  const nextDir = path.join(__dirname, '.next');
+  const hasExistingBuild = fs.existsSync(nextDir);
+  
+  // Serve existing build immediately (no 503 if .next exists)
+  if (hasExistingBuild) {
     prepareNextApp();
-    return;
   }
   
-  const nextDir = path.join(__dirname, '.next');
+  if (dev) return;
+  
+  // Check if rebuild needed
   const gitIndex = path.join(__dirname, '.git', 'index');
   const prismaClientDir = path.join(__dirname, 'node_modules', '.prisma', 'client');
   
-  let shouldBuild = !fs.existsSync(nextDir) || !fs.existsSync(prismaClientDir);
+  let shouldBuild = !hasExistingBuild || !fs.existsSync(prismaClientDir);
   
   if (!shouldBuild && fs.existsSync(gitIndex)) {
     try {
       const nextMtime = fs.statSync(nextDir).mtimeMs;
       const gitMtime = fs.statSync(gitIndex).mtimeMs;
       if (gitMtime > nextMtime) {
-        console.log('AlgoEngine Deployer: Detected fresh Git pull. Rebuilding Next.js application...');
+        console.log('AlgoEngine Deployer: Detected fresh Git pull. Rebuilding Next.js in background...');
         shouldBuild = true;
       }
     } catch (err) {
@@ -54,9 +59,10 @@ function runBuildCheck() {
   }
   
   if (shouldBuild) {
-    isBuilding = true;
+    // Only block requests if there's ZERO existing build (first deploy)
+    isBuilding = !hasExistingBuild;
     console.log('--- STARTING REMOTE PRISMA GENERATION & NEXT.JS BUILD ---');
-    exec('npx prisma generate && npx next build', (err, stdout, stderr) => {
+    const buildProcess = exec('npx prisma generate && npx next build', (err, stdout, stderr) => {
       isBuilding = false;
       if (err) {
         console.error('AlgoEngine Deployer Error during auto-build:', err);
@@ -67,10 +73,20 @@ function runBuildCheck() {
           const now = new Date();
           fs.utimesSync(nextDir, now, now);
         } catch (e) {}
-        prepareNextApp();
+        if (!hasExistingBuild) {
+          prepareNextApp();
+        }
       }
     });
-  } else {
+    // Timeout: kill build if it takes > 5 minutes
+    const buildTimeout = setTimeout(() => {
+      console.error('AlgoEngine Deployer: Build timed out after 5 minutes. Killing process.');
+      buildProcess.kill();
+      isBuilding = false;
+      buildError = new Error('Build timed out after 5 minutes');
+    }, 300000);
+    buildProcess.on('exit', () => clearTimeout(buildTimeout));
+  } else if (!hasExistingBuild) {
     prepareNextApp();
   }
 }
