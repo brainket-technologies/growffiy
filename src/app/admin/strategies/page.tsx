@@ -1896,30 +1896,59 @@ export default function StrategiesPage() {
         </form>
 
         {/* Strategy Preview & Test Tabs */}
-        <div style={{ marginTop: '24px' }}>
-          <div style={{ display: 'flex', gap: '0', background: 'var(--bg-secondary)', padding: '3px', borderRadius: '10px', border: '1px solid var(--border-color)', width: 'fit-content', marginBottom: '20px' }}>
-            {['flow', 'test'].map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setPreviewTab(tab as 'flow' | 'test')}
-                style={{
-                  padding: '8px 20px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: previewTab === tab ? 'var(--bg-primary)' : 'transparent',
-                  color: previewTab === tab ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  boxShadow: previewTab === tab ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                  transition: 'all 0.15s'
-                }}
-              >
-                {tab === 'flow' ? '📋 Flow Preview' : '🧪 Test Strategy'}
-              </button>
-            ))}
+        <div style={{
+          marginTop: '24px',
+          background: 'linear-gradient(135deg, rgba(99,102,241,0.03) 0%, rgba(139,92,246,0.02) 50%, rgba(14,165,233,0.03) 100%)',
+          borderRadius: '20px',
+          border: '1px solid rgba(148,163,184,0.12)',
+          padding: '20px 24px 24px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.03)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '24px', height: '24px', borderRadius: '7px', background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 2px 6px rgba(99,102,241,0.2)' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 22 15 16 15 16 21 8 21 8 15 2 15 2 3"/><line x1="10" y1="9" x2="14" y2="9"/></svg>
+              </div>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)' }}>Strategy Preview & Testing</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Config se real-time preview</span>
+            </div>
           </div>
+
+          <div style={{ display: 'flex', gap: '4px', background: 'rgba(148,163,184,0.06)', padding: '4px', borderRadius: '12px', border: '1px solid rgba(148,163,184,0.08)', width: 'fit-content', marginBottom: '20px' }}>
+            <button
+              type="button"
+              onClick={() => setPreviewTab('flow')}
+              style={{
+                padding: '8px 22px', borderRadius: '9px', border: 'none', cursor: 'pointer',
+                fontSize: '12px', fontWeight: 600, letterSpacing: '0.2px',
+                transition: 'all 0.2s ease',
+                background: previewTab === 'flow' ? 'linear-gradient(135deg, #8b5cf6, #6366f1)' : 'transparent',
+                color: previewTab === 'flow' ? '#fff' : 'var(--text-secondary)',
+                boxShadow: previewTab === 'flow' ? '0 2px 8px rgba(99,102,241,0.25)' : 'none',
+                display: 'flex', alignItems: 'center', gap: '6px'
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              Flow Preview
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreviewTab('test')}
+              style={{
+                padding: '8px 22px', borderRadius: '9px', border: 'none', cursor: 'pointer',
+                fontSize: '12px', fontWeight: 600, letterSpacing: '0.2px',
+                transition: 'all 0.2s ease',
+                background: previewTab === 'test' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'transparent',
+                color: previewTab === 'test' ? '#fff' : 'var(--text-secondary)',
+                boxShadow: previewTab === 'test' ? '0 2px 8px rgba(245,158,11,0.25)' : 'none',
+                display: 'flex', alignItems: 'center', gap: '6px'
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 2v7.31m4-7.31v7.31M4.5 2h15M9 22h6M9 17.5V22h6v-4.5M6 13.5C6 10.5 7.5 9 9 9h6c1.5 0 3 1.5 3 4.5"/><path d="M6 13.5c0 3 1.5 4.5 3 4.5h6c1.5 0 3-1.5 3-4.5"/></svg>
+              Test Strategy
+            </button>
+          </div>
+
           {previewTab === 'flow' && <StrategyFlowPreview config={formData as any} />}
           {previewTab === 'test' && <StrategyTestPanel config={formData as any} />}
         </div>
