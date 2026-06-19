@@ -16,8 +16,8 @@ let inMemoryStrategies: any[] = [
         exchange: 'NSE',
         segment: 'NSE F&O',
         timeframe: '5m',
-        entryTime: '09:15',
-        exitTime: '15:15',
+        entryTime: '09:20',
+        exitTime: '15:25',
         maxTradesPerDay: 3,
         status: 'active'
       },
