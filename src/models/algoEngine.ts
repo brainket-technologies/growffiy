@@ -588,6 +588,17 @@ class AlgoEngineService {
               }
             }
 
+            // --- Market Close Check (exitTime) ---
+            if (config.basicInfo?.exitTime && !exitTriggered) {
+              const istTimeStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
+              if (istTimeStr >= config.basicInfo.exitTime) {
+                exitTriggered = true;
+                exitPrice = Number(trade.entryPrice);
+                exitReason = `Market Close (${config.basicInfo.exitTime})`;
+                console.log(`AlgoEngine Monitor: Market close time ${config.basicInfo.exitTime} reached for trade ${trade.id} (${trade.symbol}). Forcing exit.`);
+              }
+            }
+
             // --- Exit Execution ---
             if (exitTriggered) {
               console.log(`AlgoEngine Monitor: EXIT TRIGGERED for trade ${trade.id} (${trade.symbol}) due to ${exitReason} at ₹${exitPrice.toFixed(2)}.`);
@@ -1225,8 +1236,8 @@ class AlgoEngineService {
             continue;
           }
 
-          if (!config.basicInfo?.exchange || !config.basicInfo?.tradeType) {
-            console.log(`AlgoEngine: Strategy config missing exchange/tradeType for client ${client.user.name}. Skipping.`);
+          if (!config.basicInfo?.exchange || !config.basicInfo?.tradeType || !config.basicInfo?.preSelectTime || !config.basicInfo?.entryTime) {
+            console.log(`AlgoEngine: Strategy config missing exchange/tradeType/preSelectTime/entryTime for client ${client.user.name}. Skipping.`);
             continue;
           }
           const exchangeParam = config.basicInfo.exchange;
@@ -1302,7 +1313,11 @@ class AlgoEngineService {
               continue;
             }
 
-            // Fetch 5-min candle from Kite for candle high check (09:15-09:20)
+            // Fetch 5-min candle from Kite for candle high check (preSelectTime to entryTime)
+            if (!config.basicInfo?.preSelectTime || !config.basicInfo?.entryTime) {
+              console.log(`AlgoEngine: basicInfo.preSelectTime or entryTime not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+              continue;
+            }
             let candleHigh = 0;
             if (client.zerodhaApiKey && client.accessToken) {
               const instTokenStr = Object.entries(this.instrumentToSymbol).find(([, sym]) => sym === candidateStock.symbol)?.[0];
@@ -1310,8 +1325,8 @@ class AlgoEngineService {
                 try {
                   const today = new Date();
                   const formatKiteDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-                  const from = `${formatKiteDate(today)}%2009:15`;
-                  const to = `${formatKiteDate(today)}%20${(await this.getAlgoSetting('algo_entry_time', '09:20')).replace(':', '%20')}`;
+                  const from = `${formatKiteDate(today)}%20${config.basicInfo.preSelectTime.replace(':', '%20')}`;
+                  const to = `${formatKiteDate(today)}%20${config.basicInfo.entryTime.replace(':', '%20')}`;
                   const res = await KiteClient.getHistoricalData(client.zerodhaApiKey, client.accessToken, instTokenStr, '5minute', from, to);
                   if (res.status === 'success' && Array.isArray(res.data?.candles) && res.data.candles.length > 0) {
                     candleHigh = Number(res.data.candles[0][2]);
