@@ -1318,7 +1318,7 @@ class AlgoEngineService {
               console.log(`AlgoEngine: basicInfo.preSelectTime or entryTime not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
               continue;
             }
-            let candleHigh = 0;
+            let candlePrice = 0;
             if (client.zerodhaApiKey && client.accessToken) {
               const instTokenStr = Object.entries(this.instrumentToSymbol).find(([, sym]) => sym === candidateStock.symbol)?.[0];
               if (instTokenStr) {
@@ -1329,33 +1329,35 @@ class AlgoEngineService {
                   const to = `${formatKiteDate(today)}%20${config.basicInfo.entryTime.replace(':', '%20')}`;
                   const res = await KiteClient.getHistoricalData(client.zerodhaApiKey, client.accessToken, instTokenStr, '5minute', from, to);
                   if (res.status === 'success' && Array.isArray(res.data?.candles) && res.data.candles.length > 0) {
-                    candleHigh = Number(res.data.candles[0][2]);
+                    const priceIdx: Record<string, number> = { open: 1, high: 2, low: 3, close: 4 };
+                    const candleType = config.tradeAction?.candlePriceType || 'high';
+                    candlePrice = Number(res.data.candles[0][priceIdx[candleType]]);
                   }
                 } catch {}
               }
             }
 
-            if (candleHigh === 0) {
-              console.log(`AlgoEngine: Could not determine candle high for ${candidateStock.symbol}. Skipping.`);
+            if (candlePrice === 0) {
+              console.log(`AlgoEngine: Could not determine candle price for ${candidateStock.symbol}. Skipping.`);
               continue;
             }
 
             const bufferPct = config.tradeAction?.bufferPercent;
             if (bufferPct === undefined || bufferPct === null || bufferPct === -1) {
-              breakoutEntryPrice = candleHigh;
+              breakoutEntryPrice = candlePrice;
             } else {
-              breakoutEntryPrice = candleHigh * (1 + bufferPct / 100);
+              breakoutEntryPrice = candlePrice * (1 + bufferPct / 100);
             }
 
-            // Check if current LTP breaks candle high
             const currentLtp = candidateStock.ltp || candidateStock.iep || breakoutEntryPrice;
             const hasPriceAction = config.conditions?.some((c: any) => c.indicator === 'Price Action');
+            const isSLMarket = config.tradeAction?.orderType === 'SL-Market';
 
-            if (!hasPriceAction || currentLtp >= candleHigh) {
+            if (isSLMarket || !hasPriceAction || currentLtp >= breakoutEntryPrice) {
               targetStock = candidateStock;
-              console.log(`AlgoEngine: Breakout confirmed for ${candidateStock.symbol} | Candle High: ${candleHigh} | LTP: ${currentLtp} | Entry: ${breakoutEntryPrice}`);
+              console.log(`AlgoEngine: Breakout confirmed for ${candidateStock.symbol} | Entry: ${breakoutEntryPrice} | LTP: ${currentLtp} | OrderType: ${config.tradeAction?.orderType} | CandlePriceType: ${config.tradeAction?.candlePriceType || 'high'}`);
             } else {
-              console.log(`AlgoEngine: Breakout not met for ${candidateStock.symbol} | Candle High: ${candleHigh} | LTP: ${currentLtp}. Skipping.`);
+              console.log(`AlgoEngine: Breakout not met for ${candidateStock.symbol} | Entry: ${breakoutEntryPrice} | LTP: ${currentLtp}. Skipping.`);
             }
           } catch (checkErr) {
             console.error(`AlgoEngine: Error checking breakout for ${candidateStock.symbol}:`, checkErr);
@@ -1474,11 +1476,6 @@ class AlgoEngineService {
           }
           const riskPercent = configRisk;
           const marginRate = config?.riskManagement?.misMarginRate;
-          if (!marginRate || marginRate <= 0) {
-            console.log(`AlgoEngine: riskManagement.misMarginRate not configured (or invalid) for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
-            continue;
-          }
-          const MIS_MARGIN_RATE = marginRate;
 
           // Step 1: Capital at Risk = TotalCapital × riskPercent%
           let capitalAtRisk = clientCapital * (riskPercent / 100);
@@ -1513,12 +1510,17 @@ class AlgoEngineService {
           }
           if (slPoints <= 0) slPoints = 1;
 
-          // Step 4: Quantity = min(risk-based, buying-power-based)
-          const qtyByRisk = Math.floor(capitalAtRisk / slPoints);
-          const qtyByBuyingPower = Math.floor(clientCapital / (entryPrice * MIS_MARGIN_RATE));
-          let quantity = Math.min(qtyByRisk, qtyByBuyingPower);
+          // Step 4: Quantity = Capital at Risk / SL Points
+          let quantity = Math.floor(capitalAtRisk / slPoints);
+
+          // Buying power check (misMarginRate > 0 means enabled, -1/0/undefined means disabled)
+          if (marginRate !== undefined && marginRate !== null && marginRate > 0) {
+            const qtyByBuyingPower = Math.floor(clientCapital / (entryPrice * marginRate));
+            quantity = Math.min(quantity, qtyByBuyingPower);
+          }
+
           if (quantity <= 0) {
-            const errMsg = `Skipped: Calculated quantity is 0 (capitalAtRisk ₹${capitalAtRisk.toFixed(2)} / slPoints ₹${slPoints.toFixed(2)} = 0, or buying power insufficient).`;
+            const errMsg = `Skipped: Calculated quantity is 0 (capitalAtRisk ₹${capitalAtRisk.toFixed(2)} / slPoints ₹${slPoints.toFixed(2)} = 0).`;
             console.log(`AlgoEngine: Calculated quantity is 0 for client ${client.user.name} (CapitalAtRisk: ₹${capitalAtRisk.toFixed(2)}, SL Points: ₹${slPoints.toFixed(2)}). Skipping trade.`);
             
             await prisma.trade.create({

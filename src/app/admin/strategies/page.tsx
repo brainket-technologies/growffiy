@@ -57,6 +57,7 @@ interface StrategyConfig {
     orderType: 'Market' | 'Limit' | 'SL-Limit' | 'SL-Market';
     bufferPercent: number;
     marketProtection?: number;
+    candlePriceType: 'open' | 'high' | 'low' | 'close';
   };
   stoploss: {
     type: 'Fixed %' | 'Fixed Points' | 'Trailing SL' | 'Risk %';
@@ -112,7 +113,8 @@ const INITIAL_CONFIG: StrategyConfig = {
     action: 'Long',
     orderType: 'Limit',
     bufferPercent: 0.1,
-    marketProtection: -1
+    marketProtection: -1,
+    candlePriceType: 'high'
   },
   stoploss: {
     type: 'Fixed %',
@@ -1519,6 +1521,22 @@ export default function StrategiesPage() {
                       <option value="Limit">Limit Order</option>
                       <option value="SL-Limit">SL Limit</option>
                       <option value="SL-Market">SL Market</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Candle Price Type</label>
+                    <select
+                      value={formData.tradeAction.candlePriceType}
+                      onChange={(e: any) => setFormData({
+                        ...formData,
+                        tradeAction: { ...formData.tradeAction, candlePriceType: e.target.value }
+                      })}
+                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                    >
+                      <option value="open">Open</option>
+                      <option value="high">High</option>
+                      <option value="low">Low</option>
+                      <option value="close">Close</option>
                     </select>
                   </div>
                   {(formData.tradeAction.orderType === 'Market' || formData.tradeAction.orderType === 'SL-Market') && (
