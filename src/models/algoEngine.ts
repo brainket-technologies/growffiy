@@ -1410,7 +1410,11 @@ class AlgoEngineService {
             console.error(`AlgoEngine: Error fetching live Zerodha margins for ${client.user.name}. Falling back to DB capital: ₹${clientCapital}`, marginErr);
           }
 
-          const configRisk = config?.riskManagement?.riskPerTrade || config?.stoploss?.riskPercent || 3;
+          const configRisk = config?.riskManagement?.riskPerTrade;
+          if (!configRisk) {
+            console.log(`AlgoEngine: riskManagement.riskPerTrade not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+            continue;
+          }
           const riskPercent = configRisk;
           const MIS_MARGIN_RATE = 0.20;
 
