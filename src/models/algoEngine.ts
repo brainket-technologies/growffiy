@@ -491,8 +491,8 @@ class AlgoEngineService {
                 }
               }
 
-              // --- Trailing SL (only if no exit yet AND trailingSlStep configured) ---
-              if (!exitTriggered && trade.slOrderId && trade.slTriggerPrice && trailingSlStep && trailingSlStep > 0) {
+              // --- Trailing SL (only if no exit yet AND trailingSlStep > 0; -1 disables) ---
+              if (!exitTriggered && trade.slOrderId && trade.slTriggerPrice && trailingSlStep > 0) {
                 const price = this.getStockLtp(trade.symbol);
                 if (price > 0 && price > entryPrice) {
                   const currentSlTrigger = Number(trade.slTriggerPrice);
@@ -512,6 +512,34 @@ class AlgoEngineService {
                             data: { slTriggerPrice: Number(newSlTrigger.toFixed(2)) }
                           });
                           console.log(`AlgoEngine Monitor: Trailing SL for ${trade.symbol}: ${currentSlTrigger} → ${newSlTrigger.toFixed(2)} (price: ${price})`);
+                        }
+                      } catch (e) { /* silent */ }
+                    }
+                  }
+                }
+              }
+
+              // --- Trailing Target (only if no exit yet AND trailingTgtStep > 0; -1 disables) ---
+              if (!exitTriggered && trade.targetOrderId && trade.target && trailingTgtStep > 0) {
+                const price = this.getStockLtp(trade.symbol);
+                if (price > 0 && price > entryPrice) {
+                  const currentTarget = Number(trade.target);
+                  const trailStepValue = entryPrice * (trailingTgtStep / 100);
+                  const priceMovePct = ((price - entryPrice) / entryPrice) * 100;
+                  const trailsToApply = Math.floor(priceMovePct / trailingTgtStep);
+                  if (trailsToApply > 0) {
+                    const newTarget = entryPrice + (trailsToApply * trailStepValue);
+                    if (newTarget > currentTarget) {
+                      try {
+                        const modRes = await KiteClient.modifyOrder(client.zerodhaApiKey, client.accessToken, trade.targetOrderId, {
+                          price: Number(newTarget.toFixed(2))
+                        });
+                        if (modRes?.status === 'success') {
+                          await prisma.trade.update({
+                            where: { id: trade.id },
+                            data: { target: Number(newTarget.toFixed(2)) }
+                          });
+                          console.log(`AlgoEngine Monitor: Trailing Target for ${trade.symbol}: ${currentTarget} → ${newTarget.toFixed(2)} (price: ${price})`);
                         }
                       } catch (e) { /* silent */ }
                     }

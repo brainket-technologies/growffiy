@@ -121,7 +121,7 @@ const INITIAL_CONFIG: StrategyConfig = {
     orderType: 'Market',
     fixedPercent: 1,
     fixedPoints: 10,
-    trailingSL: 0.2,
+    trailingSL: -1,
     riskPercent: 1.0
   },
   target: {
@@ -129,7 +129,7 @@ const INITIAL_CONFIG: StrategyConfig = {
     profitPercent: 2,
     riskRewardRatio: 2.0,
     partialExit: 100,
-    trailingTarget: 0.5
+    trailingTarget: -1
   },
   riskManagement: {
     capitalAllocation: 10.0,
@@ -1432,10 +1432,10 @@ export default function StrategiesPage() {
                           ...formData,
                           basicInfo: { ...formData.basicInfo, maxTradesPerDay: Number(e.target.value) }
                         })}
-                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      />
-                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Maximum number of trades allowed per day</span>
-                    </div>
+                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                    />
+                  </div>
+                </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '12px' }}>
                       <label style={{ fontSize: '12px', fontWeight: 600 }}>Check Interval (sec)</label>
                       <input
@@ -1701,6 +1701,9 @@ export default function StrategiesPage() {
                       }}
                       style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                     />
+                    {formData.stoploss.type === 'Trailing SL' && (
+                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.7 }}>Set -1 to disable trailing SL</span>
+                    )}
                   </div>
                 </div>
 
@@ -1770,6 +1773,7 @@ export default function StrategiesPage() {
                         })}
                         style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                       />
+                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.7 }}>Set -1 to disable trailing target</span>
                     </div>
                   </div>
                 )}
