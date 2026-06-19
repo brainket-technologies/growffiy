@@ -492,7 +492,7 @@ class AlgoEngineService {
               }
 
               // --- Trailing SL (only if no exit yet AND trailingSlStep configured) ---
-              if (!exitTriggered && trade.slOrderId && trade.slTriggerPrice && trailingSlStep) {
+              if (!exitTriggered && trade.slOrderId && trade.slTriggerPrice && trailingSlStep && trailingSlStep > 0) {
                 const price = this.getStockLtp(trade.symbol);
                 if (price > 0 && price > entryPrice) {
                   const currentSlTrigger = Number(trade.slTriggerPrice);
@@ -1340,12 +1340,12 @@ class AlgoEngineService {
               continue;
             }
 
-            if (!config.tradeAction?.bufferPercent) {
-              console.log(`AlgoEngine: tradeAction.bufferPercent not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
-              continue;
+            const bufferPct = config.tradeAction?.bufferPercent;
+            if (bufferPct === undefined || bufferPct === null || bufferPct === -1) {
+              breakoutEntryPrice = candleHigh;
+            } else {
+              breakoutEntryPrice = candleHigh * (1 + bufferPct / 100);
             }
-            const bufferPct = config.tradeAction.bufferPercent;
-            breakoutEntryPrice = candleHigh * (1 + bufferPct / 100);
 
             // Check if current LTP breaks candle high
             const currentLtp = candidateStock.ltp || candidateStock.iep || breakoutEntryPrice;
@@ -1468,16 +1468,17 @@ class AlgoEngineService {
           }
 
           const configRisk = config?.riskManagement?.riskPerTrade;
-          if (!configRisk) {
-            console.log(`AlgoEngine: riskManagement.riskPerTrade not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+          if (!configRisk || configRisk <= 0) {
+            console.log(`AlgoEngine: riskManagement.riskPerTrade not configured (or invalid) for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
             continue;
           }
           const riskPercent = configRisk;
-          if (!config?.riskManagement?.misMarginRate) {
-            console.log(`AlgoEngine: riskManagement.misMarginRate not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+          const marginRate = config?.riskManagement?.misMarginRate;
+          if (!marginRate || marginRate <= 0) {
+            console.log(`AlgoEngine: riskManagement.misMarginRate not configured (or invalid) for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
             continue;
           }
-          const MIS_MARGIN_RATE = config.riskManagement.misMarginRate;
+          const MIS_MARGIN_RATE = marginRate;
 
           // Step 1: Capital at Risk = TotalCapital × riskPercent%
           let capitalAtRisk = clientCapital * (riskPercent / 100);
@@ -1551,17 +1552,15 @@ class AlgoEngineService {
             continue;
           }
 
-          if (!config?.riskManagement?.maxOpenPositions) {
-            console.log(`AlgoEngine: riskManagement.maxOpenPositions not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
-            continue;
-          }
-          const maxOpen = config.riskManagement.maxOpenPositions;
-          const openCount = await prisma.trade.count({
-            where: { clientId: client.id, strategyId: strategy.id, status: 'open' }
-          });
-          if (openCount >= maxOpen) {
-            console.log(`AlgoEngine: Max open positions (${maxOpen}) reached for ${client.user.name}. Skipping.`);
-            continue;
+          const maxOpen = config?.riskManagement?.maxOpenPositions;
+          if (maxOpen !== undefined && maxOpen !== null && maxOpen !== -1) {
+            const openCount = await prisma.trade.count({
+              where: { clientId: client.id, strategyId: strategy.id, status: 'open' }
+            });
+            if (openCount >= maxOpen) {
+              console.log(`AlgoEngine: Max open positions (${maxOpen}) reached for ${client.user.name}. Skipping.`);
+              continue;
+            }
           }
 
           const todayStart = new Date();
@@ -1571,12 +1570,12 @@ class AlgoEngineService {
           });
           const todayPnl = todayTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
           const maxDailyLoss = config?.riskManagement?.maxDailyLoss;
-          if (maxDailyLoss !== undefined && maxDailyLoss !== null && todayPnl <= -Number(maxDailyLoss)) {
+          if (maxDailyLoss !== undefined && maxDailyLoss !== null && maxDailyLoss !== -1 && todayPnl <= -Number(maxDailyLoss)) {
             console.log(`AlgoEngine: Max daily loss (₹${maxDailyLoss}) reached for ${client.user.name} (PnL: ₹${todayPnl}). Skipping.`);
             continue;
           }
           const maxDailyProfit = config?.riskManagement?.maxDailyProfit;
-          if (maxDailyProfit !== undefined && maxDailyProfit !== null && todayPnl >= Number(maxDailyProfit)) {
+          if (maxDailyProfit !== undefined && maxDailyProfit !== null && maxDailyProfit !== -1 && todayPnl >= Number(maxDailyProfit)) {
             console.log(`AlgoEngine: Max daily profit (₹${maxDailyProfit}) reached for ${client.user.name} (PnL: ₹${todayPnl}). Skipping.`);
             continue;
           }
