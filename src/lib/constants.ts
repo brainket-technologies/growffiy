@@ -77,6 +77,13 @@ export const SETTINGS_KEYS = {
   ALGO_CHECK_INTERVAL_SEC: 'algo_check_interval_sec',
 };
 
+// Scheduler Intervals (in milliseconds)
+export const SCHEDULER_INTERVALS = {
+  STRATEGY_CHECK: 60 * 1000,    // 60s — pre-select & entry time check
+  TOKEN_REFRESH: 60 * 1000,     // 60s — Kite auto-login refresh
+  TRADE_MONITOR: 10 * 1000,     // 10s — open trades monitoring loop
+};
+
 export const ORDER_TYPES = {
   MIS: 'MIS',
   CNC: 'CNC',

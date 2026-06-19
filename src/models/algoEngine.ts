@@ -8,7 +8,7 @@ dotenv.config({ path: path.join(__dirname, '../../../.env') });
 
 import WebSocket from 'ws';
 import { prisma } from '../lib/db';
-import { API_ENDPOINTS } from '../lib/constants';
+import { API_ENDPOINTS, SCHEDULER_INTERVALS } from '../lib/constants';
 import { KiteClient } from '../lib/kite';
 import { performKiteAutoLogin } from '../lib/kiteAutoLogin';
 import { applyOperator, calculateRSI, calculateEMA, calculateSMA, calculateMACD, calculateATR, calculateVWAP, calculateBollingerBands, calculateSuperTrend, calculateADX } from '../lib/indicators';
@@ -267,7 +267,7 @@ class AlgoEngineService {
       }
     };
 
-    (global as any).preOpenStrategyInterval = setInterval(checkAndExecute, 60 * 1000);
+    (global as any).preOpenStrategyInterval = setInterval(checkAndExecute, SCHEDULER_INTERVALS.STRATEGY_CHECK);
   }
 
   private startDailyTokenRefreshScheduler() {
@@ -328,7 +328,7 @@ class AlgoEngineService {
     };
 
     // Run check every 60 seconds
-    (global as any).tokenRefreshInterval = setInterval(checkAndRefresh, 60 * 1000);
+    (global as any).tokenRefreshInterval = setInterval(checkAndRefresh, SCHEDULER_INTERVALS.TOKEN_REFRESH);
   }
 
   private startActiveTradesMonitoringScheduler() {
@@ -369,7 +369,7 @@ class AlgoEngineService {
             const strategy = trade.strategy;
 
             // Read per-strategy checkIntervalSec from strategy config
-            let checkIntervalMs = 60 * 1000;
+            let checkIntervalMs = SCHEDULER_INTERVALS.TRADE_MONITOR;
             if (strategy.configJson) {
               try {
                 const config = JSON.parse(strategy.configJson);
@@ -668,7 +668,7 @@ class AlgoEngineService {
       }
     };
 
-    (global as any).activeTradesMonitoringInterval = setInterval(checkOpenTradesExits, 10 * 1000);
+    (global as any).activeTradesMonitoringInterval = setInterval(checkOpenTradesExits, SCHEDULER_INTERVALS.TRADE_MONITOR);
   }
 
   // Initialize Kite Live Socket feed from Environment variables or Database
