@@ -24,6 +24,10 @@ export async function GET() {
     settings['support_timings'] = 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)';
     settings['algo_preopen_fetch_time'] = '09:08';
     settings['algo_token_refresh_time'] = '08:00';
+    settings['auto_trade_enabled'] = 'true';
+    settings['trading_days'] = '["Mon","Tue","Wed","Thu","Fri"]';
+    settings['special_market_days'] = '[]';
+    settings['market_holidays'] = '[]';
 
 
     dbSettings.forEach((s) => {
@@ -51,7 +55,11 @@ export async function GET() {
         support_phone: '+91 98765 43210',
         support_timings: 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)',
         algo_preopen_fetch_time: '09:08',
-        algo_token_refresh_time: '08:00'
+        algo_token_refresh_time: '08:00',
+        auto_trade_enabled: 'true',
+        trading_days: '["Mon","Tue","Wed","Thu","Fri"]',
+        special_market_days: '[]',
+        market_holidays: '[]'
       } 
     });
   }
@@ -97,7 +105,11 @@ export async function PUT(request: Request) {
       support_phone,
       support_timings,
       algo_preopen_fetch_time,
-      algo_token_refresh_time
+      algo_token_refresh_time,
+      auto_trade_enabled: body.auto_trade_enabled,
+      trading_days: body.trading_days,
+      special_market_days: body.special_market_days,
+      market_holidays: body.market_holidays
     };
 
 

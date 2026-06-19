@@ -228,6 +228,32 @@ class AlgoEngineService {
           await this.getPreOpenStocks();
         }
 
+        // --- Auto Trade Day Check ---
+        const autoTradeEnabled = await this.getAlgoSetting('auto_trade_enabled', 'true');
+        if (autoTradeEnabled !== 'true') {
+          return;
+        }
+
+        const todayStr = istDate.toLocaleDateString('en-CA');
+        const dayName = istDate.toLocaleDateString('en-US', { weekday: 'short' });
+        const tradingDaysStr = await this.getAlgoSetting('trading_days', '["Mon","Tue","Wed","Thu","Fri"]');
+        const specialDaysStr = await this.getAlgoSetting('special_market_days', '[]');
+        const holidaysStr = await this.getAlgoSetting('market_holidays', '[]');
+
+        let tradingDays: string[], specialDays: string[], holidays: string[];
+        try { tradingDays = JSON.parse(tradingDaysStr); } catch { tradingDays = ['Mon','Tue','Wed','Thu','Fri']; }
+        try { specialDays = JSON.parse(specialDaysStr); } catch { specialDays = []; }
+        try { holidays = JSON.parse(holidaysStr); } catch { holidays = []; }
+
+        if (holidays.includes(todayStr)) {
+          console.log(`AlgoEngine Scheduler: Today ${todayStr} is a market holiday. Skipping all strategies.`);
+          return;
+        }
+        if (!tradingDays.includes(dayName) && !specialDays.includes(todayStr)) {
+          console.log(`AlgoEngine Scheduler: Today ${todayStr} (${dayName}) is not a trading day. Skipping all strategies.`);
+          return;
+        }
+
         // Stage 2: Check each active strategy's preSelectTime and entryTime
         const strategies = await prisma.strategy.findMany({ where: { status: 'active' } });
 

@@ -56,6 +56,23 @@ export default function AdminDashboard() {
 
   const [pnlPeriod, setPnlPeriod] = useState('Daily');
 
+  // Calendar settings for trading days display
+  const [autoTradeEnabled, setAutoTradeEnabled] = useState(true);
+  const [tradingDays, setTradingDays] = useState<string[]>([]);
+  const [holidays, setHolidays] = useState<string[]>([]);
+  const [specialDays, setSpecialDays] = useState<string[]>([]);
+
+  useEffect(() => {
+    api.get(API_ENDPOINTS.SETTINGS).then((res: any) => {
+      if (res.success && res.settings) {
+        setAutoTradeEnabled(res.settings.auto_trade_enabled !== 'false');
+        try { setTradingDays(JSON.parse(res.settings.trading_days || '[]')); } catch {}
+        try { setHolidays(JSON.parse(res.settings.market_holidays || '[]')); } catch {}
+        try { setSpecialDays(JSON.parse(res.settings.special_market_days || '[]')); } catch {}
+      }
+    }).catch(() => {});
+  }, []);
+
   // Filter local states - default to current month
   const now = new Date();
   const initialStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -357,6 +374,12 @@ export default function AdminDashboard() {
               <Button variant={isTradingActive ? 'danger' : 'success'} onClick={() => toggleTrading(!isTradingActive)} style={{ fontSize: '13px', padding: '8px 16px', fontWeight: 600 }}>
                 {isTradingActive ? 'Stop Trading' : 'Start Auto Trading'}
               </Button>
+              {tradingDays.length > 0 && (
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                  <Calendar size={12} />
+                  {autoTradeEnabled ? 'Auto Trade ON' : 'Auto Trade OFF'} · Trading Days: {tradingDays.join(', ')}
+                </div>
+              )}
             </>
           )}
         </div>

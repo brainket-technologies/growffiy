@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../../../views/components/Card';
 import { Button } from '../../../views/components/Button';
-import { Shield, Server, RefreshCw, Key, Eye, EyeOff, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight, Mail, CreditCard, Globe, Info, LifeBuoy, Clock } from 'lucide-react';
+import { Shield, Server, RefreshCw, Key, Eye, EyeOff, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight, Mail, CreditCard, Globe, Info, LifeBuoy, Clock, Calendar, Plus, Trash2 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { Modal } from '../../../views/components/Modal';
 import { API_ENDPOINTS } from '../../../lib/constants';
 
 
-type TabType = 'payments' | 'smtp' | 'support' | 'algo';
+type TabType = 'payments' | 'smtp' | 'support' | 'algo' | 'calendar';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('payments');
@@ -38,6 +38,15 @@ export default function SettingsPage() {
   // Algo Timings (global infrastructure only)
   const [algoPreopenFetchTime, setAlgoPreopenFetchTime] = useState('09:08');
   const [algoTokenRefreshTime, setAlgoTokenRefreshTime] = useState('08:00');
+
+  // Auto Trade Calendar
+  const [autoTradeEnabled, setAutoTradeEnabled] = useState(true);
+  const [tradingDays, setTradingDays] = useState<string[]>(['Mon','Tue','Wed','Thu','Fri']);
+  const [specialDays, setSpecialDays] = useState<string[]>([]);
+  const [holidays, setHolidays] = useState<string[]>([]);
+
+  const [newSpecialDay, setNewSpecialDay] = useState('');
+  const [newHoliday, setNewHoliday] = useState('');
 
   // UI Status
   const [loading, setLoading] = useState(true);
@@ -74,6 +83,11 @@ export default function SettingsPage() {
 
           setAlgoPreopenFetchTime(res.settings.algo_preopen_fetch_time || '09:08');
           setAlgoTokenRefreshTime(res.settings.algo_token_refresh_time || '08:00');
+
+          setAutoTradeEnabled(res.settings.auto_trade_enabled !== 'false');
+          try { setTradingDays(JSON.parse(res.settings.trading_days || '["Mon","Tue","Wed","Thu","Fri"]')); } catch {}
+          try { setSpecialDays(JSON.parse(res.settings.special_market_days || '[]')); } catch {}
+          try { setHolidays(JSON.parse(res.settings.market_holidays || '[]')); } catch {}
         }
       } catch (err: any) {
         console.error('Error fetching settings:', err);
@@ -108,6 +122,10 @@ export default function SettingsPage() {
         support_timings: supportTimings,
         algo_preopen_fetch_time: algoPreopenFetchTime,
         algo_token_refresh_time: algoTokenRefreshTime,
+        auto_trade_enabled: autoTradeEnabled ? 'true' : 'false',
+        trading_days: JSON.stringify(tradingDays),
+        special_market_days: JSON.stringify(specialDays),
+        market_holidays: JSON.stringify(holidays),
       });
 
 
@@ -269,6 +287,27 @@ export default function SettingsPage() {
         >
           <Clock size={16} />
           Algo Timings
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('calendar')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '14px 4px',
+            fontSize: '14px',
+            fontWeight: 600,
+            border: 'none',
+            borderBottom: activeTab === 'calendar' ? '2px solid var(--primary)' : '2px solid transparent',
+            color: activeTab === 'calendar' ? 'var(--primary)' : 'var(--text-secondary)',
+            background: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+        >
+          <Calendar size={16} />
+          Market Calendar
         </button>
       </div>
 
@@ -885,6 +924,200 @@ export default function SettingsPage() {
             </div>
 
             {/* Submit Action inside Box */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '24px' }}>
+              <Button
+                type="submit"
+                disabled={saving}
+                style={{
+                  padding: '10px 28px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
+                  color: 'white',
+                  boxShadow: 'var(--shadow-blue)'
+                }}
+              >
+                {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
+                Save & Apply Settings
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Market Calendar Tab */}
+        {activeTab === 'calendar' && (
+          <Card style={{ padding: '24px 28px' }}>
+            <div style={{ marginBottom: '28px', borderBottom: '1px solid var(--border-light)', paddingBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Calendar size={20} /> Auto Trade Execution Calendar
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Control which days the auto trading engine executes. Market holidays aur special trading days manage karein.
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', padding: '16px 20px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'rgba(16,185,129,0.03)' }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700 }}>Auto Trade</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>Global auto trading engine</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAutoTradeEnabled(!autoTradeEnabled)}
+                    style={{
+                      padding: '8px 20px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      background: autoTradeEnabled ? 'linear-gradient(135deg, #059669, #10b981)' : '#e2e8f0',
+                      color: autoTradeEnabled ? 'white' : '#64748b',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {autoTradeEnabled ? 'ON' : 'OFF'}
+                  </button>
+                </div>
+
+                <div style={{ marginBottom: '24px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '12px' }}>Default Trading Days</div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((day) => (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => {
+                          setTradingDays(prev =>
+                            prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+                          );
+                        }}
+                        style={{
+                          padding: '8px 16px',
+                          borderRadius: '8px',
+                          border: '2px solid',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          background: tradingDays.includes(day) ? 'var(--primary)' : 'transparent',
+                          borderColor: tradingDays.includes(day) ? 'var(--primary)' : 'var(--border-color)',
+                          color: tradingDays.includes(day) ? 'white' : 'var(--text-secondary)',
+                          opacity: (day === 'Sat' || day === 'Sun') && !tradingDays.includes(day) ? 0.5 : 1,
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        {day}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ color: '#059669' }}>●</span> Special Market Days
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>(Saturday/Sunday ko trade karega)</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                    <input
+                      type="date"
+                      value={newSpecialDay}
+                      onChange={(e) => setNewSpecialDay(e.target.value)}
+                      style={{ flex: 1, height: '38px', fontSize: '13px' }}
+                    />
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={() => {
+                        if (newSpecialDay && !specialDays.includes(newSpecialDay)) {
+                          setSpecialDays([...specialDays, newSpecialDay]);
+                          setNewSpecialDay('');
+                        }
+                      }}
+                      style={{ padding: '8px 16px', fontSize: '12px' }}
+                    >
+                      <Plus size={14} /> Add
+                    </Button>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {specialDays.length === 0 && (
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>No special days added</div>
+                    )}
+                    {specialDays.map((date, i) => (
+                      <div key={date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: '8px', background: 'rgba(5,150,105,0.06)', fontSize: '13px' }}>
+                        <span>{date} <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>({new Date(date).toLocaleDateString('en-US', { weekday: 'long' })})</span></span>
+                        <button type="button" onClick={() => setSpecialDays(specialDays.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px' }}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ color: '#ef4444' }}>●</span> Market Holidays
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>(Inn dinon trade skip karega)</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                    <input
+                      type="date"
+                      value={newHoliday}
+                      onChange={(e) => setNewHoliday(e.target.value)}
+                      style={{ flex: 1, height: '38px', fontSize: '13px' }}
+                    />
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={() => {
+                        if (newHoliday && !holidays.includes(newHoliday)) {
+                          setHolidays([...holidays, newHoliday]);
+                          setNewHoliday('');
+                        }
+                      }}
+                      style={{ padding: '8px 16px', fontSize: '12px' }}
+                    >
+                      <Plus size={14} /> Add
+                    </Button>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {holidays.length === 0 && (
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>No holidays added</div>
+                    )}
+                    {holidays.map((date, i) => (
+                      <div key={date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: '8px', background: 'rgba(239,68,68,0.06)', fontSize: '13px' }}>
+                        <span>{date} <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>({new Date(date).toLocaleDateString('en-US', { weekday: 'long' })})</span></span>
+                        <button type="button" onClick={() => setHolidays(holidays.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px' }}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Logic Summary */}
+            <div style={{ marginTop: '24px', padding: '16px 20px', borderRadius: '10px', background: 'rgba(14, 165, 233, 0.04)', border: '1px solid rgba(14, 165, 233, 0.12)' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '8px' }}>Execution Logic</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-body)', lineHeight: 1.8 }}>
+                <div>1. Auto Trade <strong>{autoTradeEnabled ? 'ON' : 'OFF'}</strong> → {autoTradeEnabled ? 'Engine active' : 'Engine stopped'}</div>
+                <div>2. Today is {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                <div>3. Weekday: <strong>{tradingDays.includes(new Date().toLocaleDateString('en-US', { weekday: 'short' })) ? '✅ Trading day' : '❌ Not a trading day'}</strong></div>
+                <div>4. Holiday: <strong>{holidays.includes(new Date().toLocaleDateString('en-CA')) ? '❌ Holiday - skip' : '✅ Not a holiday'}</strong></div>
+                <div>5. Special Day: <strong>{specialDays.includes(new Date().toLocaleDateString('en-CA')) ? '✅ Special day - will trade' : '—'}</strong></div>
+                <div style={{ marginTop: '4px', fontWeight: 700, color: 'var(--primary)' }}>
+                  → Final: {autoTradeEnabled ? (holidays.includes(new Date().toLocaleDateString('en-CA')) ? '❌ Trade SKIP (holiday)' : (tradingDays.includes(new Date().toLocaleDateString('en-US', { weekday: 'short' })) || specialDays.includes(new Date().toLocaleDateString('en-CA')) ? '✅ Trade will EXECUTE' : '❌ Trade SKIP (not a trading day)' )) : '❌ Trade SKIP (auto trade off)'}
+                </div>
+              </div>
+            </div>
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '24px' }}>
               <Button
                 type="submit"
