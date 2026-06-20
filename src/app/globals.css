@@ -47,13 +47,35 @@
   --sidebar-width: 260px;
   --header-height: 70px;
 
-  /* Sidebar Theme Variables */
   --sidebar-gradient-start: #0f172a;
   --sidebar-gradient-end: #1e293b;
   --sidebar-text: #94a3b8;
   --sidebar-text-active: #ffffff;
   --sidebar-active-bg: rgba(255, 255, 255, 0.08);
   --sidebar-active-border: #3b82f6;
+}
+
+[data-theme="dark"] {
+  --bg: #0b1120;
+  --bg-white: #0f172a;
+  --bg-card: #1e293b;
+  --surface: #1a2332;
+
+  --text-heading: #f1f5f9;
+  --text-body: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-subtle: #64748b;
+
+  --border: #1e293b;
+  --border-light: #1e293b;
+  --border-color: #334155;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.15);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.15);
+  --shadow-lg: 0 20px 40px rgba(0,0,0,0.35), 0 8px 16px rgba(0,0,0,0.2);
+  --shadow-xl: 0 32px 64px rgba(0,0,0,0.4);
+  --shadow-blue: 0 8px 32px rgba(14, 165, 233, 0.15);
+  --shadow-green: 0 8px 24px rgba(16, 185, 129, 0.12);
 }
 
 *, *::before, *::after {

@@ -249,6 +249,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('growffiy_theme');
+      const prefersDark = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      setIsDark(prefersDark);
+      document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    }
+  }, []);
+
+  const toggleTheme = useCallback((dark: boolean) => {
+    setIsDark(dark);
+    const theme = dark ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('growffiy_theme', theme);
+  }, []);
   const [userName, setUserName] = useState('');
   const [userId, setUserId] = useState('');
 
@@ -361,13 +377,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
           <div className={styles.themeToggle}>
             <button
               className={`${styles.themeBtn} ${isDark ? styles.themeBtnActive : ''}`}
-              onClick={() => setIsDark(true)}
+              onClick={() => toggleTheme(true)}
             >
               <Moon size={13} /> Dark
             </button>
             <button
               className={`${styles.themeBtn} ${!isDark ? styles.themeBtnActive : ''}`}
-              onClick={() => setIsDark(false)}
+              onClick={() => toggleTheme(false)}
             >
               <Sun size={13} /> Light
             </button>
