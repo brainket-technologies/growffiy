@@ -149,7 +149,7 @@ export default function LoginPage() {
           font-family: 'Inter', sans-serif;
         }
         .login-input:focus {
-          border-color: #0ea5e9;
+          border-color: #1E88FF;
           box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
         }
       `}</style>
@@ -159,7 +159,7 @@ export default function LoginPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
             width: 32, height: 32, borderRadius: 8,
-            background: 'linear-gradient(135deg, #0ea5e9, #6366f1)',
+            background: 'linear-gradient(135deg, #1E88FF, #1252AB)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <img src="/logo.png" alt="Growffiy" style={{ width: 18, height: 18, objectFit: 'contain' }} />
@@ -170,7 +170,7 @@ export default function LoginPage() {
           }}>GROWFFIY</span>
         </div>
         <div style={{
-          fontSize: 11, fontWeight: 700, color: '#0ea5e9',
+          fontSize: 11, fontWeight: 700, color: '#1E88FF',
           background: 'rgba(14,165,233,0.1)',
           border: '1px solid rgba(14,165,233,0.2)',
           padding: '4px 10px', borderRadius: 99, letterSpacing: '0.5px',
@@ -191,7 +191,7 @@ export default function LoginPage() {
           <div style={{
             position: 'absolute', bottom: '-15%', left: '-5%',
             width: 400, height: 400, borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(18,82,171,0.12) 0%, transparent 70%)',
             animation: 'floatCard2 10s ease-in-out infinite',
           }} />
           {/* Grid overlay */}
@@ -206,7 +206,7 @@ export default function LoginPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 48 }}>
               <div style={{
                 width: 40, height: 40, borderRadius: 12,
-                background: 'linear-gradient(135deg, #0ea5e9, #6366f1)',
+                background: 'linear-gradient(135deg, #1E88FF, #1252AB)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 <img src="/logo.png" alt="Growffiy" style={{ width: 22, height: 22, objectFit: 'contain' }} />
@@ -225,7 +225,7 @@ export default function LoginPage() {
             }}>
               Your Trades,<br />
               <span style={{
-                background: 'linear-gradient(135deg, #0ea5e9, #818cf8)',
+                background: 'linear-gradient(135deg, #1E88FF, #818cf8)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               }}>
                 Fully Automated
@@ -239,7 +239,7 @@ export default function LoginPage() {
             {/* Feature pills */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {[
-                { icon: <TrendingUp size={16} />, text: 'Pre-Open Momentum Breakout Strategy', color: '#0ea5e9' },
+                { icon: <TrendingUp size={16} />, text: 'Pre-Open Momentum Breakout Strategy', color: '#1E88FF' },
                 { icon: <Shield size={16} />, text: '1% Capital Risk Guard on Every Trade', color: '#10b981' },
                 { icon: <Zap size={16} />, text: 'Auto MIS Bracket Orders via Kite API', color: '#f59e0b' },
                 { icon: <BarChart2 size={16} />, text: 'Live P&L Dashboard & Telegram Alerts', color: '#818cf8' },
@@ -393,7 +393,7 @@ export default function LoginPage() {
                   width: '100%', padding: '14px', borderRadius: 12,
                   border: 'none', fontWeight: 700, fontSize: 15,
                   cursor: loading ? 'wait' : 'pointer',
-                  background: 'linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%)',
+                  background: 'linear-gradient(135deg, #1E88FF 0%, #1252AB 100%)',
                   color: 'white',
                   boxShadow: '0 6px 20px rgba(14,165,233,0.3)',
                   transition: 'all 0.3s',
@@ -429,9 +429,9 @@ export default function LoginPage() {
               <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.7 }}>
                 🔒 Protected by 256-bit SSL encryption.<br />
                 By signing in you agree to our{' '}
-                <a href="/websites/terms" style={{ color: '#0ea5e9', textDecoration: 'none', fontWeight: 600 }}>Terms</a>
+                <a href="/websites/terms" style={{ color: '#1E88FF', textDecoration: 'none', fontWeight: 600 }}>Terms</a>
                 {' & '}
-                <a href="/websites/privacy" style={{ color: '#0ea5e9', textDecoration: 'none', fontWeight: 600 }}>Privacy Policy</a>
+                <a href="/websites/privacy" style={{ color: '#1E88FF', textDecoration: 'none', fontWeight: 600 }}>Privacy Policy</a>
               </p>
             </div>
           </div>

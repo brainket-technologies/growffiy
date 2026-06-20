@@ -450,7 +450,7 @@ export default function ClientPerformancePage() {
         <Card style={{ padding: '16px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Total Trades</span>
-            <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'rgba(99, 102, 241, 0.1)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'rgba(99, 102, 241, 0.1)', color: '#1252AB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               #
             </div>
           </div>
@@ -462,7 +462,7 @@ export default function ClientPerformancePage() {
           </span>
           <div style={{ position: 'absolute', bottom: '8px', right: '12px', width: '90px', height: '24px' }}>
             <svg width="90" height="24">
-              <path d={getSparklinePath(true)} fill="none" stroke="#6366f1" strokeWidth="1.5" />
+              <path d={getSparklinePath(true)} fill="none" stroke="#1252AB" strokeWidth="1.5" />
             </svg>
           </div>
         </Card>

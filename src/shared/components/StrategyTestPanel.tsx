@@ -56,7 +56,7 @@ const PassBadge = ({ label, passed }: { label: string; passed: boolean }) => (
   </div>
 );
 
-const EngineTag = ({ label, color = '#6366f1' }: { label: string; color?: string }) => (
+const EngineTag = ({ label, color = '#1252AB' }: { label: string; color?: string }) => (
   <div style={{
     display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '4px',
     background: `${color}0d`, border: `1px solid ${color}1a`,
@@ -126,7 +126,7 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       {/* Mock Inputs */}
       <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid rgba(148,163,184,0.12)', padding: '18px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.02)' }}>
-        <SectionHeader icon={<Info size={13} color="#0ea5e9" />} title="Mock Inputs" subtitle="Ye values test ke liye use hongi" />
+        <SectionHeader icon={<Info size={13} color="#1E88FF" />} title="Mock Inputs" subtitle="Ye values test ke liye use hongi" />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
           <InputField label="Symbol" value={symbol} onChange={setSymbol} placeholder="TATASTEEL" />
           <InputField label={`LTP (₹)`} value={ltp} onChange={setLtp} placeholder="200.00" />
@@ -146,8 +146,8 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
       </div>
 
       {/* Engine Formula Preview */}
-      <div style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.02), rgba(139,92,246,0.02))', borderRadius: '12px', border: '1px solid rgba(99,102,241,0.08)', padding: '16px 18px' }}>
-        <SectionHeader icon={<Calculator size={13} color="#6366f1" />} title="Engine Calculation Preview" subtitle="Jo formula engine actual me use karta hai" />
+      <div style={{ background: 'linear-gradient(135deg, rgba(18,82,171,0.02), rgba(139,92,246,0.02))', borderRadius: '12px', border: '1px solid rgba(18,82,171,0.08)', padding: '16px 18px' }}>
+        <SectionHeader icon={<Calculator size={13} color="#1252AB" />} title="Engine Calculation Preview" subtitle="Jo formula engine actual me use karta hai" />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
           <FormulaLine
             label="capitalAtRisk"
@@ -216,7 +216,7 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
 
           {/* Decision Chain */}
           <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid rgba(148,163,184,0.12)', padding: '18px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.02)' }}>
-            <SectionHeader icon={<GitBranch size={13} color="#6366f1" />} title="Decision Chain" subtitle="Algo engine exact checks" />
+            <SectionHeader icon={<GitBranch size={13} color="#1252AB" />} title="Decision Chain" subtitle="Algo engine exact checks" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
               <ChainNode label="Auto-Trade Enabled?" detail="AppSettings → auto_trade_enabled = true check" passed={true} isLast={false} />
               <ChainNode label="Trading Day?" detail="Weekday (Mon-Fri) + holidays + special days check" passed={true} isLast={false} />
@@ -254,7 +254,7 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
 
           {/* Detailed Calculations */}
           <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid rgba(148,163,184,0.12)', padding: '18px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.02)' }}>
-            <SectionHeader icon={<Calculator size={13} color="#0ea5e9" />} title="Detailed Calculations" subtitle="Engine ke exact formulas" />
+            <SectionHeader icon={<Calculator size={13} color="#1E88FF" />} title="Detailed Calculations" subtitle="Engine ke exact formulas" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <CalcRow label="Candle Price" value={`₹${results.candlePrice || '—'}`}
                 formula={`${results.candleType || 'high'}.toUpperCase() → first 5m candle (${bi.preSelectTime || '09:15'} → ${bi.entryTime || '09:20'})`}
@@ -299,8 +299,8 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
 
           {/* Reasons */}
           {results.reasons && results.reasons.length > 0 && (
-            <div style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.02), rgba(139,92,246,0.02))', borderRadius: '12px', border: '1px solid rgba(99,102,241,0.08)', padding: '16px 18px' }}>
-              <SectionHeader icon={<AlertTriangle size={12} color="#6366f1" />} title="Engine Decision Summary" subtitle="Jo engine log karega" />
+            <div style={{ background: 'linear-gradient(135deg, rgba(18,82,171,0.02), rgba(139,92,246,0.02))', borderRadius: '12px', border: '1px solid rgba(18,82,171,0.08)', padding: '16px 18px' }}>
+              <SectionHeader icon={<AlertTriangle size={12} color="#1252AB" />} title="Engine Decision Summary" subtitle="Jo engine log karega" />
               {results.reasons.map((r: string, i: number) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', marginBottom: '4px', fontSize: '11px', color: '#475569' }}>
                   <ArrowRight size={11} style={{ marginTop: '2px', flexShrink: 0, color: '#94a3b8' }} />

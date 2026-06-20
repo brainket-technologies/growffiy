@@ -18,7 +18,7 @@ export default function RefundPolicy() {
         <p>
           If you have not yet activated your account or configured any API credentials, you may be eligible for a
           full refund within <strong style={{ color: '#0f172a' }}>24 hours</strong> of purchase. Please contact{' '}
-          <a href="mailto:support@growffiy.in" style={{ color: '#0ea5e9', textDecoration: 'none' }}>
+          <a href="mailto:support@growffiy.in" style={{ color: '#1E88FF', textDecoration: 'none' }}>
             support@growffiy.in
           </a>{' '}
           within this window to request a refund.
@@ -44,7 +44,7 @@ export default function RefundPolicy() {
       <LegalSection number="5" title="How to Request a Refund">
         <p>
           To initiate a refund request, email{' '}
-          <a href="mailto:support@growffiy.in" style={{ color: '#0ea5e9', textDecoration: 'none' }}>
+          <a href="mailto:support@growffiy.in" style={{ color: '#1E88FF', textDecoration: 'none' }}>
             support@growffiy.in
           </a>{' '}
           with your Client ID, registered email, and reason for refund. Our team will respond within 2 business days.

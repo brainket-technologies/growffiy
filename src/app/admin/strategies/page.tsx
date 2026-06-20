@@ -959,7 +959,7 @@ export default function StrategiesPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
             {/* Total Strategies */}
             <div style={{
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              background: 'linear-gradient(135deg, #1252AB 0%, #8b5cf6 100%)',
               border: '1px solid rgba(56,189,248,0.15)',
               borderRadius: '16px',
               padding: '24px',
@@ -1252,7 +1252,7 @@ export default function StrategiesPage() {
                   
                   {/* Basic Information */}
                   <Card hoverable>
-                    <div style={{ background: 'linear-gradient(135deg, rgba(14,165,233,0.06) 0%, rgba(99,102,241,0.04) 100%)', margin: '-24px -24px 16px -24px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', borderRadius: '16px 16px 0 0' }}>
+                    <div style={{ background: 'linear-gradient(135deg, rgba(14,165,233,0.06) 0%, rgba(18,82,171,0.04) 100%)', margin: '-24px -24px 16px -24px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', borderRadius: '16px 16px 0 0' }}>
                       <h3 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
                         <Settings size={16} color={colors.PRIMARY} /> Basic Strategy Info
                       </h3>
@@ -1586,11 +1586,11 @@ export default function StrategiesPage() {
               
               {/* Dynamic Condition Builder */}
               <Card hoverable>
-                <div style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(79,70,229,0.04) 100%)', margin: '-24px -24px 16px -24px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', borderRadius: '16px 16px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ background: 'linear-gradient(135deg, rgba(18,82,171,0.06) 0%, rgba(79,70,229,0.04) 100%)', margin: '-24px -24px 16px -24px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', borderRadius: '16px 16px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
                     <FileCode size={16} color="var(--color-info)" /> Dynamic Entry Conditions
                   </h3>
-                  <Button type="button" variant="secondary" onClick={addCondition} style={{ padding: '6px 14px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', color: 'var(--color-primary)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.08)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.2)'; }}>
+                  <Button type="button" variant="secondary" onClick={addCondition} style={{ padding: '6px 14px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, background: 'rgba(18,82,171,0.08)', border: '1px solid rgba(18,82,171,0.2)', color: 'var(--color-primary)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(18,82,171,0.15)'; e.currentTarget.style.borderColor = 'rgba(18,82,171,0.35)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(18,82,171,0.08)'; e.currentTarget.style.borderColor = 'rgba(18,82,171,0.2)'; }}>
                     <Plus size={14} /> Add Rule
                   </Button>
                 </div>
@@ -1649,7 +1649,7 @@ export default function StrategiesPage() {
                     </div>
                   ))}
                   {formData.conditions.length === 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px', gap: '12px', color: 'var(--text-secondary)', background: 'rgba(99,102,241,0.03)', borderRadius: '12px', border: '1px dashed var(--border-color)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px', gap: '12px', color: 'var(--text-secondary)', background: 'rgba(18,82,171,0.03)', borderRadius: '12px', border: '1px dashed var(--border-color)' }}>
                       <FileCode size={24} style={{ opacity: 0.3 }} />
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         <p style={{ fontSize: '13px', textAlign: 'center', margin: 0 }}>No conditions set.</p>
@@ -1891,14 +1891,14 @@ export default function StrategiesPage() {
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
             <Button type="button" variant="secondary" onClick={() => setViewMode('list')}>Cancel</Button>
-            <button type="submit" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 24px', background: 'linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%)', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 12px rgba(14,165,233,0.25)', transition: 'all 0.25s ease' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(14,165,233,0.35)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(14,165,233,0.25)'; }}><Save size={16} /> Save Strategy Settings</button>
+            <button type="submit" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 24px', background: 'linear-gradient(135deg, #1E88FF 0%, #1252AB 100%)', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 12px rgba(14,165,233,0.25)', transition: 'all 0.25s ease' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(14,165,233,0.35)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(14,165,233,0.25)'; }}><Save size={16} /> Save Strategy Settings</button>
           </div>
         </form>
 
         {/* Strategy Preview & Test Tabs */}
         <div style={{
           marginTop: '24px',
-          background: 'linear-gradient(135deg, rgba(99,102,241,0.03) 0%, rgba(139,92,246,0.02) 50%, rgba(14,165,233,0.03) 100%)',
+          background: 'linear-gradient(135deg, rgba(18,82,171,0.03) 0%, rgba(139,92,246,0.02) 50%, rgba(14,165,233,0.03) 100%)',
           borderRadius: '20px',
           border: '1px solid rgba(148,163,184,0.12)',
           padding: '20px 24px 24px',
@@ -1906,7 +1906,7 @@ export default function StrategiesPage() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '24px', height: '24px', borderRadius: '7px', background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 2px 6px rgba(99,102,241,0.2)' }}>
+              <div style={{ width: '24px', height: '24px', borderRadius: '7px', background: 'linear-gradient(135deg, #8b5cf6, #1252AB)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 2px 6px rgba(18,82,171,0.2)' }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 22 15 16 15 16 21 8 21 8 15 2 15 2 3"/><line x1="10" y1="9" x2="14" y2="9"/></svg>
               </div>
               <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)' }}>Strategy Preview & Testing</span>
@@ -1922,9 +1922,9 @@ export default function StrategiesPage() {
                 padding: '8px 22px', borderRadius: '9px', border: 'none', cursor: 'pointer',
                 fontSize: '12px', fontWeight: 600, letterSpacing: '0.2px',
                 transition: 'all 0.2s ease',
-                background: previewTab === 'flow' ? 'linear-gradient(135deg, #8b5cf6, #6366f1)' : 'transparent',
+                background: previewTab === 'flow' ? 'linear-gradient(135deg, #8b5cf6, #1252AB)' : 'transparent',
                 color: previewTab === 'flow' ? '#fff' : 'var(--text-secondary)',
-                boxShadow: previewTab === 'flow' ? '0 2px 8px rgba(99,102,241,0.25)' : 'none',
+                boxShadow: previewTab === 'flow' ? '0 2px 8px rgba(18,82,171,0.25)' : 'none',
                 display: 'flex', alignItems: 'center', gap: '6px'
               }}
             >

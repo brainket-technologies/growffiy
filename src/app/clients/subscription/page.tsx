@@ -94,7 +94,7 @@ export default function ClientSubscriptionPlans() {
           email: activeUser.email || '',
         },
         theme: {
-          color: '#0ea5e9' // Match primary color
+          color: '#1E88FF' // Match primary color
         },
         handler: async function (response: any) {
           try {
@@ -273,7 +273,7 @@ export default function ClientSubscriptionPlans() {
           box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.08), 0 4px 6px -2px rgba(14, 165, 233, 0.04);
         }
         .premium-plan-card-featured::before {
-          background: linear-gradient(90deg, #0ea5e9, #6366f1) !important;
+          background: linear-gradient(90deg, #1E88FF, #1252AB) !important;
         }
         .premium-plan-card-featured:hover {
           border-color: rgba(14, 165, 233, 0.6);
@@ -307,7 +307,7 @@ export default function ClientSubscriptionPlans() {
           box-shadow: none;
         }
         .premium-btn-featured {
-          background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%) !important;
+          background: linear-gradient(135deg, #1E88FF 0%, #1252AB 100%) !important;
           box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
         }
         .premium-btn-featured:hover:not(:disabled) {
@@ -335,7 +335,7 @@ export default function ClientSubscriptionPlans() {
         }
         .feature-icon-wrapper-featured {
           background: #e0e7ff;
-          color: #6366f1;
+          color: #1252AB;
         }
         
         /* FAQ section CSS */
@@ -392,7 +392,7 @@ export default function ClientSubscriptionPlans() {
                       alignItems: 'center', 
                       gap: '4px', 
                       backgroundColor: '#e0e7ff', 
-                      color: '#6366f1', 
+                      color: '#1252AB', 
                       fontSize: '11px', 
                       fontWeight: 700, 
                       padding: '5px 12px', 

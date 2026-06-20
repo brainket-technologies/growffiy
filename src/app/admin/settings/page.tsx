@@ -886,7 +886,7 @@ export default function SettingsPage() {
               <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'linear-gradient(135deg, #0ea5e9, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'linear-gradient(135deg, #1E88FF, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                       <Clock size={16} />
                     </div>
                     Algo Engine Timings
@@ -899,7 +899,7 @@ export default function SettingsPage() {
 
               <div style={{ position: 'relative', paddingLeft: '32px' }}>
                 {/* Timeline line */}
-                <div style={{ position: 'absolute', left: '11px', top: '8px', bottom: '8px', width: '2px', background: 'linear-gradient(to bottom, #0ea5e9, #3b82f6)', borderRadius: '1px', opacity: 0.3 }} />
+                <div style={{ position: 'absolute', left: '11px', top: '8px', bottom: '8px', width: '2px', background: 'linear-gradient(to bottom, #1E88FF, #3b82f6)', borderRadius: '1px', opacity: 0.3 }} />
 
                 {/* Token Refresh */}
                 <div style={{ display: 'flex', gap: '20px', marginBottom: '32px', position: 'relative' }}>
@@ -1078,7 +1078,7 @@ export default function SettingsPage() {
                             fontSize: '13px',
                             fontWeight: 700,
                             cursor: 'pointer',
-                            background: isSelected ? 'linear-gradient(135deg, var(--primary), #6366f1)' : 'var(--bg-secondary)',
+                            background: isSelected ? 'linear-gradient(135deg, var(--primary), #1252AB)' : 'var(--bg-secondary)',
                             borderColor: isSelected ? 'var(--primary)' : 'var(--border-color)',
                             color: isSelected ? 'white' : isWeekend ? 'var(--text-subtle)' : 'var(--text-primary)',
                             opacity: isWeekend && !isSelected ? 0.5 : 1,

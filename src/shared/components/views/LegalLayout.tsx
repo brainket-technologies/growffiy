@@ -36,7 +36,7 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
           }}>
             <div style={{
               width: 32, height: 32, borderRadius: 8,
-              background: 'linear-gradient(135deg, #0ea5e9, #6366f1)',
+              background: 'linear-gradient(135deg, #1E88FF, #1252AB)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <img src="/logo.png" alt="Growffiy" style={{ width: 18, height: 18, objectFit: 'contain' }} />
@@ -109,8 +109,8 @@ export function LegalSection({ number, title, children }: { number: string; titl
         <span style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           width: 26, height: 26, borderRadius: 8,
-          background: 'linear-gradient(135deg, rgba(14,165,233,0.1), rgba(99,102,241,0.1))',
-          fontSize: 12, fontWeight: 800, color: '#0ea5e9',
+          background: 'linear-gradient(135deg, rgba(14,165,233,0.1), rgba(18,82,171,0.1))',
+          fontSize: 12, fontWeight: 800, color: '#1E88FF',
           flexShrink: 0,
         }}>
           {number}

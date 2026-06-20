@@ -13,8 +13,8 @@ interface StrategyConfig {
 
 const Connector = () => (
   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2px 0', marginLeft: '20px' }}>
-    <div style={{ width: '2px', height: '16px', background: 'linear-gradient(to bottom, rgba(148,163,184,0.2), rgba(99,102,241,0.3))' }} />
-    <ArrowDown size={10} style={{ color: 'rgba(99,102,241,0.3)', marginTop: '-1px' }} />
+    <div style={{ width: '2px', height: '16px', background: 'linear-gradient(to bottom, rgba(148,163,184,0.2), rgba(18,82,171,0.3))' }} />
+    <ArrowDown size={10} style={{ color: 'rgba(18,82,171,0.3)', marginTop: '-1px' }} />
   </div>
 );
 
@@ -35,7 +35,7 @@ const TimingTag = ({ time }: { time: string }) => (
     display: 'inline-flex', alignItems: 'center', gap: '3px',
     padding: '3px 9px', borderRadius: '5px',
     background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.15)',
-    fontSize: '9px', fontWeight: 700, color: '#0ea5e9'
+    fontSize: '9px', fontWeight: 700, color: '#1E88FF'
   }}>
     <Clock size={8} />{time}
   </div>
@@ -115,16 +115,16 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
           <div style={{
             position: 'absolute', left: '-36px', top: '14px',
             width: '34px', height: '34px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
+            background: 'linear-gradient(135deg, #1E88FF, #0284c7)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
             boxShadow: '0 0 0 5px rgba(14,165,233,0.08), 0 2px 6px rgba(14,165,233,0.15)',
             zIndex: 2
           }}>
             <Clock size={14} />
           </div>
-          <StageCard color="#0ea5e9" accent="#0284c7">
+          <StageCard color="#1E88FF" accent="#0284c7">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <StageTag label="Stage 1" color="#0ea5e9" />
+              <StageTag label="Stage 1" color="#1E88FF" />
               <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Market Pre-Open Data</span>
               <div style={{ marginLeft: 'auto' }}><TimingTag time={`08:00 — ${preSelectTime}`} /></div>
             </div>
@@ -351,7 +351,7 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
 
             <div style={{ fontSize: '11px', color: '#475569', lineHeight: '1.8', marginBottom: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#6366f1'}} />
+                <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#1252AB'}} />
                 Check {isSLMarket ? 'SL/Target' : ''} order status via Kite API (every {checkInterval}s)
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -392,16 +392,16 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
           <div style={{
             position: 'absolute', left: '-36px', top: '14px',
             width: '34px', height: '34px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+            background: 'linear-gradient(135deg, #1252AB, #003A99)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
-            boxShadow: '0 0 0 5px rgba(99,102,241,0.08), 0 2px 6px rgba(99,102,241,0.15)',
+            boxShadow: '0 0 0 5px rgba(18,82,171,0.08), 0 2px 6px rgba(18,82,171,0.15)',
             zIndex: 2
           }}>
             <AlertTriangle size={14} />
           </div>
-          <StageCard color="#6366f1" accent="#4f46e5">
+          <StageCard color="#1252AB" accent="#003A99">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-              <StageTag label="Exit" color="#6366f1" />
+              <StageTag label="Exit" color="#1252AB" />
               <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Square Off</span>
               <div style={{ marginLeft: 'auto' }}><TimingTag time={exitTime} /></div>
             </div>

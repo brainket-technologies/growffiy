@@ -98,11 +98,11 @@ export const TRADE_STATUS = {
 
 // Global Theme Colors for inline SVG and visual style styling
 export const THEME_COLORS = {
-  PRIMARY: '#0ea5e9', // Sky-blue primary (updated to match theme CSS variable --primary)
+  PRIMARY: '#1252AB', // Primary Blue
   SUCCESS: '#10b981', // Emerald green
   DANGER: '#ef4444',  // Red
   WARNING: '#f59e0b', // Amber warning
-  INFO: '#3b82f6',    // Sky blue info
+  INFO: '#1E88FF',    // Light Blue Accent
   BG_PRIMARY: '#f5f7fb',
   BG_CARD: '#ffffff',
   TEXT_PRIMARY: '#1e293b',

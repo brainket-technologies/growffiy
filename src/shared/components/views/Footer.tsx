@@ -39,7 +39,7 @@ export default function Footer() {
             <Link href="/#features" className="footer-link">Features</Link>
             <Link href="/#strategy" className="footer-link">Strategy</Link>
             <Link href="/#pricing" className="footer-link">Pricing</Link>
-            <Link href="/websites/login" className="footer-link" style={{ color: '#0ea5e9' }}>Client Portal</Link>
+            <Link href="/websites/login" className="footer-link" style={{ color: '#1E88FF' }}>Client Portal</Link>
           </div>
 
           {/* Legal */}

@@ -322,7 +322,7 @@ export default function SupportPage() {
                           width: '38px', 
                           height: '38px', 
                           borderRadius: '50%', 
-                          background: 'linear-gradient(135deg, var(--primary) 0%, #6366f1 100%)',
+                          background: 'linear-gradient(135deg, var(--primary) 0%, #1252AB 100%)',
                           color: 'white',
                           fontSize: '13px',
                           fontWeight: 700,

@@ -59,7 +59,7 @@ export async function GET(request: Request) {
       const emailHtml = `
         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 32px; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
           <div style="text-align: center; margin-bottom: 32px;">
-            <h2 style="color: #0ea5e9; font-weight: 800; margin: 0; font-size: 26px; letter-spacing: -0.5px;">GROWFFIY</h2>
+            <h2 style="color: #1E88FF; font-weight: 800; margin: 0; font-size: 26px; letter-spacing: -0.5px;">GROWFFIY</h2>
             <span style="font-size: 11px; font-weight: 700; color: #f59e0b; background-color: #fef3c7; padding: 6px 14px; border-radius: 99px; text-transform: uppercase; margin-top: 10px; display: inline-block; letter-spacing: 0.5px;">Subscription Renewal Notice</span>
           </div>
           
@@ -93,7 +93,7 @@ export async function GET(request: Request) {
 
           <div style="text-align: center; margin: 32px 0;">
             <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/clients/subscription" 
-               style="background-color: #0ea5e9; color: white; padding: 14px 28px; font-weight: 700; font-size: 15px; border-radius: 12px; text-decoration: none; display: inline-block; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);">
+               style="background-color: #1E88FF; color: white; padding: 14px 28px; font-weight: 700; font-size: 15px; border-radius: 12px; text-decoration: none; display: inline-block; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);">
               Renew Plan Now
             </a>
           </div>

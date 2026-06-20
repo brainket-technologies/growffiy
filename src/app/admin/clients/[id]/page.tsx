@@ -496,7 +496,7 @@ export default function ClientDetailsPage() {
                 width: '64px', 
                 height: '64px', 
                 borderRadius: '50%', 
-                background: 'linear-gradient(135deg, var(--primary) 0%, #6366f1 100%)',
+                background: 'linear-gradient(135deg, var(--primary) 0%, #1252AB 100%)',
                 color: 'white',
                 fontSize: '22px',
                 fontWeight: 700,

@@ -227,7 +227,7 @@ export default function GrowffiyLanding() {
               {[
                 { val: '₹12.4Cr+', lbl: 'Capital Managed', color: '#10b981' },
                 { val: '1,200+', lbl: 'Trades Executed', color: '#0f172a' },
-                { val: '68%', lbl: 'Win Rate', color: '#0ea5e9' },
+                { val: '68%', lbl: 'Win Rate', color: '#1E88FF' },
               ].map((s, i) => (
                 <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   <span style={{ fontFamily: 'var(--font-title)', fontSize: 22, fontWeight: 800, color: s.color }}>{s.val}</span>
@@ -273,7 +273,7 @@ export default function GrowffiyLanding() {
               <div style={{
                 position: 'absolute', top: 0, left: 0, right: 0, height: 3,
                 background: isUp(stocks[0].change)
-                  ? 'linear-gradient(90deg,#10b981,#0ea5e9)'
+                  ? 'linear-gradient(90deg,#10b981,#1E88FF)'
                   : 'linear-gradient(90deg,#ef4444,#f59e0b)',
               }} />
 
@@ -423,7 +423,7 @@ export default function GrowffiyLanding() {
             <div>
               <div className="params-card">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                  <div style={{ padding: '8px', borderRadius: 10, background: 'linear-gradient(135deg,rgba(14,165,233,0.12),rgba(99,102,241,0.12))', color: '#0ea5e9' }}>
+                  <div style={{ padding: '8px', borderRadius: 10, background: 'linear-gradient(135deg,rgba(14,165,233,0.12),rgba(18,82,171,0.12))', color: '#1E88FF' }}>
                     <BarChart2 size={18} />
                   </div>
                   <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>Live Strategy Parameters</span>

@@ -467,8 +467,8 @@ export default function AdminDashboard() {
             data={pnlHistoryData}
             labels={pnlHistoryLabels}
             strokeColor="var(--primary)"
-            fillColorStart="rgba(99,102,241,0.12)"
-            fillColorEnd="rgba(99,102,241,0)"
+            fillColorStart="rgba(18,82,171,0.12)"
+            fillColorEnd="rgba(18,82,171,0)"
             height={280}
           />
         </Card>

@@ -127,7 +127,7 @@ export default function ClientMarketWatchPage() {
           )}
 
           {isSyncing && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0ea5e9', fontSize: '12px', fontWeight: 500 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#1E88FF', fontSize: '12px', fontWeight: 500 }}>
               <RefreshCw size={14} style={{ animation: 'spin 1.5s linear infinite' }} />
               <span>Syncing...</span>
             </div>

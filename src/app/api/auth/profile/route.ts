@@ -53,7 +53,7 @@ export async function POST(request: Request) {
             html: `
               <div style="font-family: sans-serif; padding: 24px; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
                 <div style="text-align: center; margin-bottom: 24px;">
-                  <h2 style="color: #0ea5e9; font-weight: 800; margin: 0; font-size: 24px; letter-spacing: -0.5px;">GROWFFIY SECURITY</h2>
+                  <h2 style="color: #1E88FF; font-weight: 800; margin: 0; font-size: 24px; letter-spacing: -0.5px;">GROWFFIY SECURITY</h2>
                   <span style="font-size: 10px; font-weight: 700; color: #ef4444; background-color: #fef2f2; padding: 4px 12px; border-radius: 99px; text-transform: uppercase; margin-top: 8px; display: inline-block;">Critical Security Notice</span>
                 </div>
                 
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
                     </tr>
                     <tr>
                       <td style="padding: 6px 0; color: #64748b;"><strong>Login URL:</strong></td>
-                      <td style="padding: 6px 0;"><a href="${loginUrl}" style="color: #0ea5e9; text-decoration: underline; font-weight: 600;">${loginUrl}</a></td>
+                      <td style="padding: 6px 0;"><a href="${loginUrl}" style="color: #1E88FF; text-decoration: underline; font-weight: 600;">${loginUrl}</a></td>
                     </tr>
                   </table>
                 </div>
@@ -127,8 +127,8 @@ export async function POST(request: Request) {
             html: `
               <div style="font-family: sans-serif; padding: 24px; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
                 <div style="text-align: center; margin-bottom: 24px;">
-                  <h2 style="color: #0ea5e9; font-weight: 800; margin: 0; font-size: 24px; letter-spacing: -0.5px;">GROWFFIY</h2>
-                  <span style="font-size: 10px; font-weight: 700; color: #0ea5e9; background-color: #e0f2fe; padding: 4px 12px; border-radius: 99px; text-transform: uppercase; margin-top: 8px; display: inline-block;">Security Update</span>
+                  <h2 style="color: #1E88FF; font-weight: 800; margin: 0; font-size: 24px; letter-spacing: -0.5px;">GROWFFIY</h2>
+                  <span style="font-size: 10px; font-weight: 700; color: #1E88FF; background-color: #e0f2fe; padding: 4px 12px; border-radius: 99px; text-transform: uppercase; margin-top: 8px; display: inline-block;">Security Update</span>
                 </div>
                 
                 <p>Hello <strong>${user.name}</strong>,</p>
@@ -147,7 +147,7 @@ export async function POST(request: Request) {
                     </tr>
                     <tr>
                       <td style="padding: 6px 0; color: #64748b;"><strong>Login URL:</strong></td>
-                      <td style="padding: 6px 0;"><a href="${loginUrl}" style="color: #0ea5e9; text-decoration: underline; font-weight: 600;">${loginUrl}</a></td>
+                      <td style="padding: 6px 0;"><a href="${loginUrl}" style="color: #1E88FF; text-decoration: underline; font-weight: 600;">${loginUrl}</a></td>
                     </tr>
                   </table>
                 </div>

@@ -1,9 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-  --primary: #6366f1;
-  --primary-dark: #4f46e5;
-  --primary-light: #eef2ff;
+  --primary: #1252AB;
+  --primary-dark: #003A99;
+  --primary-light: #e6f0ff;
   --accent: #22c55e;
   --accent-dark: #16a34a;
   --accent-light: #dcfce7;
@@ -33,7 +33,7 @@
   --shadow-md: 0 4px 6px rgba(0,0,0,0.05), 0 10px 15px rgba(0,0,0,0.06);
   --shadow-lg: 0 10px 25px rgba(0,0,0,0.06), 0 20px 40px rgba(0,0,0,0.08);
   --shadow-xl: 0 25px 50px rgba(0,0,0,0.08);
-  --shadow-blue: 0 8px 32px rgba(99,102,241,0.15);
+  --shadow-blue: 0 8px 32px rgba(18,82,171,0.15);
   --shadow-green: 0 8px 24px rgba(34,197,94,0.12);
 
   --radius-sm: 6px;
@@ -69,7 +69,7 @@
   --shadow-md: 0 4px 16px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.15);
   --shadow-lg: 0 20px 40px rgba(0,0,0,0.35), 0 8px 16px rgba(0,0,0,0.2);
   --shadow-xl: 0 32px 64px rgba(0,0,0,0.4);
-  --shadow-blue: 0 8px 32px rgba(99,102,241,0.15);
+  --shadow-blue: 0 8px 32px rgba(18,82,171,0.15);
   --shadow-green: 0 8px 24px rgba(34,197,94,0.12);
 }
 
@@ -123,14 +123,14 @@ input, button, select, textarea {
    TYPOGRAPHY HELPERS
 ======================== */
 .text-gradient {
-  background: linear-gradient(135deg, var(--primary) 0%, #6366f1 50%, var(--accent) 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, #1252AB 50%, var(--accent) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .text-gradient-green {
-  background: linear-gradient(135deg, #10b981 0%, #0ea5e9 100%);
+  background: linear-gradient(135deg, #10b981 0%, #1E88FF 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -350,10 +350,10 @@ input, button, select, textarea {
 }
 
 .page-btn-active {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+  background: linear-gradient(135deg, #1252AB, #8b5cf6) !important;
   color: #fff !important;
   border-color: transparent !important;
-  box-shadow: 0 2px 8px rgba(99,102,241,0.25);
+  box-shadow: 0 2px 8px rgba(18,82,171,0.25);
 }
 
 .page-info {
@@ -572,7 +572,7 @@ tr.clickable-row:hover td { background-color: rgba(99, 102, 241, 0.06); }
   font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.5px;
-  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  background: linear-gradient(135deg, #1E88FF, #1252AB);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -582,7 +582,7 @@ tr.clickable-row:hover td { background-color: rgba(99, 102, 241, 0.06); }
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+  background: linear-gradient(135deg, #1E88FF 0%, #1252AB 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -628,7 +628,7 @@ tr.clickable-row:hover td { background-color: rgba(99, 102, 241, 0.06); }
   border-radius: var(--radius-full);
   font-size: 13px;
   font-weight: 700;
-  background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+  background: linear-gradient(135deg, #1E88FF 0%, #1252AB 100%);
   color: white;
   border: none;
   cursor: pointer;
@@ -785,7 +785,7 @@ tr.clickable-row:hover td { background-color: rgba(99, 102, 241, 0.06); }
   border-radius: var(--radius-full);
   font-size: 14px;
   font-weight: 700;
-  background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+  background: linear-gradient(135deg, #1E88FF 0%, #1252AB 100%);
   color: white;
   border: none;
   cursor: pointer;
@@ -878,7 +878,7 @@ tr.clickable-row:hover td { background-color: rgba(99, 102, 241, 0.06); }
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #10b981, #0ea5e9, #6366f1);
+  background: linear-gradient(90deg, #10b981, #1E88FF, #1252AB);
   border-radius: 24px 24px 0 0;
 }
 
@@ -1090,9 +1090,9 @@ tr.clickable-row:hover td { background-color: rgba(99, 102, 241, 0.06); }
   margin-bottom: 20px;
 }
 
-.feature-icon-blue   { background: linear-gradient(135deg, rgba(14,165,233,0.12), rgba(99,102,241,0.12)); color: #0ea5e9; }
+.feature-icon-blue   { background: linear-gradient(135deg, rgba(14,165,233,0.12), rgba(18,82,171,0.12)); color: #1E88FF; }
 .feature-icon-green  { background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(14,165,233,0.12)); color: #10b981; }
-.feature-icon-purple { background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(99,102,241,0.12)); color: #8b5cf6; }
+.feature-icon-purple { background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(18,82,171,0.12)); color: #8b5cf6; }
 .feature-icon-orange { background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(239,68,68,0.12)); color: #f59e0b; }
 .feature-icon-cyan   { background: linear-gradient(135deg, rgba(6,182,212,0.12), rgba(14,165,233,0.12)); color: #06b6d4; }
 .feature-icon-rose   { background: linear-gradient(135deg, rgba(244,63,94,0.12), rgba(139,92,246,0.12)); color: #f43f5e; }
@@ -1147,7 +1147,7 @@ tr.clickable-row:hover td { background-color: rgba(99, 102, 241, 0.06); }
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  background: linear-gradient(135deg, #1E88FF, #1252AB);
   color: white;
   font-weight: 800;
   font-size: 14px;
@@ -1187,7 +1187,7 @@ tr.clickable-row:hover td { background-color: rgba(99, 102, 241, 0.06); }
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #0ea5e9, #6366f1);
+  background: linear-gradient(90deg, #1E88FF, #1252AB);
 }
 
 .params-row {
@@ -1471,7 +1471,7 @@ tr.clickable-row:hover td { background-color: rgba(99, 102, 241, 0.06); }
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  background: linear-gradient(135deg, #1E88FF, #1252AB);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1624,7 +1624,7 @@ tr.clickable-row:hover td { background-color: rgba(99, 102, 241, 0.06); }
   text-decoration: none;
   transition: all 0.15s;
 }
-.mobile-nav-link:hover { background: #f1f5f9; color: #0ea5e9; }
+.mobile-nav-link:hover { background: #f1f5f9; color: #1E88FF; }
 
 .mobile-nav-cta {
   display: block;
@@ -1633,7 +1633,7 @@ tr.clickable-row:hover td { background-color: rgba(99, 102, 241, 0.06); }
   border-radius: 99px;
   font-size: 15px;
   font-weight: 700;
-  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  background: linear-gradient(135deg, #1E88FF, #1252AB);
   color: white;
   text-align: center;
   text-decoration: none;

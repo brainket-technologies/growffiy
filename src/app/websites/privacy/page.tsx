@@ -47,7 +47,7 @@ export default function PrivacyPolicyPage() {
       <LegalSection number="6" title="Contact Us">
         <p>
           For any privacy-related concerns, please reach out to us at{' '}
-          <a href="mailto:support@growffiy.in" style={{ color: '#0ea5e9', textDecoration: 'none' }}>
+          <a href="mailto:support@growffiy.in" style={{ color: '#1E88FF', textDecoration: 'none' }}>
             support@growffiy.in
           </a>
           . We aim to respond within 2 business days.

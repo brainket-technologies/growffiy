@@ -123,7 +123,7 @@ export default function AdminLoginPage() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <div style={{
           width: 30, height: 30, borderRadius: 8,
-          background: `linear-gradient(135deg, ${THEME_COLORS.PRIMARY}, #6366f1)`,
+          background: `linear-gradient(135deg, ${THEME_COLORS.PRIMARY}, #1252AB)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <img src="/logo.png" alt="Growffiy" style={{ width: 16, height: 16, objectFit: 'contain' }} />
@@ -146,7 +146,7 @@ export default function AdminLoginPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 40, height: 40, borderRadius: 10,
-              background: `linear-gradient(135deg, ${THEME_COLORS.PRIMARY}, #6366f1)`,
+              background: `linear-gradient(135deg, ${THEME_COLORS.PRIMARY}, #1252AB)`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <img src="/logo.png" alt="Growffiy" style={{ width: 22, height: 22, objectFit: 'contain' }} />

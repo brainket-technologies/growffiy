@@ -116,7 +116,7 @@ export async function POST(request: Request) {
           <!-- Header -->
           <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 24px;">
             <div>
-              <h2 style="color: #0ea5e9; font-weight: 800; margin: 0; font-size: 26px; letter-spacing: -0.5px;">GROWFFIY</h2>
+              <h2 style="color: #1E88FF; font-weight: 800; margin: 0; font-size: 26px; letter-spacing: -0.5px;">GROWFFIY</h2>
               <span style="font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Automated Trading Desk</span>
             </div>
             <div style="text-align: right;">
@@ -172,7 +172,7 @@ export async function POST(request: Request) {
               </tr>
               <tr style="color: #0f172a; font-size: 16px; font-weight: 700;">
                 <td colspan="2" style="padding: 20px 8px 8px 8px; text-align: right; color: #64748b;">Total Paid:</td>
-                <td style="padding: 20px 8px 8px 8px; text-align: right; color: #0ea5e9;">₹${Number(payment.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                <td style="padding: 20px 8px 8px 8px; text-align: right; color: #1E88FF;">₹${Number(payment.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
               </tr>
             </tbody>
           </table>
