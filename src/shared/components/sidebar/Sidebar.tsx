@@ -122,11 +122,21 @@ interface SidebarItemProps {
   searchQuery: string;
 }
 
+const isPathActive = (itemPath: string | undefined, currentPath: string) => {
+  if (!itemPath) return false;
+  return currentPath === itemPath || (
+    itemPath !== '/' &&
+    itemPath !== '/admin' &&
+    itemPath !== '/clients' &&
+    currentPath.startsWith(`${itemPath}/`)
+  );
+};
+
 const SidebarMenuItem: React.FC<SidebarItemProps> = ({ item, pathname, isOpen, onToggle, onNavigate, searchQuery }) => {
   const IconComponent = item.icon;
 
   if (item.isGroup) {
-    const hasActiveSub = item.subItems?.some((sub) => pathname === sub.path);
+    const hasActiveSub = item.subItems?.some((sub) => isPathActive(sub.path, pathname));
     const matchesSearch = searchQuery === '' ||
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.subItems?.some((sub) => sub.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -155,7 +165,7 @@ const SidebarMenuItem: React.FC<SidebarItemProps> = ({ item, pathname, isOpen, o
           }}
         >
           {item.subItems?.map((sub) => {
-            const isSubActive = pathname === sub.path;
+            const isSubActive = isPathActive(sub.path, pathname);
             const matchesSub = searchQuery === '' ||
               sub.name.toLowerCase().includes(searchQuery.toLowerCase());
             if (!matchesSub) return null;
@@ -182,7 +192,7 @@ const SidebarMenuItem: React.FC<SidebarItemProps> = ({ item, pathname, isOpen, o
 
   if (!IconComponent) return null;
 
-  const isActive = pathname === item.path;
+  const isActive = isPathActive(item.path, pathname);
   const matches = searchQuery === '' || item.name.toLowerCase().includes(searchQuery.toLowerCase());
   if (!matches) return null;
 
