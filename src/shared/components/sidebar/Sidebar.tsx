@@ -53,25 +53,36 @@ const adminGroups: MenuGroup[] = [
     label: 'Management',
     items: [
       { name: 'Clients', path: '/admin/clients', icon: Users, badge: 12 },
-      { name: 'Pre-Open', path: '/admin/scanner', icon: Search },
+      { name: 'Subscription Plans', path: '/admin/plans', icon: CreditCard },
+    ],
+  },
+  {
+    label: 'Trade',
+    items: [
       { name: 'Live Market', path: '/admin/market-watch', icon: LineChart },
+      { name: 'Pre-Open', path: '/admin/scanner', icon: Search },
       { name: 'Strategies', path: '/admin/strategies', icon: TrendingUp },
-      { name: 'Live Trading', path: '/admin/trades', icon: Activity },
     ],
   },
   {
     label: 'Reports',
     items: [
-      { name: 'Reports', path: '/admin/reports', icon: FileText },
-      { name: 'Subscription Plans', path: '/admin/plans', icon: CreditCard },
-      { name: 'Transactions', path: '/admin/payments', icon: CreditCard },
+      { name: 'Strategy Report', path: '/admin/reports/strategy', icon: FileText },
+      { name: 'Client Report', path: '/admin/reports/client', icon: FileText },
+    ],
+  },
+  {
+    label: 'Transactions',
+    items: [
+      { name: 'Subscription Plan Transactions', path: '/admin/payments/subscriptions', icon: CreditCard },
+      { name: 'Live Trade Transactions', path: '/admin/payments/trades', icon: Activity },
     ],
   },
   {
     label: 'Settings',
     items: [
-      { name: 'Settings', path: '/admin/settings', icon: Settings },
-      { name: 'Audit Logs', path: '/admin/audit-logs', icon: ShieldCheck },
+      { name: 'App Settings', path: '/admin/settings', icon: Settings },
+      { name: 'App Logs', path: '/admin/audit-logs', icon: ShieldCheck },
       { name: 'Support', path: '/admin/support', icon: LifeBuoy, badge: 3 },
     ],
   },
