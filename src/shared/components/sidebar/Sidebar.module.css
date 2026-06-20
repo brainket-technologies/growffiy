@@ -282,50 +282,9 @@
 .footer {
   flex-shrink: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
-  padding: 12px 14px;
+  padding: 14px 14px 16px;
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(8px);
-}
-
-/* Theme Toggle */
-.themeToggle {
-  display: flex;
-  gap: 0;
-  padding: 0 0 10px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.themeBtn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 7px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: transparent;
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.themeBtn:first-child {
-  border-radius: 10px 0 0 10px;
-}
-
-.themeBtn:last-child {
-  border-radius: 0 10px 10px 0;
-  margin-left: -1px;
-}
-
-.themeBtnActive {
-  background: rgba(96, 165, 250, 0.15);
-  border-color: rgba(96, 165, 250, 0.25);
-  color: #60a5fa;
-  z-index: 1;
 }
 
 /* Profile */

@@ -17,8 +17,6 @@ import {
   LogOut,
   ChevronRight,
   Search,
-  Sun,
-  Moon,
   Menu,
   X,
 } from 'lucide-react';
@@ -373,22 +371,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
 
         {/* Footer */}
         <div className={styles.footer}>
-          {/* Theme Toggle */}
-          <div className={styles.themeToggle}>
-            <button
-              className={`${styles.themeBtn} ${isDark ? styles.themeBtnActive : ''}`}
-              onClick={() => toggleTheme(true)}
-            >
-              <Moon size={13} /> Dark
-            </button>
-            <button
-              className={`${styles.themeBtn} ${!isDark ? styles.themeBtnActive : ''}`}
-              onClick={() => toggleTheme(false)}
-            >
-              <Sun size={13} /> Light
-            </button>
-          </div>
-
           {/* Profile */}
           <div className={styles.profile}>
             <div className={styles.avatar}>{userInitial}</div>

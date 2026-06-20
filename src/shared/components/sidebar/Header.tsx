@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, HelpCircle, User, ChevronDown, Lock, UserCheck, LogOut, X, RefreshCw, Search } from 'lucide-react';
+import { Bell, ChevronDown, Lock, UserCheck, LogOut, X, RefreshCw, Sun, Moon } from 'lucide-react';
 import styles from './Header.module.css';
 import { api } from '../../services/api';
 import { API_ENDPOINTS } from '../../../core/constants';
@@ -20,16 +20,15 @@ export const Header: React.FC<HeaderProps> = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [isDark, setIsDark] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Profile Form State
   const [profileName, setProfileName] = useState(userName);
   const [profileEmail, setProfileEmail] = useState('');
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSuccess, setProfileSuccess] = useState(false);
 
-  // Password Form State
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -37,7 +36,21 @@ export const Header: React.FC<HeaderProps> = ({
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
-  // Fetch current user details dynamically on profile modal open
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('growffiy_theme');
+      const prefersDark = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      setIsDark(prefersDark);
+    }
+  }, []);
+
+  const toggleTheme = (dark: boolean) => {
+    setIsDark(dark);
+    const theme = dark ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('growffiy_theme', theme);
+  };
+
   useEffect(() => {
     if (profileModalOpen && typeof window !== 'undefined') {
       const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
@@ -61,7 +74,6 @@ export const Header: React.FC<HeaderProps> = ({
     }
   }, [profileModalOpen, userName]);
 
-  // Click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -86,24 +98,15 @@ export const Header: React.FC<HeaderProps> = ({
     setProfileLoading(true);
     setProfileError(null);
     setProfileSuccess(false);
-
     try {
       const activeUserId = localStorage.getItem('growffiy_logged_in_user_id') || 'admin';
       const res = await api.post(API_ENDPOINTS.AUTH_PROFILE, {
-        userId: activeUserId,
-        name: profileName,
-        email: profileEmail
+        userId: activeUserId, name: profileName, email: profileEmail
       });
-
       if (res.success) {
         setProfileSuccess(true);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('growffiy_logged_in_user_id', profileEmail || activeUserId);
-          setTimeout(() => {
-            setProfileModalOpen(false);
-            window.location.reload();
-          }, 1000);
-        }
+        localStorage.setItem('growffiy_logged_in_user_id', profileEmail || activeUserId);
+        setTimeout(() => { setProfileModalOpen(false); window.location.reload(); }, 1000);
       }
     } catch (err: any) {
       setProfileError(err.message || 'Failed to update profile');
@@ -117,29 +120,20 @@ export const Header: React.FC<HeaderProps> = ({
     setPasswordLoading(true);
     setPasswordError(null);
     setPasswordSuccess(false);
-
     if (newPassword !== confirmPassword) {
       setPasswordError('New passwords do not match');
       setPasswordLoading(false);
       return;
     }
-
     try {
       const activeUserId = localStorage.getItem('growffiy_logged_in_user_id') || 'admin';
       const res = await api.post(API_ENDPOINTS.AUTH_PROFILE, {
-        userId: activeUserId,
-        currentPassword,
-        newPassword
+        userId: activeUserId, currentPassword, newPassword
       });
-
       if (res.success) {
         setPasswordSuccess(true);
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-        setTimeout(() => {
-          setPasswordModalOpen(false);
-        }, 1500);
+        setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+        setTimeout(() => setPasswordModalOpen(false), 1500);
       }
     } catch (err: any) {
       setPasswordError(err.message || 'Incorrect current password or update failed');
@@ -150,29 +144,49 @@ export const Header: React.FC<HeaderProps> = ({
 
   const userInitial = userName.charAt(0).toUpperCase();
 
+  const renderBreadcrumb = () => {
+    if (!title.includes('|')) return <span className={styles.currentPage}>{title}</span>;
+    const parts = title.split('|').map(s => s.trim());
+    return (
+      <>
+        <span className={styles.breadcrumb}>
+          {parts[0]}
+          <span className={styles.breadcrumbSep}>/</span>
+        </span>
+        <span className={styles.currentPage}>{parts[1]}</span>
+      </>
+    );
+  };
+
   return (
     <>
       <header className={styles.header}>
-        <h2 className={styles.headerTitle}>
-          {title.includes('|') ? (
-            <>
-              {title.split('|')[0].trim()}
-              <span className={styles.headerTitleAccent}> | {title.split('|')[1].trim()}</span>
-            </>
-          ) : (
-            title
-          )}
-        </h2>
+        <div className={styles.leftSection}>
+          {renderBreadcrumb()}
+        </div>
 
         <div className={styles.actions}>
           <button className={styles.iconBtn} title="Notifications">
-            <Bell size={17} />
+            <Bell size={16} />
             <span className={styles.notifDot} />
           </button>
 
-          <button className={styles.iconBtn} title="Help">
-            <HelpCircle size={17} />
-          </button>
+          <div className={styles.themeToggle}>
+            <button
+              className={`${styles.themeBtn} ${isDark ? styles.themeBtnActive : ''}`}
+              onClick={() => toggleTheme(true)}
+              title="Dark mode"
+            >
+              <Moon size={13} />
+            </button>
+            <button
+              className={`${styles.themeBtn} ${!isDark ? styles.themeBtnActive : ''}`}
+              onClick={() => toggleTheme(false)}
+              title="Light mode"
+            >
+              <Sun size={13} />
+            </button>
+          </div>
 
           <div className={styles.divider} />
 
@@ -181,13 +195,11 @@ export const Header: React.FC<HeaderProps> = ({
               className={styles.profileTrigger}
               onClick={() => setDropdownOpen(!dropdownOpen)}
             >
-              <div className={styles.profileAvatar}>
-                {userInitial}
-              </div>
-              <div className={styles.profileInfo}>
+              <div className={styles.profileAvatar}>{userInitial}</div>
+              <div>
                 <p className={styles.profileName}>
                   {userName}
-                  <ChevronDown size={11} className={`${styles.chevron} ${dropdownOpen ? styles.chevronOpen : ''}`} />
+                  <ChevronDown size={10} className={`${styles.chevron} ${dropdownOpen ? styles.chevronOpen : ''}`} />
                 </p>
                 <p className={styles.profileRole}>{userRole}</p>
               </div>
@@ -195,24 +207,15 @@ export const Header: React.FC<HeaderProps> = ({
 
             {dropdownOpen && (
               <div className={styles.dropdown}>
-                <button
-                  className={styles.dropdownItem}
-                  onClick={() => { setDropdownOpen(false); setProfileModalOpen(true); }}
-                >
-                  <UserCheck size={15} /> Update Profile
+                <button className={styles.dropdownItem} onClick={() => { setDropdownOpen(false); setProfileModalOpen(true); }}>
+                  <UserCheck size={14} /> Update Profile
                 </button>
-                <button
-                  className={styles.dropdownItem}
-                  onClick={() => { setDropdownOpen(false); setPasswordModalOpen(true); }}
-                >
-                  <Lock size={15} /> Change Password
+                <button className={styles.dropdownItem} onClick={() => { setDropdownOpen(false); setPasswordModalOpen(true); }}>
+                  <Lock size={14} /> Change Password
                 </button>
                 <div className={styles.dropdownDivider} />
-                <button
-                  className={`${styles.dropdownItem} ${styles.dropdownDanger}`}
-                  onClick={handleLogout}
-                >
-                  <LogOut size={15} /> Logout
+                <button className={`${styles.dropdownItem} ${styles.dropdownDanger}`} onClick={handleLogout}>
+                  <LogOut size={14} /> Logout
                 </button>
               </div>
             )}
@@ -220,50 +223,28 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </header>
 
-      {/* ═══ UPDATE PROFILE MODAL ═══ */}
       {profileModalOpen && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalCard}>
             <div className={styles.modalHeader}>
               <h3 className={styles.modalTitle}>Update Profile</h3>
-              <button className={styles.modalClose} onClick={() => setProfileModalOpen(false)}>
-                <X size={18} />
-              </button>
+              <button className={styles.modalClose} onClick={() => setProfileModalOpen(false)}><X size={16} /></button>
             </div>
-
             <form onSubmit={handleUpdateProfile} className={styles.modalForm}>
               {profileError && <div className={styles.alertError}>⚠ {profileError}</div>}
-              {profileSuccess && <div className={styles.alertSuccess}>✓ Profile updated successfully! Reloading...</div>}
-
+              {profileSuccess && <div className={styles.alertSuccess}>✓ Profile updated! Reloading...</div>}
               <div className={styles.formField}>
                 <label className={styles.formLabel}>Full Name</label>
-                <input
-                  type="text"
-                  required
-                  className={styles.formInput}
-                  value={profileName}
-                  onChange={(e) => setProfileName(e.target.value)}
-                />
+                <input type="text" required className={styles.formInput} value={profileName} onChange={(e) => setProfileName(e.target.value)} />
               </div>
-
               <div className={styles.formField}>
                 <label className={styles.formLabel}>Email Address</label>
-                <input
-                  type="email"
-                  required
-                  className={styles.formInput}
-                  value={profileEmail}
-                  onChange={(e) => setProfileEmail(e.target.value)}
-                />
+                <input type="email" required className={styles.formInput} value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} />
               </div>
-
               <div className={styles.formActions}>
-                <button type="button" className={styles.btnSecondary} onClick={() => setProfileModalOpen(false)}>
-                  Cancel
-                </button>
+                <button type="button" className={styles.btnSecondary} onClick={() => setProfileModalOpen(false)}>Cancel</button>
                 <button type="submit" className={styles.btnPrimary} disabled={profileLoading}>
-                  {profileLoading ? <RefreshCw size={14} /> : null}
-                  Save Changes
+                  {profileLoading ? <RefreshCw size={13} /> : null} Save Changes
                 </button>
               </div>
             </form>
@@ -271,61 +252,32 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       )}
 
-      {/* ═══ CHANGE PASSWORD MODAL ═══ */}
       {passwordModalOpen && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalCard}>
             <div className={styles.modalHeader}>
               <h3 className={styles.modalTitle}>Change Password</h3>
-              <button className={styles.modalClose} onClick={() => setPasswordModalOpen(false)}>
-                <X size={18} />
-              </button>
+              <button className={styles.modalClose} onClick={() => setPasswordModalOpen(false)}><X size={16} /></button>
             </div>
-
             <form onSubmit={handleChangePassword} className={styles.modalForm}>
               {passwordError && <div className={styles.alertError}>⚠ {passwordError}</div>}
-              {passwordSuccess && <div className={styles.alertSuccess}>✓ Password updated successfully!</div>}
-
+              {passwordSuccess && <div className={styles.alertSuccess}>✓ Password updated!</div>}
               <div className={styles.formField}>
                 <label className={styles.formLabel}>Current Password</label>
-                <input
-                  type="password"
-                  required
-                  className={styles.formInput}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                />
+                <input type="password" required className={styles.formInput} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
               </div>
-
               <div className={styles.formField}>
                 <label className={styles.formLabel}>New Password</label>
-                <input
-                  type="password"
-                  required
-                  className={styles.formInput}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
+                <input type="password" required className={styles.formInput} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
               </div>
-
               <div className={styles.formField}>
                 <label className={styles.formLabel}>Confirm New Password</label>
-                <input
-                  type="password"
-                  required
-                  className={styles.formInput}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
+                <input type="password" required className={styles.formInput} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
               </div>
-
               <div className={styles.formActions}>
-                <button type="button" className={styles.btnSecondary} onClick={() => setPasswordModalOpen(false)}>
-                  Cancel
-                </button>
+                <button type="button" className={styles.btnSecondary} onClick={() => setPasswordModalOpen(false)}>Cancel</button>
                 <button type="submit" className={styles.btnPrimary} disabled={passwordLoading}>
-                  {passwordLoading ? <RefreshCw size={14} /> : null}
-                  Update Password
+                  {passwordLoading ? <RefreshCw size={13} /> : null} Update Password
                 </button>
               </div>
             </form>
