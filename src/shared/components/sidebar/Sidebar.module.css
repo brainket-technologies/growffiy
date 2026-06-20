@@ -370,6 +370,113 @@
   color: var(--primary);
 }
 
+/* Collapse Button */
+.collapseBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.collapseBtn:hover {
+  color: var(--text-heading);
+  background: var(--surface);
+}
+
+/* Collapsed State */
+.collapsed {
+  width: var(--sidebar-collapsed-width, 64px);
+}
+
+.collapsed .brand {
+  padding: 20px 14px 16px;
+  justify-content: center;
+}
+
+.collapsed .brandText {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.collapsed .collapseBtn {
+  display: none;
+}
+
+.collapsed .searchWrapper {
+  display: none;
+}
+
+.collapsed .groupLabel {
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.collapsed .menuLabel {
+  width: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.collapsed .chevron {
+  display: none;
+}
+
+.collapsed .subItems {
+  max-height: 0 !important;
+  opacity: 0 !important;
+  overflow: hidden;
+  padding: 0;
+}
+
+.collapsed .badge {
+  display: none;
+}
+
+.collapsed .footer {
+  padding: 16px 12px;
+}
+
+.collapsed .profileInfo,
+.collapsed .logoutBtn {
+  display: none;
+}
+
+.collapsed .profile {
+  justify-content: center;
+}
+
+.collapsed .menuItem {
+  justify-content: center;
+  padding: 9px;
+  border-radius: 10px;
+  margin: 0 2px;
+}
+
+.collapsed .menuIcon {
+  margin: 0;
+}
+
+.collapsed .menuIcon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.collapsed .menuItemActive::before {
+  display: none;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .sidebar {

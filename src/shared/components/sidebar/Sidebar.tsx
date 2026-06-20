@@ -19,6 +19,8 @@ import {
   Search,
   Menu,
   X,
+  PanelLeftClose,
+  PanelLeft,
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
@@ -247,6 +249,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [isDark, setIsDark] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -254,6 +257,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
       const prefersDark = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
       setIsDark(prefersDark);
       document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+      const savedCollapse = localStorage.getItem('growffiy_sidebar_collapsed');
+      const isCollapsed = savedCollapse === 'true';
+      setCollapsed(isCollapsed);
+      document.documentElement.style.setProperty('--sidebar-width', isCollapsed ? '64px' : '260px');
     }
   }, []);
 
@@ -297,7 +304,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
   }, [pathname, isAdmin]);
 
   const handleToggleGroup = useCallback((name: string) => {
+    if (collapsed) return;
     setOpenGroups((prev) => ({ ...prev, [name]: !prev[name] }));
+  }, [collapsed]);
+
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('growffiy_sidebar_collapsed', String(next));
+        document.documentElement.style.setProperty('--sidebar-width', next ? '64px' : '260px');
+      }
+      return next;
+    });
   }, []);
 
   const handleNavigate = useCallback(() => {
@@ -332,7 +351,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
         </button>
       )}
       <aside
-        className={`${styles.sidebar} ${isMobile && sidebarOpen ? styles.sidebarOpen : ''}`}
+        className={`${styles.sidebar} ${isMobile && sidebarOpen ? styles.sidebarOpen : ''} ${collapsed ? styles.collapsed : ''}`}
       >
         {/* Brand */}
         <div className={styles.brand}>
@@ -340,6 +359,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
             <img src="/logo.png" alt="Growffiy" />
           </div>
           <span className={styles.brandText}>GROWFFIY</span>
+          {!isMobile && (
+            <button
+              onClick={toggleCollapsed}
+              className={styles.collapseBtn}
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {collapsed ? <PanelLeft size={16} /> : <PanelLeftClose size={16} />}
+            </button>
+          )}
         </div>
 
         {/* Search */}

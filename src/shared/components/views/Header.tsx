@@ -242,7 +242,7 @@ export const Header: React.FC<HeaderProps> = ({
                 top: 'calc(100% + 12px)',
                 right: 0,
                 width: '200px',
-                background: 'white',
+                background: 'var(--bg-white)',
                 border: '1px solid var(--border)',
                 borderRadius: '12px',
                 boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
@@ -326,7 +326,7 @@ export const Header: React.FC<HeaderProps> = ({
                     textAlign: 'left',
                     transition: 'background 0.2s'
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#fef2f2')}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--danger-light)')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
                   <LogOut size={14} /> Logout
@@ -351,7 +351,7 @@ export const Header: React.FC<HeaderProps> = ({
           padding: '20px'
         }}>
           <div style={{
-            background: 'white',
+            background: 'var(--bg-white)',
             width: '100%',
             maxWidth: '440px',
             borderRadius: '16px',
@@ -379,12 +379,12 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Form */}
             <form onSubmit={handleUpdateProfile} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {profileError && (
-                <div style={{ padding: '10px 12px', borderRadius: '8px', backgroundColor: '#fef2f2', border: '1px solid #fee2e2', color: '#b91c1c', fontSize: '12px', fontWeight: 500 }}>
+                <div style={{ padding: '10px 12px', borderRadius: '8px', backgroundColor: 'var(--danger-light)', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: '12px', fontWeight: 500 }}>
                   ⚠️ {profileError}
                 </div>
               )}
               {profileSuccess && (
-                <div style={{ padding: '10px 12px', borderRadius: '8px', backgroundColor: '#ecfdf5', border: '1px solid #d1fae5', color: '#065f46', fontSize: '12px', fontWeight: 600 }}>
+                <div style={{ padding: '10px 12px', borderRadius: '8px', backgroundColor: 'var(--accent-light)', border: '1px solid var(--accent)', color: 'var(--accent-dark)', fontSize: '12px', fontWeight: 600 }}>
                   ✓ Profile updated successfully! Reloading...
                 </div>
               )}
@@ -432,29 +432,29 @@ export const Header: React.FC<HeaderProps> = ({
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
                 <button
                   type="button"
-                  onClick={() => setProfileModalOpen(false)}
-                  style={{
-                    padding: '10px 16px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    background: 'white',
-                    color: 'var(--text-body)',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={profileLoading}
-                  style={{
-                    padding: '10px 16px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: 'var(--primary)',
-                    color: 'white',
+                    onClick={() => setProfileModalOpen(false)}
+                    style={{
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-white)',
+                      color: 'var(--text-body)',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={profileLoading}
+                    style={{
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: 'var(--primary)',
+                      color: 'white',
                     fontSize: '13px',
                     fontWeight: 600,
                     cursor: profileLoading ? 'wait' : 'pointer',
@@ -486,7 +486,7 @@ export const Header: React.FC<HeaderProps> = ({
           padding: '20px'
         }}>
           <div style={{
-            background: 'white',
+            background: 'var(--bg-white)',
             width: '100%',
             maxWidth: '440px',
             borderRadius: '16px',
@@ -587,29 +587,29 @@ export const Header: React.FC<HeaderProps> = ({
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
                 <button
                   type="button"
-                  onClick={() => setPasswordModalOpen(false)}
-                  style={{
-                    padding: '10px 16px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    background: 'white',
-                    color: 'var(--text-body)',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={passwordLoading}
-                  style={{
-                    padding: '10px 16px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: 'var(--primary)',
-                    color: 'white',
+                    onClick={() => setPasswordModalOpen(false)}
+                    style={{
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-white)',
+                      color: 'var(--text-body)',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={passwordLoading}
+                    style={{
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: 'var(--primary)',
+                      color: 'white',
                     fontSize: '13px',
                     fontWeight: 600,
                     cursor: passwordLoading ? 'wait' : 'pointer',

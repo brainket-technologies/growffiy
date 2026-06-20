@@ -252,7 +252,7 @@ export default function AdminDashboard() {
                 top: 'calc(100% + 8px)',
                 right: 0,
                 width: '320px',
-                background: 'white',
+                background: 'var(--bg-white)',
                 border: '1px solid var(--border)',
                 borderRadius: '12px',
                 boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)',
