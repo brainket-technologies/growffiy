@@ -558,7 +558,7 @@ export default function ClientPerformancePage() {
           
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', flex: 1, justifyContent: 'center' }}>
              {/* SVG Donut */}
-            <div style={{ width: '100px', height: '100px', position: 'relative' }}>
+            <div style={{ width: '130px', height: '130px', position: 'relative' }}>
               <svg width="100%" height="100%" viewBox="0 0 42 42">
                 <circle cx="21" cy="21" r="15.915" fill="transparent"></circle>
                 <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--border-light)" strokeWidth="4.5"></circle>
@@ -580,9 +580,9 @@ export default function ClientPerformancePage() {
                 />
               </svg>
               {/* Center total number */}
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: '1.2' }}>
-                <strong style={{ fontSize: '16px', color: 'var(--text-heading)' }}>{totalTradesCount}</strong>
-                <span style={{ fontSize: '8px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Trades</span>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: '1.3' }}>
+                <strong style={{ fontSize: '22px', color: 'var(--text-heading)', fontWeight: 800 }}>{totalTradesCount}</strong>
+                <span style={{ fontSize: '9px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 600 }}>Total Trades</span>
               </div>
             </div>
 

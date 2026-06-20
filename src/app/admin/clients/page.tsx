@@ -6,7 +6,7 @@ import { Card } from '../../../shared/components/views/Card';
 import { Button } from '../../../shared/components/views/Button';
 import { Modal } from '../../../shared/components/views/Modal';
 import Link from 'next/link';
-import { Plus, Eye, Trash2, Search, Filter, Download, TrendingUp } from 'lucide-react';
+import { Plus, Eye, Trash2, Search, Filter, Download, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function ClientsPage() {
   const { clients, addClient, deleteClient, updateClient } = useAppViewModel();
@@ -20,6 +20,10 @@ export default function ClientsPage() {
   const [connectionFilter, setConnectionFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [capitalFilter, setCapitalFilter] = useState('all');
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Add Form State
   const [name, setName] = useState('');
@@ -96,6 +100,13 @@ export default function ClientsPage() {
 
     return matchesSearch && matchesConnection && matchesStatus && matchesCapital;
   });
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
+  const activePage = Math.max(1, Math.min(currentPage, totalPages || 1));
+  const indexOfLastItem = activePage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentClients = filteredClients.slice(indexOfFirstItem, indexOfLastItem);
 
   const totalCount = clients.length;
   const activeCount = clients.filter(c => c.tradingStatus === 'active').length;
@@ -202,7 +213,7 @@ export default function ClientsPage() {
               type="text"
               placeholder="Search by name, email, or client ID..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               style={{
                 width: '100%',
                 padding: '8px 12px 8px 36px',
@@ -222,7 +233,7 @@ export default function ClientsPage() {
           
           <select
             value={connectionFilter}
-            onChange={(e) => setConnectionFilter(e.target.value)}
+            onChange={(e) => { setConnectionFilter(e.target.value); setCurrentPage(1); }}
             style={{
               padding: '8px 12px',
               borderRadius: '8px',
@@ -242,7 +253,7 @@ export default function ClientsPage() {
           
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
             style={{
               padding: '8px 12px',
               borderRadius: '8px',
@@ -262,7 +273,7 @@ export default function ClientsPage() {
 
           <select
             value={capitalFilter}
-            onChange={(e) => setCapitalFilter(e.target.value)}
+            onChange={(e) => { setCapitalFilter(e.target.value); setCurrentPage(1); }}
             style={{
               padding: '8px 12px',
               borderRadius: '8px',
@@ -296,14 +307,14 @@ export default function ClientsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredClients.length === 0 ? (
+              {currentClients.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                     No client accounts match the search or filter criteria.
                   </td>
                 </tr>
               ) : (
-                filteredClients.map((client) => {
+                currentClients.map((client) => {
                   const isTrading = client.tradingStatus === 'active';
                   return (
                     <tr key={client.id}>
@@ -383,6 +394,92 @@ export default function ClientsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Container */}
+        {filteredClients.length > 0 && (
+          <div className="pagination-container">
+            <div className="pagination-info">
+              Showing <span style={{ fontWeight: 600 }}>{indexOfFirstItem + 1}</span> to{' '}
+              <span style={{ fontWeight: 600 }}>{Math.min(indexOfLastItem, filteredClients.length)}</span> of{' '}
+              <span style={{ fontWeight: 600 }}>{filteredClients.length}</span> clients
+            </div>
+            
+            <div className="pagination-controls">
+              {/* Rows Per Page Selector */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '16px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Rows per page:</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-light)',
+                    background: 'var(--bg-card)',
+                    color: 'var(--text-body)',
+                    fontSize: '12px',
+                    width: 'auto',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+
+              <button
+                className="pagination-btn"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={activePage === 1}
+                title="Previous Page"
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+                if (
+                  totalPages > 7 &&
+                  pageNum !== 1 &&
+                  pageNum !== totalPages &&
+                  Math.abs(pageNum - activePage) > 1
+                ) {
+                  if (pageNum === 2 && activePage > 3) {
+                    return <span key="ellipsis-start" style={{ padding: '0 4px', color: 'var(--text-muted)' }}>...</span>;
+                  }
+                  if (pageNum === totalPages - 1 && activePage < totalPages - 2) {
+                    return <span key="ellipsis-end" style={{ padding: '0 4px', color: 'var(--text-muted)' }}>...</span>;
+                  }
+                  return null;
+                }
+
+                return (
+                  <button
+                    key={pageNum}
+                    className={`pagination-btn ${activePage === pageNum ? 'active' : ''}`}
+                    onClick={() => setCurrentPage(pageNum)}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              <button
+                className="pagination-btn"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={activePage === totalPages}
+                title="Next Page"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Add Client Modal */}
