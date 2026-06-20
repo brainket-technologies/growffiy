@@ -126,7 +126,7 @@ export default function AdminLoginPage() {
           background: `linear-gradient(135deg, ${THEME_COLORS.PRIMARY}, #6366f1)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <Activity size={15} color="white" />
+          <img src="/logo.png" alt="Growffiy" style={{ width: 16, height: 16, objectFit: 'contain' }} />
         </div>
         <span style={{ fontSize: 17, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.5px' }}>GROWFFIY</span>
       </div>
@@ -149,7 +149,7 @@ export default function AdminLoginPage() {
               background: `linear-gradient(135deg, ${THEME_COLORS.PRIMARY}, #6366f1)`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Activity size={20} color="white" />
+              <img src="/logo.png" alt="Growffiy" style={{ width: 22, height: 22, objectFit: 'contain' }} />
             </div>
             <span style={{
               fontSize: 22, fontWeight: 900, letterSpacing: '-0.5px',

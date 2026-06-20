@@ -13,7 +13,7 @@ export default function Footer() {
           <div>
             <div className="footer-brand-logo">
               <div className="footer-brand-logo-icon">
-                <Activity size={16} color="white" />
+                <img src="/logo.png" alt="Growffiy" style={{ width: 18, height: 18, objectFit: 'contain' }} />
               </div>
               <span className="footer-brand-name">GROWFFIY</span>
             </div>

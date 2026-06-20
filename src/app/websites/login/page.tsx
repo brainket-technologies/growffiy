@@ -162,7 +162,7 @@ export default function LoginPage() {
             background: 'linear-gradient(135deg, #0ea5e9, #6366f1)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <Activity size={16} color="white" />
+            <img src="/logo.png" alt="Growffiy" style={{ width: 18, height: 18, objectFit: 'contain' }} />
           </div>
           <span style={{
             fontSize: 18, fontWeight: 800, color: '#f1f5f9',
@@ -209,7 +209,7 @@ export default function LoginPage() {
                 background: 'linear-gradient(135deg, #0ea5e9, #6366f1)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <Activity size={20} color="white" />
+                <img src="/logo.png" alt="Growffiy" style={{ width: 22, height: 22, objectFit: 'contain' }} />
               </div>
               <span style={{
                 fontSize: 22, fontWeight: 800, color: '#f1f5f9',

@@ -153,7 +153,7 @@ export default function GrowffiyLanding() {
           {/* Logo */}
           <Link href="/" className="navbar-logo" onClick={() => setMobileMenuOpen(false)}>
             <div className="navbar-logo-icon">
-              <Activity size={18} color="white" />
+              <img src="/logo.png" alt="Growffiy" style={{ width: 20, height: 20, objectFit: 'contain' }} />
             </div>
             GROWFFIY
           </Link>

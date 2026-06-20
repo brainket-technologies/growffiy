@@ -83,7 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
     <aside className={styles.sidebar}>
       <div className={styles.sidebarBrand}>
         <div className={styles.logoIconContainer}>
-          <TrendingUp size={18} color="white" />
+          <img src="/logo.png" alt="Growffiy" style={{ width: 22, height: 22, objectFit: 'contain' }} />
         </div>
         <div className={styles.brandText}>GROWFFIY</div>
       </div>

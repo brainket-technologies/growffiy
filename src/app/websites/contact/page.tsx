@@ -29,7 +29,7 @@ export default function ContactPage() {
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Activity size={24} color="#3b82f6" />
+              <img src="/logo.png" alt="Growffiy" style={{ width: 24, height: 24, objectFit: 'contain' }} />
               <span style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-title)' }}>GROWFFIY</span>
             </div>
             <Link href="/">

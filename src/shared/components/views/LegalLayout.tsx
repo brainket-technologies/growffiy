@@ -39,7 +39,7 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
               background: 'linear-gradient(135deg, #0ea5e9, #6366f1)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Activity size={16} color="white" />
+              <img src="/logo.png" alt="Growffiy" style={{ width: 18, height: 18, objectFit: 'contain' }} />
             </div>
             <span style={{
               fontSize: 16, fontWeight: 800, color: '#0f172a',
