@@ -61,10 +61,9 @@
   --text-secondary: #94a3b8;
   --text-subtle: #64748b;
 
-  --border: #1e293b;
-  --border-light: #1e293b;
-  --border-color: #334155;
-
+  --border: #334155;
+  --border-light: rgba(255, 255, 255, 0.06);
+  --border-color: rgba(255, 255, 255, 0.12);
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.15);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.15);
   --shadow-lg: 0 20px 40px rgba(0,0,0,0.35), 0 8px 16px rgba(0,0,0,0.2);
@@ -378,45 +377,74 @@ input, button, select, textarea {
   width: 100%;
   overflow-x: auto;
   border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
 }
 
 table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   text-align: left;
 }
 
-thead { border-radius: var(--radius-md) var(--radius-md) 0 0; }
+thead {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] thead {
+  background: rgba(0, 0, 0, 0.02);
+}
 
 th {
-  background: var(--surface);
   color: var(--text-muted);
-  font-weight: 700;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-color);
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   white-space: nowrap;
+  font-family: var(--font-title);
+  user-select: none;
 }
 
 td {
-  padding: 14px 16px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--border-light);
   color: var(--text-body);
-  font-size: 13px;
-  transition: background 0.12s;
+  font-size: 13.5px;
+  transition: all 0.2s ease;
+  vertical-align: middle;
 }
 
-tr:last-child td { border-bottom: none; }
+tr:last-child td {
+  border-bottom: none;
+}
 
-tr:hover td { background-color: rgba(99, 102, 241, 0.03); }
+tr {
+  transition: all 0.2s ease;
+}
 
-tr.clickable-row { cursor: pointer; }
-tr.clickable-row:hover td { background-color: rgba(99, 102, 241, 0.06); }
+tr:hover td {
+  background-color: rgba(99, 102, 241, 0.04);
+  color: var(--text-heading);
+}
 
-.table-compact th { padding: 8px 12px; font-size: 10px; }
-.table-compact td { padding: 10px 12px; font-size: 12px; }
+[data-theme="dark"] tr:hover td {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+tr.clickable-row {
+  cursor: pointer;
+}
+
+tr.clickable-row:hover td {
+  background-color: rgba(99, 102, 241, 0.08);
+}
+
+.table-compact th { padding: 10px 16px; font-size: 10px; }
+.table-compact td { padding: 12px 16px; font-size: 12.5px; }
 
 /* Badges inside tables */
 .badge {
