@@ -401,7 +401,8 @@
 }
 
 .collapsed .menuContainer {
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .collapsed .brand {
@@ -443,8 +444,9 @@
 
 .collapsed .groupLabel {
   height: 1px;
+  width: 24px;
   background-color: var(--border-color);
-  margin: 16px 12px;
+  margin: 16px auto;
   padding: 0;
   font-size: 0;
   color: transparent;
