@@ -370,15 +370,6 @@ export default function AdminDashboard() {
             </div>
           ) : (
             <>
-              <div style={{ padding: '6px 14px', borderRadius: '8px', backgroundColor: isTradingActive ? 'var(--primary-light)' : 'var(--surface)', color: isTradingActive ? 'var(--primary-dark)' : 'var(--text-muted)', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isTradingActive ? 'var(--primary-dark)' : 'var(--text-subtle)', display: 'inline-block' }} />
-                <span>{isTradingActive ? 'AUTO TRADING LIVE' : 'ENGINE STOPPED'}</span>
-                <span style={{ width: '1px', height: '14px', background: isTradingActive ? 'rgba(2,132,199,0.2)' : 'rgba(100,116,139,0.2)' }} />
-                <span style={{ fontSize: '11px', fontWeight: 500, opacity: 0.8 }}>
-                  {!autoTradeEnabled ? 'Auto Trade OFF' : holidays.includes(new Date().toLocaleDateString('en-CA')) ? 'Holiday - Skip' : tradingDays.includes(new Date().toLocaleDateString('en-US', { weekday: 'short' })) || specialDays.includes(new Date().toLocaleDateString('en-CA')) ? '✅ Trading Day' : '❌ Not a Trading Day'}
-                </span>
-              </div>
-
               <Button variant={isTradingActive ? 'danger' : 'success'} onClick={() => toggleTrading(!isTradingActive)} style={{ fontSize: '13px', padding: '8px 16px', fontWeight: 600 }}>
                 {isTradingActive ? 'Stop Trading' : 'Start Auto Trading'}
               </Button>

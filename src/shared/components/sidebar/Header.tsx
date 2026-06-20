@@ -5,6 +5,7 @@ import { Bell, ChevronDown, Lock, UserCheck, LogOut, X, RefreshCw, Sun, Moon } f
 import styles from './Header.module.css';
 import { api } from '../../services/api';
 import { API_ENDPOINTS } from '../../../core/constants';
+import { useAppViewModel } from '../../viewmodels/AppContext';
 
 interface HeaderProps {
   title: string;
@@ -17,11 +18,40 @@ export const Header: React.FC<HeaderProps> = ({
   userName = 'Firoz Mohammad',
   userRole = 'Administrator',
 }) => {
+  const { isTradingActive } = useAppViewModel();
+  const [autoTradeEnabled, setAutoTradeEnabled] = useState(true);
+  const [tradingDays, setTradingDays] = useState<string[]>([]);
+  const [holidays, setHolidays] = useState<string[]>([]);
+  const [specialDays, setSpecialDays] = useState<string[]>([]);
+
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [isDark, setIsDark] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    api.get(API_ENDPOINTS.SETTINGS).then((res: any) => {
+      if (res.success && res.settings) {
+        setAutoTradeEnabled(res.settings.auto_trade_enabled !== 'false');
+        try { setTradingDays(JSON.parse(res.settings.trading_days || '[]')); } catch {}
+        try { setHolidays(JSON.parse(res.settings.market_holidays || '[]')); } catch {}
+        try { setSpecialDays(JSON.parse(res.settings.special_market_days || '[]')); } catch {}
+      }
+    }).catch(() => {});
+  }, []);
+
+  const getTradingDayLabel = () => {
+    if (!autoTradeEnabled) return 'Auto OFF';
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    const weekday = new Date().toLocaleDateString('en-US', { weekday: 'short' });
+
+    if (holidays.includes(todayStr)) return 'Holiday';
+    if (specialDays.includes(todayStr) || tradingDays.includes(weekday)) return 'Trading Day';
+    return 'Off-Day';
+  };
+
+  const tradingDayLabel = getTradingDayLabel();
 
   const [profileName, setProfileName] = useState(userName);
   const [profileEmail, setProfileEmail] = useState('');
@@ -166,6 +196,36 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className={styles.actions}>
+          {/* Status Indicator */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '5px 10px',
+            borderRadius: '6px',
+            backgroundColor: 'var(--surface)',
+            border: '1px solid var(--border-color)',
+            fontSize: '11px',
+            fontWeight: 600,
+            marginRight: '8px'
+          }}>
+            <span style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: isTradingActive ? 'var(--accent)' : 'var(--danger)',
+              boxShadow: isTradingActive ? '0 0 6px var(--accent)' : 'none',
+              display: 'inline-block'
+            }} />
+            <span style={{ color: 'var(--text-heading)' }}>
+              {isTradingActive ? 'RUNNING' : 'STOPPED'}
+            </span>
+            <span style={{ width: '1px', height: '10px', background: 'var(--border-color)' }} />
+            <span style={{ color: 'var(--text-secondary)' }}>
+              {tradingDayLabel === 'Trading Day' ? '✅ Trading' : `❌ ${tradingDayLabel}`}
+            </span>
+          </div>
+
           <button className={styles.iconBtn} title="Notifications">
             <Bell size={16} />
             <span className={styles.notifDot} />
