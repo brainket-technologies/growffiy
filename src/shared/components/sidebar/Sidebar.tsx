@@ -252,6 +252,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
   const [userName, setUserName] = useState('');
   const [userId, setUserId] = useState('');
   const [openTicketsCount, setOpenTicketsCount] = useState(0);
+  const [strategiesCount, setStrategiesCount] = useState(0);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -283,25 +284,34 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
   }, [isAdmin]);
 
   useEffect(() => {
-    const fetchTicketsCount = async () => {
+    const fetchCounts = async () => {
       try {
         const url = isAdmin 
           ? '/api/support/tickets?all=true' 
           : `/api/support/tickets?userId=${userId}`;
-        if (!isAdmin && !userId) return;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.success && data.tickets) {
-          const count = data.tickets.filter((t: any) => t.status === 'open').length;
-          setOpenTicketsCount(count);
+        if (isAdmin || userId) {
+          const res = await fetch(url);
+          const data = await res.json();
+          if (data.success && data.tickets) {
+            const count = data.tickets.filter((t: any) => t.status === 'open').length;
+            setOpenTicketsCount(count);
+          }
+        }
+
+        if (isAdmin) {
+          const stratRes = await fetch('/api/admin/strategies');
+          const stratData = await stratRes.json();
+          if (stratData.success && stratData.strategies) {
+            setStrategiesCount(stratData.strategies.length);
+          }
         }
       } catch (err) {
-        console.error('Failed to fetch tickets in sidebar:', err);
+        console.error('Failed to fetch counts in sidebar:', err);
       }
     };
 
-    fetchTicketsCount();
-    const interval = setInterval(fetchTicketsCount, 15000);
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 15000);
     return () => clearInterval(interval);
   }, [isAdmin, userId]);
 
@@ -363,13 +373,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
         if (item.name === 'Clients') {
           return { ...item, badge: clients.length };
         }
+        if (item.name === 'Strategies') {
+          return { ...item, badge: strategiesCount };
+        }
         if (item.name === 'Support') {
           return { ...item, badge: openTicketsCount };
         }
         return item;
       }),
     }));
-  }, [isAdmin, clients.length, openTicketsCount]);
+  }, [isAdmin, clients.length, strategiesCount, openTicketsCount]);
 
   const userInitial = userName.charAt(0).toUpperCase();
   const userEmail = userId ? `${userId}@growffiy.com` : (isAdmin ? 'admin@growffiy.com' : 'client@growffiy.com');
