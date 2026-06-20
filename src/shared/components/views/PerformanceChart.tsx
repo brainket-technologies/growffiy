@@ -33,7 +33,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
   // Render responsive SVG grid
   return (
     <div style={{ width: '100%', height: `${height}px`, position: 'relative', overflow: 'hidden' }}>
-      <svg width="100%" height="100%" style={{ overflow: 'visible' }}>
+      <svg width="100%" height="100%" viewBox="0 0 600 240" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
         <defs>
           <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={fillColorStart} />
@@ -135,14 +135,15 @@ const ChartRenderer: React.FC<RendererProps> = ({
               y1={yCoord}
               x2={width - paddingRight}
               y2={yCoord}
-              stroke="#e2e8f0"
+              stroke="var(--border-color, #e2e8f0)"
               strokeDasharray="4 4"
+              opacity="0.6"
             />
             <text
               x={paddingLeft - 10}
               y={yCoord + 4}
               fontSize="10"
-              fill="#94a3b8"
+              fill="var(--text-muted, #94a3b8)"
               textAnchor="end"
             >
               {Math.round(yVal).toLocaleString()}
@@ -173,7 +174,7 @@ const ChartRenderer: React.FC<RendererProps> = ({
           cx={getX(idx)}
           cy={getY(val)}
           r="4"
-          fill="#ffffff"
+          fill="var(--bg-white, #ffffff)"
           stroke={strokeColor}
           strokeWidth="2"
         />
@@ -186,7 +187,7 @@ const ChartRenderer: React.FC<RendererProps> = ({
           x={getX(idx)}
           y={height - paddingBottom / 2 + 2}
           fontSize="10"
-          fill="#94a3b8"
+          fill="var(--text-muted, #94a3b8)"
           textAnchor="middle"
         >
           {label}

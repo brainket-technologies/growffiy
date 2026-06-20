@@ -444,7 +444,7 @@ export default function AdminDashboard() {
       {/* Middle Row: P&L Overview & Strategies Performance */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
         {/* Left: P&L Area Curve Chart */}
-        <Card style={{ padding: '24px', border: '1px solid var(--border)' }}>
+        <Card style={{ padding: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-md)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <div>
               <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
@@ -457,18 +457,31 @@ export default function AdminDashboard() {
             <select 
               value={pnlPeriod} 
               onChange={(e) => setPnlPeriod(e.target.value)}
-              style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '12px', outline: 'none', background: 'var(--bg-white)', fontWeight: 600, color: 'var(--text-body)', cursor: 'pointer' }}
+              style={{
+                width: '120px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                fontSize: '12px',
+                outline: 'none',
+                background: 'var(--bg-white)',
+                fontWeight: 600,
+                color: 'var(--text-heading)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                boxShadow: 'var(--shadow-sm)'
+              }}
             >
-              <option>Daily</option>
-              <option>Cumulative</option>
+              <option value="Daily">Daily</option>
+              <option value="Cumulative">Cumulative</option>
             </select>
           </div>
           <PerformanceChart
             data={pnlHistoryData}
             labels={pnlHistoryLabels}
             strokeColor="var(--primary)"
-            fillColorStart="rgba(18,82,171,0.12)"
-            fillColorEnd="rgba(18,82,171,0)"
+            fillColorStart="rgba(18, 82, 171, 0.12)"
+            fillColorEnd="rgba(18, 82, 171, 0)"
             height={280}
           />
         </Card>

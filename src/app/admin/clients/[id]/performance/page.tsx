@@ -471,22 +471,37 @@ export default function ClientPerformancePage() {
       {/* Charts & Summary Row */}
       <div style={{ display: 'grid', gridTemplateColumns: '4.5fr 3.5fr 3fr', gap: '20px' }}>
         {/* P&L Overview (chart) */}
-        <Card style={{ padding: '20px' }}>
+        <Card style={{ padding: '20px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-md)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
               P&L Overview
             </h4>
-            <select style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '11px', fontWeight: 600, outline: 'none' }}>
-              <option>Daily</option>
-              <option>Cumulative</option>
+            <select
+              style={{
+                width: '120px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                fontSize: '11px',
+                fontWeight: 600,
+                outline: 'none',
+                background: 'var(--bg-white)',
+                color: 'var(--text-heading)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                boxShadow: 'var(--shadow-sm)'
+              }}
+            >
+              <option value="Daily">Daily</option>
+              <option value="Cumulative">Cumulative</option>
             </select>
           </div>
           <PerformanceChart 
             data={pnlHistoryData}
             labels={pnlHistoryLabels}
             strokeColor="var(--primary)"
-            fillColorStart="rgba(14, 165, 233, 0.2)"
-            fillColorEnd="rgba(14, 165, 233, 0)"
+            fillColorStart="rgba(18, 82, 171, 0.12)"
+            fillColorEnd="rgba(18, 82, 171, 0)"
             height={200}
           />
         </Card>
