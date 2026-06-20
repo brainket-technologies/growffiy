@@ -374,77 +374,77 @@ input, button, select, textarea {
    TABLE
    ======================== */
 .table-responsive {
-  width: 100%;
-  overflow-x: auto;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-light);
-  background: var(--bg-card);
+  width: 100% !important;
+  overflow-x: auto !important;
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--border-light) !important;
+  background: var(--bg-card) !important;
 }
 
 table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  text-align: left;
+  width: 100% !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  text-align: left !important;
 }
 
 thead {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.15) !important;
 }
 
 [data-theme="light"] thead {
-  background: rgba(0, 0, 0, 0.02);
+  background: rgba(0, 0, 0, 0.02) !important;
 }
 
 th {
-  color: var(--text-muted);
-  font-weight: 600;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--border-color);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  white-space: nowrap;
-  font-family: var(--font-title);
-  user-select: none;
+  color: var(--text-muted) !important;
+  font-weight: 600 !important;
+  padding: 14px 20px !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  white-space: nowrap !important;
+  font-family: var(--font-title) !important;
+  user-select: none !important;
 }
 
 td {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-light);
-  color: var(--text-body);
-  font-size: 13.5px;
-  transition: all 0.2s ease;
-  vertical-align: middle;
+  padding: 16px 20px !important;
+  border-bottom: 1px solid var(--border-light) !important;
+  color: var(--text-body) !important;
+  font-size: 13.5px !important;
+  transition: all 0.2s ease !important;
+  vertical-align: middle !important;
 }
 
 tr:last-child td {
-  border-bottom: none;
+  border-bottom: none !important;
 }
 
 tr {
-  transition: all 0.2s ease;
+  transition: all 0.2s ease !important;
 }
 
 tr:hover td {
-  background-color: rgba(99, 102, 241, 0.04);
-  color: var(--text-heading);
+  background-color: rgba(99, 102, 241, 0.04) !important;
+  color: var(--text-heading) !important;
 }
 
 [data-theme="dark"] tr:hover td {
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: rgba(255, 255, 255, 0.02) !important;
 }
 
 tr.clickable-row {
-  cursor: pointer;
+  cursor: pointer !important;
 }
 
 tr.clickable-row:hover td {
-  background-color: rgba(99, 102, 241, 0.08);
+  background-color: rgba(99, 102, 241, 0.08) !important;
 }
 
-.table-compact th { padding: 10px 16px; font-size: 10px; }
-.table-compact td { padding: 12px 16px; font-size: 12.5px; }
+.table-compact th { padding: 10px 16px !important; font-size: 10px !important; }
+.table-compact td { padding: 12px 16px !important; font-size: 12.5px !important; }
 
 /* Badges inside tables */
 .badge {
