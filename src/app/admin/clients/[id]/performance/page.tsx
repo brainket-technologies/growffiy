@@ -229,6 +229,15 @@ export default function ClientPerformancePage() {
     }
   }
 
+  // Get unique strategies from clientTrades
+  const uniqueStrategies = Array.from(
+    new Set(
+      clientTrades
+        .map(t => t.strategy?.name || t.strategyName || '')
+        .filter(Boolean)
+    )
+  ) as string[];
+
   // Filter transaction list
   const filteredTransactions = clientTrades.filter(t => {
     const strategyName = (t.strategy?.name || t.strategyName || '').toLowerCase();
@@ -636,19 +645,21 @@ export default function ClientPerformancePage() {
             
             <select
               value={strategyFilter}
-              onChange={(e) => setStrategyFilter(e.target.value)}
-              style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'var(--bg-white)' }}
+              onChange={(e) => { setStrategyFilter(e.target.value); setCurrentPage(1); }}
+              style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'var(--bg-white)', color: 'var(--text-body)' }}
             >
               <option value="all">All Strategies</option>
-              <option value="Breakout">Breakout</option>
-              <option value="Momentum">Momentum</option>
-              <option value="Fade">Fade</option>
+              {uniqueStrategies.map((stratName) => (
+                <option key={stratName} value={stratName}>
+                  {stratName}
+                </option>
+              ))}
             </select>
             
             <select
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'var(--bg-white)' }}
+              onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }}
+              style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'var(--bg-white)', color: 'var(--text-body)' }}
             >
               <option value="all">All Types</option>
               <option value="BUY">BUY</option>
