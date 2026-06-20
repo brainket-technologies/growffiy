@@ -66,6 +66,7 @@ export default function ClientPerformancePage() {
   const [strategyFilter, setStrategyFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusQuickFilter, setStatusQuickFilter] = useState<'all' | 'profit' | 'loss'>('all');
+  const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -280,6 +281,163 @@ export default function ClientPerformancePage() {
     return up 
       ? "M0,15 Q15,5 30,12 T60,2 T90,10" 
       : "M0,5 Q15,15 30,8 T60,18 T90,10";
+  };
+
+  const handleExportExcel = () => {
+    const headers = ['Date & Time', 'Strategy', 'Type', 'Symbol', 'Quantity', 'Entry Price', 'Exit Price', 'P&L (INR)', 'Status'];
+    const rows = filteredTransactions.map(t => {
+      const entryPriceVal = Number(t.entryPrice || 0);
+      const exitPriceVal = Number(t.exitPrice || 0);
+      const pnlVal = Number(t.pnl || 0);
+      
+      let txType = 'BUY';
+      try {
+        const config = JSON.parse(t.strategy?.configJson || '{}');
+        const action = config?.tradeAction?.action || 'Long';
+        if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
+          txType = 'SELL';
+        }
+      } catch (e) {}
+
+      return [
+        formatDateTime(t.createdAt),
+        t.strategy?.name || t.strategyName || '--',
+        txType,
+        t.symbol || '--',
+        t.quantity || 0,
+        entryPriceVal,
+        exitPriceVal,
+        pnlVal,
+        t.status || 'FAILED'
+      ];
+    });
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${clientName.replace(/\s+/g, '_')}_transactions_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const tradesHtml = filteredTransactions.map(t => {
+      const entryPriceVal = Number(t.entryPrice || 0);
+      const exitPriceVal = Number(t.exitPrice || 0);
+      const pnlVal = Number(t.pnl || 0);
+      
+      let txType = 'BUY';
+      try {
+        const config = JSON.parse(t.strategy?.configJson || '{}');
+        const action = config?.tradeAction?.action || 'Long';
+        if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
+          txType = 'SELL';
+        }
+      } catch (e) {}
+
+      const pnlColor = pnlVal >= 0 ? '#16a34a' : '#ef4444';
+
+      return `
+        <tr>
+          <td>${formatDateTime(t.createdAt)}</td>
+          <td>${t.strategy?.name || t.strategyName || '--'}</td>
+          <td><span style="font-weight: 600; color: ${txType === 'BUY' ? '#2563eb' : '#dc2626'}">${txType}</span></td>
+          <td>${t.symbol || '--'}</td>
+          <td>${t.quantity || 0}</td>
+          <td>₹${entryPriceVal.toLocaleString('en-IN')}</td>
+          <td>₹${exitPriceVal > 0 ? exitPriceVal.toLocaleString('en-IN') : '--'}</td>
+          <td style="color: ${pnlColor}; font-weight: 600;">₹${pnlVal.toLocaleString('en-IN')}</td>
+          <td>${t.status || 'FAILED'}</td>
+        </tr>
+      `;
+    }).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${clientName} - Performance Report</title>
+          <style>
+            body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 24px; color: #334155; }
+            .header { border-bottom: 2px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 24px; }
+            .title { font-size: 24px; font-weight: 700; color: #0f172a; margin: 0; }
+            .meta { font-size: 13px; color: #64748b; margin-top: 6px; }
+            .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+            .metric-card { border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; }
+            .metric-label { font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 600; }
+            .metric-val { font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 4px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 12px; }
+            th { background: #f8fafc; color: #475569; font-weight: 600; text-align: left; padding: 8px 12px; border-bottom: 1.5px solid #cbd5e1; }
+            td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }
+            tr:last-child td { border-bottom: none; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 class="title">Growffiy Client Performance Report</h1>
+            <div class="meta">
+              <strong>Client:</strong> ${clientName} (${clientCode}) | <strong>Date Range:</strong> ${dateRangeStr}
+            </div>
+          </div>
+          
+          <div class="metrics">
+            <div class="metric-card">
+              <div class="metric-label">Total P&L</div>
+              <div class="metric-val" style="color: ${totalPnl >= 0 ? '#16a34a' : '#ef4444'}">₹${totalPnl.toLocaleString('en-IN')}</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Win Rate</div>
+              <div class="metric-val">${winRate.toFixed(1)}%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Winning / Losing Trades</div>
+              <div class="metric-val" style="font-size: 14px; margin-top: 8px;">${winCount} Win / ${lossCount} Loss</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Total Executed Trades</div>
+              <div class="metric-val">${totalTradesCount}</div>
+            </div>
+          </div>
+
+          <h2>Transaction History</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Date & Time</th>
+                <th>Strategy</th>
+                <th>Type</th>
+                <th>Symbol</th>
+                <th>Qty</th>
+                <th>Entry Price</th>
+                <th>Exit Price</th>
+                <th>P&L</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              \${tradesHtml || '<tr><td colspan="9" style="text-align:center; padding: 20px; color:#94a3b8;">No transactions found.</td></tr>'}
+            </tbody>
+          </table>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   return (
@@ -730,9 +888,68 @@ export default function ClientPerformancePage() {
               <option value="SELL">SELL</option>
             </select>
 
-            <Button variant="secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '34px', fontSize: '12px', padding: '0 12px' }}>
-              <Download size={14} /> Export
-            </Button>
+            <div style={{ position: 'relative' }}>
+              <Button 
+                variant="secondary" 
+                onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '34px', fontSize: '12px', padding: '0 12px' }}
+              >
+                <Download size={14} /> Export
+              </Button>
+              {isExportDropdownOpen && (
+                <div style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: '40px',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: '8px',
+                  boxShadow: 'var(--shadow-md)',
+                  zIndex: 10,
+                  minWidth: '130px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  padding: '4px 0'
+                }}>
+                  <button 
+                    onClick={() => { handleExportExcel(); setIsExportDropdownOpen(false); }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      color: 'var(--text-body)',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      width: '100%',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--border-light)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                  >
+                    Export to Excel
+                  </button>
+                  <button 
+                    onClick={() => { handleExportPDF(); setIsExportDropdownOpen(false); }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      color: 'var(--text-body)',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      width: '100%',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--border-light)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                  >
+                    Export to PDF
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
