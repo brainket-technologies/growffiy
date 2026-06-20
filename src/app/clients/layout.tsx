@@ -3,7 +3,7 @@
 import React from 'react';
 import { AppProvider } from '../../shared/viewmodels/AppContext';
 import { Sidebar } from '../../shared/components/sidebar/Sidebar';
-import { Header } from '../../shared/components/views/Header';
+import { Header } from '../../shared/components/sidebar/Header';
 import { Loader } from '../../shared/components/views/Loader';
 import styles from '../../shared/components/views/components.module.css';
 
