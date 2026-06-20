@@ -144,7 +144,7 @@ export default function LiveTradingPage() {
             style={{
               padding: '6px 12px',
               borderRadius: '8px',
-              backgroundColor: isTradingActive ? 'var(--color-success-bg)' : '#f1f5f9',
+              backgroundColor: isTradingActive ? 'var(--color-success-bg)' : 'var(--surface)',
               color: isTradingActive ? 'var(--color-success)' : 'var(--text-secondary)',
               fontWeight: 600,
               fontSize: '13px',
@@ -221,7 +221,7 @@ export default function LiveTradingPage() {
           <select
             value={clientFilter}
             onChange={(e) => setClientFilter(e.target.value)}
-            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white', flex: '1 1 130px', minWidth: '130px', width: 'auto' }}
+            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'var(--bg-white)', flex: '1 1 130px', minWidth: '130px', width: 'auto' }}
           >
             <option value="all">All Clients</option>
             {uniqueClients.map(client => (
@@ -233,7 +233,7 @@ export default function LiveTradingPage() {
           <select
             value={strategyFilter}
             onChange={(e) => setStrategyFilter(e.target.value)}
-            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white', flex: '1 1 140px', minWidth: '140px', width: 'auto' }}
+            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'var(--bg-white)', flex: '1 1 140px', minWidth: '140px', width: 'auto' }}
           >
             <option value="all">All Strategies</option>
             {uniqueStrategies.map(strategy => (
@@ -245,7 +245,7 @@ export default function LiveTradingPage() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white', flex: '1 1 110px', minWidth: '110px', width: 'auto' }}
+            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'var(--bg-white)', flex: '1 1 110px', minWidth: '110px', width: 'auto' }}
           >
             <option value="all">All Types</option>
             <option value="BUY">BUY</option>
@@ -256,7 +256,7 @@ export default function LiveTradingPage() {
           <select
             value={symbolFilter}
             onChange={(e) => setSymbolFilter(e.target.value)}
-            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white', flex: '1 1 120px', minWidth: '120px', width: 'auto' }}
+            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'var(--bg-white)', flex: '1 1 120px', minWidth: '120px', width: 'auto' }}
           >
             <option value="all">All Symbols</option>
             {uniqueSymbols.map(sym => (
@@ -268,7 +268,7 @@ export default function LiveTradingPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white', flex: '1 1 120px', minWidth: '120px', width: 'auto' }}
+            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'var(--bg-white)', flex: '1 1 120px', minWidth: '120px', width: 'auto' }}
           >
             <option value="all">All Status</option>
             <option value="open">Open</option>
@@ -389,7 +389,7 @@ export default function LiveTradingPage() {
               <button 
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+                style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-white)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
               >
                 &lt;
               </button>
@@ -402,7 +402,7 @@ export default function LiveTradingPage() {
                     padding: '4px 10px', 
                     borderRadius: '6px', 
                     border: '1px solid var(--border-color)', 
-                    background: currentPage === i + 1 ? 'var(--primary)' : 'white', 
+                    background: currentPage === i + 1 ? 'var(--primary)' : 'var(--bg-white)', 
                     color: currentPage === i + 1 ? 'white' : 'var(--text-body)',
                     fontWeight: 600,
                     cursor: 'pointer'
@@ -415,7 +415,7 @@ export default function LiveTradingPage() {
               <button 
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'white', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
+                style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-white)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
               >
                 &gt;
               </button>
@@ -428,7 +428,7 @@ export default function LiveTradingPage() {
                 setPageSize(Number(e.target.value));
                 setCurrentPage(1);
               }}
-              style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'white', cursor: 'pointer', outline: 'none' }}
+              style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-white)', cursor: 'pointer', outline: 'none' }}
             >
               <option value={5}>5 / page</option>
               <option value={10}>10 / page</option>
@@ -500,7 +500,7 @@ export default function LiveTradingPage() {
             {/* Failure/Kite Response Details */}
             {selectedTrade.status && selectedTrade.status.toLowerCase() === 'failed' && (
               <div style={{ padding: '12px 16px', borderRadius: '10px', backgroundColor: '#fef2f2', border: '1px solid #fee2e2', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <XCircle size={18} color="#ef4444" style={{ marginTop: '2px', flexShrink: 0 }} />
+                <XCircle size={18} color="var(--danger)" style={{ marginTop: '2px', flexShrink: 0 }} />
                 <div>
                   <h5 style={{ color: '#991b1b', fontWeight: 600, fontSize: '13px' }}>Kite Rejection Reason:</h5>
                   <p style={{ color: '#b91c1c', fontSize: '13px', marginTop: '4px', lineHeight: '1.4' }}>

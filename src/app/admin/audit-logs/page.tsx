@@ -203,8 +203,8 @@ export default function AuditLogsPage() {
                                       color: 'white',
                                       backgroundColor: 
                                         method === 'GET' ? '#3b82f6' : 
-                                        method === 'POST' ? '#10b981' : 
-                                        method === 'PUT' ? '#f59e0b' : '#ef4444'
+                                        method === 'POST' ? 'var(--accent)' : 
+                                        method === 'PUT' ? 'var(--warning)' : 'var(--danger)'
                                     }}>{method}</span>
                                     <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
                                       {path}
@@ -292,8 +292,8 @@ export default function AuditLogsPage() {
                               <div style={{
                                 marginTop: '4px',
                                 padding: '12px',
-                                backgroundColor: '#f8fafc',
-                                border: '1px solid #e2e8f0',
+                                backgroundColor: 'var(--surface)',
+                                border: '1px solid var(--border)',
                                 borderRadius: '8px',
                                 fontSize: '11px',
                                 fontFamily: 'monospace',
@@ -301,18 +301,18 @@ export default function AuditLogsPage() {
                                 flexDirection: 'column',
                                 gap: '8px',
                                 overflowX: 'auto',
-                                color: '#334155'
+                                color: 'var(--text-body)'
                               }}>
                                 <div>
-                                  <strong style={{ color: '#64748b' }}>Payload:</strong>
-                                  <pre style={{ margin: '4px 0 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-all', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: '4px' }}>
+                                  <strong style={{ color: 'var(--text-muted)' }}>Payload:</strong>
+                                  <pre style={{ margin: '4px 0 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-all', backgroundColor: 'var(--surface)', padding: '6px', borderRadius: '4px' }}>
                                     {payload}
                                   </pre>
                                 </div>
                                 {result && (
                                   <div>
-                                    <strong style={{ color: '#64748b' }}>{label}:</strong>
-                                    <pre style={{ margin: '4px 0 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-all', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: '4px' }}>
+                                    <strong style={{ color: 'var(--text-muted)' }}>{label}:</strong>
+                                    <pre style={{ margin: '4px 0 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-all', backgroundColor: 'var(--surface)', padding: '6px', borderRadius: '4px' }}>
                                       {result}
                                     </pre>
                                   </div>
@@ -350,7 +350,7 @@ export default function AuditLogsPage() {
                             padding: '6px 12px',
                             borderRadius: '6px',
                             border: '1px solid var(--border-color)',
-                            background: 'white',
+                            background: 'var(--bg-white)',
                             color: 'var(--text-primary)',
                             fontSize: '12px',
                             fontWeight: 600,
@@ -393,7 +393,7 @@ export default function AuditLogsPage() {
                             padding: '6px 12px',
                             borderRadius: '6px',
                             border: '1px solid var(--border-color)',
-                            background: 'white',
+                            background: 'var(--bg-white)',
                             color: 'var(--text-primary)',
                             fontSize: '12px',
                             fontWeight: 600,

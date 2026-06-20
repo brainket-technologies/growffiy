@@ -592,7 +592,7 @@ export default function StrategiesPage() {
         label: item.label,
         val: item.val >= 0 ? `₹${(item.val / 1000).toFixed(1)}k` : `-₹${(Math.abs(item.val) / 1000).toFixed(1)}k`,
         height: `${Math.max(pct, 5)}%`,
-        color: isPositive ? '#0052cc' : '#ef4444'
+        color: isPositive ? 'var(--primary)' : 'var(--danger)'
       };
     });
   }, [closedTrades]);
@@ -621,7 +621,7 @@ export default function StrategiesPage() {
         label: item.label,
         val: item.val >= 0 ? `₹${(item.val / 1000).toFixed(1)}k` : `-₹${(Math.abs(item.val) / 1000).toFixed(1)}k`,
         height: `${Math.max(pct, 5)}%`,
-        color: isPositive ? '#0052cc' : '#ef4444'
+        color: isPositive ? 'var(--primary)' : 'var(--danger)'
       };
     });
   }, [closedTrades]);
@@ -930,7 +930,7 @@ export default function StrategiesPage() {
                   fontSize: '11px', 
                   fontWeight: 600,
                   backgroundColor: selectedStrategy?.status === 'active' ? '#e6f7f4' : '#fee2e2',
-                  color: selectedStrategy?.status === 'active' ? '#00a389' : '#ef4444'
+                  color: selectedStrategy?.status === 'active' ? 'var(--accent-dark)' : 'var(--danger)'
                 }}>
                   {selectedStrategy?.status.toUpperCase()}
                 </span>
@@ -959,7 +959,7 @@ export default function StrategiesPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
             {/* Total Strategies */}
             <div style={{
-              background: 'linear-gradient(135deg, #0f172a 0%, #1a2744 100%)',
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
               border: '1px solid rgba(56,189,248,0.15)',
               borderRadius: '16px',
               padding: '24px',
@@ -994,11 +994,11 @@ export default function StrategiesPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Active Strategies</p>
-                  <h3 style={{ fontSize: '36px', fontWeight: 800, color: '#22c55e', marginTop: '8px', fontFamily: 'var(--font-title)', lineHeight: 1 }}>{strategies.filter(s => s.status === 'active').length}</h3>
+                  <h3 style={{ fontSize: '36px', fontWeight: 800, color: 'var(--accent)', marginTop: '8px', fontFamily: 'var(--font-title)', lineHeight: 1 }}>{strategies.filter(s => s.status === 'active').length}</h3>
                   <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', marginTop: '6px' }}>Currently running</p>
                 </div>
                 <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(34,197,94,0.2)' }}>
-                  <CheckCircle size={20} color="#22c55e" />
+                  <CheckCircle size={20} color="var(--accent)" />
                 </div>
               </div>
             </div>
@@ -1129,7 +1129,7 @@ export default function StrategiesPage() {
                               >
                                 <td>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0, background: isActive ? '#22c55e' : '#475569', boxShadow: isActive ? '0 0 6px rgba(34,197,94,0.8)' : 'none' }} />
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0, background: isActive ? 'var(--accent)' : 'var(--text-body)', boxShadow: isActive ? '0 0 6px rgba(34,197,94,0.8)' : 'none' }} />
                                     <div>
                                       <div style={{ fontWeight: 600, fontSize: '13px' }}>{strat.name}</div>
                                       {strat.description && <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{strat.description}</div>}
@@ -1179,7 +1179,7 @@ export default function StrategiesPage() {
                                   <button
                                     onClick={e => { e.stopPropagation(); handleToggleStatus(strat); }}
                                     title="Click to toggle"
-                                    style={{ padding: '4px 10px', fontSize: '10px', fontWeight: 700, cursor: 'pointer', borderRadius: '20px', letterSpacing: '0.04em', border: isActive ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(148,163,184,0.3)', background: isActive ? 'rgba(34,197,94,0.1)' : 'rgba(148,163,184,0.08)', color: isActive ? '#22c55e' : '#94a3b8' }}
+                                    style={{ padding: '4px 10px', fontSize: '10px', fontWeight: 700, cursor: 'pointer', borderRadius: '20px', letterSpacing: '0.04em', border: isActive ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(148,163,184,0.3)', background: isActive ? 'rgba(34,197,94,0.1)' : 'rgba(148,163,184,0.08)', color: isActive ? 'var(--accent)' : 'var(--text-subtle)' }}
                                   >
                                     {isActive ? '● ACTIVE' : '○ INACTIVE'}
                                   </button>
@@ -1189,7 +1189,7 @@ export default function StrategiesPage() {
                                     <button onClick={() => { setSelectedStrategy(strat); setViewMode('detail'); setDetailTab('overview'); }} title="View" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-primary)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'var(--color-primary)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}><Eye size={13} /></button>
                                     <button onClick={() => handleEdit(strat)} title="Edit" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}><Edit3 size={13} /></button>
                                     <button onClick={() => handleClone(strat.id)} title="Clone" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}><Copy size={13} /></button>
-                                    <button onClick={() => handleDelete(strat)} title="Delete" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.05)', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.05)'; }}><Trash2 size={13} /></button>
+                                    <button onClick={() => handleDelete(strat)} title="Delete" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.05)', color: 'var(--danger)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.05)'; }}><Trash2 size={13} /></button>
                                   </div>
                                 </td>
                               </tr>
@@ -1466,7 +1466,7 @@ export default function StrategiesPage() {
                         onClick={() => setFormData({ ...formData, basicInfo: { ...formData.basicInfo, status: 'active' } })}
                         style={{
                           padding: '8px 20px', borderRadius: '20px', border: 'none', cursor: 'pointer',
-                          background: formData.basicInfo.status === 'active' ? '#22c55e' : 'var(--bg-card)',
+                          background: formData.basicInfo.status === 'active' ? 'var(--accent)' : 'var(--bg-card)',
                           color: formData.basicInfo.status === 'active' ? '#fff' : 'var(--text-secondary)',
                           fontWeight: 600, fontSize: '12px', transition: 'all 0.2s ease'
                         }}
@@ -1476,7 +1476,7 @@ export default function StrategiesPage() {
                         onClick={() => setFormData({ ...formData, basicInfo: { ...formData.basicInfo, status: 'inactive' } })}
                         style={{
                           padding: '8px 20px', borderRadius: '20px', border: 'none', cursor: 'pointer',
-                          background: formData.basicInfo.status === 'inactive' ? '#ef4444' : 'var(--bg-card)',
+                          background: formData.basicInfo.status === 'inactive' ? 'var(--danger)' : 'var(--bg-card)',
                           color: formData.basicInfo.status === 'inactive' ? '#fff' : 'var(--text-secondary)',
                           fontWeight: 600, fontSize: '12px', transition: 'all 0.2s ease'
                         }}
@@ -1938,7 +1938,7 @@ export default function StrategiesPage() {
                 padding: '8px 22px', borderRadius: '9px', border: 'none', cursor: 'pointer',
                 fontSize: '12px', fontWeight: 600, letterSpacing: '0.2px',
                 transition: 'all 0.2s ease',
-                background: previewTab === 'test' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'transparent',
+                background: previewTab === 'test' ? 'linear-gradient(135deg, var(--warning), var(--warning))' : 'transparent',
                 color: previewTab === 'test' ? '#fff' : 'var(--text-secondary)',
                 boxShadow: previewTab === 'test' ? '0 2px 8px rgba(245,158,11,0.25)' : 'none',
                 display: 'flex', alignItems: 'center', gap: '6px'
@@ -1970,7 +1970,7 @@ export default function StrategiesPage() {
                   padding: '8px 16px', 
                   borderRadius: '8px', 
                   background: 'white', 
-                  border: '1px solid #e2e8f0', 
+                  border: '1px solid var(--border)', 
                   fontSize: '13px', 
                   color: '#334155',
                   fontWeight: 500,
@@ -1979,9 +1979,9 @@ export default function StrategiesPage() {
                   userSelect: 'none'
                 }}
               >
-                <Calendar size={14} color="#0052cc" />
+                <Calendar size={14} color="var(--primary)" />
                 <span>{dateRangeStr}</span>
-                <ChevronDown size={14} color="#64748b" />
+                <ChevronDown size={14} color="var(--text-muted)" />
               </div>
 
               {isFilterOpen && (
@@ -1991,7 +1991,7 @@ export default function StrategiesPage() {
                   left: 0,
                   width: '320px',
                   background: 'white',
-                  border: '1px solid #e2e8f0',
+                  border: '1px solid var(--border)',
                   borderRadius: '12px',
                   boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)',
                   padding: '16px',
@@ -2000,50 +2000,50 @@ export default function StrategiesPage() {
                   flexDirection: 'column',
                   gap: '12px'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                    <span style={{ fontWeight: 600, fontSize: '14px', color: '#0f172a' }}>Filter Range</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--surface)', paddingBottom: '8px' }}>
+                    <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-heading)' }}>Filter Range</span>
                     <button 
                       onClick={clearFilters}
-                      style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                      style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
                     >
                       Reset
                     </button>
                   </div>
 
-                  <div style={{ display: 'flex', background: '#f1f5f9', padding: '2px', borderRadius: '6px' }}>
-                    <button onClick={() => setFilterTypeTab('month')} style={{ flex: 1, border: 'none', background: filterTypeTab === 'month' ? 'white' : 'transparent', color: '#334155', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterTypeTab === 'month' ? 600 : 500, cursor: 'pointer' }}>Month</button>
-                    <button onClick={() => setFilterTypeTab('year')} style={{ flex: 1, border: 'none', background: filterTypeTab === 'year' ? 'white' : 'transparent', color: '#334155', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterTypeTab === 'year' ? 600 : 500, cursor: 'pointer' }}>Year</button>
-                    <button onClick={() => setFilterTypeTab('custom')} style={{ flex: 1, border: 'none', background: filterTypeTab === 'custom' ? 'white' : 'transparent', color: '#334155', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterTypeTab === 'custom' ? 600 : 500, cursor: 'pointer' }}>Custom</button>
+                  <div style={{ display: 'flex', background: 'var(--surface)', padding: '2px', borderRadius: '6px' }}>
+                    <button onClick={() => setFilterTypeTab('month')} style={{ flex: 1, border: 'none', background: filterTypeTab === 'month' ? 'var(--bg-white)' : 'transparent', color: '#334155', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterTypeTab === 'month' ? 600 : 500, cursor: 'pointer' }}>Month</button>
+                    <button onClick={() => setFilterTypeTab('year')} style={{ flex: 1, border: 'none', background: filterTypeTab === 'year' ? 'var(--bg-white)' : 'transparent', color: '#334155', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterTypeTab === 'year' ? 600 : 500, cursor: 'pointer' }}>Year</button>
+                    <button onClick={() => setFilterTypeTab('custom')} style={{ flex: 1, border: 'none', background: filterTypeTab === 'custom' ? 'var(--bg-white)' : 'transparent', color: '#334155', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterTypeTab === 'custom' ? 600 : 500, cursor: 'pointer' }}>Custom</button>
                   </div>
 
                   {filterTypeTab === 'month' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} style={{ flex: 1, padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
+                        <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} style={{ flex: 1, padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '13px' }}>
                           {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
-                        <select value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))} style={{ flex: 1.5, padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
+                        <select value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))} style={{ flex: 1.5, padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '13px' }}>
                           {MONTHS.map((m, idx) => <option key={m} value={idx}>{m}</option>)}
                         </select>
                       </div>
-                      <Button onClick={applyMonthFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: '#0052cc', color: 'white' }}>Apply</Button>
+                      <Button onClick={applyMonthFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: 'var(--primary)', color: 'white' }}>Apply</Button>
                     </div>
                   )}
 
                   {filterTypeTab === 'year' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
+                      <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '13px' }}>
                         {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
                       </select>
-                      <Button onClick={applyYearFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: '#0052cc', color: 'white' }}>Apply</Button>
+                      <Button onClick={applyYearFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: 'var(--primary)', color: 'white' }}>Apply</Button>
                     </div>
                   )}
 
                   {filterTypeTab === 'custom' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', width: '100%' }} />
-                      <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', width: '100%' }} />
-                      <Button onClick={applyCustomFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: '#0052cc', color: 'white' }}>Apply</Button>
+                      <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '13px', width: '100%' }} />
+                      <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '13px', width: '100%' }} />
+                      <Button onClick={applyCustomFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: 'var(--primary)', color: 'white' }}>Apply</Button>
                     </div>
                   )}
                 </div>
@@ -2051,10 +2051,10 @@ export default function StrategiesPage() {
             </div>
 
             {/* Sub-tabs switch */}
-            <div style={{ display: 'flex', background: '#f1f5f9', padding: '2px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <button onClick={() => setDetailTab('overview')} style={{ border: 'none', background: detailTab === 'overview' ? 'white' : 'transparent', color: detailTab === 'overview' ? '#0f172a' : '#64748b', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Performance</button>
-              <button onClick={() => setDetailTab('assignment')} style={{ border: 'none', background: detailTab === 'assignment' ? 'white' : 'transparent', color: detailTab === 'assignment' ? '#0f172a' : '#64748b', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Assignments</button>
-              <button onClick={() => setDetailTab('logs')} style={{ border: 'none', background: detailTab === 'logs' ? 'white' : 'transparent', color: detailTab === 'logs' ? '#0f172a' : '#64748b', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Logs</button>
+            <div style={{ display: 'flex', background: 'var(--surface)', padding: '2px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <button onClick={() => setDetailTab('overview')} style={{ border: 'none', background: detailTab === 'overview' ? 'var(--bg-white)' : 'transparent', color: detailTab === 'overview' ? 'var(--text-heading)' : 'var(--text-muted)', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Performance</button>
+              <button onClick={() => setDetailTab('assignment')} style={{ border: 'none', background: detailTab === 'assignment' ? 'var(--bg-white)' : 'transparent', color: detailTab === 'assignment' ? 'var(--text-heading)' : 'var(--text-muted)', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Assignments</button>
+              <button onClick={() => setDetailTab('logs')} style={{ border: 'none', background: detailTab === 'logs' ? 'var(--bg-white)' : 'transparent', color: detailTab === 'logs' ? 'var(--text-heading)' : 'var(--text-muted)', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Logs</button>
             </div>
 
             <Button variant="secondary" onClick={() => handleEdit(selectedStrategy)} style={{ fontSize: '13px', fontWeight: 600 }}>Edit Config</Button>
@@ -2069,13 +2069,13 @@ export default function StrategiesPage() {
                 {/* Total P&L Card */}
                 <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Total P&L (₹)</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>Total P&L (₹)</span>
                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#f5f3ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>₹</div>
                   </div>
-                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
                     ₹ {selectedStrategyPnl.toLocaleString('en-IN')}
                   </h3>
-                  <span style={{ fontSize: '11px', color: selectedStrategyPnl >= last30dPnL ? '#10b981' : '#ef4444', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '11px', color: selectedStrategyPnl >= last30dPnL ? 'var(--accent)' : 'var(--danger)', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     {getPctChange(selectedStrategyPnl, last30dPnL)}
                   </span>
                   <div style={{ height: '35px', marginTop: '6px', display: 'flex', alignItems: 'flex-end' }}>
@@ -2086,30 +2086,30 @@ export default function StrategiesPage() {
                 {/* Win Rate Card */}
                 <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Win Rate</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>Win Rate</span>
                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>%</div>
                   </div>
-                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
                     {selectedStrategyWinRate.toFixed(1)}%
                   </h3>
-                  <span style={{ fontSize: '11px', color: selectedStrategyWinRate >= last30dWinRate ? '#10b981' : '#ef4444', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '11px', color: selectedStrategyWinRate >= last30dWinRate ? 'var(--accent)' : 'var(--danger)', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     {getPctChange(selectedStrategyWinRate, last30dWinRate)}
                   </span>
                   <div style={{ height: '35px', marginTop: '6px', display: 'flex', alignItems: 'flex-end' }}>
-                    <Sparkline data={winRateCurve} stroke="#10b981" width={180} height={30} />
+                    <Sparkline data={winRateCurve} stroke="var(--accent)" width={180} height={30} />
                   </div>
                 </Card>
 
                 {/* Profit Factor Card */}
                 <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Profit Factor</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>Profit Factor</span>
                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>PF</div>
                   </div>
-                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
                     {selectedStrategyProfitFactor.toFixed(2)}
                   </h3>
-                  <span style={{ fontSize: '11px', color: selectedStrategyProfitFactor >= last30dProfitFactor ? '#10b981' : '#ef4444', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '11px', color: selectedStrategyProfitFactor >= last30dProfitFactor ? 'var(--accent)' : 'var(--danger)', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     {getPctChange(selectedStrategyProfitFactor, last30dProfitFactor)}
                   </span>
                   <div style={{ height: '35px', marginTop: '6px', display: 'flex', alignItems: 'flex-end' }}>
@@ -2120,30 +2120,30 @@ export default function StrategiesPage() {
                 {/* Max Drawdown Card */}
                 <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Max Drawdown (₹)</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>Max Drawdown (₹)</span>
                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#fef2f2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>DD</div>
                   </div>
-                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
                     ₹ {selectedStrategyDrawdown.toLocaleString('en-IN')}
                   </h3>
-                  <span style={{ fontSize: '11px', color: selectedStrategyDrawdown <= last30dDrawdown ? '#10b981' : '#ef4444', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '11px', color: selectedStrategyDrawdown <= last30dDrawdown ? 'var(--accent)' : 'var(--danger)', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     {getPctChange(selectedStrategyDrawdown, last30dDrawdown)}
                   </span>
                   <div style={{ height: '35px', marginTop: '6px', display: 'flex', alignItems: 'flex-end' }}>
-                    <Sparkline data={drawdownCurve} stroke="#ef4444" width={180} height={30} />
+                    <Sparkline data={drawdownCurve} stroke="var(--danger)" width={180} height={30} />
                   </div>
                 </Card>
 
                 {/* Total Trades Card */}
                 <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Total Trades</span>
-                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#fcf6f0', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>#</div>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>Total Trades</span>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#fcf6f0', color: 'var(--warning)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>#</div>
                   </div>
-                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
                     {selectedStrategyTradesCount}
                   </h3>
-                  <span style={{ fontSize: '11px', color: selectedStrategyTradesCount >= last30dTradesCount ? '#10b981' : '#ef4444', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '11px', color: selectedStrategyTradesCount >= last30dTradesCount ? 'var(--accent)' : 'var(--danger)', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     {getPctChange(selectedStrategyTradesCount, last30dTradesCount)}
                   </span>
                   <div style={{ height: '35px', marginTop: '6px', display: 'flex', alignItems: 'flex-end' }}>
@@ -2156,8 +2156,8 @@ export default function StrategiesPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.3fr 1.3fr', gap: '20px' }}>
                 <Card style={{ borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', fontFamily: 'var(--font-title)' }}>Equity Curve</h4>
-                    <select style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '11px', outline: 'none' }}>
+                    <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>Equity Curve</h4>
+                    <select style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '11px', outline: 'none' }}>
                       <option>Daily</option>
                       <option>Cumulative</option>
                     </select>
@@ -2165,7 +2165,7 @@ export default function StrategiesPage() {
                   <PerformanceChart
                     data={selectedStrategyPnlCurve}
                     labels={selectedStrategyPnlLabels}
-                    strokeColor="#0052cc"
+                    strokeColor="var(--primary)"
                     fillColorStart="rgba(0, 82, 204, 0.15)"
                     fillColorEnd="rgba(0, 82, 204, 0)"
                     height={200}
@@ -2173,29 +2173,29 @@ export default function StrategiesPage() {
                 </Card>
 
                 <Card style={{ display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
-                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', fontFamily: 'var(--font-title)', marginBottom: '14px' }}>P&L Distribution</h4>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', marginBottom: '14px' }}>P&L Distribution</h4>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', flex: 1, justifyContent: 'center' }}>
                     <div style={{ width: '100px', height: '100px', position: 'relative' }}>
                       <svg width="100%" height="100%" viewBox="0 0 42 42">
                         <circle cx="21" cy="21" r="15.915" fill="#fff"></circle>
-                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#f1f5f9" strokeWidth="4"></circle>
+                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--surface)" strokeWidth="4"></circle>
                         
-                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#10b981" strokeWidth="4" 
+                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--accent)" strokeWidth="4" 
                           strokeDasharray={`${selectedStrategyWinRate} ${100 - selectedStrategyWinRate}`} 
                           strokeDashoffset="25"
                         />
-                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#ef4444" strokeWidth="4" 
+                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--danger)" strokeWidth="4" 
                           strokeDasharray={`${selectedStrategyLossRate} ${100 - selectedStrategyLossRate}`} 
                           strokeDashoffset={`${25 - selectedStrategyWinRate}`}
                         />
-                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#cbd5e1" strokeWidth="4" 
+                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--border-color)" strokeWidth="4" 
                           strokeDasharray={`${selectedStrategyDrawRate} ${100 - selectedStrategyDrawRate}`} 
                           strokeDashoffset={`${25 - selectedStrategyWinRate - selectedStrategyLossRate}`}
                         />
                       </svg>
                       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: '1.2' }}>
-                        <strong style={{ fontSize: '16px', color: '#0f172a' }}>{selectedStrategyTradesCount}</strong>
-                        <span style={{ fontSize: '8px', color: '#64748b', textTransform: 'uppercase' }}>Total Trades</span>
+                        <strong style={{ fontSize: '16px', color: 'var(--text-heading)' }}>{selectedStrategyTradesCount}</strong>
+                        <span style={{ fontSize: '8px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Trades</span>
                       </div>
                     </div>
                     
@@ -2217,30 +2217,30 @@ export default function StrategiesPage() {
                 </Card>
 
                 <Card style={{ borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
-                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', fontFamily: 'var(--font-title)', marginBottom: '14px' }}>Trade Performance</h4>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', marginBottom: '14px' }}>Trade Performance</h4>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                      <span style={{ color: '#64748b' }}>Best Trade (₹)</span>
-                      <strong style={{ color: '#10b981' }}>₹ {selectedStrategyBest.toLocaleString('en-IN')}</strong>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--surface)', paddingBottom: '6px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Best Trade (₹)</span>
+                      <strong style={{ color: 'var(--accent)' }}>₹ {selectedStrategyBest.toLocaleString('en-IN')}</strong>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                      <span style={{ color: '#64748b' }}>Worst Trade (₹)</span>
-                      <strong style={{ color: '#ef4444' }}>-₹ {Math.abs(selectedStrategyWorst).toLocaleString('en-IN')}</strong>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--surface)', paddingBottom: '6px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Worst Trade (₹)</span>
+                      <strong style={{ color: 'var(--danger)' }}>-₹ {Math.abs(selectedStrategyWorst).toLocaleString('en-IN')}</strong>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                      <span style={{ color: '#64748b' }}>Average Profit (₹)</span>
-                      <strong style={{ color: '#10b981' }}>₹ {selectedStrategyAvgProfit.toFixed(2)}</strong>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--surface)', paddingBottom: '6px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Average Profit (₹)</span>
+                      <strong style={{ color: 'var(--accent)' }}>₹ {selectedStrategyAvgProfit.toFixed(2)}</strong>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                      <span style={{ color: '#64748b' }}>Average Loss (₹)</span>
-                      <strong style={{ color: '#ef4444' }}>-₹ {Math.abs(selectedStrategyAvgLoss).toFixed(2)}</strong>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--surface)', paddingBottom: '6px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Average Loss (₹)</span>
+                      <strong style={{ color: 'var(--danger)' }}>-₹ {Math.abs(selectedStrategyAvgLoss).toFixed(2)}</strong>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                      <span style={{ color: '#64748b' }}>Expectancy (₹)</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--surface)', paddingBottom: '6px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Expectancy (₹)</span>
                       <strong>₹ {selectedStrategyExpectancy.toFixed(2)}</strong>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                      <span style={{ color: '#64748b' }}>Sharpe Ratio</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--surface)', paddingBottom: '6px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Sharpe Ratio</span>
                       <strong>{(() => {
                         if (closedTrades.length < 2) return '—';
                         const returns = closedTrades.map(t => Number(t.pnl || 0));
@@ -2250,7 +2250,7 @@ export default function StrategiesPage() {
                       })()}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#64748b' }}>Sortino Ratio</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Sortino Ratio</span>
                       <strong>{(() => {
                         if (closedTrades.length < 2) return '—';
                         const returns = closedTrades.map(t => Number(t.pnl || 0));
@@ -2267,55 +2267,55 @@ export default function StrategiesPage() {
               {/* Row 3: Performance Metrics (1.5fr), stacked Bar Charts (1.5fr), Strategy Overview (1.5fr) */}
               <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1.3fr', gap: '20px' }}>
                 <Card style={{ borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
-                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', fontFamily: 'var(--font-title)', marginBottom: '14px' }}>Performance Metrics</h4>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', marginBottom: '14px' }}>Performance Metrics</h4>
                   <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
                     <thead>
-                      <tr style={{ borderBottom: '1px solid #cbd5e1', textAlign: 'left' }}>
-                        <th style={{ padding: '6px 0', color: '#64748b', fontWeight: 600, width: '30%' }}>METRIC</th>
-                        <th style={{ padding: '6px 0', color: '#64748b', fontWeight: 600, textAlign: 'right', width: '22%' }}>VALUE</th>
-                        <th style={{ padding: '6px 0', color: '#64748b', fontWeight: 600, textAlign: 'right', width: '24%', fontSize: '10px', whiteSpace: 'nowrap' }}>VS LAST 30 DAYS</th>
-                        <th style={{ padding: '6px 0', color: '#64748b', fontWeight: 600, textAlign: 'right', width: '24%', fontSize: '10px', whiteSpace: 'nowrap' }}>VS LAST 90 DAYS</th>
+                      <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
+                        <th style={{ padding: '6px 0', color: 'var(--text-muted)', fontWeight: 600, width: '30%' }}>METRIC</th>
+                        <th style={{ padding: '6px 0', color: 'var(--text-muted)', fontWeight: 600, textAlign: 'right', width: '22%' }}>VALUE</th>
+                        <th style={{ padding: '6px 0', color: 'var(--text-muted)', fontWeight: 600, textAlign: 'right', width: '24%', fontSize: '10px', whiteSpace: 'nowrap' }}>VS LAST 30 DAYS</th>
+                        <th style={{ padding: '6px 0', color: 'var(--text-muted)', fontWeight: 600, textAlign: 'right', width: '24%', fontSize: '10px', whiteSpace: 'nowrap' }}>VS LAST 90 DAYS</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '8px 0', color: '#475569' }}>Total P&L (₹)</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600, color: selectedStrategyPnl >= 0 ? '#10b981' : '#ef4444' }}>₹{selectedStrategyPnl.toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyPnl >= last30dPnL ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyPnl, last30dPnL)}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyPnl >= last90dPnL ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyPnl, last90dPnL)}</td>
+                      <tr style={{ borderBottom: '1px solid var(--surface)' }}>
+                        <td style={{ padding: '8px 0', color: 'var(--text-body)' }}>Total P&L (₹)</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600, color: selectedStrategyPnl >= 0 ? 'var(--accent)' : 'var(--danger)' }}>₹{selectedStrategyPnl.toLocaleString('en-IN')}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyPnl >= last30dPnL ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyPnl, last30dPnL)}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyPnl >= last90dPnL ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyPnl, last90dPnL)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '8px 0', color: '#475569' }}>Net Profit (₹)</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600, color: '#10b981' }}>₹{selectedStrategyWinsSum.toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyWinsSum >= (last30DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)) ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyWinsSum, (last30DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)))}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyWinsSum >= (last90DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)) ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyWinsSum, (last90DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)))}</td>
+                      <tr style={{ borderBottom: '1px solid var(--surface)' }}>
+                        <td style={{ padding: '8px 0', color: 'var(--text-body)' }}>Net Profit (₹)</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600, color: 'var(--accent)' }}>₹{selectedStrategyWinsSum.toLocaleString('en-IN')}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyWinsSum >= (last30DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)) ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyWinsSum, (last30DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)))}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyWinsSum >= (last90DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)) ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyWinsSum, (last90DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)))}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '8px 0', color: '#475569' }}>Net Loss (₹)</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600, color: '#ef4444' }}>-₹{Math.abs(selectedStrategyLossesSum).toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: Math.abs(selectedStrategyLossesSum) <= Math.abs(last30dLossesSum) ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyLossesSum, last30dLossesSum)}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: Math.abs(selectedStrategyLossesSum) <= Math.abs(last90dLossesSum) ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyLossesSum, last90dLossesSum)}</td>
+                      <tr style={{ borderBottom: '1px solid var(--surface)' }}>
+                        <td style={{ padding: '8px 0', color: 'var(--text-body)' }}>Net Loss (₹)</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600, color: 'var(--danger)' }}>-₹{Math.abs(selectedStrategyLossesSum).toLocaleString('en-IN')}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: Math.abs(selectedStrategyLossesSum) <= Math.abs(last30dLossesSum) ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyLossesSum, last30dLossesSum)}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: Math.abs(selectedStrategyLossesSum) <= Math.abs(last90dLossesSum) ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyLossesSum, last90dLossesSum)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '8px 0', color: '#475569' }}>Win Rate</td>
+                      <tr style={{ borderBottom: '1px solid var(--surface)' }}>
+                        <td style={{ padding: '8px 0', color: 'var(--text-body)' }}>Win Rate</td>
                         <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>{selectedStrategyWinRate.toFixed(1)}%</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyWinRate >= last30dWinRate ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyWinRate, last30dWinRate)}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyWinRate >= last90dWinRate ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyWinRate, last90dWinRate)}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyWinRate >= last30dWinRate ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyWinRate, last30dWinRate)}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyWinRate >= last90dWinRate ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyWinRate, last90dWinRate)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '8px 0', color: '#475569' }}>Profit Factor</td>
+                      <tr style={{ borderBottom: '1px solid var(--surface)' }}>
+                        <td style={{ padding: '8px 0', color: 'var(--text-body)' }}>Profit Factor</td>
                         <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>{selectedStrategyProfitFactor.toFixed(2)}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyProfitFactor >= last30dProfitFactor ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyProfitFactor, last30dProfitFactor)}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyProfitFactor >= last90dProfitFactor ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyProfitFactor, last90dProfitFactor)}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyProfitFactor >= last30dProfitFactor ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyProfitFactor, last30dProfitFactor)}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyProfitFactor >= last90dProfitFactor ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyProfitFactor, last90dProfitFactor)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '8px 0', color: '#475569' }}>Max Drawdown (₹)</td>
+                      <tr style={{ borderBottom: '1px solid var(--surface)' }}>
+                        <td style={{ padding: '8px 0', color: 'var(--text-body)' }}>Max Drawdown (₹)</td>
                         <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>₹{selectedStrategyDrawdown.toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyDrawdown <= last30dDrawdown ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyDrawdown, last30dDrawdown)}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyDrawdown <= last90dDrawdown ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyDrawdown, last90dDrawdown)}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyDrawdown <= last30dDrawdown ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyDrawdown, last30dDrawdown)}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyDrawdown <= last90dDrawdown ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyDrawdown, last90dDrawdown)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '8px 0', color: '#475569' }}>Max Drawdown (%)</td>
+                      <tr style={{ borderBottom: '1px solid var(--surface)' }}>
+                        <td style={{ padding: '8px 0', color: 'var(--text-body)' }}>Max Drawdown (%)</td>
                         <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>{(() => {
                            if (closedTrades.length === 0) return '0.00%';
                            let peak = 0; let maxDd = 0; let running = 0;
@@ -2329,20 +2329,20 @@ export default function StrategiesPage() {
                            const totalInvested = closedTrades.reduce((s, t) => s + Number(t.entryPrice || 0) * Number(t.quantity || 1), 0);
                            return totalInvested > 0 ? `${((maxDd / totalInvested) * 100).toFixed(2)}%` : '0.00%';
                          })()}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#64748b' }}>—</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: '#64748b' }}>—</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '8px 0', color: '#475569' }}>Total Trades</td>
+                      <tr style={{ borderBottom: '1px solid var(--surface)' }}>
+                        <td style={{ padding: '8px 0', color: 'var(--text-body)' }}>Total Trades</td>
                         <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>{selectedStrategyTradesCount}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyTradesCount >= last30dTradesCount ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyTradesCount, last30dTradesCount)}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyTradesCount >= last90dTradesCount ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyTradesCount, last90dTradesCount)}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyTradesCount >= last30dTradesCount ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyTradesCount, last30dTradesCount)}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyTradesCount >= last90dTradesCount ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyTradesCount, last90dTradesCount)}</td>
                       </tr>
                       <tr>
-                        <td style={{ padding: '8px 0', color: '#475569' }}>Average Trade (₹)</td>
+                        <td style={{ padding: '8px 0', color: 'var(--text-body)' }}>Average Trade (₹)</td>
                         <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>₹{selectedStrategyExpectancy.toFixed(2)}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyExpectancy >= (last30dTradesCount === 0 ? 0 : last30dPnL / last30dTradesCount) ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyExpectancy, (last30dTradesCount === 0 ? 0 : last30dPnL / last30dTradesCount))}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyExpectancy >= (last90dTradesCount === 0 ? 0 : last90dPnL / last90dTradesCount) ? '#10b981' : '#ef4444' }}>{getPctChange(selectedStrategyExpectancy, (last90dTradesCount === 0 ? 0 : last90dPnL / last90dTradesCount))}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyExpectancy >= (last30dTradesCount === 0 ? 0 : last30dPnL / last30dTradesCount) ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyExpectancy, (last30dTradesCount === 0 ? 0 : last30dPnL / last30dTradesCount))}</td>
+                        <td style={{ padding: '8px 0', textAlign: 'right', color: selectedStrategyExpectancy >= (last90dTradesCount === 0 ? 0 : last90dPnL / last90dTradesCount) ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyExpectancy, (last90dTradesCount === 0 ? 0 : last90dPnL / last90dTradesCount))}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -2352,17 +2352,17 @@ export default function StrategiesPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>P&L by Day of Week (₹)</h4>
-                      <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>P&L</span>
+                      <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)' }}>P&L by Day of Week (₹)</h4>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>P&L</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', height: '140px', paddingTop: '20px' }}>
                       {pnlByDayOfWeek.map((item, i) => (
                         <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, gap: '4px' }}>
-                          <span style={{ fontSize: '9px', color: '#64748b', fontWeight: 600 }}>{item.val}</span>
-                          <div style={{ width: '16px', height: '110px', backgroundColor: '#e2e8f0', borderRadius: '2px', position: 'relative' }}>
+                          <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 600 }}>{item.val}</span>
+                          <div style={{ width: '16px', height: '110px', backgroundColor: 'var(--border)', borderRadius: '2px', position: 'relative' }}>
                             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: item.height, backgroundColor: item.color, borderRadius: '2px' }}></div>
                           </div>
-                          <span style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>{item.label}</span>
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>{item.label}</span>
                         </div>
                       ))}
                     </div>
@@ -2370,8 +2370,8 @@ export default function StrategiesPage() {
 
                   <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>P&L by Month (₹)</h4>
-                      <select style={{ padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '10px', outline: 'none' }}>
+                      <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)' }}>P&L by Month (₹)</h4>
+                      <select style={{ padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '10px', outline: 'none' }}>
                         <option>2026</option>
                         <option>2025</option>
                         <option>2024</option>
@@ -2380,11 +2380,11 @@ export default function StrategiesPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', height: '140px', paddingTop: '20px' }}>
                       {pnlByMonth.map((item, i) => (
                         <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, gap: '4px' }}>
-                          <span style={{ fontSize: '8px', color: '#64748b', fontWeight: 600 }}>{item.val}</span>
-                          <div style={{ width: '12px', height: '110px', backgroundColor: '#e2e8f0', borderRadius: '2px', position: 'relative' }}>
+                          <span style={{ fontSize: '8px', color: 'var(--text-muted)', fontWeight: 600 }}>{item.val}</span>
+                          <div style={{ width: '12px', height: '110px', backgroundColor: 'var(--border)', borderRadius: '2px', position: 'relative' }}>
                             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: item.height, backgroundColor: item.color, borderRadius: '2px' }}></div>
                           </div>
-                          <span style={{ fontSize: '9px', color: '#64748b', marginTop: '2px' }}>{item.label}</span>
+                          <span style={{ fontSize: '9px', color: 'var(--text-muted)', marginTop: '2px' }}>{item.label}</span>
                         </div>
                       ))}
                     </div>
@@ -2393,43 +2393,43 @@ export default function StrategiesPage() {
 
                 {/* Right: Strategy Overview */}
                 <Card style={{ borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
-                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', fontFamily: 'var(--font-title)', marginBottom: '14px' }}>Strategy Overview</h4>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', marginBottom: '14px' }}>Strategy Overview</h4>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#64748b' }}>Strategy Name</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Strategy Name</span>
                       <strong style={{ textAlign: 'right' }}>{selectedStrategy.name}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: '#64748b' }}>Status</span>
-                      <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 600, backgroundColor: selectedStrategy.status === 'active' ? '#e6f7f4' : '#fee2e2', color: selectedStrategy.status === 'active' ? '#00a389' : '#ef4444' }}>{selectedStrategy.status.toUpperCase()}</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Status</span>
+                      <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 600, backgroundColor: selectedStrategy.status === 'active' ? '#e6f7f4' : '#fee2e2', color: selectedStrategy.status === 'active' ? 'var(--accent-dark)' : 'var(--danger)' }}>{selectedStrategy.status.toUpperCase()}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#64748b' }}>Strategy Type</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Strategy Type</span>
                       <strong>{(() => { try { return JSON.parse(selectedStrategy.configJson).basicInfo.tradeType } catch(e) { return 'Intraday' } })()}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#64748b' }}>Segment</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Segment</span>
                       <strong>{(() => { try { return JSON.parse(selectedStrategy.configJson).basicInfo.segment } catch(e) { return 'N/A' } })()}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#64748b' }}>Timeframe</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Timeframe</span>
                       <strong>{(() => { try { return JSON.parse(selectedStrategy.configJson).basicInfo.timeframe } catch(e) { return '5 min' } })()}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#64748b' }}>Entry / Exit</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Entry / Exit</span>
                       <strong>{(() => { try { const c = JSON.parse(selectedStrategy.configJson).basicInfo; return `${c.entryTime || '--'} – ${c.exitTime || '--'}` } catch(e) { return '--' } })()}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#64748b' }}>Created On</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Created On</span>
                       <strong>{new Date(selectedStrategy.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#64748b' }}>Last Updated</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Last Updated</span>
                       <strong>{new Date(selectedStrategy.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px', borderTop: '1px solid #f1f5f9', paddingTop: '8px' }}>
-                      <span style={{ color: '#64748b' }}>Description</span>
-                      <p style={{ color: '#475569', lineHeight: '1.4', margin: 0 }}>{selectedStrategy.description || 'No strategy description provided.'}</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px', borderTop: '1px solid var(--surface)', paddingTop: '8px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Description</span>
+                      <p style={{ color: 'var(--text-body)', lineHeight: '1.4', margin: 0 }}>{selectedStrategy.description || 'No strategy description provided.'}</p>
                     </div>
                   </div>
                 </Card>
@@ -2540,15 +2540,15 @@ export default function StrategiesPage() {
               <div style={{ background: '#090d16', color: '#38bdf8', padding: '16px', borderRadius: '8px', fontFamily: 'Courier New, Courier, monospace', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto' }}>
                 {logs.map((log) => (
                   <div key={log.id} style={{ display: 'flex', gap: '12px', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '6px' }}>
-                    <span style={{ color: '#94a3b8' }}>{new Date(log.createdAt).toLocaleTimeString()}</span>
-                    <span style={{ color: log.logType === 'error' ? '#ef4444' : log.logType === 'trade' ? '#22c55e' : '#38bdf8' }}>
+                    <span style={{ color: 'var(--text-subtle)' }}>{new Date(log.createdAt).toLocaleTimeString()}</span>
+                    <span style={{ color: log.logType === 'error' ? 'var(--danger)' : log.logType === 'trade' ? 'var(--accent)' : '#38bdf8' }}>
                       [{log.logType.toUpperCase()}]
                     </span>
                     <span style={{ color: '#f8fafc' }}>{log.message}</span>
                   </div>
                 ))}
                 {logs.length === 0 && (
-                  <span style={{ color: '#64748b', textAlign: 'center' }}>Console empty. No execution logs yet.</span>
+                  <span style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Console empty. No execution logs yet.</span>
                 )}
               </div>
             </Card>

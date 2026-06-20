@@ -206,9 +206,9 @@ export default function PreOpenScannerPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
         {/* Top Gainer Card */}
         {topGainer && (
-          <Card style={{ padding: '16px', borderLeft: '4px solid #10b981' }}>
+          <Card style={{ padding: '16px', borderLeft: '4px solid var(--accent)' }}>
             <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <TrendingUp size={15} color="#10b981" /> Today's Top Gainer (Pre-Open)
+              <TrendingUp size={15} color="var(--accent)" /> Today's Top Gainer (Pre-Open)
             </span>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
               <div>
@@ -219,7 +219,7 @@ export default function PreOpenScannerPage() {
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '16px', fontWeight: 800, color: '#10b981', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '2px' }}>
                   <ArrowUpRight size={16} /> +{topGainer.changePercent.toFixed(2)}%
                 </span>
                 <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Chg: +₹{topGainer.change.toFixed(2)}</span>
@@ -230,9 +230,9 @@ export default function PreOpenScannerPage() {
 
         {/* Top Loser Card */}
         {topLoser && (
-          <Card style={{ padding: '16px', borderLeft: '4px solid #ef4444' }}>
+          <Card style={{ padding: '16px', borderLeft: '4px solid var(--danger)' }}>
             <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <TrendingDown size={15} color="#ef4444" /> Today's Top Loser (Pre-Open)
+              <TrendingDown size={15} color="var(--danger)" /> Today's Top Loser (Pre-Open)
             </span>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
               <div>
@@ -243,7 +243,7 @@ export default function PreOpenScannerPage() {
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '16px', fontWeight: 800, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '2px' }}>
                   <ArrowDownRight size={16} /> {topLoser.changePercent.toFixed(2)}%
                 </span>
                 <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Chg: ₹{topLoser.change.toFixed(2)}</span>
@@ -257,14 +257,14 @@ export default function PreOpenScannerPage() {
           <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500 }}>Pre-Open Session Breadth</span>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
             <div style={{ display: 'flex', gap: '12px', fontSize: '12.5px', fontWeight: 600 }}>
-              <span style={{ color: '#10b981' }}>Adv: {advances}</span>
-              <span style={{ color: '#ef4444' }}>Dec: {declines}</span>
-              <span style={{ color: '#64748b' }}>Unch: {unchanged}</span>
+              <span style={{ color: 'var(--accent)' }}>Adv: {advances}</span>
+              <span style={{ color: 'var(--danger)' }}>Dec: {declines}</span>
+              <span style={{ color: 'var(--text-muted)' }}>Unch: {unchanged}</span>
             </div>
             <div style={{ display: 'flex', width: '100px', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
-              <div style={{ flex: advances || 1, backgroundColor: '#10b981' }} />
-              <div style={{ flex: unchanged || 1, backgroundColor: '#cbd5e1' }} />
-              <div style={{ flex: declines || 1, backgroundColor: '#ef4444' }} />
+              <div style={{ flex: advances || 1, backgroundColor: 'var(--accent)' }} />
+              <div style={{ flex: unchanged || 1, backgroundColor: 'var(--border-color)' }} />
+              <div style={{ flex: declines || 1, backgroundColor: 'var(--danger)' }} />
             </div>
           </div>
         </Card>
@@ -284,8 +284,8 @@ export default function PreOpenScannerPage() {
             borderBottom: '1px solid var(--border-light)' 
           }}>
             {/* Category Dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '4px', overflow: 'hidden', height: '38px' }}>
-              <span style={{ padding: '0 12px', backgroundColor: '#f1f5f9', color: '#64748b', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', height: '100%', borderRight: '1px solid #cbd5e1' }}>
+            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: '4px', overflow: 'hidden', height: '38px' }}>
+              <span style={{ padding: '0 12px', backgroundColor: 'var(--surface)', color: 'var(--text-muted)', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', height: '100%', borderRight: '1px solid var(--border-color)' }}>
                 Category
               </span>
               <select 
@@ -313,8 +313,8 @@ export default function PreOpenScannerPage() {
             </div>
 
             {/* Symbol Search */}
-            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '4px', overflow: 'hidden', height: '38px', minWidth: '220px' }}>
-              <span style={{ padding: '0 12px', backgroundColor: '#f1f5f9', color: '#64748b', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', height: '100%', borderRight: '1px solid #cbd5e1' }}>
+            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: '4px', overflow: 'hidden', height: '38px', minWidth: '220px' }}>
+              <span style={{ padding: '0 12px', backgroundColor: 'var(--surface)', color: 'var(--text-muted)', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', height: '100%', borderRight: '1px solid var(--border-color)' }}>
                 Symbol
               </span>
               <input 
@@ -342,7 +342,7 @@ export default function PreOpenScannerPage() {
                   setSortField('changePercent');
                   setSortAsc(false);
                 }}
-                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'all' ? 'var(--color-info-bg)' : '#ffffff', color: activeFilter === 'all' ? 'var(--color-info)' : '#475569' }}
+                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid var(--border-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'all' ? 'var(--color-info-bg)' : '#ffffff', color: activeFilter === 'all' ? 'var(--color-info)' : 'var(--text-body)' }}
               >
                 All Pre-Open
               </button>
@@ -352,7 +352,7 @@ export default function PreOpenScannerPage() {
                   setSortField('changePercent');
                   setSortAsc(false);
                 }}
-                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'gainers' ? '#e6f4ea' : '#ffffff', color: activeFilter === 'gainers' ? '#10b981' : '#475569' }}
+                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid var(--border-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'gainers' ? '#e6f4ea' : '#ffffff', color: activeFilter === 'gainers' ? 'var(--accent)' : 'var(--text-body)' }}
               >
                 Top Gainers
               </button>
@@ -362,7 +362,7 @@ export default function PreOpenScannerPage() {
                   setSortField('changePercent');
                   setSortAsc(true);
                 }}
-                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'losers' ? '#fde8e8' : '#ffffff', color: activeFilter === 'losers' ? '#ef4444' : '#475569' }}
+                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid var(--border-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'losers' ? '#fde8e8' : '#ffffff', color: activeFilter === 'losers' ? 'var(--danger)' : 'var(--text-body)' }}
               >
                 Top Losers
               </button>
@@ -399,7 +399,7 @@ export default function PreOpenScannerPage() {
               style={{
                 border: 'none',
                 backgroundColor: 'transparent',
-                color: '#475569',
+                color: 'var(--text-body)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
@@ -426,9 +426,9 @@ export default function PreOpenScannerPage() {
                     display: 'inline-block', 
                     width: '8px', 
                     height: '8px', 
-                    backgroundColor: '#10b981', 
+                    backgroundColor: 'var(--accent)', 
                     borderRadius: '50%', 
-                    boxShadow: '0 0 8px #10b981'
+                    boxShadow: '0 0 8px var(--accent)'
                   }} />
                 </div>
               ) : (
@@ -437,13 +437,13 @@ export default function PreOpenScannerPage() {
                     display: 'inline-block', 
                     width: '8px', 
                     height: '8px', 
-                    backgroundColor: '#cbd5e1', 
+                    backgroundColor: 'var(--border-color)', 
                     borderRadius: '50%'
                   }} />
                 </div>
               )}
               {(loading || isSyncing) && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#0ea5e9', fontSize: '11px', fontWeight: 500 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--primary)', fontSize: '11px', fontWeight: 500 }}>
                   <Loader2 size={13} style={{ animation: 'spin 1.2s linear infinite' }} />
                   <span>Syncing ticks...</span>
                 </div>
@@ -471,18 +471,18 @@ export default function PreOpenScannerPage() {
           <div className="table-responsive" style={{ overflowX: 'auto', maxHeight: '600px', overflowY: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1100px' }}>
               <thead>
-                <tr style={{ borderBottom: '1.5px solid var(--border-light)', backgroundColor: '#f8fafc' }}>
-                  <th onClick={() => handleSort('symbol')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>SYMBOL{renderSortIndicator('symbol')}</th>
-                  <th onClick={() => handleSort('prevClose')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>PREV. CLOSE{renderSortIndicator('prevClose')}</th>
-                  <th onClick={() => handleSort('iep')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>IEP{renderSortIndicator('iep')}</th>
-                  <th onClick={() => handleSort('chng')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>CHNG{renderSortIndicator('chng')}</th>
-                  <th onClick={() => handleSort('changePercent')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>%CHNG{renderSortIndicator('changePercent')}</th>
-                  <th onClick={() => handleSort('final')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>FINAL{renderSortIndicator('final')}</th>
-                  <th onClick={() => handleSort('finalQuantity')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>FINAL QUANTITY{renderSortIndicator('finalQuantity')}</th>
-                  <th onClick={() => handleSort('value')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>VALUE (₹ {label}){renderSortIndicator('value')}</th>
-                  <th onClick={() => handleSort('ffmCap')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>FFM CAP (₹ {label}){renderSortIndicator('ffmCap')}</th>
-                  <th onClick={() => handleSort('nm52wH')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>NM 52W H{renderSortIndicator('nm52wH')}</th>
-                  <th onClick={() => handleSort('nm52wL')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>NM 52W L{renderSortIndicator('nm52wL')}</th>
+                <tr style={{ borderBottom: '1.5px solid var(--border-light)', backgroundColor: 'var(--surface)' }}>
+                  <th onClick={() => handleSort('symbol')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>SYMBOL{renderSortIndicator('symbol')}</th>
+                  <th onClick={() => handleSort('prevClose')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>PREV. CLOSE{renderSortIndicator('prevClose')}</th>
+                  <th onClick={() => handleSort('iep')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>IEP{renderSortIndicator('iep')}</th>
+                  <th onClick={() => handleSort('chng')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>CHNG{renderSortIndicator('chng')}</th>
+                  <th onClick={() => handleSort('changePercent')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>%CHNG{renderSortIndicator('changePercent')}</th>
+                  <th onClick={() => handleSort('final')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>FINAL{renderSortIndicator('final')}</th>
+                  <th onClick={() => handleSort('finalQuantity')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>FINAL QUANTITY{renderSortIndicator('finalQuantity')}</th>
+                  <th onClick={() => handleSort('value')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>VALUE (₹ {label}){renderSortIndicator('value')}</th>
+                  <th onClick={() => handleSort('ffmCap')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>FFM CAP (₹ {label}){renderSortIndicator('ffmCap')}</th>
+                  <th onClick={() => handleSort('nm52wH')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>NM 52W H{renderSortIndicator('nm52wH')}</th>
+                  <th onClick={() => handleSort('nm52wL')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>NM 52W L{renderSortIndicator('nm52wL')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -502,7 +502,7 @@ export default function PreOpenScannerPage() {
                         fontSize: '13px', 
                         fontWeight: 600,
                         textAlign: 'right',
-                        color: chng === 0 ? '#94a3b8' : isPositive ? '#10b981' : '#ef4444' 
+                        color: chng === 0 ? 'var(--text-subtle)' : isPositive ? 'var(--accent)' : 'var(--danger)' 
                       }}>
                         {isPositive ? '+' : ''}{chng.toFixed(2)}
                       </td>
@@ -511,7 +511,7 @@ export default function PreOpenScannerPage() {
                         fontSize: '13px', 
                         fontWeight: 700,
                         textAlign: 'right',
-                        color: stock.changePercent === 0 ? '#94a3b8' : isPositive ? '#10b981' : '#ef4444' 
+                        color: stock.changePercent === 0 ? 'var(--text-subtle)' : isPositive ? 'var(--accent)' : 'var(--danger)' 
                       }}>
                         {isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
                       </td>

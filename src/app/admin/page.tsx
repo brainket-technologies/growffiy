@@ -208,10 +208,10 @@ export default function AdminDashboard() {
       {/* Top Header & Controls */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '8px' }}>
         <div>
-          <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+          <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
             Trading Terminal Dashboard
           </h1>
-          <p style={{ color: '#64748b', fontSize: '13px', marginTop: '2px' }}>Monitor automated breakout execution and client P&L logs.</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '2px' }}>Monitor automated breakout execution and client P&L logs.</p>
         </div>
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', position: 'relative' }}>
@@ -226,19 +226,19 @@ export default function AdminDashboard() {
                 gap: '8px', 
                 padding: '8px 16px', 
                 borderRadius: '8px', 
-                background: 'white', 
-                border: '1px solid #e2e8f0', 
+                background: 'var(--bg-white)', 
+                border: '1px solid var(--border)', 
                 fontSize: '13px', 
-                color: '#334155',
+                color: 'var(--text-body)',
                 fontWeight: 500,
                 cursor: 'pointer',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                 userSelect: 'none'
               }}
             >
-              <Calendar size={14} color="#0052cc" />
+              <Calendar size={14} color="var(--primary)" />
               <span>{dateRangeStr}</span>
-              <ChevronDown size={14} color="#64748b" />
+              <ChevronDown size={14} color="var(--text-muted)" />
             </div>
 
             {/* Dropdown Menu */}
@@ -249,7 +249,7 @@ export default function AdminDashboard() {
                 right: 0,
                 width: '320px',
                 background: 'white',
-                border: '1px solid #e2e8f0',
+                border: '1px solid var(--border)',
                 borderRadius: '12px',
                 boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)',
                 padding: '16px',
@@ -258,33 +258,33 @@ export default function AdminDashboard() {
                 flexDirection: 'column',
                 gap: '12px'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                  <span style={{ fontWeight: 600, fontSize: '14px', color: '#0f172a' }}>Date Filter</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--surface)', paddingBottom: '8px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-heading)' }}>Date Filter</span>
                   <button 
                     onClick={clearFilters}
-                    style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                    style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
                   >
                     Reset to Default
                   </button>
                 </div>
 
                 {/* Filter Selector Tabs */}
-                <div style={{ display: 'flex', background: '#f1f5f9', padding: '2px', borderRadius: '6px' }}>
+                <div style={{ display: 'flex', background: 'var(--surface)', padding: '2px', borderRadius: '6px' }}>
                   <button 
                     onClick={() => setFilterType('month')}
-                    style={{ flex: 1, border: 'none', background: filterType === 'month' ? 'white' : 'transparent', color: '#334155', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterType === 'month' ? 600 : 500, cursor: 'pointer' }}
+                    style={{ flex: 1, border: 'none', background: filterType === 'month' ? 'var(--bg-white)' : 'transparent', color: 'var(--text-body)', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterType === 'month' ? 600 : 500, cursor: 'pointer' }}
                   >
                     Month
                   </button>
                   <button 
                     onClick={() => setFilterType('year')}
-                    style={{ flex: 1, border: 'none', background: filterType === 'year' ? 'white' : 'transparent', color: '#334155', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterType === 'year' ? 600 : 500, cursor: 'pointer' }}
+                    style={{ flex: 1, border: 'none', background: filterType === 'year' ? 'var(--bg-white)' : 'transparent', color: 'var(--text-body)', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterType === 'year' ? 600 : 500, cursor: 'pointer' }}
                   >
                     Year
                   </button>
                   <button 
                     onClick={() => setFilterType('custom')}
-                    style={{ flex: 1, border: 'none', background: filterType === 'custom' ? 'white' : 'transparent', color: '#334155', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterType === 'custom' ? 600 : 500, cursor: 'pointer' }}
+                    style={{ flex: 1, border: 'none', background: filterType === 'custom' ? 'var(--bg-white)' : 'transparent', color: 'var(--text-body)', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterType === 'custom' ? 600 : 500, cursor: 'pointer' }}
                   >
                     Custom Date
                   </button>
@@ -297,19 +297,19 @@ export default function AdminDashboard() {
                       <select 
                         value={selectedYear}
                         onChange={(e) => setSelectedYear(Number(e.target.value))}
-                        style={{ flex: 1, padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                        style={{ flex: 1, padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '13px' }}
                       >
                         {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
                       </select>
                       <select 
                         value={selectedMonth}
                         onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                        style={{ flex: 1.5, padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                        style={{ flex: 1.5, padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '13px' }}
                       >
                         {MONTHS.map((m, idx) => <option key={m} value={idx}>{m}</option>)}
                       </select>
                     </div>
-                    <Button onClick={applyMonthFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: '#0052cc', color: 'white' }}>
+                    <Button onClick={applyMonthFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: 'var(--primary)', color: 'white' }}>
                       Apply Month Filter
                     </Button>
                   </div>
@@ -320,11 +320,11 @@ export default function AdminDashboard() {
                     <select 
                       value={selectedYear}
                       onChange={(e) => setSelectedYear(Number(e.target.value))}
-                      style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                      style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '13px' }}
                     >
                       {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
                     </select>
-                    <Button onClick={applyYearFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: '#0052cc', color: 'white' }}>
+                    <Button onClick={applyYearFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: 'var(--primary)', color: 'white' }}>
                       Apply Year Filter
                     </Button>
                   </div>
@@ -333,24 +333,24 @@ export default function AdminDashboard() {
                 {filterType === 'custom' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>Start Date</label>
+                      <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>Start Date</label>
                       <input 
                         type="date"
                         value={customStart}
                         onChange={(e) => setCustomStart(e.target.value)}
-                        style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', width: '100%' }}
+                        style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '13px', width: '100%' }}
                       />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>End Date</label>
+                      <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>End Date</label>
                       <input 
                         type="date"
                         value={customEnd}
                         onChange={(e) => setCustomEnd(e.target.value)}
-                        style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', width: '100%' }}
+                        style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '13px', width: '100%' }}
                       />
                     </div>
-                    <Button onClick={applyCustomFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: '#0052cc', color: 'white' }}>
+                    <Button onClick={applyCustomFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: 'var(--primary)', color: 'white' }}>
                       Apply Custom Filter
                     </Button>
                   </div>
@@ -360,14 +360,14 @@ export default function AdminDashboard() {
           </div>
 
           {globalLoading ? (
-            <div style={{ fontSize: '12px', color: '#64748b', background: '#f1f5f9', padding: '6px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span className="live-dot" style={{ width: '6px', height: '6px', backgroundColor: '#0ea5e9' }}></span>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', background: 'var(--surface)', padding: '6px 16px', borderRadius: '8px', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="live-dot" style={{ width: '6px', height: '6px', backgroundColor: 'var(--primary)' }}></span>
               Checking engine...
             </div>
           ) : (
             <>
-              <div style={{ padding: '6px 14px', borderRadius: '8px', backgroundColor: isTradingActive ? '#e0f2fe' : '#f1f5f9', color: isTradingActive ? '#0284c7' : '#64748b', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isTradingActive ? '#0284c7' : '#94a3b8', display: 'inline-block' }} />
+              <div style={{ padding: '6px 14px', borderRadius: '8px', backgroundColor: isTradingActive ? 'var(--primary-light)' : 'var(--surface)', color: isTradingActive ? 'var(--primary-dark)' : 'var(--text-muted)', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isTradingActive ? 'var(--primary-dark)' : 'var(--text-subtle)', display: 'inline-block' }} />
                 <span>{isTradingActive ? 'AUTO TRADING LIVE' : 'ENGINE STOPPED'}</span>
                 <span style={{ width: '1px', height: '14px', background: isTradingActive ? 'rgba(2,132,199,0.2)' : 'rgba(100,116,139,0.2)' }} />
                 <span style={{ fontSize: '11px', fontWeight: 500, opacity: 0.8 }}>
@@ -386,65 +386,65 @@ export default function AdminDashboard() {
       {/* 4 Top KPI Cards Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
         {/* Card 1: Total Clients */}
-        <Card style={{ padding: '24px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 2px 8px rgba(0,0,0,0.015)' }}>
+        <Card style={{ padding: '24px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.015)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '13px', fontWeight: 500, color: '#64748b' }}>Total Clients</span>
-            <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#f0f7ff', color: '#0052cc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>Total Clients</span>
+            <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Users size={18} />
             </div>
           </div>
-          <h2 style={{ fontSize: '30px', fontWeight: 700, marginTop: '4px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+          <h2 style={{ fontSize: '30px', fontWeight: 700, marginTop: '4px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
             {totalClients}
           </h2>
-          <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 600, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+          <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '2px' }}>
             ↑ {totalClients > 0 ? '12.5%' : '0.0%'}
           </span>
         </Card>
 
         {/* Card 2: Active Strategies */}
-        <Card style={{ padding: '24px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 2px 8px rgba(0,0,0,0.015)' }}>
+        <Card style={{ padding: '24px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.015)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '13px', fontWeight: 500, color: '#64748b' }}>Active Strategies</span>
-            <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#f0f7ff', color: '#0052cc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>Active Strategies</span>
+            <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <TrendingUp size={18} />
             </div>
           </div>
-          <h2 style={{ fontSize: '30px', fontWeight: 700, marginTop: '4px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+          <h2 style={{ fontSize: '30px', fontWeight: 700, marginTop: '4px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
             {activeStrategies}
           </h2>
-          <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 600, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+          <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '2px' }}>
             ↑ {activeStrategies > 0 ? '8.3%' : '0.0%'}
           </span>
         </Card>
 
         {/* Card 3: Live Accounts */}
-        <Card style={{ padding: '24px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 2px 8px rgba(0,0,0,0.015)' }}>
+        <Card style={{ padding: '24px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.015)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '13px', fontWeight: 500, color: '#64748b' }}>Live Accounts</span>
-            <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#f0f7ff', color: '#0052cc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>Live Accounts</span>
+            <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <User size={18} />
             </div>
           </div>
-          <h2 style={{ fontSize: '30px', fontWeight: 700, marginTop: '4px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+          <h2 style={{ fontSize: '30px', fontWeight: 700, marginTop: '4px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
             {liveAccounts}
           </h2>
-          <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 600, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+          <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '2px' }}>
             ↑ {liveAccounts > 0 ? '10.2%' : '0.0%'}
           </span>
         </Card>
 
         {/* Card 4: Total P&L */}
-        <Card style={{ padding: '24px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 2px 8px rgba(0,0,0,0.015)' }}>
+        <Card style={{ padding: '24px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.015)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '13px', fontWeight: 500, color: '#64748b' }}>Total P&L (₹)</span>
-            <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#f0f7ff', color: '#0052cc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '16px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>Total P&L (₹)</span>
+            <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '16px' }}>
               ₹
             </div>
           </div>
-          <h2 style={{ fontSize: '30px', fontWeight: 700, marginTop: '4px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+          <h2 style={{ fontSize: '30px', fontWeight: 700, marginTop: '4px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
             ₹ {totalPnl.toLocaleString('en-IN')}
           </h2>
-          <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 600, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+          <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '2px' }}>
             ↑ {totalPnl !== 0 ? '15.4%' : '0.0%'}
           </span>
         </Card>
@@ -453,15 +453,15 @@ export default function AdminDashboard() {
       {/* Middle Row: P&L Overview & Strategies Performance */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
         {/* Left: P&L Area Curve Chart */}
-        <Card style={{ padding: '24px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+        <Card style={{ padding: '24px', borderRadius: '12px', border: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h4 style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+            <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
               P&L Overview
             </h4>
             <select 
               value={pnlPeriod} 
               onChange={(e) => setPnlPeriod(e.target.value)}
-              style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none', background: 'white', fontWeight: 600, color: '#475569' }}
+              style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '12px', outline: 'none', background: 'var(--bg-white)', fontWeight: 600, color: 'var(--text-body)' }}
             >
               <option>Daily</option>
               <option>Cumulative</option>
@@ -470,7 +470,7 @@ export default function AdminDashboard() {
           <PerformanceChart
             data={pnlHistoryData}
             labels={pnlHistoryLabels}
-            strokeColor="#0052cc"
+            strokeColor="var(--primary)"
             fillColorStart="rgba(0, 82, 204, 0.15)"
             fillColorEnd="rgba(0, 82, 204, 0)"
             height={280}
@@ -478,8 +478,8 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Right: Strategies Performance Donut Chart */}
-        <Card style={{ padding: '24px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
-          <h4 style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', fontFamily: 'var(--font-title)', marginBottom: '20px' }}>
+        <Card style={{ padding: '24px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)' }}>
+          <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', marginBottom: '20px' }}>
             Strategies Performance
           </h4>
 
@@ -488,53 +488,53 @@ export default function AdminDashboard() {
             <div style={{ width: '130px', height: '130px', position: 'relative' }}>
               <svg width="100%" height="100%" viewBox="0 0 42 42">
                 <circle cx="21" cy="21" r="15.915" fill="#fff"></circle>
-                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#f1f5f9" strokeWidth="4.5"></circle>
+                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--surface)" strokeWidth="4.5"></circle>
                 
                 {/* Winning segment (Blue) */}
-                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#0052cc" strokeWidth="4.5" 
+                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--primary)" strokeWidth="4.5" 
                   strokeDasharray={`${winRatePercent || 0} ${100 - (winRatePercent || 0)}`} 
                   strokeDashoffset="25"
                 />
                 {/* Losing segment (Red) */}
-                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#ef4444" strokeWidth="4.5" 
+                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--danger)" strokeWidth="4.5" 
                   strokeDasharray={`${lossRatePercent || 0} ${100 - (lossRatePercent || 0)}`} 
                   strokeDashoffset={`${25 - (winRatePercent || 0)}`}
                 />
                 {/* Breakeven segment (Gray) */}
-                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#cbd5e1" strokeWidth="4.5" 
+                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--border-color)" strokeWidth="4.5" 
                   strokeDasharray={`${drawRatePercent || 0} ${100 - (drawRatePercent || 0)}`} 
                   strokeDashoffset={`${25 - (winRatePercent || 0) - (lossRatePercent || 0)}`}
                 />
               </svg>
               {/* Center total number */}
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: '1.2' }}>
-                <strong style={{ fontSize: '22px', color: '#0f172a', fontWeight: '700' }}>{activeStrategies}</strong>
-                <span style={{ fontSize: '9px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '2px' }}>Total Strategies</span>
+                <strong style={{ fontSize: '22px', color: 'var(--text-heading)', fontWeight: '700' }}>{activeStrategies}</strong>
+                <span style={{ fontSize: '9px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '2px' }}>Total Strategies</span>
               </div>
             </div>
 
             {/* Labels Legend */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', fontSize: '13px', marginTop: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#475569' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#0052cc' }} />
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-body)' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--primary)' }} />
                   Winning
                 </span>
-                <strong style={{ color: '#0f172a' }}>{winningStrats} ({winRatePercent.toFixed(1)}%)</strong>
+                <strong style={{ color: 'var(--text-heading)' }}>{winningStrats} ({winRatePercent.toFixed(1)}%)</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#475569' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-body)' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--danger)' }} />
                   Losing
                 </span>
-                <strong style={{ color: '#0f172a' }}>{losingStrats} ({lossRatePercent.toFixed(1)}%)</strong>
+                <strong style={{ color: 'var(--text-heading)' }}>{losingStrats} ({lossRatePercent.toFixed(1)}%)</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#475569' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#cbd5e1' }} />
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-body)' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--border-color)' }} />
                   Breakeven
                 </span>
-                <strong style={{ color: '#0f172a' }}>{breakevenStrats} ({drawRatePercent.toFixed(1)}%)</strong>
+                <strong style={{ color: 'var(--text-heading)' }}>{breakevenStrats} ({drawRatePercent.toFixed(1)}%)</strong>
               </div>
             </div>
           </div>
@@ -544,14 +544,14 @@ export default function AdminDashboard() {
       {/* Bottom Row: Live Strategy & Exposure 2x2 mini-cards */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
         {/* Left: Live Strategy Table */}
-        <Card style={{ padding: '24px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+        <Card style={{ padding: '24px', borderRadius: '12px', border: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h4 style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+            <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
               Live Strategy
             </h4>
             <Button 
               onClick={() => router.push('/admin/strategies')}
-              style={{ backgroundColor: '#0052cc', color: 'white', padding: '6px 14px', fontSize: '12px', fontWeight: 600, borderRadius: '6px' }}
+              style={{ backgroundColor: 'var(--primary)', color: 'white', padding: '6px 14px', fontSize: '12px', fontWeight: 600, borderRadius: '6px' }}
             >
               View All Strategies
             </Button>
@@ -560,21 +560,21 @@ export default function AdminDashboard() {
           <div className="table-responsive">
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #f1f5f9', textAlign: 'left' }}>
-                  <th style={{ padding: '10px 0', fontSize: '11px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>Strategy</th>
-                  <th style={{ padding: '10px 0', fontSize: '11px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>Symbol</th>
-                  <th style={{ padding: '10px 0', fontSize: '11px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>Type</th>
-                  <th style={{ padding: '10px 0', fontSize: '11px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>Qty</th>
-                  <th style={{ padding: '10px 0', fontSize: '11px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>Avg. Price</th>
-                  <th style={{ padding: '10px 0', fontSize: '11px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>LTP</th>
-                  <th style={{ padding: '10px 0', fontSize: '11px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>P&L (₹)</th>
-                  <th style={{ padding: '10px 0', fontSize: '11px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>Status</th>
+                <tr style={{ borderBottom: '1px solid var(--surface)', textAlign: 'left' }}>
+                  <th style={{ padding: '10px 0', fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Strategy</th>
+                  <th style={{ padding: '10px 0', fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Symbol</th>
+                  <th style={{ padding: '10px 0', fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Type</th>
+                  <th style={{ padding: '10px 0', fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Qty</th>
+                  <th style={{ padding: '10px 0', fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Avg. Price</th>
+                  <th style={{ padding: '10px 0', fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>LTP</th>
+                  <th style={{ padding: '10px 0', fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>P&L (₹)</th>
+                  <th style={{ padding: '10px 0', fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {displayTrades.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '24px', color: '#94a3b8', fontSize: '13px' }}>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-subtle)', fontSize: '13px' }}>
                       No active trades running at this moment.
                     </td>
                   </tr>
@@ -598,17 +598,17 @@ export default function AdminDashboard() {
 
                     return (
                       <tr key={trade.id} style={{ borderBottom: '1px solid #f8fafc' }}>
-                        <td style={{ padding: '12px 0', fontSize: '13px', fontWeight: 500, color: '#334155' }}>{strategyName}</td>
-                        <td style={{ padding: '12px 0', fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{trade.symbol}</td>
+                        <td style={{ padding: '12px 0', fontSize: '13px', fontWeight: 500, color: 'var(--text-body)' }}>{strategyName}</td>
+                        <td style={{ padding: '12px 0', fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)' }}>{trade.symbol}</td>
                         <td style={{ padding: '12px 0', fontSize: '13px' }}>
-                          <span style={{ fontWeight: 700, color: isBuy ? '#10b981' : '#ef4444' }}>
+                          <span style={{ fontWeight: 700, color: isBuy ? 'var(--accent)' : 'var(--danger)' }}>
                             {transactionType}
                           </span>
                         </td>
-                        <td style={{ padding: '12px 0', fontSize: '13px', color: '#475569' }}>{trade.quantity}</td>
-                        <td style={{ padding: '12px 0', fontSize: '13px', color: '#475569' }}>{entryPriceVal.toFixed(2)}</td>
-                        <td style={{ padding: '12px 0', fontSize: '13px', color: '#475569' }}>{exitPriceVal ? exitPriceVal.toFixed(2) : entryPriceVal.toFixed(2)}</td>
-                        <td style={{ padding: '12px 0', fontSize: '13px', fontWeight: 600, color: pnl >= 0 ? '#10b981' : '#ef4444' }}>
+                        <td style={{ padding: '12px 0', fontSize: '13px', color: 'var(--text-body)' }}>{trade.quantity}</td>
+                        <td style={{ padding: '12px 0', fontSize: '13px', color: 'var(--text-body)' }}>{entryPriceVal.toFixed(2)}</td>
+                        <td style={{ padding: '12px 0', fontSize: '13px', color: 'var(--text-body)' }}>{exitPriceVal ? exitPriceVal.toFixed(2) : entryPriceVal.toFixed(2)}</td>
+                        <td style={{ padding: '12px 0', fontSize: '13px', fontWeight: 600, color: pnl >= 0 ? 'var(--accent)' : 'var(--danger)' }}>
                           {pnl >= 0 ? `+${pnl.toFixed(2)}` : pnl.toFixed(2)}
                         </td>
                         <td style={{ padding: '12px 0', fontSize: '13px' }}>
@@ -618,7 +618,7 @@ export default function AdminDashboard() {
                             borderRadius: '4px', 
                             fontWeight: 500,
                             backgroundColor: trade.status.toLowerCase() === 'open' ? '#e6f7f4' : '#fee2e2', 
-                            color: trade.status.toLowerCase() === 'open' ? '#00a389' : '#ef4444'
+                            color: trade.status.toLowerCase() === 'open' ? 'var(--accent-dark)' : 'var(--danger)'
                           }}>
                             {trade.status.toLowerCase() === 'open' ? 'Open' : trade.status.toUpperCase()}
                           </span>
@@ -635,53 +635,53 @@ export default function AdminDashboard() {
         {/* Right: Exposure & Positions metrics in a 2x2 grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', height: 'fit-content' }}>
           {/* Card: Total Exposure */}
-          <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+          <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '11px', fontWeight: 500, color: '#64748b' }}>Total Exposure (₹)</span>
+              <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)' }}>Total Exposure (₹)</span>
               <div style={{ width: '28px', height: '28px', borderRadius: '6px', backgroundColor: '#eef2ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Wallet size={14} />
               </div>
             </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, marginTop: '10px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, marginTop: '10px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
               ₹ {totalExposure.toLocaleString('en-IN')}
             </h3>
           </Card>
 
           {/* Card: Unrealized P&L */}
-          <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+          <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '11px', fontWeight: 500, color: '#64748b' }}>Unrealized P&L (₹)</span>
+              <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)' }}>Unrealized P&L (₹)</span>
               <div style={{ width: '28px', height: '28px', borderRadius: '6px', backgroundColor: '#faf5ff', color: '#9333ea', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <TrendingUp size={14} />
               </div>
             </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, marginTop: '10px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, marginTop: '10px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
               ₹ {unrealizedPnl.toLocaleString('en-IN')}
             </h3>
           </Card>
 
           {/* Card: Realized P&L */}
-          <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+          <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '11px', fontWeight: 500, color: '#64748b' }}>Realized P&L (₹)</span>
+              <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)' }}>Realized P&L (₹)</span>
               <div style={{ width: '28px', height: '28px', borderRadius: '6px', backgroundColor: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Clock size={14} />
               </div>
             </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, marginTop: '10px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, marginTop: '10px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
               ₹ {realizedPnl.toLocaleString('en-IN')}
             </h3>
           </Card>
 
           {/* Card: Open Positions */}
-          <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+          <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '11px', fontWeight: 500, color: '#64748b' }}>Open Positions</span>
-              <div style={{ width: '28px', height: '28px', borderRadius: '6px', backgroundColor: '#fff7ed', color: '#ea580c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)' }}>Open Positions</span>
+              <div style={{ width: '28px', height: '28px', borderRadius: '6px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <FileText size={14} />
               </div>
             </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, marginTop: '10px', color: '#0f172a', fontFamily: 'var(--font-title)' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, marginTop: '10px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
               {openPositionsCount}
             </h3>
           </Card>

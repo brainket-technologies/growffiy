@@ -184,7 +184,7 @@ export default function ClientDashboardOverview() {
             style={{
               padding: '10px 20px',
               borderRadius: '8px',
-              backgroundColor: '#d97706',
+              backgroundColor: 'var(--warning)',
               color: 'white',
               fontSize: '13px',
               fontWeight: 600,
@@ -230,7 +230,7 @@ export default function ClientDashboardOverview() {
             My Active Subscription
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: '#f8fafc' }}>
+            <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--surface)' }}>
               <p style={{ color: 'var(--text-secondary)', fontSize: '11px', textTransform: 'uppercase', fontWeight: 700 }}>Active Plan</p>
               <h4 style={{ fontSize: '18px', fontWeight: 700, marginTop: '4px', color: isSubscriptionActive ? colors.PRIMARY : 'var(--text-subtle)' }}>
                 {activePlanName}
@@ -308,7 +308,7 @@ export default function ClientDashboardOverview() {
               </div>
               {matchedClient?.accessToken && (
                 <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #e2e8f0', paddingTop: '8px', marginTop: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--border)', paddingTop: '8px', marginTop: '4px' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Kite Client ID:</span>
                     <strong>{matchedClient.zerodhaClientId || '--'}</strong>
                   </div>

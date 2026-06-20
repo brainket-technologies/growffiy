@@ -164,7 +164,7 @@ export default function ClientsPage() {
         </Card>
         <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid #f59e0b' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Connected Sessions</span>
-          <span style={{ fontSize: '28px', fontWeight: 800, color: '#d97706', fontFamily: 'var(--font-title)' }}>{connectedCount}</span>
+          <span style={{ fontSize: '28px', fontWeight: 800, color: 'var(--warning)', fontFamily: 'var(--font-title)' }}>{connectedCount}</span>
         </Card>
       </div>
 
@@ -490,16 +490,16 @@ export default function ClientsPage() {
           <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
             Client account has been successfully created. Share these credentials with the client so they can log in to their dashboard panel:
           </p>
-          <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
               <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Login User ID</span>
-              <code style={{ display: 'block', backgroundColor: '#f1f5f9', padding: '8px 12px', borderRadius: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', border: '1px solid #e2e8f0' }}>
+              <code style={{ display: 'block', backgroundColor: 'var(--surface)', padding: '8px 12px', borderRadius: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-heading)', border: '1px solid var(--border)' }}>
                 {generatedCreds?.userId}
               </code>
             </div>
             <div>
               <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Password</span>
-              <code style={{ display: 'block', backgroundColor: '#f1f5f9', padding: '8px 12px', borderRadius: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', border: '1px solid #e2e8f0' }}>
+              <code style={{ display: 'block', backgroundColor: 'var(--surface)', padding: '8px 12px', borderRadius: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-heading)', border: '1px solid var(--border)' }}>
                 {generatedCreds?.password}
               </code>
             </div>

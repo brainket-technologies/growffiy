@@ -219,13 +219,13 @@ export default function MarketWatchPage() {
       {/* Top Engine, Performance & Breadth Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
         {/* Algo Engine Status Card */}
-        <Card style={{ padding: '16px', borderLeft: `4px solid ${isTradingActive ? '#10b981' : '#64748b'}` }}>
+        <Card style={{ padding: '16px', borderLeft: `4px solid ${isTradingActive ? 'var(--accent)' : 'var(--text-muted)'}` }}>
           <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <TrendingUp size={15} color={isTradingActive ? "#10b981" : "#64748b"} /> Algo Engine Status
+            <TrendingUp size={15} color={isTradingActive ? "var(--accent)" : "var(--text-muted)"} /> Algo Engine Status
           </span>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
             <div>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 6px 0', color: isTradingActive ? '#10b981' : 'var(--text-primary)' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 6px 0', color: isTradingActive ? 'var(--accent)' : 'var(--text-primary)' }}>
                 {isTradingActive ? 'Engine Active' : 'Engine Paused'}
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -242,9 +242,9 @@ export default function MarketWatchPage() {
                 display: 'inline-block', 
                 width: '10px', 
                 height: '10px', 
-                backgroundColor: isTradingActive ? '#10b981' : '#64748b', 
+                backgroundColor: isTradingActive ? 'var(--accent)' : 'var(--text-muted)', 
                 borderRadius: '50%',
-                boxShadow: isTradingActive ? '0 0 10px #10b981' : 'none'
+                boxShadow: isTradingActive ? '0 0 10px var(--accent)' : 'none'
               }} />
             </div>
           </div>
@@ -261,7 +261,7 @@ export default function MarketWatchPage() {
                 fontSize: '18px', 
                 fontWeight: 700, 
                 margin: '0 0 6px 0',
-                color: (dashboardStats?.totalPnl || 0) >= 0 ? '#10b981' : '#ef4444'
+                color: (dashboardStats?.totalPnl || 0) >= 0 ? 'var(--accent)' : 'var(--danger)'
               }}>
                 ₹{(dashboardStats?.totalPnl || 0).toLocaleString()}
               </h3>
@@ -278,7 +278,7 @@ export default function MarketWatchPage() {
               <span style={{ 
                 fontSize: '12.5px', 
                 fontWeight: 700, 
-                color: (dashboardStats?.totalPnl || 0) >= 0 ? '#10b981' : '#ef4444'
+                color: (dashboardStats?.totalPnl || 0) >= 0 ? 'var(--accent)' : 'var(--danger)'
               }}>
                 {(dashboardStats?.totalPnl || 0) >= 0 ? 'PROFIT' : 'LOSS'}
               </span>
@@ -291,14 +291,14 @@ export default function MarketWatchPage() {
           <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500 }}>Live Session Breadth</span>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
             <div style={{ display: 'flex', gap: '12px', fontSize: '12.5px', fontWeight: 600 }}>
-              <span style={{ color: '#10b981' }}>Adv: {advances}</span>
-              <span style={{ color: '#ef4444' }}>Dec: {declines}</span>
-              <span style={{ color: '#64748b' }}>Unch: {unchanged}</span>
+              <span style={{ color: 'var(--accent)' }}>Adv: {advances}</span>
+              <span style={{ color: 'var(--danger)' }}>Dec: {declines}</span>
+              <span style={{ color: 'var(--text-muted)' }}>Unch: {unchanged}</span>
             </div>
             <div style={{ display: 'flex', width: '100px', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
-              <div style={{ flex: advances || 1, backgroundColor: '#10b981' }} />
-              <div style={{ flex: unchanged || 1, backgroundColor: '#cbd5e1' }} />
-              <div style={{ flex: declines || 1, backgroundColor: '#ef4444' }} />
+              <div style={{ flex: advances || 1, backgroundColor: 'var(--accent)' }} />
+              <div style={{ flex: unchanged || 1, backgroundColor: 'var(--border-color)' }} />
+              <div style={{ flex: declines || 1, backgroundColor: 'var(--danger)' }} />
             </div>
           </div>
         </Card>
@@ -323,8 +323,8 @@ export default function MarketWatchPage() {
             borderBottom: '1px solid var(--border-light)' 
           }}>
             {/* Category Dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '4px', overflow: 'hidden', height: '38px' }}>
-              <span style={{ padding: '0 12px', backgroundColor: '#f1f5f9', color: '#64748b', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', height: '100%', borderRight: '1px solid #cbd5e1' }}>
+            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: '4px', overflow: 'hidden', height: '38px' }}>
+              <span style={{ padding: '0 12px', backgroundColor: 'var(--surface)', color: 'var(--text-muted)', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', height: '100%', borderRight: '1px solid var(--border-color)' }}>
                 Category
               </span>
               <select 
@@ -352,8 +352,8 @@ export default function MarketWatchPage() {
             </div>
 
             {/* Symbol Search */}
-            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '4px', overflow: 'hidden', height: '38px', minWidth: '200px' }}>
-              <span style={{ padding: '0 12px', backgroundColor: '#f1f5f9', color: '#64748b', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', height: '100%', borderRight: '1px solid #cbd5e1' }}>
+            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: '4px', overflow: 'hidden', height: '38px', minWidth: '200px' }}>
+              <span style={{ padding: '0 12px', backgroundColor: 'var(--surface)', color: 'var(--text-muted)', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', height: '100%', borderRight: '1px solid var(--border-color)' }}>
                 Symbol
               </span>
               <input 
@@ -381,7 +381,7 @@ export default function MarketWatchPage() {
                   setSortField('changePercent');
                   setSortAsc(false);
                 }}
-                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'all' ? 'var(--color-info-bg)' : '#ffffff', color: activeFilter === 'all' ? 'var(--color-info)' : '#475569' }}
+                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid var(--border-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'all' ? 'var(--color-info-bg)' : '#ffffff', color: activeFilter === 'all' ? 'var(--color-info)' : 'var(--text-body)' }}
               >
                 All Watch
               </button>
@@ -391,7 +391,7 @@ export default function MarketWatchPage() {
                   setSortField('changePercent');
                   setSortAsc(false);
                 }}
-                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'gainers' ? '#e6f4ea' : '#ffffff', color: activeFilter === 'gainers' ? '#10b981' : '#475569' }}
+                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid var(--border-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'gainers' ? '#e6f4ea' : '#ffffff', color: activeFilter === 'gainers' ? 'var(--accent)' : 'var(--text-body)' }}
               >
                 Top Gainers
               </button>
@@ -401,7 +401,7 @@ export default function MarketWatchPage() {
                   setSortField('changePercent');
                   setSortAsc(true);
                 }}
-                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'losers' ? '#fde8e8' : '#ffffff', color: activeFilter === 'losers' ? '#ef4444' : '#475569' }}
+                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid var(--border-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'losers' ? '#fde8e8' : '#ffffff', color: activeFilter === 'losers' ? 'var(--danger)' : 'var(--text-body)' }}
               >
                 Top Losers
               </button>
@@ -438,7 +438,7 @@ export default function MarketWatchPage() {
               style={{
                 border: 'none',
                 backgroundColor: 'transparent',
-                color: '#475569',
+                color: 'var(--text-body)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
@@ -465,9 +465,9 @@ export default function MarketWatchPage() {
                     display: 'inline-block', 
                     width: '8px', 
                     height: '8px', 
-                    backgroundColor: '#10b981', 
+                    backgroundColor: 'var(--accent)', 
                     borderRadius: '50%', 
-                    boxShadow: '0 0 8px #10b981'
+                    boxShadow: '0 0 8px var(--accent)'
                   }} />
                 </div>
               ) : (
@@ -476,13 +476,13 @@ export default function MarketWatchPage() {
                     display: 'inline-block', 
                     width: '8px', 
                     height: '8px', 
-                    backgroundColor: '#cbd5e1', 
+                    backgroundColor: 'var(--border-color)', 
                     borderRadius: '50%'
                   }} />
                 </div>
               )}
               {isSyncing && (
-                <div style={{ display: 'flex', alignItems: 'center', color: '#0ea5e9' }} title="Syncing ticks...">
+                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--primary)' }} title="Syncing ticks...">
                   <Loader2 size={13} style={{ animation: 'spin 1.2s linear infinite' }} />
                 </div>
               )}
@@ -510,18 +510,18 @@ export default function MarketWatchPage() {
           <div className="table-responsive" style={{ overflowX: 'auto', maxHeight: '550px', overflowY: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1000px' }}>
               <thead>
-                <tr style={{ borderBottom: '1.5px solid var(--border-light)', backgroundColor: '#f8fafc' }}>
-                  <th onClick={() => handleSort('symbol')} style={{ position: 'sticky', top: 0, left: 0, zIndex: 20, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', borderRight: '1px solid var(--border-light)' }}>SYMBOL{renderSortIndicator('symbol')}</th>
-                  <th onClick={() => handleSort('prevClose')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>PREV. CLOSE{renderSortIndicator('prevClose')}</th>
-                  <th onClick={() => handleSort('open')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>OPEN{renderSortIndicator('open')}</th>
-                  <th onClick={() => handleSort('high')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>HIGH{renderSortIndicator('high')}</th>
-                  <th onClick={() => handleSort('low')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>LOW{renderSortIndicator('low')}</th>
-                  <th onClick={() => handleSort('ltp')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>LTP{renderSortIndicator('ltp')}</th>
-                  <th onClick={() => handleSort('change')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>CHNG{renderSortIndicator('change')}</th>
-                  <th onClick={() => handleSort('changePercent')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>%CHNG{renderSortIndicator('changePercent')}</th>
-                  <th onClick={() => handleSort('iep')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>PRE-OPEN{renderSortIndicator('iep')}</th>
-                  <th onClick={() => handleSort('volume')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>VOLUME{renderSortIndicator('volume')}</th>
-                  <th style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'center' }}>ACTION</th>
+                <tr style={{ borderBottom: '1.5px solid var(--border-light)', backgroundColor: 'var(--surface)' }}>
+                  <th onClick={() => handleSort('symbol')} style={{ position: 'sticky', top: 0, left: 0, zIndex: 20, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', borderRight: '1px solid var(--border-light)' }}>SYMBOL{renderSortIndicator('symbol')}</th>
+                  <th onClick={() => handleSort('prevClose')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>PREV. CLOSE{renderSortIndicator('prevClose')}</th>
+                  <th onClick={() => handleSort('open')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>OPEN{renderSortIndicator('open')}</th>
+                  <th onClick={() => handleSort('high')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>HIGH{renderSortIndicator('high')}</th>
+                  <th onClick={() => handleSort('low')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>LOW{renderSortIndicator('low')}</th>
+                  <th onClick={() => handleSort('ltp')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>LTP{renderSortIndicator('ltp')}</th>
+                  <th onClick={() => handleSort('change')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>CHNG{renderSortIndicator('change')}</th>
+                  <th onClick={() => handleSort('changePercent')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>%CHNG{renderSortIndicator('changePercent')}</th>
+                  <th onClick={() => handleSort('iep')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>PRE-OPEN{renderSortIndicator('iep')}</th>
+                  <th onClick={() => handleSort('volume')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>VOLUME{renderSortIndicator('volume')}</th>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'center' }}>ACTION</th>
                 </tr>
               </thead>
               <tbody>
@@ -539,23 +539,23 @@ export default function MarketWatchPage() {
                         cursor: 'pointer',
                         transition: 'background-color 0.15s'
                       }}
-                      onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = '#f8fafc'; }}
+                      onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--surface)'; }}
                       onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
                     >
-                      <td style={{ position: 'sticky', left: 0, zIndex: 5, backgroundColor: isSelected ? '#eff6ff' : '#ffffff', fontWeight: 700, padding: '12px 10px', fontSize: '13px', color: '#0f172a', borderRight: '1px solid var(--border-light)' }}>{stock.symbol}</td>
-                      <td style={{ padding: '12px 10px', fontSize: '13px', color: '#475569', textAlign: 'right' }}>{stock.prevClose.toFixed(2)}</td>
-                      <td style={{ padding: '12px 10px', fontSize: '13px', color: '#475569', textAlign: 'right' }}>{stock.open.toFixed(2)}</td>
-                      <td style={{ padding: '12px 10px', fontSize: '13px', color: '#10b981', textAlign: 'right', fontWeight: 500 }}>{stock.high.toFixed(2)}</td>
-                      <td style={{ padding: '12px 10px', fontSize: '13px', color: '#ef4444', textAlign: 'right', fontWeight: 500 }}>{stock.low.toFixed(2)}</td>
-                      <td style={{ padding: '12px 10px', fontSize: '13.5px', fontWeight: 700, color: '#0f172a', textAlign: 'right' }}>{stock.ltp.toFixed(2)}</td>
-                      <td style={{ padding: '12px 10px', fontSize: '13px', fontWeight: 600, color: isPositive ? '#10b981' : '#ef4444', textAlign: 'right' }}>
+                      <td style={{ position: 'sticky', left: 0, zIndex: 5, backgroundColor: isSelected ? '#eff6ff' : '#ffffff', fontWeight: 700, padding: '12px 10px', fontSize: '13px', color: 'var(--text-heading)', borderRight: '1px solid var(--border-light)' }}>{stock.symbol}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', color: 'var(--text-body)', textAlign: 'right' }}>{stock.prevClose.toFixed(2)}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', color: 'var(--text-body)', textAlign: 'right' }}>{stock.open.toFixed(2)}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', color: 'var(--accent)', textAlign: 'right', fontWeight: 500 }}>{stock.high.toFixed(2)}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', color: 'var(--danger)', textAlign: 'right', fontWeight: 500 }}>{stock.low.toFixed(2)}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13.5px', fontWeight: 700, color: 'var(--text-heading)', textAlign: 'right' }}>{stock.ltp.toFixed(2)}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', fontWeight: 600, color: isPositive ? 'var(--accent)' : 'var(--danger)', textAlign: 'right' }}>
                         {isPositive ? `+${chng.toFixed(2)}` : chng.toFixed(2)}
                       </td>
-                      <td style={{ padding: '12px 10px', fontSize: '13px', fontWeight: 700, color: isPositive ? '#10b981' : '#ef4444', textAlign: 'right' }}>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', fontWeight: 700, color: isPositive ? 'var(--accent)' : 'var(--danger)', textAlign: 'right' }}>
                         {isPositive ? `+${stock.changePercent.toFixed(2)}%` : `${stock.changePercent.toFixed(2)}%`}
                       </td>
-                      <td style={{ padding: '12px 10px', fontSize: '13px', color: '#475569', textAlign: 'right' }}>{stock.iep.toFixed(2)}</td>
-                      <td style={{ padding: '12px 10px', fontSize: '12.5px', color: '#64748b', textAlign: 'right' }}>{stock.volume.toLocaleString()}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', color: 'var(--text-body)', textAlign: 'right' }}>{stock.iep.toFixed(2)}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '12.5px', color: 'var(--text-muted)', textAlign: 'right' }}>{stock.volume.toLocaleString()}</td>
                       <td style={{ padding: '12px 10px', textAlign: 'center' }}>
                         <button
                           onClick={(e) => {
