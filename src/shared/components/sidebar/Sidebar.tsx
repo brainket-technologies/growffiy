@@ -75,8 +75,8 @@ const adminGroups: MenuGroup[] = [
   {
     label: 'Transactions',
     items: [
-      { name: 'Subscription Plan Transactions', path: '/admin/payments/subscriptions', icon: CreditCard },
-      { name: 'Live Trade Transactions', path: '/admin/payments/trades', icon: Activity },
+      { name: 'Plan Txns', path: '/admin/payments/subscriptions', icon: CreditCard },
+      { name: 'Trade Txns', path: '/admin/payments/trades', icon: Activity },
     ],
   },
   {
