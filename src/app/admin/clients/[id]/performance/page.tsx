@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card } from '../../../../../shared/components/views/Card';
@@ -11,6 +11,7 @@ import {
   ArrowLeft, 
   Calendar, 
   ChevronRight, 
+  ChevronDown,
   Search, 
   Filter, 
   Download, 
@@ -67,6 +68,30 @@ export default function ClientPerformancePage() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusQuickFilter, setStatusQuickFilter] = useState<'all' | 'profit' | 'loss'>('all');
   const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
+  
+  // Date filter states
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filterType, setFilterType] = useState<'month' | 'year' | 'custom' | 'all'>('all');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth());
+  const [customStart, setCustomStart] = useState<string>('');
+  const [customEnd, setCustomEnd] = useState<string>('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsFilterOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -134,24 +159,37 @@ export default function ClientPerformancePage() {
     setTimeout(() => setCopySuccess(false), 2000);
   };
 
+  // Filter trades by date range if specified
+  const dateFilteredTrades = clientTrades.filter(t => {
+    if (!t.createdAt) return false;
+    const tDate = new Date(t.createdAt);
+    if (startDate && tDate < startDate) return false;
+    if (endDate) {
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      if (tDate > endOfDay) return false;
+    }
+    return true;
+  });
+
   // Metric calculation
-  const totalTradesCount = clientTrades.length;
-  const closedTrades = clientTrades.filter(t => t.status.toLowerCase() !== 'open');
-  const openTradesCount = clientTrades.filter(t => t.status.toLowerCase() === 'open').length;
+  const totalTradesCount = dateFilteredTrades.length;
+  const closedTrades = dateFilteredTrades.filter(t => t.status.toLowerCase() !== 'open');
+  const openTradesCount = dateFilteredTrades.filter(t => t.status.toLowerCase() === 'open').length;
   
   const winningTrades = closedTrades.filter(t => Number(t.pnl || 0) > 0);
   const losingTrades = closedTrades.filter(t => Number(t.pnl || 0) < 0);
   const breakevenTrades = closedTrades.filter(t => Number(t.pnl || 0) === 0);
-
+ 
   const winCount = winningTrades.length;
   const lossCount = losingTrades.length;
   const drawCount = breakevenTrades.length + openTradesCount; // Open trades are considered neutral/breakeven here
-
+ 
   const winRate = closedTrades.length ? (winCount / closedTrades.length) * 100 : 0;
   const lossRate = closedTrades.length ? (lossCount / closedTrades.length) * 100 : 0;
   const drawRate = totalTradesCount ? (drawCount / totalTradesCount) * 100 : 0;
-
-  const totalPnl = clientTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
+ 
+  const totalPnl = dateFilteredTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
   const netProfit = winningTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
   const netLoss = Math.abs(losingTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0));
 
@@ -166,9 +204,9 @@ export default function ClientPerformancePage() {
   // Real equity curve calculation
   let pnlHistoryData = [0];
   let pnlHistoryLabels = ['Start'];
-  if (clientTrades.length > 0) {
+  if (dateFilteredTrades.length > 0) {
     let runningSum = 0;
-    const sortedTrades = [...clientTrades].sort((a, b) => new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime());
+    const sortedTrades = [...dateFilteredTrades].sort((a, b) => new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime());
     sortedTrades.forEach((t) => {
       runningSum += Number(t.pnl || 0);
       pnlHistoryData.push(runningSum);
@@ -220,8 +258,10 @@ export default function ClientPerformancePage() {
 
   // Dynamic date range string
   let dateRangeStr = 'All Time';
-  if (clientTrades.length > 0) {
-    const times = clientTrades
+  if (startDate && endDate) {
+    dateRangeStr = `${startDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+  } else if (dateFilteredTrades.length > 0) {
+    const times = dateFilteredTrades
       .map(t => new Date(t.createdAt).getTime())
       .filter(t => !isNaN(t));
     if (times.length > 0) {
@@ -231,17 +271,17 @@ export default function ClientPerformancePage() {
     }
   }
 
-  // Get unique strategies from clientTrades
+  // Get unique strategies from dateFilteredTrades
   const uniqueStrategies = Array.from(
     new Set(
-      clientTrades
+      dateFilteredTrades
         .map(t => t.strategy?.name || t.strategyName || '')
         .filter(Boolean)
     )
   ) as string[];
 
   // Filter transaction list
-  const filteredTransactions = clientTrades.filter(t => {
+  const filteredTransactions = dateFilteredTrades.filter(t => {
     const strategyName = (t.strategy?.name || t.strategyName || '').toLowerCase();
     const symbolStr = (t.symbol || '').toLowerCase();
     const query = searchQuery.toLowerCase();
@@ -440,6 +480,43 @@ export default function ClientPerformancePage() {
     printWindow.document.close();
   };
 
+  const applyMonthFilter = () => {
+    const start = new Date(selectedYear, selectedMonth, 1);
+    const end = new Date(selectedYear, selectedMonth + 1, 0);
+    setStartDate(start);
+    setEndDate(end);
+    setIsFilterOpen(false);
+    setCurrentPage(1);
+  };
+
+  const applyYearFilter = () => {
+    const start = new Date(selectedYear, 0, 1);
+    const end = new Date(selectedYear, 11, 31);
+    setStartDate(start);
+    setEndDate(end);
+    setIsFilterOpen(false);
+    setCurrentPage(1);
+  };
+
+  const applyCustomFilter = () => {
+    if (customStart && customEnd) {
+      setStartDate(new Date(customStart));
+      setEndDate(new Date(customEnd));
+      setIsFilterOpen(false);
+      setCurrentPage(1);
+    }
+  };
+
+  const clearFilters = () => {
+    setStartDate(null);
+    setEndDate(null);
+    setSelectedYear(now.getFullYear());
+    setSelectedMonth(now.getMonth());
+    setFilterType('all');
+    setIsFilterOpen(false);
+    setCurrentPage(1);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1200px', margin: '0 auto' }}>
       {/* Top Breadcrumbs */}
@@ -450,21 +527,151 @@ export default function ClientPerformancePage() {
           <span style={{ color: 'var(--text-heading)', fontWeight: 500 }}>Client Performance</span>
         </div>
         
-        {/* Date Selector Pill */}
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '8px', 
-          padding: '6px 14px', 
-          borderRadius: '8px', 
-          background: 'var(--bg-white)', 
-          border: '1px solid var(--border-color)', 
-          fontSize: '13px', 
-          color: 'var(--text-body)',
-          cursor: 'pointer'
-        }}>
-          <Calendar size={14} color="var(--text-muted)" />
-          <span>{dateRangeStr}</span>
+        {/* Date Selector Dropdown Pill */}
+        <div ref={dropdownRef} style={{ position: 'relative' }}>
+          <div 
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              padding: '8px 16px', 
+              borderRadius: '8px', 
+              background: 'var(--bg-white)', 
+              border: '1px solid var(--border-color)', 
+              fontSize: '13px', 
+              color: 'var(--text-body)',
+              fontWeight: 500,
+              cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+              userSelect: 'none'
+            }}
+          >
+            <Calendar size={14} color="var(--primary)" />
+            <span>{dateRangeStr}</span>
+            <ChevronDown size={14} color="var(--text-muted)" />
+          </div>
+
+          {/* Dropdown Menu */}
+          {isFilterOpen && (
+            <div style={{ 
+              position: 'absolute',
+              top: 'calc(100% + 8px)',
+              right: 0,
+              width: '320px',
+              background: 'var(--bg-white)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '12px',
+              boxShadow: 'var(--shadow-lg)',
+              padding: '16px',
+              zIndex: 1000,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-light)', paddingBottom: '8px' }}>
+                <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-heading)' }}>Date Filter</span>
+                <button 
+                  onClick={clearFilters}
+                  style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Reset to Default
+                </button>
+              </div>
+
+              {/* Filter Selector Tabs */}
+              <div style={{ display: 'flex', background: 'var(--border-light)', padding: '2px', borderRadius: '6px' }}>
+                <button 
+                  onClick={() => setFilterType('month')}
+                  style={{ flex: 1, border: 'none', background: filterType === 'month' ? 'var(--bg-card)' : 'transparent', color: 'var(--text-body)', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterType === 'month' ? 600 : 500, cursor: 'pointer' }}
+                >
+                  Month
+                </button>
+                <button 
+                  onClick={() => setFilterType('year')}
+                  style={{ flex: 1, border: 'none', background: filterType === 'year' ? 'var(--bg-card)' : 'transparent', color: 'var(--text-body)', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterType === 'year' ? 600 : 500, cursor: 'pointer' }}
+                >
+                  Year
+                </button>
+                <button 
+                  onClick={() => setFilterType('custom')}
+                  style={{ flex: 1, border: 'none', background: filterType === 'custom' ? 'var(--bg-card)' : 'transparent', color: 'var(--text-body)', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterType === 'custom' ? 600 : 500, cursor: 'pointer' }}
+                >
+                  Custom
+                </button>
+              </div>
+
+              {/* Dropdown Content based on Tab */}
+              {filterType === 'month' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <select 
+                      value={selectedYear} 
+                      onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                      style={{ flex: 1, fontSize: '12px', padding: '6px', borderRadius: '6px' }}
+                    >
+                      {Array.from({ length: 5 }, (_, i) => now.getFullYear() - i).map(year => (
+                        <option key={year} value={year}>{year}</option>
+                      ))}
+                    </select>
+                    <select 
+                      value={selectedMonth} 
+                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                      style={{ flex: 1, fontSize: '12px', padding: '6px', borderRadius: '6px' }}
+                    >
+                      {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((month, idx) => (
+                        <option key={month} value={idx}>{month}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <Button onClick={applyMonthFilter} style={{ width: '100%', padding: '8px' }}>Apply Filter</Button>
+                </div>
+              )}
+
+              {filterType === 'year' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <select 
+                    value={selectedYear} 
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    style={{ width: '100%', fontSize: '12px', padding: '6px', borderRadius: '6px' }}
+                  >
+                    {Array.from({ length: 5 }, (_, i) => now.getFullYear() - i).map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                  <Button onClick={applyYearFilter} style={{ width: '100%', padding: '8px' }}>Apply Filter</Button>
+                </div>
+              )}
+
+              {filterType === 'custom' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input 
+                      type="date" 
+                      value={customStart} 
+                      onChange={(e) => setCustomStart(e.target.value)}
+                      style={{ flex: 1, fontSize: '12px', padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+                    />
+                    <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>to</span>
+                    <input 
+                      type="date" 
+                      value={customEnd} 
+                      onChange={(e) => setCustomEnd(e.target.value)}
+                      style={{ flex: 1, fontSize: '12px', padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+                    />
+                  </div>
+                  <Button onClick={applyCustomFilter} style={{ width: '100%', padding: '8px' }}>Apply Filter</Button>
+                </div>
+              )}
+              
+              {filterType === 'all' && (
+                <div style={{ padding: '8px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
+                  Showing entire performance trade history.
+                  <Button onClick={clearFilters} style={{ width: '100%', padding: '8px', marginTop: '8px' }}>Reset to All Time</Button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
