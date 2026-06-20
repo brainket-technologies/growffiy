@@ -18,7 +18,11 @@ import {
   FileText,
   ChevronDown,
   Filter,
-  RefreshCw
+  RefreshCw,
+  BarChart3,
+  Activity,
+  Zap,
+  Layers
 } from 'lucide-react';
 
 const formatDateTime = (timeStr: string | Date | null) => {
@@ -384,68 +388,64 @@ export default function AdminDashboard() {
       </div>
 
       {/* 4 Top KPI Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-        {/* Card 1: Total Clients */}
-        <Card style={{ padding: '24px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.015)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '18px' }}>
+        <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--primary)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>Total Clients</span>
-            <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total Clients</span>
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Users size={18} />
             </div>
           </div>
-          <h2 style={{ fontSize: '30px', fontWeight: 700, marginTop: '4px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
+          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
             {totalClients}
           </h2>
-          <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '2px' }}>
-            ↑ {totalClients > 0 ? '12.5%' : '0.0%'}
+          <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
+            <Activity size={12} /> ↑ 12.5%
           </span>
         </Card>
 
-        {/* Card 2: Active Strategies */}
-        <Card style={{ padding: '24px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.015)' }}>
+        <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--purple)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>Active Strategies</span>
-            <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <TrendingUp size={18} />
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Active Strategies</span>
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--purple-light)', color: 'var(--purple)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <BarChart3 size={18} />
             </div>
           </div>
-          <h2 style={{ fontSize: '30px', fontWeight: 700, marginTop: '4px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
+          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
             {activeStrategies}
           </h2>
-          <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '2px' }}>
-            ↑ {activeStrategies > 0 ? '8.3%' : '0.0%'}
+          <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
+            <Activity size={12} /> ↑ 8.3%
           </span>
         </Card>
 
-        {/* Card 3: Live Accounts */}
-        <Card style={{ padding: '24px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.015)' }}>
+        <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--accent)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>Live Accounts</span>
-            <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <User size={18} />
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Live Accounts</span>
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--accent-light)', color: 'var(--accent-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Zap size={18} />
             </div>
           </div>
-          <h2 style={{ fontSize: '30px', fontWeight: 700, marginTop: '4px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
+          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
             {liveAccounts}
           </h2>
-          <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '2px' }}>
-            ↑ {liveAccounts > 0 ? '10.2%' : '0.0%'}
+          <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
+            <Activity size={12} /> ↑ 10.2%
           </span>
         </Card>
 
-        {/* Card 4: Total P&L */}
-        <Card style={{ padding: '24px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.015)' }}>
+        <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--warning)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>Total P&L (₹)</span>
-            <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '16px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total P&L (₹)</span>
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '16px' }}>
               ₹
             </div>
           </div>
-          <h2 style={{ fontSize: '30px', fontWeight: 700, marginTop: '4px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
+          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
             ₹ {totalPnl.toLocaleString('en-IN')}
           </h2>
-          <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '2px' }}>
-            ↑ {totalPnl !== 0 ? '15.4%' : '0.0%'}
+          <span style={{ fontSize: '11px', color: totalPnl >= 0 ? 'var(--accent)' : 'var(--danger)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
+            <Activity size={12} /> {totalPnl >= 0 ? '↑' : '↓'} {totalPnl !== 0 ? '15.4%' : '0.0%'}
           </span>
         </Card>
       </div>
@@ -453,15 +453,20 @@ export default function AdminDashboard() {
       {/* Middle Row: P&L Overview & Strategies Performance */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
         {/* Left: P&L Area Curve Chart */}
-        <Card style={{ padding: '24px', borderRadius: '12px', border: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-              P&L Overview
-            </h4>
+        <Card style={{ padding: '24px', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div>
+              <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
+                P&L Overview
+              </h4>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
+                {dateRangeStr}
+              </span>
+            </div>
             <select 
               value={pnlPeriod} 
               onChange={(e) => setPnlPeriod(e.target.value)}
-              style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '12px', outline: 'none', background: 'var(--bg-white)', fontWeight: 600, color: 'var(--text-body)' }}
+              style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '12px', outline: 'none', background: 'var(--bg-white)', fontWeight: 600, color: 'var(--text-body)', cursor: 'pointer' }}
             >
               <option>Daily</option>
               <option>Cumulative</option>
@@ -471,8 +476,8 @@ export default function AdminDashboard() {
             data={pnlHistoryData}
             labels={pnlHistoryLabels}
             strokeColor="var(--primary)"
-            fillColorStart="rgba(0, 82, 204, 0.15)"
-            fillColorEnd="rgba(0, 82, 204, 0)"
+            fillColorStart="rgba(99,102,241,0.12)"
+            fillColorEnd="rgba(99,102,241,0)"
             height={280}
           />
         </Card>
@@ -597,29 +602,22 @@ export default function AdminDashboard() {
                     const isBuy = transactionType === 'BUY';
 
                     return (
-                      <tr key={trade.id} style={{ borderBottom: '1px solid #f8fafc' }}>
-                        <td style={{ padding: '12px 0', fontSize: '13px', fontWeight: 500, color: 'var(--text-body)' }}>{strategyName}</td>
-                        <td style={{ padding: '12px 0', fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)' }}>{trade.symbol}</td>
-                        <td style={{ padding: '12px 0', fontSize: '13px' }}>
-                          <span style={{ fontWeight: 700, color: isBuy ? 'var(--accent)' : 'var(--danger)' }}>
+                      <tr key={trade.id} className="clickable-row">
+                        <td style={{ padding: '12px 0', fontWeight: 500, color: 'var(--text-body)' }}>{strategyName}</td>
+                        <td style={{ padding: '12px 0', fontWeight: 600, color: 'var(--text-heading)' }}>{trade.symbol}</td>
+                        <td style={{ padding: '12px 0' }}>
+                          <span className={`badge ${isBuy ? 'badge-green' : 'badge-red'}`}>
                             {transactionType}
                           </span>
                         </td>
-                        <td style={{ padding: '12px 0', fontSize: '13px', color: 'var(--text-body)' }}>{trade.quantity}</td>
-                        <td style={{ padding: '12px 0', fontSize: '13px', color: 'var(--text-body)' }}>{entryPriceVal.toFixed(2)}</td>
-                        <td style={{ padding: '12px 0', fontSize: '13px', color: 'var(--text-body)' }}>{exitPriceVal ? exitPriceVal.toFixed(2) : entryPriceVal.toFixed(2)}</td>
-                        <td style={{ padding: '12px 0', fontSize: '13px', fontWeight: 600, color: pnl >= 0 ? 'var(--accent)' : 'var(--danger)' }}>
+                        <td style={{ padding: '12px 0', color: 'var(--text-body)' }}>{trade.quantity}</td>
+                        <td style={{ padding: '12px 0', color: 'var(--text-body)' }}>{entryPriceVal.toFixed(2)}</td>
+                        <td style={{ padding: '12px 0', color: 'var(--text-body)' }}>{exitPriceVal ? exitPriceVal.toFixed(2) : entryPriceVal.toFixed(2)}</td>
+                        <td style={{ padding: '12px 0', fontWeight: 600, color: pnl >= 0 ? 'var(--accent)' : 'var(--danger)' }}>
                           {pnl >= 0 ? `+${pnl.toFixed(2)}` : pnl.toFixed(2)}
                         </td>
-                        <td style={{ padding: '12px 0', fontSize: '13px' }}>
-                          <span style={{ 
-                            padding: '3px 8px', 
-                            fontSize: '11px', 
-                            borderRadius: '4px', 
-                            fontWeight: 500,
-                            backgroundColor: trade.status.toLowerCase() === 'open' ? '#e6f7f4' : '#fee2e2', 
-                            color: trade.status.toLowerCase() === 'open' ? 'var(--accent-dark)' : 'var(--danger)'
-                          }}>
+                        <td style={{ padding: '12px 0' }}>
+                          <span className={`badge ${trade.status.toLowerCase() === 'open' ? 'badge-green' : 'badge-red'}`}>
                             {trade.status.toLowerCase() === 'open' ? 'Open' : trade.status.toUpperCase()}
                           </span>
                         </td>
@@ -638,8 +636,8 @@ export default function AdminDashboard() {
           <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)' }}>Total Exposure (₹)</span>
-              <div style={{ width: '28px', height: '28px', borderRadius: '6px', backgroundColor: '#eef2ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Wallet size={14} />
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Wallet size={15} />
               </div>
             </div>
             <h3 style={{ fontSize: '18px', fontWeight: 700, marginTop: '10px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
@@ -651,8 +649,8 @@ export default function AdminDashboard() {
           <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)' }}>Unrealized P&L (₹)</span>
-              <div style={{ width: '28px', height: '28px', borderRadius: '6px', backgroundColor: '#faf5ff', color: '#9333ea', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <TrendingUp size={14} />
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'var(--purple-light)', color: 'var(--purple)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <TrendingUp size={15} />
               </div>
             </div>
             <h3 style={{ fontSize: '18px', fontWeight: 700, marginTop: '10px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
@@ -664,8 +662,8 @@ export default function AdminDashboard() {
           <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)' }}>Realized P&L (₹)</span>
-              <div style={{ width: '28px', height: '28px', borderRadius: '6px', backgroundColor: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Clock size={14} />
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'var(--accent-light)', color: 'var(--accent-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Clock size={15} />
               </div>
             </div>
             <h3 style={{ fontSize: '18px', fontWeight: 700, marginTop: '10px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
