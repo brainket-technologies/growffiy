@@ -62,8 +62,7 @@
 .searchIcon {
   position: absolute;
   left: 22px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 13px;
   pointer-events: none;
   color: var(--text-muted);
   opacity: 0.8;
