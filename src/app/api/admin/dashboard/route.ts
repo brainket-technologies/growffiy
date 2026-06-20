@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/db';
+import { prisma } from '../../../../database/db';
 
 // In-memory cache to reduce DB load
 let dashboardCache: { data: any; timestamp: number } | null = null;

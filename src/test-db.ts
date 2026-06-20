@@ -1,4 +1,4 @@
-import { prisma } from './lib/db';
+import { prisma } from './database/db';
 
 async function main() {
   const totalClients = await prisma.client.count();

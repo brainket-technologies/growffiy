@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { algoEngine } from '../../../models/algoEngine';
+import { algoEngine } from '../../../shared/models/algoEngine';
 
 export async function GET(req: NextRequest) {
   try {

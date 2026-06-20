@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../lib/db';
-import { sendClientWelcomeEmail } from '../../../lib/mail';
+import { prisma } from '../../../database/db';
+import { sendClientWelcomeEmail } from '../../../shared/services/mail';
 
 // In-memory fallback array to guarantee immediate functionality without live DB
 let inMemoryClients: any[] = [
@@ -54,7 +54,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, userId, password, zerodhaClientId, zerodhaApiKey, zerodhaApiSecret, zerodhaPassword, zerodhaTotpSecret, capital, strategyId } = body;
+    const { name, email, userId, password, zerodhaClientId, zerodhaApiKey, zerodhaApiSecret, zerodhaPassword, zerodhaTotpSecret, capital, riskPercentage, strategyId } = body;
 
     // Auto-generate credentials for the client
     const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, '');

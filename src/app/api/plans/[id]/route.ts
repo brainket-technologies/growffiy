@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/db';
+import { prisma } from '../../../../database/db';
 
 export async function PUT(
   request: Request,

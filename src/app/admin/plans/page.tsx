@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card } from '../../../views/components/Card';
+import { Card } from '../../../shared/components/views/Card';
 import { CreditCard, Plus, RefreshCw, Check, Calendar, Edit2, Trash2, Search, Filter } from 'lucide-react';
-import { Modal } from '../../../views/components/Modal';
-import { Button } from '../../../views/components/Button';
-import { api } from '../../../lib/api';
-import { THEME_COLORS, API_ENDPOINTS } from '../../../lib/constants';
+import { Modal } from '../../../shared/components/views/Modal';
+import { Button } from '../../../shared/components/views/Button';
+import { api } from '../../../shared/services/api';
+import { THEME_COLORS, API_ENDPOINTS } from '../../../core/constants';
 
 export default function AdminPlansPage() {
   const [plans, setPlans] = useState<any[]>([]);

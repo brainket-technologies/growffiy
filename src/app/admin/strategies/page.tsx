@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAppViewModel } from '../../../viewmodels/AppContext';
-import { Card } from '../../../views/components/Card';
-import { Button } from '../../../views/components/Button';
-import { PerformanceChart } from '../../../views/components/PerformanceChart';
+import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
+import { Card } from '../../../shared/components/views/Card';
+import { Button } from '../../../shared/components/views/Button';
+import { PerformanceChart } from '../../../shared/components/views/PerformanceChart';
 import {
   Play,
   TrendingUp,
@@ -27,9 +27,9 @@ import {
   ChevronDown,
   Save
 } from 'lucide-react';
-import { Modal } from '../../../views/components/Modal';
-import StrategyFlowPreview from '../../../components/StrategyFlowPreview';
-import StrategyTestPanel from '../../../components/StrategyTestPanel';
+import { Modal } from '../../../shared/components/views/Modal';
+import StrategyFlowPreview from '../../../shared/components/StrategyFlowPreview';
+import StrategyTestPanel from '../../../shared/components/StrategyTestPanel';
 
 interface StrategyCondition {
   logical: 'AND' | 'OR';

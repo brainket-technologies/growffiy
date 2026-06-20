@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card } from '../../../views/components/Card';
-import { Button } from '../../../views/components/Button';
+import { Card } from '../../../shared/components/views/Card';
+import { Button } from '../../../shared/components/views/Button';
 import { Shield, Server, RefreshCw, Key, Eye, EyeOff, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight, Mail, CreditCard, Globe, Info, LifeBuoy, Clock, Calendar, Plus, Trash2 } from 'lucide-react';
-import { api } from '../../../lib/api';
-import { Modal } from '../../../views/components/Modal';
-import { API_ENDPOINTS } from '../../../lib/constants';
+import { api } from '../../../shared/services/api';
+import { Modal } from '../../../shared/components/views/Modal';
+import { API_ENDPOINTS } from '../../../core/constants';
 
 
 type TabType = 'payments' | 'smtp' | 'support' | 'algo' | 'calendar';

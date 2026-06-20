@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/db';
-import { performKiteAutoLogin } from '../../../../lib/kiteAutoLogin';
+import { prisma } from '../../../../database/db';
+import { performKiteAutoLogin } from '../../../../shared/services/kiteAutoLogin';
 
 export const dynamic = 'force-dynamic';
 

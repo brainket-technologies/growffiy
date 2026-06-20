@@ -2,15 +2,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { PerformanceChart } from '../views/components/PerformanceChart';
-import Footer from '../views/components/Footer';
+import { PerformanceChart } from '../shared/components/views/PerformanceChart';
+import Footer from '../shared/components/views/Footer';
 import {
   Activity, ShieldCheck, Zap, ArrowRight, Sparkles,
   ChevronDown, ChevronUp, Menu, X,
   BarChart2, Lock, Bell, Target, Cpu,
   Check, Phone, Mail, MapPin
 } from 'lucide-react';
-import { API_ENDPOINTS } from '../lib/constants';
+import { API_ENDPOINTS } from '../core/constants';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Stock {
@@ -164,7 +164,7 @@ export default function GrowffiyLanding() {
             <a href="#strategy" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Strategy</a>
             <a href="#pricing" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Pricing</a>
             <a href="#faq" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>FAQ</a>
-            <Link href="/login" target="_blank" className="btn-nav">Get Started →</Link>
+            <Link href="/websites/login" target="_blank" className="btn-nav">Get Started →</Link>
           </div>
 
           {/* Hamburger Button (mobile only) */}
@@ -184,7 +184,7 @@ export default function GrowffiyLanding() {
             <a href="#strategy" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Strategy</a>
             <a href="#pricing" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
             <a href="#faq" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
-            <Link href="/login" target="_blank" className="mobile-nav-cta" onClick={() => setMobileMenuOpen(false)}>
+            <Link href="/websites/login" target="_blank" className="mobile-nav-cta" onClick={() => setMobileMenuOpen(false)}>
               Get Started →
             </Link>
           </div>
@@ -214,7 +214,7 @@ export default function GrowffiyLanding() {
             </p>
 
             <div className="hero-btns">
-              <Link href="/login" target="_blank" className="btn-primary">
+              <Link href="/websites/login" target="_blank" className="btn-primary">
                 Start Trading Now <ArrowRight size={15} />
               </Link>
               <a href="#strategy" className="btn-secondary">
@@ -518,14 +518,14 @@ export default function GrowffiyLanding() {
                     <span className="pricing-per">/ {plan.per}</span>
                   </div>
                   <ul className="pricing-features">
-                    {plan.features.map(f => (
+                    {plan.features.map((f: string) => (
                       <li key={f} className="pricing-feature-item">
                         <div className="check-icon"><Check size={11} /></div>
                         {f}
                       </li>
                     ))}
                   </ul>
-                  <Link href="/login" target="_blank" style={{ display: 'block' }}>
+                  <Link href="/websites/login" target="_blank" style={{ display: 'block' }}>
                     <button style={{
                       width: '100%', padding: '13px', borderRadius: 99, fontWeight: 700,
                       fontSize: 14, cursor: 'pointer', transition: 'all 0.3s',

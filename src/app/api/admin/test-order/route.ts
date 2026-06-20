@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/db';
-import { KiteClient } from '../../../../lib/kite';
+import { prisma } from '../../../../database/db';
+import { KiteClient } from '../../../../shared/services/kite';
 
 export async function GET() {
   try {

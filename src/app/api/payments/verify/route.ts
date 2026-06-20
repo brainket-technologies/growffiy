@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/db';
+import { prisma } from '../../../../database/db';
 import crypto from 'crypto';
-import { sendEmail } from '../../../../lib/mailer';
+import { sendEmail } from '../../../../shared/services/mailer';
 
 export async function POST(request: Request) {
   try {

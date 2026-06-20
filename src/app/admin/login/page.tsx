@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Activity, ShieldCheck, Eye, EyeOff, Lock, User, AlertTriangle, Server, Database, BarChart2 } from 'lucide-react';
-import { THEME_COLORS, API_ENDPOINTS } from '../../../lib/constants';
-import { api } from '../../../lib/api';
-import { Loader } from '../../../views/components/Loader';
+import { THEME_COLORS, API_ENDPOINTS } from '../../../core/constants';
+import { api } from '../../../shared/services/api';
+import { Loader } from '../../../shared/components/views/Loader';
 
 export default function AdminLoginPage() {
   const [userId, setUserId] = useState('');
@@ -24,7 +24,7 @@ export default function AdminLoginPage() {
           window.location.href = '/admin';
           return;
         } else if (activeUserRole === 'client') {
-          window.location.href = '/dashboard';
+          window.location.href = '/clients';
           return;
         }
       }

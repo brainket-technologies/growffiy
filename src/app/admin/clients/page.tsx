@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAppViewModel } from '../../../viewmodels/AppContext';
-import { Card } from '../../../views/components/Card';
-import { Button } from '../../../views/components/Button';
-import { Modal } from '../../../views/components/Modal';
+import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
+import { Card } from '../../../shared/components/views/Card';
+import { Button } from '../../../shared/components/views/Button';
+import { Modal } from '../../../shared/components/views/Modal';
 import Link from 'next/link';
 import { Plus, Eye, Trash2, Search, Filter, Download, TrendingUp } from 'lucide-react';
 

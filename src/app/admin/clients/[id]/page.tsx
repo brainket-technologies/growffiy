@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card } from '../../../../views/components/Card';
-import { Button } from '../../../../views/components/Button';
+import { Card } from '../../../../shared/components/views/Card';
+import { Button } from '../../../../shared/components/views/Button';
 import { 
   ArrowLeft, 
   CheckCircle2, 
@@ -21,11 +21,11 @@ import {
   Info,
   Pencil
 } from 'lucide-react';
-import { useAppViewModel } from '../../../../viewmodels/AppContext';
-import { Modal } from '../../../../views/components/Modal';
-import { API_ENDPOINTS, APP_ROUTES } from '../../../../lib/constants';
-import { api } from '../../../../lib/api';
-import { KiteClient } from '../../../../lib/kite';
+import { useAppViewModel } from '../../../../shared/viewmodels/AppContext';
+import { Modal } from '../../../../shared/components/views/Modal';
+import { API_ENDPOINTS, APP_ROUTES } from '../../../../core/constants';
+import { api } from '../../../../shared/services/api';
+import { KiteClient } from '../../../../shared/services/kite';
 
 export default function ClientDetailsPage() {
   const params = useParams();
@@ -134,7 +134,7 @@ export default function ClientDetailsPage() {
     }
     const update = async () => {
       try {
-        const { generateClientTOTP, getTOTPCountdown } = await import('../../../../lib/totpClient');
+        const { generateClientTOTP, getTOTPCountdown } = await import('../../../../shared/services/totpClient');
         setTotpCode(await generateClientTOTP(zerodhaTotpSecret));
         setTotpCountdown(getTOTPCountdown());
       } catch { setTotpCode('------'); }

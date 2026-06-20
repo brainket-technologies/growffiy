@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAppViewModel } from '../../../viewmodels/AppContext';
-import { Card } from '../../../views/components/Card';
-import { Button } from '../../../views/components/Button';
-import { Loader } from '../../../views/components/Loader';
+import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
+import { Card } from '../../../shared/components/views/Card';
+import { Button } from '../../../shared/components/views/Button';
+import { Loader } from '../../../shared/components/views/Loader';
 import { Zap, CheckCircle2, FileSpreadsheet, Loader2, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ShieldAlert } from 'lucide-react';
 
 type CategoryType = 'Nifty 50' | 'Bank Nifty' | 'F&O' | 'SME' | 'Others' | 'All';

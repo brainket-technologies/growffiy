@@ -2,12 +2,12 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
-import { AppProvider } from '../../viewmodels/AppContext';
-import { Sidebar } from '../../views/components/Sidebar';
-import { Header } from '../../views/components/Header';
-import { Loader } from '../../views/components/Loader';
-import styles from '../../views/components/components.module.css';
-import { THEME_COLORS } from '../../lib/constants';
+import { AppProvider } from '../../shared/viewmodels/AppContext';
+import { Sidebar } from '../../shared/components/views/Sidebar';
+import { Header } from '../../shared/components/views/Header';
+import { Loader } from '../../shared/components/views/Loader';
+import styles from '../../shared/components/views/components.module.css';
+import { THEME_COLORS } from '../../core/constants';
 
 export default function AdminLayout({
   children,
@@ -29,7 +29,7 @@ export default function AdminLayout({
             window.location.href = '/admin';
             return;
           } else if (activeUserRole === 'client') {
-            window.location.href = '/dashboard';
+            window.location.href = '/clients';
             return;
           }
         }
@@ -39,7 +39,7 @@ export default function AdminLayout({
       if (!activeUser) {
         window.location.href = '/admin/login';
       } else if (activeUserRole !== 'admin') {
-        window.location.href = '/dashboard';
+        window.location.href = '/clients';
       } else {
         setIsAdminAuthenticated(true);
       }

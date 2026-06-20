@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAppViewModel } from '../../../viewmodels/AppContext';
-import { Card } from '../../../views/components/Card';
-import { CandlestickChart } from '../../../views/components/CandlestickChart';
+import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
+import { Card } from '../../../shared/components/views/Card';
+import { CandlestickChart } from '../../../shared/components/views/CandlestickChart';
 import { 
   LineChart, 
   TrendingUp, 

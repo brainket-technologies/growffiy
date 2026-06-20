@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useAppViewModel } from '../../viewmodels/AppContext';
-import { Card } from '../../views/components/Card';
-import { Button } from '../../views/components/Button';
-import { PerformanceChart } from '../../views/components/PerformanceChart';
+import { useAppViewModel } from '../../shared/viewmodels/AppContext';
+import { Card } from '../../shared/components/views/Card';
+import { Button } from '../../shared/components/views/Button';
+import { PerformanceChart } from '../../shared/components/views/PerformanceChart';
 import { useRouter } from 'next/navigation';
-import { api } from '../../lib/api';
-import { API_ENDPOINTS } from '../../lib/constants';
+import { api } from '../../shared/services/api';
+import { API_ENDPOINTS } from '../../core/constants';
 import { 
   Users, 
   TrendingUp, 

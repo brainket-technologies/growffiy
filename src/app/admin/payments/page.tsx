@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Card } from '../../../views/components/Card';
-import { Loader } from '../../../views/components/Loader';
+import { Card } from '../../../shared/components/views/Card';
+import { Loader } from '../../../shared/components/views/Loader';
 import { CreditCard, ArrowUpRight, ArrowDownLeft, Calendar } from 'lucide-react';
-import { API_ENDPOINTS } from '../../../lib/constants';
-import { api } from '../../../lib/api';
+import { API_ENDPOINTS } from '../../../core/constants';
+import { api } from '../../../shared/services/api';
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<any[]>([]);

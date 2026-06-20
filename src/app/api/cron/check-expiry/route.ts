@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/db';
-import { sendEmail } from '../../../../lib/mailer';
+import { prisma } from '../../../../database/db';
+import { sendEmail } from '../../../../shared/services/mailer';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,7 +54,7 @@ export async function GET(request: Request) {
 
       const emailSubject = `Alert: Your Growffiy Subscription expires in 7 days`;
       
-      const emailText = `Hello ${sub.user.name},\n\nYour Growffiy automated trading subscription (${sub.plan.name}) is expiring in 1 week on ${formattedExpiry}.\n\nTo prevent any disruption to your automated momentum breakout execution, please renew your subscription package by visiting your billing dashboard: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/subscription.\n\nBest Regards,\nGrowffiy Operations Team`;
+      const emailText = `Hello ${sub.user.name},\n\nYour Growffiy automated trading subscription (${sub.plan.name}) is expiring in 1 week on ${formattedExpiry}.\n\nTo prevent any disruption to your automated momentum breakout execution, please renew your subscription package by visiting your billing dashboard: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/clients/subscription.\n\nBest Regards,\nGrowffiy Operations Team`;
 
       const emailHtml = `
         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 32px; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
@@ -92,7 +92,7 @@ export async function GET(request: Request) {
           </div>
 
           <div style="text-align: center; margin: 32px 0;">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/subscription" 
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/clients/subscription" 
                style="background-color: #0ea5e9; color: white; padding: 14px 28px; font-weight: 700; font-size: 15px; border-radius: 12px; text-decoration: none; display: inline-block; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);">
               Renew Plan Now
             </a>

@@ -1,11 +1,11 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/db';
+import { prisma } from '../../../../database/db';
 import { inMemoryClients } from '../route';
-import { KiteClient } from '../../../../lib/kite';
-import { sendEmail } from '../../../../lib/mailer';
-import { performKiteAutoLogin } from '../../../../lib/kiteAutoLogin';
+import { KiteClient } from '../../../../shared/services/kite';
+import { sendEmail } from '../../../../shared/services/mailer';
+import { performKiteAutoLogin } from '../../../../shared/services/kiteAutoLogin';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -108,6 +108,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       zerodhaPassword,
       zerodhaTotpSecret,
       capital,
+      riskPercentage,
       tradingStatus,
       subscriptionStatus,
       strategyId,

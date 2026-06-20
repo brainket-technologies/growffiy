@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../lib/db';
+import { prisma } from '../../../database/db';
 
 export async function GET() {
   const dbUrl = process.env.DATABASE_URL || 'NOT_DEFINED';

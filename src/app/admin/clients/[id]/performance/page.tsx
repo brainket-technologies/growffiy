@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Card } from '../../../../../views/components/Card';
-import { Button } from '../../../../../views/components/Button';
-import { PerformanceChart } from '../../../../../views/components/PerformanceChart';
-import { Modal } from '../../../../../views/components/Modal';
+import { Card } from '../../../../../shared/components/views/Card';
+import { Button } from '../../../../../shared/components/views/Button';
+import { PerformanceChart } from '../../../../../shared/components/views/PerformanceChart';
+import { Modal } from '../../../../../shared/components/views/Modal';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -27,9 +27,9 @@ import {
   Percent,
   XCircle
 } from 'lucide-react';
-import { useAppViewModel } from '../../../../../viewmodels/AppContext';
-import { api } from '../../../../../lib/api';
-import { API_ENDPOINTS, APP_ROUTES } from '../../../../../lib/constants';
+import { useAppViewModel } from '../../../../../shared/viewmodels/AppContext';
+import { api } from '../../../../../shared/services/api';
+import { API_ENDPOINTS, APP_ROUTES } from '../../../../../core/constants';
 
 const formatDateTime = (timeStr: string | Date | null) => {
   if (!timeStr) return '--';

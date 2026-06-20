@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAppViewModel } from '../../../viewmodels/AppContext';
-import { Card } from '../../../views/components/Card';
-import { Button } from '../../../views/components/Button';
+import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
+import { Card } from '../../../shared/components/views/Card';
+import { Button } from '../../../shared/components/views/Button';
 import { 
   Activity, 
   RefreshCw, 
@@ -13,7 +13,7 @@ import {
   Filter, 
   Download 
 } from 'lucide-react';
-import { Modal } from '../../../views/components/Modal';
+import { Modal } from '../../../shared/components/views/Modal';
 
 const formatDateTime = (timeStr: string | Date | null) => {
   if (!timeStr) return '--';

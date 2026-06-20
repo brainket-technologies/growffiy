@@ -1,16 +1,16 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Card } from '../../../views/components/Card';
-import { Loader } from '../../../views/components/Loader';
-import { Modal } from '../../../views/components/Modal';
-import { Button } from '../../../views/components/Button';
+import { Card } from '../../../shared/components/views/Card';
+import { Loader } from '../../../shared/components/views/Loader';
+import { Modal } from '../../../shared/components/views/Modal';
+import { Button } from '../../../shared/components/views/Button';
 import { 
   LifeBuoy, Mail, Phone, MessageSquare, AlertCircle, 
   Send, CheckCircle2, User, Clock, Search, Filter, 
   Eye, X, Inbox, AlertTriangle, ArrowRight, UserCheck
 } from 'lucide-react';
-import { API_ENDPOINTS } from '../../../lib/constants';
+import { API_ENDPOINTS } from '../../../core/constants';
 
 export default function SupportPage() {
   const [tickets, setTickets] = useState<any[]>([]);

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/db';
+import { prisma } from '../../../../database/db';
 
 // Mock DB in memory fallback (only used when DB is unreachable)
 let inMemoryStrategies: any[] = [

@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card } from '../../../views/components/Card';
+import { Card } from '../../../shared/components/views/Card';
 import { ShieldCheck, RefreshCw, Trash2 } from 'lucide-react';
-import { Modal } from '../../../views/components/Modal';
-import { Button } from '../../../views/components/Button';
-import { API_ENDPOINTS } from '../../../lib/constants';
-import { api } from '../../../lib/api';
+import { Modal } from '../../../shared/components/views/Modal';
+import { Button } from '../../../shared/components/views/Button';
+import { API_ENDPOINTS } from '../../../core/constants';
+import { api } from '../../../shared/services/api';
 
 export default function AuditLogsPage() {
   const [auditLogs, setAuditLogs] = useState<any[]>([]);

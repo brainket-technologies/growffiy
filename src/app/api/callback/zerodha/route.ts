@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/db';
+import { prisma } from '../../../../database/db';
 import { inMemoryClients } from '../../clients/route';
-import { KiteClient } from '../../../../lib/kite';
+import { KiteClient } from '../../../../shared/services/kite';
 
 function getRedirectUrl(path: string, request: Request): string {
   const envUrl = process.env.NEXT_PUBLIC_URL || process.env.NEXT_PUBLIC_SITE_URL;

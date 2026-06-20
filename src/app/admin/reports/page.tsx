@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Card } from '../../../views/components/Card';
-import { Button } from '../../../views/components/Button';
+import { Card } from '../../../shared/components/views/Card';
+import { Button } from '../../../shared/components/views/Button';
 import { FileText, Download, BarChart2, Calendar } from 'lucide-react';
 
 export default function ReportsPage() {
