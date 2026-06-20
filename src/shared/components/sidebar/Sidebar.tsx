@@ -53,15 +53,8 @@ const adminGroups: MenuGroup[] = [
     label: 'Management',
     items: [
       { name: 'Clients', path: '/admin/clients', icon: Users, badge: 12 },
-      {
-        name: 'Market',
-        isGroup: true,
-        icon: LineChart,
-        subItems: [
-          { name: 'Pre-Open', path: '/admin/scanner' },
-          { name: 'Live Market', path: '/admin/market-watch' },
-        ],
-      },
+      { name: 'Pre-Open', path: '/admin/scanner', icon: Search },
+      { name: 'Live Market', path: '/admin/market-watch', icon: LineChart },
       { name: 'Strategies', path: '/admin/strategies', icon: TrendingUp },
       { name: 'Live Trading', path: '/admin/trades', icon: Activity },
     ],
@@ -94,15 +87,8 @@ const userGroups: MenuGroup[] = [
   {
     label: 'Trading',
     items: [
-      {
-        name: 'Market',
-        isGroup: true,
-        icon: LineChart,
-        subItems: [
-          { name: 'Pre-Open', path: '/clients/scanner' },
-          { name: 'Live Market', path: '/clients/market' },
-        ],
-      },
+      { name: 'Pre-Open', path: '/clients/scanner', icon: Search },
+      { name: 'Live Market', path: '/clients/market', icon: LineChart },
     ],
   },
   {
