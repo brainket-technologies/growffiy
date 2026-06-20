@@ -492,7 +492,7 @@ export default function AdminDashboard() {
             {/* SVG Donut */}
             <div style={{ width: '130px', height: '130px', position: 'relative' }}>
               <svg width="100%" height="100%" viewBox="0 0 42 42">
-                <circle cx="21" cy="21" r="15.915" fill="#fff"></circle>
+                <circle cx="21" cy="21" r="15.915" fill="transparent"></circle>
                 <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--surface)" strokeWidth="4.5"></circle>
                 
                 {/* Winning segment (Blue) */}
