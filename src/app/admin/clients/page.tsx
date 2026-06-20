@@ -359,7 +359,11 @@ export default function ClientsPage() {
                             <Eye size={18} />
                           </Link>
                           <button
-                            onClick={() => deleteClient(client.id)}
+                            onClick={() => {
+                              if (window.confirm(`Are you sure you want to delete client "${client.user?.name || client.name}"? This will permanently delete the client and all associated trades/data.`)) {
+                                deleteClient(client.id);
+                              }
+                            }}
                             style={{
                               background: 'none',
                               border: 'none',
