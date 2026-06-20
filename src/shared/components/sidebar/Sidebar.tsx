@@ -23,6 +23,7 @@ import {
   PanelLeft,
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
+import { useAppViewModel } from '../../viewmodels/AppContext';
 
 interface SidebarProps {
   isAdmin?: boolean;
@@ -241,12 +242,16 @@ const SidebarGroup: React.FC<{
 
 export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
   const pathname = usePathname();
+  const { clients = [] } = useAppViewModel();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [isDark, setIsDark] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [userId, setUserId] = useState('');
+  const [openTicketsCount, setOpenTicketsCount] = useState(0);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -267,8 +272,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('growffiy_theme', theme);
   }, []);
-  const [userName, setUserName] = useState('');
-  const [userId, setUserId] = useState('');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -280,6 +283,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
   }, [isAdmin]);
 
   useEffect(() => {
+    const fetchTicketsCount = async () => {
+      try {
+        const url = isAdmin 
+          ? '/api/support/tickets?all=true' 
+          : `/api/support/tickets?userId=${userId}`;
+        if (!isAdmin && !userId) return;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.success && data.tickets) {
+          const count = data.tickets.filter((t: any) => t.status === 'open').length;
+          setOpenTicketsCount(count);
+        }
+      } catch (err) {
+        console.error('Failed to fetch tickets in sidebar:', err);
+      }
+    };
+
+    fetchTicketsCount();
+    const interval = setInterval(fetchTicketsCount, 15000);
+    return () => clearInterval(interval);
+  }, [isAdmin, userId]);
+
+  useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 1024);
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -287,9 +313,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
   }, []);
 
   useEffect(() => {
-    const groups = isAdmin ? adminGroups : userGroups;
+    const rawGroups = isAdmin ? adminGroups : userGroups;
     const initialState: Record<string, boolean> = {};
-    groups.forEach((g) => {
+    rawGroups.forEach((g) => {
       g.items.forEach((item) => {
         if (item.isGroup) {
           const hasActive = item.subItems?.some((sub) => pathname === sub.path);
@@ -329,7 +355,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
     }
   }, [isAdmin]);
 
-  const groups = isAdmin ? adminGroups : userGroups;
+  const groups = React.useMemo(() => {
+    const rawGroups = isAdmin ? adminGroups : userGroups;
+    return rawGroups.map((group) => ({
+      ...group,
+      items: group.items.map((item) => {
+        if (item.name === 'Clients') {
+          return { ...item, badge: clients.length };
+        }
+        if (item.name === 'Support') {
+          return { ...item, badge: openTicketsCount };
+        }
+        return item;
+      }),
+    }));
+  }, [isAdmin, clients.length, openTicketsCount]);
+
   const userInitial = userName.charAt(0).toUpperCase();
   const userEmail = userId ? `${userId}@growffiy.com` : (isAdmin ? 'admin@growffiy.com' : 'client@growffiy.com');
 
