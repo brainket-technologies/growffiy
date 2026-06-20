@@ -202,7 +202,7 @@ export default function ClientDetailsPage() {
         <ol style={{ fontSize: '13px', color: 'var(--text-body)', paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <li>
             <strong>Configure Redirect URL:</strong> Open the <a href="https://developers.kite.trade/" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>Kite Developer Console</a>, edit your app settings, and paste this Redirect URL:
-            <div style={{ margin: '6px 0', padding: '8px 12px', backgroundColor: '#f1f5f9', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12px', color: '#0f172a', border: '1px solid #cbd5e1', wordBreak: 'break-all' }}>
+            <div style={{ margin: '6px 0', padding: '8px 12px', backgroundColor: 'var(--surface)', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-heading)', border: '1px solid var(--border-color)', wordBreak: 'break-all' }}>
               {redirectUrl}
             </div>
           </li>
@@ -822,7 +822,7 @@ export default function ClientDetailsPage() {
                     />
                   </div>
                   {zerodhaTotpSecret && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px', padding: '8px 12px', borderRadius: '8px', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px', padding: '8px 12px', borderRadius: '8px', backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
                       <div style={{ fontFamily: 'monospace', fontSize: '22px', fontWeight: 700, letterSpacing: '4px', color: 'var(--primary)' }}>
                         {totpCode}
                       </div>
@@ -940,7 +940,7 @@ export default function ClientDetailsPage() {
                     appearance: 'none',
                     fontWeight: 600,
                     color: kycStatus === 'verified' ? 'var(--color-success)' : kycStatus === 'failed' ? 'var(--color-danger)' : 'var(--text-secondary)',
-                    backgroundColor: kycStatus === 'verified' ? 'var(--color-success-bg)' : kycStatus === 'failed' ? '#fee2e2' : '#f1f5f9'
+                    backgroundColor: kycStatus === 'verified' ? 'var(--color-success-bg)' : kycStatus === 'failed' ? '#fee2e2' : 'var(--surface)'
                   }}
                 >
                   <option value="pending" style={{ color: 'var(--text-body)', backgroundColor: '#ffffff' }}>Pending</option>
@@ -1016,9 +1016,9 @@ export default function ClientDetailsPage() {
                         fontWeight: 600, 
                         padding: '4px 10px', 
                         borderRadius: '6px', 
-                        backgroundColor: '#f1f5f9', 
-                        color: '#475569',
-                        border: '1px solid #e2e8f0'
+                        backgroundColor: 'var(--surface)', 
+                        color: 'var(--text-body)',
+                        border: '1px solid var(--border)'
                       }}
                     >
                       {exchange}
@@ -1121,8 +1121,8 @@ export default function ClientDetailsPage() {
                       fontWeight: 600, 
                       padding: '3px 8px', 
                       borderRadius: '12px', 
-                      backgroundColor: margins.equity.enabled ? 'rgba(16, 185, 129, 0.1)' : '#cbd5e1',
-                      color: margins.equity.enabled ? 'var(--accent-dark)' : '#64748b'
+                      backgroundColor: margins.equity.enabled ? 'rgba(16, 185, 129, 0.1)' : 'var(--border-color)',
+                      color: margins.equity.enabled ? 'var(--accent-dark)' : 'var(--text-muted)'
                     }}>
                       {margins.equity.enabled ? 'Enabled' : 'Disabled'}
                     </span>
@@ -1217,8 +1217,8 @@ export default function ClientDetailsPage() {
                       fontWeight: 600, 
                       padding: '3px 8px', 
                       borderRadius: '12px', 
-                      backgroundColor: margins.commodity.enabled ? 'rgba(16, 185, 129, 0.1)' : '#cbd5e1',
-                      color: margins.commodity.enabled ? 'var(--accent-dark)' : '#64748b'
+                      backgroundColor: margins.commodity.enabled ? 'rgba(16, 185, 129, 0.1)' : 'var(--border-color)',
+                      color: margins.commodity.enabled ? 'var(--accent-dark)' : 'var(--text-muted)'
                     }}>
                       {margins.commodity.enabled ? 'Enabled' : 'Disabled'}
                     </span>

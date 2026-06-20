@@ -1,7 +1,7 @@
 .header {
   height: var(--header-height);
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--bg-white);
+  border-bottom: 1px solid var(--border);
   position: fixed;
   top: 0;
   left: var(--sidebar-width);
@@ -23,12 +23,12 @@
 .currentPage {
   font-size: 16px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-heading);
   letter-spacing: -0.2px;
 }
 
 .currentPageAccent {
-  color: #6366f1;
+  color: var(--primary);
 }
 
 /* Actions */
@@ -44,7 +44,7 @@
   border-radius: 10px;
   border: 1px solid transparent;
   background: transparent;
-  color: #94a3b8;
+  color: var(--text-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -55,8 +55,8 @@
 }
 
 .iconBtn:hover {
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--surface);
+  color: var(--text-muted);
 }
 
 .iconBtn:active {
@@ -70,7 +70,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #ef4444;
+  background: var(--danger);
 }
 
 /* Theme Toggle */
@@ -80,7 +80,7 @@
   gap: 2px;
   padding: 2px;
   border-radius: 10px;
-  background: #f1f5f9;
+  background: var(--surface);
   margin: 0 2px;
 }
 
@@ -90,7 +90,7 @@
   border-radius: 8px;
   border: none;
   background: transparent;
-  color: #94a3b8;
+  color: var(--text-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -100,15 +100,15 @@
 }
 
 .themeBtnActive {
-  background: #ffffff;
-  color: #6366f1;
+  background: var(--bg-white);
+  color: var(--primary);
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
 .divider {
   width: 1px;
   height: 24px;
-  background: #e5e7eb;
+  background: var(--border);
   margin: 0 6px;
 }
 
@@ -127,7 +127,7 @@
 }
 
 .profileTrigger:hover {
-  background: #f1f5f9;
+  background: var(--surface);
 }
 
 .profileAvatar {
@@ -147,7 +147,7 @@
 .profileName {
   font-size: 13px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-heading);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -156,7 +156,7 @@
 
 .profileRole {
   font-size: 10px;
-  color: #94a3b8;
+  color: var(--text-subtle);
   line-height: 1;
 }
 
@@ -175,8 +175,8 @@
   top: calc(100% + 6px);
   right: 0;
   width: 200px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0,0,0,0.08);
   padding: 4px;
@@ -203,30 +203,30 @@
   border-radius: 8px;
   font-size: 12px;
   font-weight: 500;
-  color: #475569;
+  color: var(--text-body);
   cursor: pointer;
   text-align: left;
   transition: all 0.15s;
 }
 
 .dropdownItem:hover {
-  background: #f1f5f9;
-  color: #1e293b;
+  background: var(--surface);
+  color: var(--text-heading);
 }
 
 .dropdownDivider {
   height: 1px;
-  background: #e5e7eb;
+  background: var(--border);
   margin: 2px 0;
 }
 
 .dropdownDanger {
-  color: #ef4444;
+  color: var(--danger);
 }
 
 .dropdownDanger:hover {
-  background: #fef2f2;
-  color: #dc2626;
+  background: var(--danger-light);
+  color: var(--danger);
 }
 
 /* Modal Overlay */
@@ -249,11 +249,11 @@
 }
 
 .modalCard {
-  background: #ffffff;
+  background: var(--bg-white);
   width: 100%;
   max-width: 420px;
   border-radius: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   box-shadow: 0 25px 50px rgba(0,0,0,0.1);
   overflow: hidden;
   animation: slideUp 0.2s ease-out;
@@ -269,13 +269,13 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border);
 }
 
 .modalTitle {
   font-size: 15px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-heading);
   margin: 0;
 }
 
@@ -283,9 +283,9 @@
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: #f8fafc;
-  color: #94a3b8;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -294,8 +294,8 @@
 }
 
 .modalClose:hover {
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--surface);
+  color: var(--text-muted);
 }
 
 .modalForm {
@@ -314,24 +314,24 @@
 .formLabel {
   font-size: 11px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .formInput {
   width: 100%;
   padding: 9px 12px;
   border-radius: 8px;
-  border: 1.5px solid #e5e7eb;
-  background: #ffffff;
+  border: 1.5px solid var(--border);
+  background: var(--bg-white);
   font-size: 13px;
-  color: #1e293b;
+  color: var(--text-heading);
   outline: none;
   box-sizing: border-box;
   transition: all 0.2s;
 }
 
 .formInput:focus {
-  border-color: #6366f1;
+  border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(99,102,241,0.08);
 }
 
@@ -345,9 +345,9 @@
 .btnSecondary {
   padding: 8px 14px;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  color: #64748b;
+  border: 1px solid var(--border);
+  background: var(--bg-white);
+  color: var(--text-muted);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -355,8 +355,8 @@
 }
 
 .btnSecondary:hover {
-  background: #f8fafc;
-  color: #1e293b;
+  background: var(--surface);
+  color: var(--text-heading);
 }
 
 .btnPrimary {
@@ -386,9 +386,9 @@
 .alertError {
   padding: 8px 10px;
   border-radius: 8px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
+  background: var(--danger-light);
+  border: 1px solid rgba(239,68,68,0.25);
+  color: var(--danger);
   font-size: 11px;
   font-weight: 500;
 }
@@ -396,9 +396,9 @@
 .alertSuccess {
   padding: 8px 10px;
   border-radius: 8px;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  color: #16a34a;
+  background: var(--accent-light);
+  border: 1px solid rgba(34,197,94,0.25);
+  color: var(--accent-dark);
   font-size: 11px;
   font-weight: 600;
 }

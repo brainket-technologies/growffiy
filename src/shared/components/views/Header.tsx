@@ -215,7 +215,7 @@ export const Header: React.FC<HeaderProps> = ({
                   width: '32px',
                   height: '32px',
                   borderRadius: '50%',
-                  backgroundColor: '#e2e8f0',
+                  backgroundColor: 'var(--border)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -243,7 +243,7 @@ export const Header: React.FC<HeaderProps> = ({
                 right: 0,
                 width: '200px',
                 background: 'white',
-                border: '1px solid #e2e8f0',
+                border: '1px solid var(--border)',
                 borderRadius: '12px',
                 boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
                 padding: '6px',
@@ -268,12 +268,12 @@ export const Header: React.FC<HeaderProps> = ({
                     borderRadius: '8px',
                     fontSize: '13px',
                     fontWeight: 500,
-                    color: '#334155',
+                    color: 'var(--text-body)',
                     cursor: 'pointer',
                     textAlign: 'left',
                     transition: 'background 0.2s'
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface)')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
                   <UserCheck size={14} /> Update Profile
@@ -295,18 +295,18 @@ export const Header: React.FC<HeaderProps> = ({
                     borderRadius: '8px',
                     fontSize: '13px',
                     fontWeight: 500,
-                    color: '#334155',
+                    color: 'var(--text-body)',
                     cursor: 'pointer',
                     textAlign: 'left',
                     transition: 'background 0.2s'
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface)')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
                   <Lock size={14} /> Change Password
                 </button>
 
-                <div style={{ height: '1px', backgroundColor: '#e2e8f0', margin: '4px 0' }} />
+                <div style={{ height: '1px', backgroundColor: 'var(--border)', margin: '4px 0' }} />
 
                 <button
                   onClick={handleLogout}
@@ -356,7 +356,7 @@ export const Header: React.FC<HeaderProps> = ({
             maxWidth: '440px',
             borderRadius: '16px',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            border: '1px solid #e2e8f0',
+            border: '1px solid var(--border)',
             overflow: 'hidden'
           }}>
             {/* Header */}
@@ -365,12 +365,12 @@ export const Header: React.FC<HeaderProps> = ({
               justifyContent: 'space-between',
               alignItems: 'center',
               padding: '20px 24px',
-              borderBottom: '1px solid #e2e8f0'
+              borderBottom: '1px solid var(--border)'
             }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: 0 }}>Update Profile</h3>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>Update Profile</h3>
               <button 
                 onClick={() => setProfileModalOpen(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}
               >
                 <X size={20} />
               </button>
@@ -390,7 +390,7 @@ export const Header: React.FC<HeaderProps> = ({
               )}
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Full Name</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-body)', marginBottom: '6px' }}>Full Name</label>
                 <input
                   type="text"
                   required
@@ -400,9 +400,9 @@ export const Header: React.FC<HeaderProps> = ({
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: '8px',
-                    border: '1.5px solid #cbd5e1',
+                    border: '1.5px solid var(--border-color)',
                     fontSize: '14px',
-                    color: '#0f172a',
+                    color: 'var(--text-heading)',
                     outline: 'none',
                     boxSizing: 'border-box'
                   }}
@@ -410,7 +410,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Email Address</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-body)', marginBottom: '6px' }}>Email Address</label>
                 <input
                   type="email"
                   required
@@ -420,9 +420,9 @@ export const Header: React.FC<HeaderProps> = ({
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: '8px',
-                    border: '1.5px solid #cbd5e1',
+                    border: '1.5px solid var(--border-color)',
                     fontSize: '14px',
-                    color: '#0f172a',
+                    color: 'var(--text-heading)',
                     outline: 'none',
                     boxSizing: 'border-box'
                   }}
@@ -436,9 +436,9 @@ export const Header: React.FC<HeaderProps> = ({
                   style={{
                     padding: '10px 16px',
                     borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
+                    border: '1px solid var(--border-color)',
                     background: 'white',
-                    color: '#475569',
+                    color: 'var(--text-body)',
                     fontSize: '13px',
                     fontWeight: 600,
                     cursor: 'pointer'
@@ -491,7 +491,7 @@ export const Header: React.FC<HeaderProps> = ({
             maxWidth: '440px',
             borderRadius: '16px',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            border: '1px solid #e2e8f0',
+            border: '1px solid var(--border)',
             overflow: 'hidden'
           }}>
             {/* Header */}
@@ -500,12 +500,12 @@ export const Header: React.FC<HeaderProps> = ({
               justifyContent: 'space-between',
               alignItems: 'center',
               padding: '20px 24px',
-              borderBottom: '1px solid #e2e8f0'
+              borderBottom: '1px solid var(--border)'
             }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: 0 }}>Change Password</h3>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>Change Password</h3>
               <button 
                 onClick={() => setPasswordModalOpen(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}
               >
                 <X size={20} />
               </button>
@@ -525,7 +525,7 @@ export const Header: React.FC<HeaderProps> = ({
               )}
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Current Password</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-body)', marginBottom: '6px' }}>Current Password</label>
                 <input
                   type="password"
                   required
@@ -535,9 +535,9 @@ export const Header: React.FC<HeaderProps> = ({
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: '8px',
-                    border: '1.5px solid #cbd5e1',
+                    border: '1.5px solid var(--border-color)',
                     fontSize: '14px',
-                    color: '#0f172a',
+                    color: 'var(--text-heading)',
                     outline: 'none',
                     boxSizing: 'border-box'
                   }}
@@ -545,7 +545,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>New Password</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-body)', marginBottom: '6px' }}>New Password</label>
                 <input
                   type="password"
                   required
@@ -555,9 +555,9 @@ export const Header: React.FC<HeaderProps> = ({
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: '8px',
-                    border: '1.5px solid #cbd5e1',
+                    border: '1.5px solid var(--border-color)',
                     fontSize: '14px',
-                    color: '#0f172a',
+                    color: 'var(--text-heading)',
                     outline: 'none',
                     boxSizing: 'border-box'
                   }}
@@ -565,7 +565,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Confirm New Password</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-body)', marginBottom: '6px' }}>Confirm New Password</label>
                 <input
                   type="password"
                   required
@@ -575,9 +575,9 @@ export const Header: React.FC<HeaderProps> = ({
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: '8px',
-                    border: '1.5px solid #cbd5e1',
+                    border: '1.5px solid var(--border-color)',
                     fontSize: '14px',
-                    color: '#0f172a',
+                    color: 'var(--text-heading)',
                     outline: 'none',
                     boxSizing: 'border-box'
                   }}
@@ -591,9 +591,9 @@ export const Header: React.FC<HeaderProps> = ({
                   style={{
                     padding: '10px 16px',
                     borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
+                    border: '1px solid var(--border-color)',
                     background: 'white',
-                    color: '#475569',
+                    color: 'var(--text-body)',
                     fontSize: '13px',
                     fontWeight: 600,
                     cursor: 'pointer'

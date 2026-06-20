@@ -27,7 +27,7 @@ export function Loader({
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      background: fullscreen ? 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)' : 'transparent',
+      background: fullscreen ? 'linear-gradient(135deg, var(--surface) 0%, var(--border) 100%)' : 'transparent',
       fontFamily: 'var(--font-body)',
       textAlign: 'center',
       padding: '40px 24px'

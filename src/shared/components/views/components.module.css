@@ -25,13 +25,13 @@
 }
 
 .btnSecondary {
-  background: #ffffff;
-  color: #475569;
-  border-color: #e5e7eb;
+  background: var(--bg-white);
+  color: var(--text-body);
+  border-color: var(--border);
 }
 .btnSecondary:hover {
-  background: #f8fafc;
-  border-color: #d1d5db;
+  background: var(--surface);
+  border-color: var(--border-color);
 }
 
 .btnSuccess {
@@ -56,18 +56,18 @@
 
 /* Cards */
 .card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+  box-shadow: var(--shadow-sm);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
 }
 
 .cardHover:hover {
-  box-shadow: 0 4px 6px rgba(0,0,0,0.04), 0 10px 15px rgba(0,0,0,0.06);
-  border-color: #d1d5db;
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-color);
 }
 
 /* Modals */
@@ -87,21 +87,21 @@
 }
 
 .modalContent {
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: 16px;
   width: 90%;
   max-width: 550px;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-xl);
   overflow: hidden;
   animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modalHeader {
   padding: 18px 24px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -111,26 +111,26 @@
 .modalTitle {
   font-size: 16px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-heading);
 }
 
 .modalClose {
-  background: #f1f5f9;
+  background: var(--surface);
   border: none;
   width: 28px;
   height: 28px;
   border-radius: 8px;
   font-size: 18px;
   cursor: pointer;
-  color: #94a3b8;
+  color: var(--text-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.15s;
 }
 .modalClose:hover {
-  background: #e2e8f0;
-  color: #475569;
+  background: var(--border);
+  color: var(--text-body);
 }
 
 .modalBody {
@@ -141,8 +141,8 @@
 
 .modalFooter {
   padding: 16px 24px;
-  border-top: 1px solid #e5e7eb;
-  background-color: #f8fafc;
+  border-top: 1px solid var(--border);
+  background-color: var(--surface);
   display: flex;
   justify-content: flex-end;
   gap: 10px;
@@ -160,7 +160,7 @@
   padding: 28px;
   width: calc(100% - var(--sidebar-width));
   min-height: calc(100vh - var(--header-height));
-  background: #f5f7fb;
+  background: var(--bg);
 }
 
 /* Table Toolbar */

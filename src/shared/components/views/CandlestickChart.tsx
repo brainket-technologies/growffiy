@@ -305,7 +305,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            color: '#94a3b8',
+            color: 'var(--text-subtle)',
             display: 'inline-flex',
             alignItems: 'center',
             padding: '6px',
@@ -314,12 +314,12 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
             zIndex: 10
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#f1f5f9';
-            e.currentTarget.style.color = '#0f172a';
+            e.currentTarget.style.backgroundColor = 'var(--surface)';
+            e.currentTarget.style.color = 'var(--text-heading)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = '#94a3b8';
+            e.currentTarget.style.color = 'var(--text-subtle)';
           }}
           title="Close Chart"
         >
@@ -342,9 +342,9 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
               style={{
                 fontSize: '10.5px',
                 fontWeight: 600,
-                color: '#475569',
-                backgroundColor: '#f1f5f9',
-                border: '1px solid #cbd5e1',
+                color: 'var(--text-body)',
+                backgroundColor: 'var(--surface)',
+                border: '1px solid var(--border-color)',
                 borderRadius: '4px',
                 padding: '2px 6px',
                 cursor: 'pointer',
@@ -361,17 +361,17 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
             </select>
           </div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '10px', background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
-              O: <span style={{ color: '#0f172a' }}>{open.toFixed(2)}</span>
+            <span style={{ fontSize: '10px', background: 'var(--surface)', color: 'var(--text-body)', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+              O: <span style={{ color: 'var(--text-heading)' }}>{open.toFixed(2)}</span>
             </span>
-            <span style={{ fontSize: '10px', background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
-              H: <span style={{ color: '#0f172a' }}>{high.toFixed(2)}</span>
+            <span style={{ fontSize: '10px', background: 'var(--surface)', color: 'var(--text-body)', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+              H: <span style={{ color: 'var(--text-heading)' }}>{high.toFixed(2)}</span>
             </span>
-            <span style={{ fontSize: '10px', background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
-              L: <span style={{ color: '#0f172a' }}>{low.toFixed(2)}</span>
+            <span style={{ fontSize: '10px', background: 'var(--surface)', color: 'var(--text-body)', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+              L: <span style={{ color: 'var(--text-heading)' }}>{low.toFixed(2)}</span>
             </span>
-            <span style={{ fontSize: '10px', background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
-              P: <span style={{ color: '#0f172a' }}>{prevClose.toFixed(2)}</span>
+            <span style={{ fontSize: '10px', background: 'var(--surface)', color: 'var(--text-body)', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+              P: <span style={{ color: 'var(--text-heading)' }}>{prevClose.toFixed(2)}</span>
             </span>
           </div>
         </div>

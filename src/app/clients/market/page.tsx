@@ -115,13 +115,13 @@ export default function ClientMarketWatchPage() {
         
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {isWsConnected ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '12px', fontWeight: 600, padding: '6px 12px', backgroundColor: '#e6f4ea', borderRadius: '20px' }}>
-              <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px #10b981' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent)', fontSize: '12px', fontWeight: 600, padding: '6px 12px', backgroundColor: 'var(--accent-light)', borderRadius: '20px' }}>
+              <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: 'var(--accent)', borderRadius: '50%', boxShadow: '0 0 8px var(--accent)' }} />
               <span>Live Streaming</span>
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontSize: '12px', fontWeight: 500, padding: '6px 12px', backgroundColor: '#f1f5f9', borderRadius: '20px' }}>
-              <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: '#cbd5e1', borderRadius: '50%' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-subtle)', fontSize: '12px', fontWeight: 500, padding: '6px 12px', backgroundColor: 'var(--surface)', borderRadius: '20px' }}>
+              <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: 'var(--border-color)', borderRadius: '50%' }} />
               <span>Standby</span>
             </div>
           )}
@@ -140,7 +140,7 @@ export default function ClientMarketWatchPage() {
         <Card style={{ padding: '16px' }}>
           <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500 }}>NIFTY Live</span>
           <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '8px 0 4px 0', color: 'var(--text-primary)' }}>{niftyLive.toLocaleString('en-IN')}</h2>
-          <span style={{ fontSize: '11.5px', color: niftyChangePercent >= 0 ? '#10b981' : '#ef4444', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '2px' }}>
+          <span style={{ fontSize: '11.5px', color: niftyChangePercent >= 0 ? 'var(--accent)' : 'var(--danger)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '2px' }}>
             {niftyChangePercent >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
             {niftyChangePercent >= 0 ? '+' : ''}{niftyChangePercent.toFixed(2)}%
           </span>
@@ -149,7 +149,7 @@ export default function ClientMarketWatchPage() {
         <Card style={{ padding: '16px' }}>
           <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500 }}>BANK NIFTY Live</span>
           <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '8px 0 4px 0', color: 'var(--text-primary)' }}>{bankNiftyLive.toLocaleString('en-IN')}</h2>
-          <span style={{ fontSize: '11.5px', color: niftyChangePercent >= 0 ? '#10b981' : '#ef4444', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '2px' }}>
+          <span style={{ fontSize: '11.5px', color: niftyChangePercent >= 0 ? 'var(--accent)' : 'var(--danger)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '2px' }}>
             {niftyChangePercent >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
             {niftyChangePercent >= 0 ? '+' : ''}{niftyChangePercent.toFixed(2)}%
           </span>
@@ -158,15 +158,15 @@ export default function ClientMarketWatchPage() {
         <Card style={{ padding: '16px' }}>
           <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500 }}>INDIA VIX</span>
           <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '8px 0 4px 0', color: 'var(--text-primary)' }}>{indiaVix.toFixed(2)}</h2>
-          <span style={{ fontSize: '11.5px', color: niftyChangePercent >= 0 ? '#ef4444' : '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '2px' }}>
+          <span style={{ fontSize: '11.5px', color: niftyChangePercent >= 0 ? 'var(--danger)' : 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '2px' }}>
             {niftyChangePercent >= 0 ? <ArrowDownRight size={14} /> : <ArrowUpRight size={14} />}
             {niftyChangePercent >= 0 ? '-' : '+'}{(Math.abs(niftyChangePercent) * 5).toFixed(2)}%
           </span>
         </Card>
 
-        <Card style={{ padding: '16px', borderLeft: `4px solid ${totalPnl >= 0 ? '#10b981' : '#ef4444'}` }}>
+        <Card style={{ padding: '16px', borderLeft: `4px solid ${totalPnl >= 0 ? 'var(--accent)' : 'var(--danger)'}` }}>
           <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500 }}>Total P&L (Active Trades)</span>
-          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '8px 0 4px 0', color: totalPnl >= 0 ? '#10b981' : '#ef4444' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '8px 0 4px 0', color: totalPnl >= 0 ? 'var(--accent)' : 'var(--danger)' }}>
             {totalPnl >= 0 ? '+' : ''}₹{totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </h2>
           <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 500 }}>
@@ -178,14 +178,14 @@ export default function ClientMarketWatchPage() {
       {/* Market Breadth Panel */}
       <Card style={{ padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <div style={{ display: 'flex', gap: '16px', fontSize: '13px', fontWeight: 600 }}>
-          <span>Advances: <strong style={{ color: '#10b981' }}>{advances}</strong></span>
-          <span>Declines: <strong style={{ color: '#ef4444' }}>{declines}</strong></span>
-          <span>Unchanged: <strong style={{ color: '#94a3b8' }}>{unchanged}</strong></span>
+          <span>Advances: <strong style={{ color: 'var(--accent)' }}>{advances}</strong></span>
+          <span>Declines: <strong style={{ color: 'var(--danger)' }}>{declines}</strong></span>
+          <span>Unchanged: <strong style={{ color: 'var(--text-subtle)' }}>{unchanged}</strong></span>
         </div>
         <div style={{ display: 'flex', width: '250px', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
-          <div style={{ flex: advances || 1, backgroundColor: '#10b981' }} />
-          <div style={{ flex: unchanged || 1, backgroundColor: '#cbd5e1' }} />
-          <div style={{ flex: declines || 1, backgroundColor: '#ef4444' }} />
+          <div style={{ flex: advances || 1, backgroundColor: 'var(--accent)' }} />
+          <div style={{ flex: unchanged || 1, backgroundColor: 'var(--border-color)' }} />
+          <div style={{ flex: declines || 1, backgroundColor: 'var(--danger)' }} />
         </div>
       </Card>
 
@@ -234,12 +234,12 @@ export default function ClientMarketWatchPage() {
           <div className="table-responsive" style={{ maxHeight: '650px', overflowY: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
-                <tr style={{ borderBottom: '1.5px solid var(--border-light)', backgroundColor: '#f8fafc' }}>
-                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>Symbol</th>
-                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right', position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>LTP (₹)</th>
-                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right', position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>% Chg</th>
-                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right', position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>Volume</th>
-                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'center', position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>Signal</th>
+                <tr style={{ borderBottom: '1.5px solid var(--border-light)', backgroundColor: 'var(--surface)' }}>
+                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', position: 'sticky', top: 0, backgroundColor: 'var(--surface)', zIndex: 1 }}>Symbol</th>
+                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right', position: 'sticky', top: 0, backgroundColor: 'var(--surface)', zIndex: 1 }}>LTP (₹)</th>
+                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right', position: 'sticky', top: 0, backgroundColor: 'var(--surface)', zIndex: 1 }}>% Chg</th>
+                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right', position: 'sticky', top: 0, backgroundColor: 'var(--surface)', zIndex: 1 }}>Volume</th>
+                  <th style={{ padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'center', position: 'sticky', top: 0, backgroundColor: 'var(--surface)', zIndex: 1 }}>Signal</th>
                 </tr>
               </thead>
               <tbody>
@@ -249,15 +249,15 @@ export default function ClientMarketWatchPage() {
                   
                   // Signal decision: BUY/SELL/HOLD
                   let signal = 'HOLD';
-                  let signalColor = '#64748b';
-                  let signalBg = '#f1f5f9';
+                  let signalColor = 'var(--text-muted)';
+                  let signalBg = 'var(--surface)';
                   if (stock.changePercent > 1.2) {
                     signal = 'BUY';
-                    signalColor = '#10b981';
-                    signalBg = '#e6f4ea';
+                    signalColor = 'var(--accent)';
+                    signalBg = 'var(--accent-light)';
                   } else if (stock.changePercent < -1.2) {
                     signal = 'SELL';
-                    signalColor = '#ef4444';
+                    signalColor = 'var(--danger)';
                     signalBg = '#fde8e8';
                   }
 
@@ -272,7 +272,7 @@ export default function ClientMarketWatchPage() {
                         transition: 'background-color 0.15s'
                       }}
                       onMouseEnter={(e) => {
-                        if (!isSelected) e.currentTarget.style.backgroundColor = '#f8fafc';
+                        if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--surface)';
                       }}
                       onMouseLeave={(e) => {
                         if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
@@ -334,8 +334,8 @@ export default function ClientMarketWatchPage() {
                         borderRadius: '4px',
                         border: 'none',
                         cursor: 'pointer',
-                        backgroundColor: timeframe === tf ? 'var(--primary)' : '#f1f5f9',
-                        color: timeframe === tf ? '#ffffff' : '#64748b',
+                        backgroundColor: timeframe === tf ? 'var(--primary)' : 'var(--surface)',
+                        color: timeframe === tf ? '#ffffff' : 'var(--text-muted)',
                         fontWeight: 700
                       }}
                     >
@@ -363,31 +363,31 @@ export default function ClientMarketWatchPage() {
               
               {indicators && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12.5px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--surface)', paddingBottom: '6px' }}>
                     <span style={{ color: 'var(--text-muted)' }}>EMA (20)</span>
                     <strong style={{ color: 'var(--text-primary)' }}>₹{indicators.ema20}</strong>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--surface)', paddingBottom: '6px' }}>
                     <span style={{ color: 'var(--text-muted)' }}>EMA (50)</span>
                     <strong style={{ color: 'var(--text-primary)' }}>₹{indicators.ema50}</strong>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--surface)', paddingBottom: '6px' }}>
                     <span style={{ color: 'var(--text-muted)' }}>VWAP</span>
                     <strong style={{ color: 'var(--text-primary)' }}>₹{indicators.vwap}</strong>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--surface)', paddingBottom: '6px' }}>
                     <span style={{ color: 'var(--text-muted)' }}>RSI (14)</span>
-                    <strong style={{ color: indicators.rsi > 70 ? '#ef4444' : indicators.rsi < 30 ? '#10b981' : 'var(--text-primary)' }}>
+                    <strong style={{ color: indicators.rsi > 70 ? 'var(--danger)' : indicators.rsi < 30 ? 'var(--accent)' : 'var(--text-primary)' }}>
                       {indicators.rsi} {indicators.rsi > 70 ? '(Overbought)' : indicators.rsi < 30 ? '(Oversold)' : '(Neutral)'}
                     </strong>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--surface)', paddingBottom: '6px' }}>
                     <span style={{ color: 'var(--text-muted)' }}>MACD Hist</span>
-                    <strong style={{ color: indicators.macdHist >= 0 ? '#10b981' : '#ef4444' }}>{indicators.macdHist}</strong>
+                    <strong style={{ color: indicators.macdHist >= 0 ? 'var(--accent)' : 'var(--danger)' }}>{indicators.macdHist}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '4px' }}>
                     <span style={{ color: 'var(--text-muted)' }}>SuperTrend</span>
-                    <strong style={{ color: indicators.supertrendDir === 'BUY' ? '#10b981' : '#ef4444' }}>
+                    <strong style={{ color: indicators.supertrendDir === 'BUY' ? 'var(--accent)' : 'var(--danger)' }}>
                       {indicators.supertrendDir} (₹{indicators.supertrendVal})
                     </strong>
                   </div>

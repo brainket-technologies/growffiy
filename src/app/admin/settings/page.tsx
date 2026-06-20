@@ -165,7 +165,7 @@ export default function SettingsPage() {
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-color)' }}>
       <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{label}</span>
       <span style={{ fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-        {value ? value : status !== undefined ? (status ? <span style={{ color: '#059669' }}>✅ {label === 'Holiday' ? 'Not a holiday' : label === 'Special Day' ? 'Special session' : 'Yes'}</span> : <span style={{ color: '#dc2626' }}>❌ No</span>) : ''}
+        {value ? value : status !== undefined ? (status ? <span style={{ color: '#059669' }}>✅ {label === 'Holiday' ? 'Not a holiday' : label === 'Special Day' ? 'Special session' : 'Yes'}</span> : <span style={{ color: 'var(--danger)' }}>❌ No</span>) : ''}
       </span>
     </div>
   );
@@ -364,12 +364,12 @@ export default function SettingsPage() {
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: '8px', 
-                backgroundColor: '#f1f5f9', 
+                backgroundColor: 'var(--surface)', 
                 padding: '4px 14px', 
                 borderRadius: '20px', 
-                border: '1px solid #e2e8f0' 
+                border: '1px solid var(--border)' 
               }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: razorpayMode === 'test' ? 'var(--primary)' : '#64748b' }}>TEST MODE</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: razorpayMode === 'test' ? 'var(--primary)' : 'var(--text-muted)' }}>TEST MODE</span>
                 <button
                   type="button"
                   onClick={async () => {
@@ -393,7 +393,7 @@ export default function SettingsPage() {
                 >
                   {razorpayMode === 'live' ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
                 </button>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: razorpayMode === 'live' ? 'var(--accent-dark)' : '#64748b' }}>LIVE MODE</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: razorpayMode === 'live' ? 'var(--accent-dark)' : 'var(--text-muted)' }}>LIVE MODE</span>
               </div>
             </div>
 
@@ -583,8 +583,8 @@ export default function SettingsPage() {
                           <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '10px' }}>
                             <strong style={{ color: 'var(--text-heading)', display: 'block', marginBottom: '4px' }}>Option A: Gmail / Google Workspace (Recommended)</strong>
                             <ul style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                              <li>Set <strong>SMTP Host</strong> to: <code style={{ backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>smtp.gmail.com</code></li>
-                              <li>Set <strong>Port</strong> to: <code style={{ backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>587</code> and <strong>Encryption</strong> to: <strong>STARTTLS (587)</strong>.</li>
+                              <li>Set <strong>SMTP Host</strong> to: <code style={{ backgroundColor: 'var(--surface)', padding: '2px 6px', borderRadius: '4px' }}>smtp.gmail.com</code></li>
+                              <li>Set <strong>Port</strong> to: <code style={{ backgroundColor: 'var(--surface)', padding: '2px 6px', borderRadius: '4px' }}>587</code> and <strong>Encryption</strong> to: <strong>STARTTLS (587)</strong>.</li>
                               <li><strong>Step 1 (2-Step Verification):</strong> Open <a href="https://myaccount.google.com/signinoptions/two-step-verification" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>Google 2-Step Verification Settings</a> and make sure it is turned <strong>ON</strong>.</li>
                               <li><strong>Step 2 (App Password Page):</strong> Go directly to <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>Google App Passwords Settings Page</a>.</li>
                               <li><strong>Step 3 (Generate Key):</strong> In the input box, enter a name (e.g., <code>Growffiy SMTP</code>) and click <strong>Create</strong>. Copy the generated 16-character password (e.g., <code>abcd efgh ijkl mnop</code>).</li>
@@ -596,7 +596,7 @@ export default function SettingsPage() {
                             <strong style={{ color: 'var(--text-heading)', display: 'block', marginBottom: '4px' }}>Option B: Custom Domain Hosting (cPanel / Zoho)</strong>
                             <ul style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                               <li>Refer to your hosting account's Email Client settings to get your outgoing server address (e.g. `mail.yourdomain.com`).</li>
-                              <li>Secure SSL port is typically <code style={{ backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>465</code> (SSL/TLS) and TLS/non-SSL port is <code style={{ backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>587</code>.</li>
+                              <li>Secure SSL port is typically <code style={{ backgroundColor: 'var(--surface)', padding: '2px 6px', borderRadius: '4px' }}>465</code> (SSL/TLS) and TLS/non-SSL port is <code style={{ backgroundColor: 'var(--surface)', padding: '2px 6px', borderRadius: '4px' }}>587</code>.</li>
                               <li>Use your complete email address and its mailbox password as authentication.</li>
                             </ul>
                           </div>
@@ -618,12 +618,12 @@ export default function SettingsPage() {
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: '8px', 
-                backgroundColor: '#f1f5f9', 
+                backgroundColor: 'var(--surface)', 
                 padding: '4px 14px', 
                 borderRadius: '20px', 
-                border: '1px solid #e2e8f0' 
+                border: '1px solid var(--border)' 
               }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: smtpStatus === 'false' ? 'var(--danger)' : '#64748b' }}>MAIL OFF</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: smtpStatus === 'false' ? 'var(--danger)' : 'var(--text-muted)' }}>MAIL OFF</span>
                 <button
                   type="button"
                   onClick={async () => {
@@ -647,7 +647,7 @@ export default function SettingsPage() {
                 >
                   {smtpStatus === 'true' ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
                 </button>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: smtpStatus === 'true' ? 'var(--accent-dark)' : '#64748b' }}>MAIL ON</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: smtpStatus === 'true' ? 'var(--accent-dark)' : 'var(--text-muted)' }}>MAIL ON</span>
               </div>
             </div>
 
@@ -924,7 +924,7 @@ export default function SettingsPage() {
 
                 {/* Pre-Open Fetch */}
                 <div style={{ display: 'flex', gap: '20px', marginBottom: '32px', position: 'relative' }}>
-                  <div style={{ position: 'absolute', left: '-26px', top: '18px', width: '14px', height: '14px', borderRadius: '50%', background: '#0ea5e9', border: '3px solid rgba(14,165,233,0.15)', zIndex: 1 }} />
+                  <div style={{ position: 'absolute', left: '-26px', top: '18px', width: '14px', height: '14px', borderRadius: '50%', background: 'var(--primary)', border: '3px solid rgba(14,165,233,0.15)', zIndex: 1 }} />
                   <div style={{ flex: 1, padding: '18px 22px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'rgba(14,165,233,0.03)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
@@ -1011,11 +1011,11 @@ export default function SettingsPage() {
               {/* Auto Trade Status Bar */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 22px', borderRadius: '12px', background: autoTradeEnabled ? 'linear-gradient(135deg, rgba(5,150,105,0.08), rgba(16,185,129,0.04))' : 'rgba(148,163,184,0.06)', border: `1px solid ${autoTradeEnabled ? 'rgba(5,150,105,0.2)' : 'var(--border-color)'}`, marginBottom: '24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: autoTradeEnabled ? 'linear-gradient(135deg, #059669, #10b981)' : '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: autoTradeEnabled ? 'linear-gradient(135deg, #059669, #10b981)' : 'var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                     <RefreshCw size={18} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '15px', fontWeight: 700, color: autoTradeEnabled ? '#059669' : '#64748b' }}>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: autoTradeEnabled ? '#059669' : 'var(--text-muted)' }}>
                       Auto Trading {autoTradeEnabled ? 'Active' : 'Disabled'}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '1px' }}>
@@ -1080,7 +1080,7 @@ export default function SettingsPage() {
                             cursor: 'pointer',
                             background: isSelected ? 'linear-gradient(135deg, var(--primary), #6366f1)' : 'var(--bg-secondary)',
                             borderColor: isSelected ? 'var(--primary)' : 'var(--border-color)',
-                            color: isSelected ? 'white' : isWeekend ? '#94a3b8' : 'var(--text-primary)',
+                            color: isSelected ? 'white' : isWeekend ? 'var(--text-subtle)' : 'var(--text-primary)',
                             opacity: isWeekend && !isSelected ? 0.5 : 1,
                             transition: 'all 0.15s'
                           }}
@@ -1095,7 +1095,7 @@ export default function SettingsPage() {
                 {/* Right: Today's Status */}
                 <div style={{ padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b' }} />
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--warning)' }} />
                     <span style={{ fontSize: '14px', fontWeight: 700 }}>Today's Status</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1104,7 +1104,7 @@ export default function SettingsPage() {
                     <StatusRow label="Trading Day" status={tradingDays.includes(new Date().toLocaleDateString('en-US', { weekday: 'short' }))} />
                     <StatusRow label="Holiday" status={!holidays.includes(new Date().toLocaleDateString('en-CA'))} />
                     <StatusRow label="Special Day" status={specialDays.includes(new Date().toLocaleDateString('en-CA'))} />
-                    <div style={{ marginTop: '8px', padding: '10px 14px', borderRadius: '8px', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', fontSize: '12px', fontWeight: 600, textAlign: 'center', color: !autoTradeEnabled ? '#64748b' : holidays.includes(new Date().toLocaleDateString('en-CA')) ? '#dc2626' : (tradingDays.includes(new Date().toLocaleDateString('en-US', { weekday: 'short' })) || specialDays.includes(new Date().toLocaleDateString('en-CA')) ? '#059669' : '#dc2626') }}>
+                    <div style={{ marginTop: '8px', padding: '10px 14px', borderRadius: '8px', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', fontSize: '12px', fontWeight: 600, textAlign: 'center', color: !autoTradeEnabled ? 'var(--text-muted)' : holidays.includes(new Date().toLocaleDateString('en-CA')) ? 'var(--danger)' : (tradingDays.includes(new Date().toLocaleDateString('en-US', { weekday: 'short' })) || specialDays.includes(new Date().toLocaleDateString('en-CA')) ? '#059669' : 'var(--danger)') }}>
                       {!autoTradeEnabled ? '🔴 Engine Stopped — Auto Trade OFF' :
                        holidays.includes(new Date().toLocaleDateString('en-CA')) ? '🔴 Trade SKIP — Market Holiday' :
                        tradingDays.includes(new Date().toLocaleDateString('en-US', { weekday: 'short' })) || specialDays.includes(new Date().toLocaleDateString('en-CA')) ? '🟢 Trade will EXECUTE Today' :
@@ -1149,7 +1149,7 @@ export default function SettingsPage() {
                             <span style={{ fontWeight: 500 }}>{new Date(date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                             <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>({new Date(date).toLocaleDateString('en-US', { weekday: 'long' })})</span>
                           </div>
-                          <button type="button" onClick={() => setSpecialDays(specialDays.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', opacity: 0.6 }}><Trash2 size={14} /></button>
+                          <button type="button" onClick={() => setSpecialDays(specialDays.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', opacity: 0.6 }}><Trash2 size={14} /></button>
                         </div>
                       ))
                     )}
@@ -1189,7 +1189,7 @@ export default function SettingsPage() {
                             <span style={{ fontWeight: 500 }}>{new Date(date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                             <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>({new Date(date).toLocaleDateString('en-US', { weekday: 'long' })})</span>
                           </div>
-                          <button type="button" onClick={() => setHolidays(holidays.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', opacity: 0.6 }}><Trash2 size={14} /></button>
+                          <button type="button" onClick={() => setHolidays(holidays.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', opacity: 0.6 }}><Trash2 size={14} /></button>
                         </div>
                       ))
                     )}

@@ -26,7 +26,7 @@ export default function Footer() {
                 <div key={s} style={{
                   width: 32, height: 32, borderRadius: 8, background: '#1e293b',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 11, fontWeight: 700, color: '#64748b', cursor: 'pointer',
+                  fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer',
                   transition: 'all 0.2s',
                 }}>{s}</div>
               ))}
@@ -67,7 +67,7 @@ export default function Footer() {
         </div>
 
         <div className="footer-disclaimer">
-          <strong style={{ color: '#94a3b8' }}>REGULATORY RISK DISCLAIMER:</strong>{' '}
+          <strong style={{ color: 'var(--text-subtle)' }}>REGULATORY RISK DISCLAIMER:</strong>{' '}
           Algorithmic trading involves substantial financial risk. Growffiy is a software utility and is NOT a
           SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown
           does not represent guaranteed future results. Past performance is not indicative of future returns.

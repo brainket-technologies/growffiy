@@ -77,7 +77,7 @@ export default function PaymentsPage() {
                 ₹{totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </h3>
             </div>
-            <div style={{ padding: '12px', borderRadius: '12px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+            <div style={{ padding: '12px', borderRadius: '12px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent)' }}>
               <CreditCard size={24} />
             </div>
           </div>

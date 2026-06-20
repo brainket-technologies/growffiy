@@ -202,7 +202,7 @@ export default function ClientSubscriptionPlans() {
           padding: '16px 20px', 
           borderRadius: '12px', 
           backgroundColor: '#fef2f2', 
-          color: '#ef4444', 
+          color: 'var(--danger)', 
           fontSize: '14px', 
           fontWeight: 600, 
           border: '1.5px solid rgba(239, 68, 68, 0.2)',
@@ -241,7 +241,7 @@ export default function ClientSubscriptionPlans() {
           position: relative;
           background: white;
           border-radius: 20px;
-          border: 1.5px solid #e2e8f0;
+          border: 1.5px solid var(--border);
           padding: 40px 32px;
           display: flex;
           flex-direction: column;
@@ -257,7 +257,7 @@ export default function ClientSubscriptionPlans() {
           left: 0;
           right: 0;
           height: 6px;
-          background: #e2e8f0;
+          background: var(--border);
           transition: all 0.4s ease;
         }
         .premium-plan-card:hover {
@@ -341,12 +341,12 @@ export default function ClientSubscriptionPlans() {
         /* FAQ section CSS */
         .faq-wrapper {
           margin-top: 48px;
-          border-top: 1px solid #e2e8f0;
+          border-top: 1px solid var(--border);
           padding-top: 48px;
         }
         .faq-item {
           background: white;
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--border);
           border-radius: 12px;
           margin-bottom: 12px;
           overflow: hidden;
@@ -419,7 +419,7 @@ export default function ClientSubscriptionPlans() {
                 </p>
 
                 {/* Features list */}
-                <div style={{ borderTop: '1.5px dashed #f1f5f9', paddingTop: '28px', marginBottom: '36px', flex: 1 }}>
+                <div style={{ borderTop: '1.5px dashed var(--surface)', paddingTop: '28px', marginBottom: '36px', flex: 1 }}>
                   <p style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-heading)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px' }}>
                     What's included:
                   </p>

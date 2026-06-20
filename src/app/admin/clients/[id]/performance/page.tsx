@@ -329,7 +329,7 @@ export default function ClientPerformancePage() {
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Phone size={13} /> {clientPhone}
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontFamily: 'monospace' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--surface)', padding: '2px 8px', borderRadius: '4px', fontFamily: 'monospace' }}>
                   Client ID: {clientCode}
                   <button 
                     onClick={copyToClipboard}

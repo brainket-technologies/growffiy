@@ -283,7 +283,7 @@ export default function SupportPage() {
         <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '850px' }}>
             <thead>
-              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
+              <tr style={{ backgroundColor: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
                 <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Client</th>
                 <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ticket Details</th>
                 <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Date</th>
@@ -431,7 +431,7 @@ export default function SupportPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
             {/* Header Details Panel */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', backgroundColor: 'var(--surface)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border)' }}>
               <div>
                 <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Client Requestor</span>
                 <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', marginTop: '2px' }}>
@@ -480,12 +480,12 @@ export default function SupportPage() {
                 <div style={{ 
                   padding: '16px', 
                   borderRadius: '16px 16px 16px 0', 
-                  backgroundColor: '#f1f5f9', 
+                  backgroundColor: 'var(--surface)', 
                   color: 'var(--text-primary)', 
                   fontSize: '13.5px', 
                   lineHeight: '1.6',
                   whiteSpace: 'pre-wrap',
-                  border: '1px solid #e2e8f0'
+                  border: '1px solid var(--border)'
                 }}>
                   {activeTicket.message}
                 </div>

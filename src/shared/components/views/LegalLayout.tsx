@@ -15,13 +15,13 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#f8fafc',
+      background: 'var(--surface)',
       fontFamily: 'var(--font-body)',
     }}>
       {/* Header bar */}
       <div style={{
         background: 'white',
-        borderBottom: '1px solid #e2e8f0',
+        borderBottom: '1px solid var(--border)',
         padding: '16px 0',
         position: 'sticky', top: 0, zIndex: 100,
         backdropFilter: 'blur(20px)',
@@ -42,7 +42,7 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
               <img src="/logo.png" alt="Growffiy" style={{ width: 18, height: 18, objectFit: 'contain' }} />
             </div>
             <span style={{
-              fontSize: 16, fontWeight: 800, color: '#0f172a',
+              fontSize: 16, fontWeight: 800, color: 'var(--text-heading)',
               fontFamily: 'var(--font-title)',
             }}>
               GROWFFIY
@@ -52,8 +52,8 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
           <Link href="/" style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '8px 18px', borderRadius: 99,
-            background: '#f1f5f9', border: '1px solid #e2e8f0',
-            fontSize: 13, fontWeight: 600, color: '#475569',
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            fontSize: 13, fontWeight: 600, color: 'var(--text-body)',
             textDecoration: 'none', transition: 'all 0.2s',
           }}>
             <ArrowLeft size={14} />
@@ -69,13 +69,13 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
         {/* Title */}
         <div style={{ marginBottom: 40 }}>
           <h1 style={{
-            fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 800, color: '#0f172a',
+            fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 800, color: 'var(--text-heading)',
             fontFamily: 'var(--font-title)', letterSpacing: '-0.5px',
             marginBottom: 8,
           }}>
             {title}
           </h1>
-          <p style={{ fontSize: 13, color: '#94a3b8', fontWeight: 500 }}>
+          <p style={{ fontSize: 13, color: 'var(--text-subtle)', fontWeight: 500 }}>
             Last Updated: {lastUpdated}
           </p>
         </div>
@@ -102,7 +102,7 @@ export function LegalSection({ number, title, children }: { number: string; titl
   return (
     <div style={{ marginBottom: 28 }}>
       <h3 style={{
-        fontSize: 16, fontWeight: 700, color: '#0f172a',
+        fontSize: 16, fontWeight: 700, color: 'var(--text-heading)',
         marginBottom: 10, fontFamily: 'var(--font-title)',
         display: 'flex', alignItems: 'center', gap: 8,
       }}>
@@ -118,7 +118,7 @@ export function LegalSection({ number, title, children }: { number: string; titl
         {title}
       </h3>
       <div style={{
-        fontSize: 14, lineHeight: 1.75, color: '#475569',
+        fontSize: 14, lineHeight: 1.75, color: 'var(--text-body)',
         paddingLeft: 34,
       }}>
         {children}

@@ -43,7 +43,7 @@ export default function ReportsPage() {
               <p style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500 }}>Profit Factor</p>
               <h3 style={{ fontSize: '24px', fontWeight: 700, marginTop: '8px', color: 'var(--text-primary)' }}>2.14</h3>
             </div>
-            <div style={{ padding: '12px', borderRadius: '12px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+            <div style={{ padding: '12px', borderRadius: '12px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent)' }}>
               <BarChart2 size={24} />
             </div>
           </div>
@@ -71,7 +71,7 @@ export default function ReportsPage() {
               }}
             >
               <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: '#f1f5f9', color: 'var(--text-secondary)' }}>
+                <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'var(--surface)', color: 'var(--text-secondary)' }}>
                   <FileText size={20} />
                 </div>
                 <div>
