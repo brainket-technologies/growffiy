@@ -514,7 +514,7 @@ export default function AdminDashboard() {
               {/* Center total number */}
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: '1.2' }}>
                 <strong style={{ fontSize: '22px', color: 'var(--text-heading)', fontWeight: '700' }}>{activeStrategies}</strong>
-                <span style={{ fontSize: '9px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '2px' }}>Total Strategies</span>
+                <span style={{ fontSize: '9px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.3px', marginTop: '2px' }}>Strategies</span>
               </div>
             </div>
 
