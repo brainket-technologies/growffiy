@@ -125,21 +125,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
-  // Poll fast tick data every 3 seconds for live charts and trades monitoring
-  // Simulate high-frequency WebSocket tick data locally in the browser (every 400ms)
-  // Poll database updates (stocks, trades & dashboard stats) every 2 seconds
+  // Poll database updates (stocks, trades & dashboard stats) every 5 seconds
   useEffect(() => {
     refreshAllData();
     const interval = setInterval(async () => {
       try {
         setIsSyncing(true);
-        const [tradesRes, statsRes, stocksRes] = await Promise.all([
+        const [tradesRes, stocksRes] = await Promise.all([
           api.get(API_ENDPOINTS.TRADES),
-          api.get(API_ENDPOINTS.DASHBOARD),
           api.get(API_ENDPOINTS.STOCKS),
         ]);
         if (tradesRes.success) setTrades(tradesRes.trades);
-        if (statsRes.success) setDashboardStats(statsRes.stats);
         if (stocksRes.success) {
           setStocks(stocksRes.stocks);
           if (stocksRes.preOpenStocks) {
@@ -156,7 +152,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } finally {
         setIsSyncing(false);
       }
-    }, 2000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [refreshAllData]);

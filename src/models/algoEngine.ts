@@ -64,6 +64,21 @@ class AlgoEngineService {
   private preselectedForClient: Map<string, StockQuote> = new Map();
   private subscribedSymbols: Set<string> = new Set();
 
+  // Track clients whose tokens have been refreshed today (to avoid redundant auto-login at trade time)
+  private todayTokenRefreshed: Set<string> = new Set();
+  private tokenRefreshDateKey: string = '';
+
+  // Cache for matchesConditions() results per (strategyId_symbol) to avoid redundant historical data fetches
+  private conditionCache: Map<string, boolean> = new Map();
+  private conditionCacheDate: string = '';
+
+  // Concurrency control constants
+  private static readonly BATCH_CONCURRENCY = 5;
+  private static readonly TRADE_MONITOR_CONCURRENCY = 10;
+
+  // Monitor overlap guard
+  private isMonitoringRunning = false;
+
   constructor() {
     this.initializeKiteLiveFeed();
     this.startDailyTokenRefreshScheduler();
@@ -100,6 +115,20 @@ class AlgoEngineService {
 
   private async matchesConditions(stock: any, conditions: any[], client?: any): Promise<boolean> {
     if (!conditions || !Array.isArray(conditions) || conditions.length === 0) return true;
+
+    // Cache check: same strategy + same stock = same result (avoid redundant historical candle fetches)
+    const strategyId = client?.strategy?.id;
+    if (strategyId) {
+      const todayDateKey = new Date().toLocaleDateString();
+      if (this.conditionCacheDate !== todayDateKey) {
+        this.conditionCache.clear();
+        this.conditionCacheDate = todayDateKey;
+      }
+      const cacheKey = `${strategyId}_${stock.symbol}`;
+      if (this.conditionCache.has(cacheKey)) {
+        return this.conditionCache.get(cacheKey)!;
+      }
+    }
     for (const cond of conditions) {
       const val = Number(cond.value);
       if (cond.indicator === 'Pre Open Change %') {
@@ -196,6 +225,9 @@ class AlgoEngineService {
         }
       }
     }
+    if (strategyId) {
+      this.conditionCache.set(`${strategyId}_${stock.symbol}`, true);
+    }
     return true;
   }
 
@@ -258,6 +290,10 @@ class AlgoEngineService {
         // Stage 2: Check each active strategy's preSelectTime and entryTime
         const strategies = await prisma.strategy.findMany({ where: { status: 'active' } });
 
+        const preSelectTasks: (() => Promise<void>)[] = [];
+        const entryTasks: (() => Promise<void>)[] = [];
+        let adminId = 'system-scheduler';
+
         for (const strategy of strategies) {
           if (!strategy.configJson) continue;
 
@@ -274,20 +310,28 @@ class AlgoEngineService {
           if (preSelectTime && currentTimeStr === preSelectTime && lastPreSelectByStrategy.get(strategy.id) !== currentDateKey) {
             console.log(`AlgoEngine Scheduler: Pre-select time ${preSelectTime} reached for strategy "${strategy.name}".`);
             lastPreSelectByStrategy.set(strategy.id, currentDateKey);
-            await this.preSelectAllClients(strategy.id);
+            preSelectTasks.push(() => this.preSelectAllClients(strategy.id));
           }
 
           if (entryTime && currentTimeStr === entryTime && lastEntryByStrategy.get(strategy.id) !== currentDateKey) {
             console.log(`AlgoEngine Scheduler: Entry time ${entryTime} reached for strategy "${strategy.name}". Starting execution...`);
             lastEntryByStrategy.set(strategy.id, currentDateKey);
 
-            const firstAdmin = await prisma.user.findFirst({
-              where: { role: 'admin' }
-            });
-            const adminId = firstAdmin ? firstAdmin.id : 'system-scheduler';
+            if (!adminId || adminId === 'system-scheduler') {
+              const firstAdmin = await prisma.user.findFirst({ where: { role: 'admin' } });
+              if (firstAdmin) adminId = firstAdmin.id;
+            }
 
-            await this.executePreOpenTrades(adminId, undefined, strategy.id);
+            entryTasks.push(() => this.executePreOpenTrades(adminId, undefined, strategy.id));
           }
+        }
+
+        const STRATEGY_THROTTLE = 5;
+        for (let i = 0; i < preSelectTasks.length; i += STRATEGY_THROTTLE) {
+          await Promise.allSettled(preSelectTasks.slice(i, i + STRATEGY_THROTTLE).map(fn => fn()));
+        }
+        for (let i = 0; i < entryTasks.length; i += STRATEGY_THROTTLE) {
+          await Promise.allSettled(entryTasks.slice(i, i + STRATEGY_THROTTLE).map(fn => fn()));
         }
       } catch (err) {
         console.error('AlgoEngine Scheduler: Error in Pre-Open Strategy cron interval execution:', err);
@@ -339,14 +383,23 @@ class AlgoEngineService {
 
           console.log(`AlgoEngine Scheduler: Found ${clients.length} clients to auto-login.`);
 
-          for (const client of clients) {
-            try {
-              console.log(`AlgoEngine Scheduler: Auto-logging in client ${client.user.name} (${client.zerodhaClientId})...`);
-              const loginRes = await performKiteAutoLogin(client.id);
-              console.log(`AlgoEngine Scheduler: Auto-login result for ${client.user.name}:`, loginRes.success);
-            } catch (err: any) {
-              console.error(`AlgoEngine Scheduler: Error auto-logging in client ${client.user.name}:`, err);
-            }
+          this.todayTokenRefreshed.clear();
+          this.tokenRefreshDateKey = currentDateKey;
+
+          for (let i = 0; i < clients.length; i += AlgoEngineService.BATCH_CONCURRENCY) {
+            const batch = clients.slice(i, i + AlgoEngineService.BATCH_CONCURRENCY);
+            await Promise.allSettled(batch.map(async (client) => {
+              try {
+                console.log(`AlgoEngine Scheduler: Auto-logging in client ${client.user.name} (${client.zerodhaClientId})...`);
+                const loginRes = await performKiteAutoLogin(client.id);
+                if (loginRes.success) {
+                  this.todayTokenRefreshed.add(client.id);
+                }
+                console.log(`AlgoEngine Scheduler: Auto-login result for ${client.user.name}:`, loginRes.success);
+              } catch (err: any) {
+                console.error(`AlgoEngine Scheduler: Error auto-logging in client ${client.user.name}:`, err);
+              }
+            }));
           }
         }
       } catch (err) {
@@ -368,6 +421,8 @@ class AlgoEngineService {
     const lastMonitoredByTrade: Map<string, number> = new Map();
 
     const checkOpenTradesExits = async () => {
+      if (this.isMonitoringRunning) return;
+      this.isMonitoringRunning = true;
       try {
         const openTrades = await prisma.trade.findMany({
           where: { status: 'open' },
@@ -378,6 +433,7 @@ class AlgoEngineService {
         });
 
         if (openTrades.length === 0) {
+          this.isMonitoringRunning = false;
           return;
         }
 
@@ -390,7 +446,7 @@ class AlgoEngineService {
 
         const now = Date.now();
 
-        for (const trade of openTrades) {
+        const processTrade = async (trade: any) => {
           try {
             const client = trade.client;
             const strategy = trade.strategy;
@@ -409,20 +465,20 @@ class AlgoEngineService {
 
             const lastCheck = lastMonitoredByTrade.get(trade.id) || 0;
             if (now - lastCheck < checkIntervalMs) {
-              continue;
+              return;
             }
             lastMonitoredByTrade.set(trade.id, now);
 
             if (!client.zerodhaApiKey || !client.accessToken) {
               console.warn(`AlgoEngine Monitor: Skipping trade ${trade.id} - missing client API key or access token.`);
-              continue;
+              return;
             }
 
             // Find the instrument token from instrumentToSymbol mapping
             const instrumentTokenStr = Object.entries(this.instrumentToSymbol).find(([token, sym]) => sym === trade.symbol)?.[0];
             if (!instrumentTokenStr) {
               console.warn(`AlgoEngine Monitor: Skipping trade ${trade.id} - could not find instrument token for symbol ${trade.symbol}.`);
-              continue;
+              return;
             }
 
             const today = new Date();
@@ -439,7 +495,7 @@ class AlgoEngineService {
             const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
             if (!config?.stoploss?.fixedPercent || !config?.target?.profitPercent || !config?.stoploss?.type || !config?.target?.type || !config?.basicInfo?.exchange) {
               console.log(`AlgoEngine Monitor: Strategy ${strategy.name} has incomplete config for trade ${trade.id}. Skipping check.`);
-              continue;
+              return;
             }
             const slPercent = config.stoploss.fixedPercent;
             const targetPercent = config.target.profitPercent;
@@ -476,7 +532,7 @@ class AlgoEngineService {
                       console.log(`AlgoEngine Monitor: SL order ${trade.slOrderId} ${slData.status}`);
                     }
                   }
-                } catch (e) { /* silent */ }
+                } catch (e) { console.warn(`AlgoEngine Monitor: SL order status check failed for ${trade.symbol}:`, e); }
               }
 
               if (trade.targetOrderId) {
@@ -492,7 +548,7 @@ class AlgoEngineService {
                       console.log(`AlgoEngine Monitor: Target order ${trade.targetOrderId} ${tgtData.status}`);
                     }
                   }
-                } catch (e) { /* silent */ }
+                } catch (e) { console.warn(`AlgoEngine Monitor: Target order status check failed for ${trade.symbol}:`, e); }
               }
 
               // OCO Logic: Cancel opposite order
@@ -504,7 +560,7 @@ class AlgoEngineService {
                   try {
                     await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.targetOrderId);
                     console.log(`AlgoEngine Monitor: Cancelled target order ${trade.targetOrderId} (SL hit first)`);
-                  } catch (e) { /* silent */ }
+                  } catch (e) { console.warn(`AlgoEngine Monitor: Failed to cancel target order ${trade.targetOrderId}:`, e); }
                 }
               } else if (targetComplete) {
                 exitTriggered = true;
@@ -514,7 +570,7 @@ class AlgoEngineService {
                   try {
                     await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.slOrderId);
                     console.log(`AlgoEngine Monitor: Cancelled SL order ${trade.slOrderId} (Target hit first)`);
-                  } catch (e) { /* silent */ }
+                  } catch (e) { console.warn(`AlgoEngine Monitor: Failed to cancel SL order ${trade.slOrderId}:`, e); }
                 }
               }
 
@@ -540,7 +596,7 @@ class AlgoEngineService {
                           });
                           console.log(`AlgoEngine Monitor: Trailing SL for ${trade.symbol}: ${currentSlTrigger} → ${newSlTrigger.toFixed(2)} (price: ${price})`);
                         }
-                      } catch (e) { /* silent */ }
+                      } catch (e) { console.warn(`AlgoEngine Monitor: Trailing SL modify failed for ${trade.symbol}:`, e); }
                     }
                   }
                 }
@@ -568,7 +624,7 @@ class AlgoEngineService {
                           });
                           console.log(`AlgoEngine Monitor: Trailing Target for ${trade.symbol}: ${currentTarget} → ${newTarget.toFixed(2)} (price: ${price})`);
                         }
-                      } catch (e) { /* silent */ }
+                      } catch (e) { console.warn(`AlgoEngine Monitor: Trailing Target modify failed for ${trade.symbol}:`, e); }
                     }
                   }
                 }
@@ -608,7 +664,7 @@ class AlgoEngineService {
                   if (slType === 'Fixed Points') {
                     if (!config?.stoploss?.fixedPoints) {
                       console.log(`AlgoEngine Monitor: stoploss.fixedPoints not configured for trade ${trade.id}. Skipping check.`);
-                      continue;
+                      return;
                     }
                     fallbackSlPoints = config.stoploss.fixedPoints;
                   } else {
@@ -620,7 +676,7 @@ class AlgoEngineService {
                   if (targetType === 'Risk Reward Ratio') {
                     if (!config?.target?.riskRewardRatio) {
                       console.log(`AlgoEngine Monitor: target.riskRewardRatio not configured for trade ${trade.id}. Skipping check.`);
-                      continue;
+                      return;
                     }
                     const rr = config.target.riskRewardRatio;
                     targetLevel = entryPrice + (fallbackSlPoints * rr);
@@ -717,9 +773,16 @@ class AlgoEngineService {
           } catch (tradeErr: any) {
             console.error(`AlgoEngine Monitor: Error processing trade ${trade.id}:`, tradeErr);
           }
+        };
+
+        for (let i = 0; i < openTrades.length; i += AlgoEngineService.TRADE_MONITOR_CONCURRENCY) {
+          const batch = openTrades.slice(i, i + AlgoEngineService.TRADE_MONITOR_CONCURRENCY);
+          await Promise.allSettled(batch.map(trade => processTrade(trade)));
         }
       } catch (err) {
         console.error('AlgoEngine Monitor: Error in open trades monitoring cron loop:', err);
+      } finally {
+        this.isMonitoringRunning = false;
       }
     };
 
@@ -1170,17 +1233,17 @@ class AlgoEngineService {
       }
     }
 
-    for (const client of clients) {
+    const preSelectClient = async (client: any) => {
       try {
         const strategy = client.strategy;
-        if (!strategy || strategy.status !== 'active') continue;
+        if (!strategy || strategy.status !== 'active') return;
 
         const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
-        if (!config) continue;
+        if (!config) return;
 
         if (!config.basicInfo?.segment || !config.tradeAction?.action || !config.basicInfo?.selectPosition) {
           console.log(`AlgoEngine preSelect: Strategy config missing required fields (segment/action/selectPosition) for client ${client.user.name}. Skipping.`);
-          continue;
+          return;
         }
         const segment = config.basicInfo.segment;
         const action = config.tradeAction.action;
@@ -1199,7 +1262,7 @@ class AlgoEngineService {
 
         if (matchingStocks.length === 0) {
           console.log(`AlgoEngine preSelect: No matching stocks for client ${client.user.name}.`);
-          continue;
+          return;
         }
 
         // Apply conditions filter (async)
@@ -1213,7 +1276,7 @@ class AlgoEngineService {
 
         if (matchingStocks.length === 0) {
           console.log(`AlgoEngine preSelect: No stocks passed conditions for client ${client.user.name}.`);
-          continue;
+          return;
         }
         const sortedStocks = [...matchingStocks].sort((a, b) =>
           action === 'Long' ? a.changePercent - b.changePercent : b.changePercent - a.changePercent
@@ -1221,7 +1284,7 @@ class AlgoEngineService {
 
         if (sortedStocks.length < selectPosition) {
           console.log(`AlgoEngine preSelect: Only ${sortedStocks.length} stocks for ${client.user.name}, cannot pick #${selectPosition}.`);
-          continue;
+          return;
         }
 
         const selected = sortedStocks[selectPosition - 1];
@@ -1231,6 +1294,12 @@ class AlgoEngineService {
       } catch (err) {
         console.error(`AlgoEngine preSelect: Error for client ${client.user.name}:`, err);
       }
+    };
+
+    const PRE_SELECT_CONCURRENCY = 10;
+    for (let i = 0; i < clients.length; i += PRE_SELECT_CONCURRENCY) {
+      const batch = clients.slice(i, i + PRE_SELECT_CONCURRENCY);
+      await Promise.allSettled(batch.map(client => preSelectClient(client)));
     }
 
     console.log(`AlgoEngine preSelect: ${this.preselectedForClient.size}/${clients.length} clients have a preselected stock ready.`);
@@ -1288,7 +1357,7 @@ class AlgoEngineService {
         }
       }
 
-      const BATCH_SIZE = 10;
+      const BATCH_SIZE = 20;
 
       const processClientEntry = async (client: any): Promise<void> => {
         try {
@@ -1482,11 +1551,14 @@ class AlgoEngineService {
           }
 
           if (process.env.KITE_AUTO_LOGIN_ENABLED === 'true') {
-            if (client.zerodhaPassword && client.zerodhaTotpSecret) {
+            if (this.todayTokenRefreshed.has(client.id) && activeAccessToken) {
+              console.log(`AlgoEngine: Client ${client.user.name} already refreshed today, using existing token.`);
+            } else if (client.zerodhaPassword && client.zerodhaTotpSecret) {
               console.log(`AlgoEngine: Auto-login is enabled. Refreshing session dynamically for client: ${client.user.name}`);
               const autoLoginRes = await performKiteAutoLogin(client.id);
               if (autoLoginRes.success && autoLoginRes.accessToken) {
                 activeAccessToken = autoLoginRes.accessToken;
+                this.todayTokenRefreshed.add(client.id);
               } else {
                 console.warn(`AlgoEngine: Dynamic auto-login failed for ${client.user.name}: ${autoLoginRes.error}`);
               }
@@ -1794,7 +1866,9 @@ class AlgoEngineService {
           // Step 2: Poll entry order until COMPLETE
           if (orderId && client.zerodhaApiKey && activeAccessToken) {
             console.log(`AlgoEngine: Polling entry order ${orderId} for completion...`);
-            for (let attempt = 0; attempt < 10; attempt++) {
+            const isInstantFill = orderTypeParam === 'MARKET' || orderTypeParam === 'SL-M';
+            const maxPolls = isInstantFill ? 3 : 10;
+            for (let attempt = 0; attempt < maxPolls; attempt++) {
               await new Promise(r => setTimeout(r, 2000));
               try {
                 const orderStatusRes = await KiteClient.getOrderById(client.zerodhaApiKey, activeAccessToken, orderId);

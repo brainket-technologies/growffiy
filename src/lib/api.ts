@@ -1,5 +1,3 @@
-import { API_ENDPOINTS } from './constants';
-
 class ApiClient {
   private async request(path: string, options: RequestInit = {}) {
     const defaultHeaders = {
@@ -20,44 +18,9 @@ class ApiClient {
         throw new Error(data.error || `Request failed with status ${response.status}`);
       }
 
-      // Log successful API calls
-      if (!path.includes(API_ENDPOINTS.AUDIT_LOGS)) {
-        const payloadStr = options.body ? String(options.body) : 'No Payload';
-        const method = options.method || 'GET';
-        
-        fetch(API_ENDPOINTS.AUDIT_LOGS, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: `API SUCCESS: ${method} ${path}`,
-            user: 'System API Logger',
-            details: `Payload: ${payloadStr} | Response: ${JSON.stringify(data).substring(0, 800)}`,
-            type: 'system',
-          }),
-        }).catch(() => {});
-      }
-
       return data;
     } catch (error: any) {
       console.error(`ApiClient Error [${options.method || 'GET'} ${path}]:`, error);
-
-      // Log API errors
-      if (!path.includes(API_ENDPOINTS.AUDIT_LOGS)) {
-        const payloadStr = options.body ? String(options.body) : 'No Payload';
-        const method = options.method || 'GET';
-        
-        fetch(API_ENDPOINTS.AUDIT_LOGS, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: `API ERROR: ${method} ${path}`,
-            user: 'System API Logger',
-            details: `Payload: ${payloadStr} | Error: ${error.message || 'Unknown error'}`,
-            type: 'security',
-          }),
-        }).catch(() => {});
-      }
-      
       throw error;
     }
   }

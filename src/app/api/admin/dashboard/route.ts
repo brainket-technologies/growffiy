@@ -1,16 +1,25 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/db';
 
+// In-memory cache to reduce DB load
+let dashboardCache: { data: any; timestamp: number } | null = null;
+const CACHE_TTL = 10000; // 10 seconds
+
 export async function GET(request: Request) {
   try {
+    const now = Date.now();
+    if (dashboardCache && (now - dashboardCache.timestamp) < CACHE_TTL) {
+      return NextResponse.json({ success: true, stats: dashboardCache.data });
+    }
+
     const { searchParams } = new URL(request.url);
     const startDateStr = searchParams.get('startDate');
     const endDateStr = searchParams.get('endDate');
 
-    const now = new Date();
+    const today = new Date();
     // Default to start of current month to end of current month
-    const defaultStartDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    const defaultEndDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const defaultStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    const defaultEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
 
     const startFilter = startDateStr ? new Date(startDateStr) : defaultStartDate;
     // Set time to end of day if only YYYY-MM-DD was sent
@@ -106,26 +115,30 @@ export async function GET(request: Request) {
       pnlHistoryLabels = ['Start', 'Today'];
     }
 
+    const statsResult = {
+      totalClients,
+      activeClients,
+      inactiveClients,
+      activeStrategies,
+      winningStrategies,
+      losingStrategies,
+      breakevenStrategies,
+      totalPnl,
+      totalExposure,
+      unrealizedPnl,
+      realizedPnl,
+      openTrades: openPositions,
+      closedTrades,
+      todayTrades: allTrades.length,
+      pnlHistoryData,
+      pnlHistoryLabels
+    };
+
+    dashboardCache = { data: statsResult, timestamp: Date.now() };
+
     return NextResponse.json({
       success: true,
-      stats: {
-        totalClients,
-        activeClients,
-        inactiveClients,
-        activeStrategies,
-        winningStrategies,
-        losingStrategies,
-        breakevenStrategies,
-        totalPnl,
-        totalExposure,
-        unrealizedPnl,
-        realizedPnl,
-        openTrades: openPositions,
-        closedTrades,
-        todayTrades: allTrades.length,
-        pnlHistoryData,
-        pnlHistoryLabels
-      }
+      stats: statsResult
     });
   } catch (error: any) {
     console.error('Dashboard API Error:', error);
