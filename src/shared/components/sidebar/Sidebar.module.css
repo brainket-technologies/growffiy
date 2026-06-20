@@ -459,18 +459,27 @@
 
 .collapsed .menuItem {
   justify-content: center;
-  padding: 9px;
-  border-radius: 10px;
-  margin: 0 2px;
+  align-items: center;
+  gap: 0;
+  padding: 10px 0;
+  margin: 0 6px 4px;
+  border-radius: 12px;
+}
+
+.collapsed .itemWrapper {
+  margin-bottom: 0;
 }
 
 .collapsed .menuIcon {
   margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .collapsed .menuIcon svg {
-  width: 19px;
-  height: 19px;
+  width: 20px;
+  height: 20px;
 }
 
 .collapsed .menuItemActive::before {
