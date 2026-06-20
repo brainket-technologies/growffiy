@@ -217,8 +217,9 @@ export const Header: React.FC<HeaderProps> = ({
               boxShadow: isTradingActive ? '0 0 6px var(--accent)' : 'none',
               display: 'inline-block'
             }} title={isTradingActive ? 'Engine is Running' : 'Engine is Stopped'} />
+            <span style={{ width: '1px', height: '10px', background: 'var(--border-color)' }} />
             <span style={{ color: 'var(--text-secondary)' }}>
-              {tradingDayLabel === 'Trading Day' ? '✅ Trading' : `❌ ${tradingDayLabel}`}
+              {tradingDayLabel === 'Trading Day' ? 'Market Day' : 'Market Off'}
             </span>
           </div>
 
