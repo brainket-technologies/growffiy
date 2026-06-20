@@ -239,7 +239,7 @@ export default function SupportPage() {
                   border: '1.5px solid var(--border)',
                   fontSize: '13px',
                   fontWeight: 600,
-                  backgroundColor: 'white',
+                  backgroundColor: 'var(--bg-white)',
                   cursor: 'pointer',
                   color: 'var(--text-heading)',
                   outline: 'none'
@@ -264,7 +264,7 @@ export default function SupportPage() {
                   border: '1.5px solid var(--border)',
                   fontSize: '13px',
                   fontWeight: 600,
-                  backgroundColor: 'white',
+                  backgroundColor: 'var(--bg-white)',
                   cursor: 'pointer',
                   color: 'var(--text-heading)',
                   outline: 'none'
@@ -456,7 +456,7 @@ export default function SupportPage() {
                     border: '1px solid var(--border)',
                     outline: 'none',
                     cursor: 'pointer',
-                    backgroundColor: 'white'
+                    backgroundColor: 'var(--bg-white)'
                   }}
                 >
                   <option value="open">🔴 Open</option>

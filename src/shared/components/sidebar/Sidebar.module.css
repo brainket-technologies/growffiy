@@ -447,9 +447,11 @@
 }
 
 .collapsed .menuLabel {
+  flex: 0;
   width: 0;
   opacity: 0;
   overflow: hidden;
+  margin: 0;
 }
 
 .collapsed .chevron {

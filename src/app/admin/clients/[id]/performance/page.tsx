@@ -281,7 +281,7 @@ export default function ClientPerformancePage() {
           gap: '8px', 
           padding: '6px 14px', 
           borderRadius: '8px', 
-          background: 'white', 
+          background: 'var(--bg-white)', 
           border: '1px solid var(--border-color)', 
           fontSize: '13px', 
           color: 'var(--text-body)',
@@ -622,7 +622,7 @@ export default function ClientPerformancePage() {
             <select
               value={strategyFilter}
               onChange={(e) => setStrategyFilter(e.target.value)}
-              style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white' }}
+              style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'var(--bg-white)' }}
             >
               <option value="all">All Strategies</option>
               <option value="Breakout">Breakout</option>
@@ -633,7 +633,7 @@ export default function ClientPerformancePage() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'white' }}
+              style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'var(--bg-white)' }}
             >
               <option value="all">All Types</option>
               <option value="BUY">BUY</option>
@@ -756,7 +756,7 @@ export default function ClientPerformancePage() {
               <button 
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+                style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-white)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
               >
                 &lt;
               </button>
@@ -782,7 +782,7 @@ export default function ClientPerformancePage() {
               <button 
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'white', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
+                style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-white)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
               >
                 &gt;
               </button>
@@ -795,7 +795,7 @@ export default function ClientPerformancePage() {
                 setPageSize(Number(e.target.value));
                 setCurrentPage(1);
               }}
-              style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'white', cursor: 'pointer', outline: 'none' }}
+              style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-white)', cursor: 'pointer', outline: 'none' }}
             >
               <option value={5}>5 / page</option>
               <option value={10}>10 / page</option>

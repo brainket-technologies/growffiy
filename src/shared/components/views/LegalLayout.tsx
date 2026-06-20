@@ -20,7 +20,7 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
     }}>
       {/* Header bar */}
       <div style={{
-        background: 'white',
+        background: 'var(--bg-white)',
         borderBottom: '1px solid var(--border)',
         padding: '16px 0',
         position: 'sticky', top: 0, zIndex: 100,
@@ -82,7 +82,7 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
 
         {/* Card body */}
         <div style={{
-          background: 'white',
+          background: 'var(--bg-white)',
           borderRadius: 20,
           padding: 'clamp(20px, 5vw, 40px) clamp(16px, 5vw, 44px)',
           border: '1px solid #e8edf5',

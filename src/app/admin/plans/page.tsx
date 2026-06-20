@@ -219,9 +219,10 @@ export default function AdminPlansPage() {
           width: 100%;
           padding: 12px 14px;
           border-radius: 10px;
-          border: 1.5px solid #e2e8f0;
+          border: 1.5px solid var(--border);
           font-size: 14px;
-          color: #0f172a;
+          color: var(--text-heading);
+          background: var(--bg-white);
           outline: none;
           transition: all 0.2s;
           box-sizing: border-box;
@@ -547,7 +548,6 @@ export default function AdminPlansPage() {
               value={status}
               onChange={(e) => setStatus(e.target.value)}
               className="plan-input-field"
-              style={{ background: 'white' }}
             >
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
@@ -634,7 +634,6 @@ export default function AdminPlansPage() {
               value={status}
               onChange={(e) => setStatus(e.target.value)}
               className="plan-input-field"
-              style={{ background: 'white' }}
             >
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
