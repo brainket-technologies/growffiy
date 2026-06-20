@@ -25,6 +25,7 @@ export default function SupportPage() {
   // Modal Detail State
   const [activeTicket, setActiveTicket] = useState<any | null>(null);
   const [replyText, setReplyText] = useState('');
+  const [errorModal, setErrorModal] = useState<{ isOpen: boolean; message: string } | null>(null);
 
   const fetchTickets = async () => {
     try {
@@ -65,7 +66,7 @@ export default function SupportPage() {
         setActiveTicket(null);
         fetchTickets();
       } else {
-        alert(data.error || 'Failed to submit reply');
+        setErrorModal({ isOpen: true, message: data.error || 'Failed to submit reply' });
       }
     } catch (err) {
       console.error('Failed to send reply:', err);
@@ -566,6 +567,22 @@ export default function SupportPage() {
         </Modal>
       )}
 
+      {errorModal?.isOpen && (
+        <Modal 
+          isOpen={errorModal.isOpen} 
+          onClose={() => setErrorModal(null)} 
+          title="Error"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '10px 0' }}>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+              {errorModal.message}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+              <Button onClick={() => setErrorModal(null)}>Close</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

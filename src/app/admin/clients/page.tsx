@@ -13,6 +13,7 @@ export default function ClientsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [generatedCreds, setGeneratedCreds] = useState<{ userId: string; password: string } | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; id: string; nextStatus: string } | null>(null);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ isOpen: boolean; id: string; name: string } | null>(null);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -358,12 +359,8 @@ export default function ClientsPage() {
                           >
                             <Eye size={18} />
                           </Link>
-                          <button
-                            onClick={() => {
-                              if (window.confirm(`Are you sure you want to delete client "${client.user?.name || client.name}"? This will permanently delete the client and all associated trades/data.`)) {
-                                deleteClient(client.id);
-                              }
-                            }}
+                           <button
+                            onClick={() => setDeleteConfirmModal({ isOpen: true, id: client.id, name: client.user?.name || client.name })}
                             style={{
                               background: 'none',
                               border: 'none',
@@ -534,6 +531,32 @@ export default function ClientsPage() {
               }}
             >
               Yes, Change Status
+            </Button>
+          </div>
+        </div>
+      </Modal>
+      {/* Confirm Delete Client Modal */}
+      <Modal 
+        isOpen={!!deleteConfirmModal?.isOpen} 
+        onClose={() => setDeleteConfirmModal(null)} 
+        title="Delete Client Account"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '10px 0' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+            Are you sure you want to permanently delete client <strong style={{ color: 'var(--text-heading)' }}>{deleteConfirmModal?.name}</strong>? This action is permanent and cannot be undone. All client trades and configuration will be deleted.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+            <Button variant="secondary" onClick={() => setDeleteConfirmModal(null)}>Cancel</Button>
+            <Button 
+              onClick={async () => {
+                if (deleteConfirmModal) {
+                  await deleteClient(deleteConfirmModal.id);
+                  setDeleteConfirmModal(null);
+                }
+              }}
+              style={{ backgroundColor: 'var(--danger)', color: 'white' }}
+            >
+              Yes, Delete Client
             </Button>
           </div>
         </div>
