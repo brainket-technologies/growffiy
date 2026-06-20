@@ -385,7 +385,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
   }, [isAdmin, clients.length, strategiesCount, openTicketsCount]);
 
   const userInitial = userName.charAt(0).toUpperCase();
-  const userEmail = userId ? `${userId}@growffiy.com` : (isAdmin ? 'admin@growffiy.com' : 'client@growffiy.com');
+  const userEmail = userId 
+    ? (userId.includes('@') ? userId : `${userId}@growffiy.com`) 
+    : (isAdmin ? 'admin@growffiy.com' : 'client@growffiy.com');
 
   return (
     <>
