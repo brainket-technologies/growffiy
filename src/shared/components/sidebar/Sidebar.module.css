@@ -442,10 +442,18 @@
 }
 
 .collapsed .groupLabel {
-  opacity: 0;
-  height: 0;
-  overflow: hidden;
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 16px 12px;
   padding: 0;
+  font-size: 0;
+  color: transparent;
+  opacity: 0.5;
+  overflow: hidden;
+}
+
+.collapsed .menuContainer > div:first-child .groupLabel {
+  display: none !important;
 }
 
 .collapsed .menuLabel {
