@@ -216,11 +216,7 @@ export const Header: React.FC<HeaderProps> = ({
               backgroundColor: isTradingActive ? 'var(--accent)' : 'var(--danger)',
               boxShadow: isTradingActive ? '0 0 6px var(--accent)' : 'none',
               display: 'inline-block'
-            }} />
-            <span style={{ color: 'var(--text-heading)' }}>
-              {isTradingActive ? 'RUNNING' : 'STOPPED'}
-            </span>
-            <span style={{ width: '1px', height: '10px', background: 'var(--border-color)' }} />
+            }} title={isTradingActive ? 'Engine is Running' : 'Engine is Stopped'} />
             <span style={{ color: 'var(--text-secondary)' }}>
               {tradingDayLabel === 'Trading Day' ? '✅ Trading' : `❌ ${tradingDayLabel}`}
             </span>
