@@ -65,6 +65,7 @@ export default function ClientPerformancePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [strategyFilter, setStrategyFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [statusQuickFilter, setStatusQuickFilter] = useState<'all' | 'profit' | 'loss'>('all');
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -258,7 +259,15 @@ export default function ClientPerformancePage() {
     const matchesStrategy = strategyFilter === 'all' || strategyName.includes(strategyFilter.toLowerCase());
     const matchesType = typeFilter === 'all' || txType === typeFilter.toUpperCase();
 
-    return matchesSearch && matchesStrategy && matchesType;
+    const pnlVal = Number(t.pnl || 0);
+    const matchesQuickFilter = 
+      statusQuickFilter === 'all' 
+        ? true 
+        : statusQuickFilter === 'profit' 
+          ? pnlVal > 0 
+          : pnlVal < 0;
+
+    return matchesSearch && matchesStrategy && matchesType && matchesQuickFilter;
   });
 
   // Paginated transactions
@@ -372,7 +381,18 @@ export default function ClientPerformancePage() {
       {/* Metrics Row Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
         {/* Total P&L Card */}
-        <Card style={{ padding: '16px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        <Card 
+          style={{ 
+            padding: '16px', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            position: 'relative',
+            cursor: 'pointer',
+            border: statusQuickFilter === 'all' ? '1.5px solid var(--primary)' : '1px solid var(--border-light)',
+            transition: 'all 0.2s ease'
+          }}
+          onClick={() => { setStatusQuickFilter('all'); setCurrentPage(1); }}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Total P&L (₹)</span>
             <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -393,7 +413,18 @@ export default function ClientPerformancePage() {
         </Card>
 
         {/* Net Profit Card */}
-        <Card style={{ padding: '16px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        <Card 
+          style={{ 
+            padding: '16px', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            position: 'relative',
+            cursor: 'pointer',
+            border: statusQuickFilter === 'profit' ? '1.5px solid var(--accent)' : '1px solid var(--border-light)',
+            transition: 'all 0.2s ease'
+          }}
+          onClick={() => { setStatusQuickFilter(prev => prev === 'profit' ? 'all' : 'profit'); setCurrentPage(1); }}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Net Profit (₹)</span>
             <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'rgba(14, 165, 233, 0.1)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -414,7 +445,18 @@ export default function ClientPerformancePage() {
         </Card>
 
         {/* Net Loss Card */}
-        <Card style={{ padding: '16px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        <Card 
+          style={{ 
+            padding: '16px', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            position: 'relative',
+            cursor: 'pointer',
+            border: statusQuickFilter === 'loss' ? '1.5px solid var(--danger)' : '1px solid var(--border-light)',
+            transition: 'all 0.2s ease'
+          }}
+          onClick={() => { setStatusQuickFilter(prev => prev === 'loss' ? 'all' : 'loss'); setCurrentPage(1); }}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Net Loss (₹)</span>
             <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -435,7 +477,18 @@ export default function ClientPerformancePage() {
         </Card>
 
         {/* Win Rate Card */}
-        <Card style={{ padding: '16px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        <Card 
+          style={{ 
+            padding: '16px', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            position: 'relative',
+            cursor: 'pointer',
+            border: statusQuickFilter === 'profit' ? '1.5px solid var(--accent)' : '1px solid var(--border-light)',
+            transition: 'all 0.2s ease'
+          }}
+          onClick={() => { setStatusQuickFilter(prev => prev === 'profit' ? 'all' : 'profit'); setCurrentPage(1); }}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Win Rate</span>
             <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -456,7 +509,18 @@ export default function ClientPerformancePage() {
         </Card>
 
         {/* Total Trades Card */}
-        <Card style={{ padding: '16px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        <Card 
+          style={{ 
+            padding: '16px', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            position: 'relative',
+            cursor: 'pointer',
+            border: statusQuickFilter === 'all' ? '1.5px solid var(--primary)' : '1px solid var(--border-light)',
+            transition: 'all 0.2s ease'
+          }}
+          onClick={() => { setStatusQuickFilter('all'); setCurrentPage(1); }}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Total Trades</span>
             <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'rgba(99, 102, 241, 0.1)', color: '#1252AB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
