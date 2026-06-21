@@ -2243,7 +2243,7 @@ export default function StrategiesPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', flex: 1, justifyContent: 'center' }}>
                     <div style={{ width: '100px', height: '100px', position: 'relative' }}>
                       <svg width="100%" height="100%" viewBox="0 0 42 42">
-                        <circle cx="21" cy="21" r="15.915" fill="#fff"></circle>
+                        <circle cx="21" cy="21" r="15.915" fill="var(--bg-card)"></circle>
                         <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--surface)" strokeWidth="4"></circle>
                         
                         <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--accent)" strokeWidth="4" 
