@@ -22,10 +22,11 @@ import { Loader } from '../../../shared/components/views/Loader';
 
 export default function ClientPreOpenScannerPage() {
   const { preOpenStocks: stocks, loading, isSyncing, isWsConnected, preOpenDate } = useAppViewModel();
+  const [selectedFoTab, setSelectedFoTab] = useState<'oi' | 'longBuild' | 'shortBuild' | 'shortCover' | 'longUnwind'>('oi');
+
   if (loading) {
     return <Loader title="Loading Pre-Open Market" text="Fetching indicative quotes and syncing pre-market feeds..." fullscreen={false} />;
   }
-  const [selectedFoTab, setSelectedFoTab] = useState<'oi' | 'longBuild' | 'shortBuild' | 'shortCover' | 'longUnwind'>('oi');
 
   // Derive Market Breadth from actual stock state
   const advancesList = stocks.filter(s => s.change > 0);
@@ -144,9 +145,6 @@ export default function ClientPreOpenScannerPage() {
             <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: 'var(--accent)', borderRadius: '50%', boxShadow: '0 0 8px var(--accent)' }} />
             <span>NSE Data Live</span>
           </div>
-          {isSyncing && (
-            <RefreshCw size={15} style={{ color: 'var(--primary)', animation: 'spin 1.5s linear infinite' }} />
-          )}
         </div>
       </div>
 
@@ -249,8 +247,18 @@ export default function ClientPreOpenScannerPage() {
                       <td style={{ padding: '8px', fontWeight: 700 }}>{s.symbol}</td>
                       <td style={{ padding: '8px', textAlign: 'right' }}>₹{s.prevClose.toFixed(2)}</td>
                       <td style={{ padding: '8px', textAlign: 'right', fontWeight: 600 }}>₹{s.open.toFixed(2)}</td>
-                      <td style={{ padding: '8px', textAlign: 'right', fontWeight: 700, color: isUp ? 'var(--accent)' : 'var(--danger)' }}>
-                        {isUp ? '+' : ''}{s.gapPercent}%
+                      <td style={{ padding: '8px', textAlign: 'right' }}>
+                        <span style={{ 
+                          fontWeight: 700, 
+                          color: s.gapPercent === 0 ? 'var(--text-muted)' : isUp ? 'var(--accent-dark)' : 'var(--danger)' 
+                        }}>
+                          {isUp ? '+' : ''}{s.gapPercent}%
+                          {s.gapPercent !== 0 && (
+                            <span style={{ fontSize: '9px', marginLeft: '3px' }}>
+                              {isUp ? '▲' : '▼'}
+                            </span>
+                          )}
+                        </span>
                       </td>
                     </tr>
                   );
@@ -281,8 +289,18 @@ export default function ClientPreOpenScannerPage() {
                 {topGainers.map(s => (
                   <tr key={s.symbol} style={{ borderBottom: '1px solid var(--surface)' }}>
                     <td style={{ padding: '6px', fontWeight: 700 }}>{s.symbol}</td>
-                    <td style={{ padding: '6px', textAlign: 'right' }}>₹{s.ltp.toFixed(2)}</td>
-                    <td style={{ padding: '6px', textAlign: 'right', fontWeight: 700, color: 'var(--accent)' }}>+{s.changePercent.toFixed(2)}%</td>
+                    <td style={{ padding: '6px', textAlign: 'right', fontWeight: 600, color: 'var(--accent-dark)' }}>₹{s.ltp.toFixed(2)}</td>
+                    <td style={{ padding: '6px', textAlign: 'right' }}>
+                      <span style={{ 
+                        fontWeight: 700, 
+                        color: 'var(--accent-dark)' 
+                      }}>
+                        +{s.changePercent.toFixed(2)}%
+                        {s.changePercent !== 0 && (
+                          <span style={{ fontSize: '9px', marginLeft: '3px' }}>▲</span>
+                        )}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -308,8 +326,18 @@ export default function ClientPreOpenScannerPage() {
                 {topLosers.map(s => (
                   <tr key={s.symbol} style={{ borderBottom: '1px solid var(--surface)' }}>
                     <td style={{ padding: '6px', fontWeight: 700 }}>{s.symbol}</td>
-                    <td style={{ padding: '6px', textAlign: 'right' }}>₹{s.ltp.toFixed(2)}</td>
-                    <td style={{ padding: '6px', textAlign: 'right', fontWeight: 700, color: 'var(--danger)' }}>{s.changePercent.toFixed(2)}%</td>
+                    <td style={{ padding: '6px', textAlign: 'right', fontWeight: 600, color: 'var(--danger)' }}>₹{s.ltp.toFixed(2)}</td>
+                    <td style={{ padding: '6px', textAlign: 'right' }}>
+                      <span style={{ 
+                        fontWeight: 700, 
+                        color: 'var(--danger)' 
+                      }}>
+                        {s.changePercent.toFixed(2)}%
+                        {s.changePercent !== 0 && (
+                          <span style={{ fontSize: '9px', marginLeft: '3px' }}>▼</span>
+                        )}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>

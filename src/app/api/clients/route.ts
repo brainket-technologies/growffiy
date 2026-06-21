@@ -42,7 +42,7 @@ let inMemoryClients: any[] = [
 export async function GET() {
   try {
     const dbClients = await prisma.client.findMany({
-      include: { user: true },
+      include: { user: true, strategy: true, productType: true },
     });
     return NextResponse.json({ success: true, clients: dbClients });
   } catch (error) {
@@ -54,7 +54,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, userId, password, zerodhaClientId, zerodhaApiKey, zerodhaApiSecret, zerodhaPassword, zerodhaTotpSecret, capital, riskPercentage, strategyId } = body;
+    const { name, email, userId, password, zerodhaClientId, zerodhaApiKey, zerodhaApiSecret, zerodhaPassword, zerodhaTotpSecret, capital, riskPercentage, strategyId, productTypeId } = body;
 
     // Auto-generate credentials for the client
     const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -88,10 +88,11 @@ export async function POST(request: Request) {
           zerodhaTotpSecret,
           capital: Number(capital),
           strategyId,
+          productTypeId,
           tradingStatus: 'inactive',
           subscriptionStatus: 'pending',
         },
-        include: { user: true },
+        include: { user: true, strategy: true, productType: true },
       });
 
       // Trigger welcome email notification asynchronously if mail option is turned on

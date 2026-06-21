@@ -57,6 +57,8 @@ export default function ClientDetailsPage() {
   const [aadhaarNumber, setAadhaarNumber] = useState('');
   const [dob, setDob] = useState('');
   const [kycStatus, setKycStatus] = useState('pending');
+  const [productTypeId, setProductTypeId] = useState('');
+  const [productTypes, setProductTypes] = useState<any[]>([]);
 
   // TOTP Display
   const [totpCode, setTotpCode] = useState('------');
@@ -94,6 +96,7 @@ export default function ClientDetailsPage() {
           setAadhaarNumber(c.aadhaarNumber || '');
           setDob(c.dob || '');
           setKycStatus(c.kycStatus || 'pending');
+          setProductTypeId(c.productTypeId || '');
         } else {
           setError('Failed to load client details');
         }
@@ -104,7 +107,20 @@ export default function ClientDetailsPage() {
       }
     };
 
+    const fetchProductTypes = async () => {
+      try {
+        const res = await fetch('/api/admin/product-types');
+        const data = await res.json();
+        if (data.success && data.productTypes) {
+          setProductTypes(data.productTypes);
+        }
+      } catch (err) {
+        console.error('Failed to load product types:', err);
+      }
+    };
+
     fetchClient();
+    fetchProductTypes();
   }, [id]);
 
   useEffect(() => {
@@ -168,6 +184,7 @@ export default function ClientDetailsPage() {
         aadhaarNumber,
         dob,
         kycStatus,
+        productTypeId: productTypeId || null,
       });
 
       if (success) {
@@ -1078,6 +1095,36 @@ export default function ClientDetailsPage() {
                       >
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Product Type</label>
+                    <div className="premium-input-wrapper">
+                      <Server size={15} className="premium-input-icon" style={{ zIndex: 5 }} />
+                      <select
+                        value={productTypeId}
+                        onChange={(e) => setProductTypeId(e.target.value)}
+                        style={{ 
+                          width: '100%', 
+                          height: '42px',
+                          padding: '10px 36px 10px 40px', 
+                          borderRadius: '8px', 
+                          border: '1px solid var(--border-color)', 
+                          outline: 'none',
+                          cursor: 'pointer',
+                          backgroundColor: 'var(--bg-white)',
+                          color: 'var(--text-heading)',
+                          fontSize: '13.5px'
+                        }}
+                      >
+                        <option value="">No Product Type</option>
+                        {productTypes.map((type) => (
+                          <option key={type.id} value={type.id}>
+                            {type.name}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>

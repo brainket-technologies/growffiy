@@ -31,7 +31,7 @@ export async function generateClientTOTP(secret: string): Promise<string> {
     timeValue >>= 8;
   }
   const cryptoKey = await crypto.subtle.importKey(
-    'raw', keyBytes, { name: 'HMAC', hash: 'SHA-1' },
+    'raw', keyBytes as any, { name: 'HMAC', hash: 'SHA-1' },
     false, ['sign']
   );
   const hmacResult = await crypto.subtle.sign('HMAC', cryptoKey, timeBytes);

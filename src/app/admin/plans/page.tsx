@@ -29,6 +29,8 @@ export default function AdminPlansPage() {
   const [durationDays, setDurationDays] = useState('30');
   const [features, setFeatures] = useState('');
   const [status, setStatus] = useState('active');
+  const [productTypeId, setProductTypeId] = useState('');
+  const [productTypes, setProductTypes] = useState<any[]>([]);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -52,6 +54,14 @@ export default function AdminPlansPage() {
 
   useEffect(() => {
     fetchPlans();
+    fetch('/api/admin/product-types')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.productTypes) {
+          setProductTypes(data.productTypes);
+        }
+      })
+      .catch(err => console.error('Failed to fetch product types:', err));
   }, []);
 
   const handleCreatePlan = async (e: React.FormEvent) => {
@@ -70,7 +80,8 @@ export default function AdminPlansPage() {
         price: parseFloat(price),
         durationDays: parseInt(durationDays, 10),
         features: featuresList,
-        status
+        status,
+        productTypeId: productTypeId || null
       });
 
       if (res.success) {
@@ -102,7 +113,8 @@ export default function AdminPlansPage() {
         price: parseFloat(price),
         durationDays: parseInt(durationDays, 10),
         features: featuresList,
-        status
+        status,
+        productTypeId: productTypeId || null
       });
 
       if (res.success) {
@@ -150,7 +162,8 @@ export default function AdminPlansPage() {
         price: plan.price,
         durationDays: plan.durationDays,
         features: plan.features,
-        status: nextStatus
+        status: nextStatus,
+        productTypeId: plan.productTypeId || null
       });
       if (!res.success) {
         // Revert on failure
@@ -174,6 +187,7 @@ export default function AdminPlansPage() {
     setDurationDays(String(plan.durationDays));
     setFeatures(Array.isArray(plan.features) ? plan.features.join('\n') : '');
     setStatus(plan.status);
+    setProductTypeId(plan.productTypeId || '');
     setIsEditModalOpen(true);
   };
 
@@ -189,6 +203,7 @@ export default function AdminPlansPage() {
     setDurationDays('30');
     setFeatures('');
     setStatus('active');
+    setProductTypeId('');
     setSelectedPlan(null);
     setFormError(null);
   };
@@ -213,7 +228,7 @@ export default function AdminPlansPage() {
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', fontFamily: 'sans-serif' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', fontFamily: 'sans-serif', maxWidth: '100%', overflowX: 'hidden' }}>
       <style>{`
         .plan-input-field {
           width: 100%;
@@ -273,7 +288,7 @@ export default function AdminPlansPage() {
       </div>
 
       {/* Plans Table */}
-      <Card>
+      <Card style={{ maxWidth: '100%', overflow: 'hidden' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
             All Active & Configured Plans ({filteredPlans.length})
@@ -286,7 +301,7 @@ export default function AdminPlansPage() {
           gap: '12px', 
           marginBottom: '24px', 
           alignItems: 'center',
-          flexWrap: 'nowrap',
+          flexWrap: 'wrap',
           background: 'var(--bg-secondary)',
           padding: '12px 16px',
           borderRadius: '12px',
@@ -382,6 +397,7 @@ export default function AdminPlansPage() {
               <thead>
                 <tr>
                   <th>Plan Name</th>
+                  <th>Product Type</th>
                   <th>Price (INR)</th>
                   <th>Duration (Days)</th>
                   <th>Included Features</th>
@@ -393,6 +409,17 @@ export default function AdminPlansPage() {
                 {filteredPlans.map((plan) => (
                   <tr key={plan.id}>
                     <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{plan.name}</td>
+                    <td>
+                      {plan.productType?.name ? (
+                        <span className="badge badge-purple" style={{ textTransform: 'none', fontSize: '11px', padding: '4px 10px' }}>
+                          {plan.productType.name}
+                        </span>
+                      ) : (
+                        <span className="badge" style={{ textTransform: 'none', fontSize: '11px', padding: '4px 10px' }}>
+                          None
+                        </span>
+                      )}
+                    </td>
                     <td style={{ fontWeight: 700, color: 'var(--primary)' }}>
                       ₹{Number(plan.price).toLocaleString('en-IN')}
                     </td>
@@ -405,8 +432,8 @@ export default function AdminPlansPage() {
                               key={idx}
                               style={{
                                 fontSize: '11px',
-                                backgroundColor: 'rgba(14, 165, 233, 0.06)',
-                                color: 'var(--primary)',
+                                backgroundColor: 'var(--primary-light)',
+                                color: 'var(--primary-dark)',
                                 padding: '3px 8px',
                                 borderRadius: '4px',
                                 fontWeight: 500,
@@ -543,6 +570,22 @@ export default function AdminPlansPage() {
           </div>
 
           <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Product Type</label>
+            <select
+              value={productTypeId}
+              onChange={(e) => setProductTypeId(e.target.value)}
+              className="plan-input-field"
+            >
+              <option value="">No Product Type (Optional)</option>
+              {productTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Status</label>
             <select
               value={status}
@@ -626,6 +669,22 @@ export default function AdminPlansPage() {
               className="plan-input-field"
               style={{ fontFamily: 'inherit', resize: 'vertical' }}
             />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Product Type</label>
+            <select
+              value={productTypeId}
+              onChange={(e) => setProductTypeId(e.target.value)}
+              className="plan-input-field"
+            >
+              <option value="">No Product Type (Optional)</option>
+              {productTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

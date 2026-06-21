@@ -64,7 +64,7 @@ export default function AdminLayout({
     <AppProvider>
       <div className={styles.layoutWrapper}>
         <Sidebar isAdmin={true} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <Header title="Growffiy Admin Panel" />
           <main className={styles.contentWrapper}>
             {children}

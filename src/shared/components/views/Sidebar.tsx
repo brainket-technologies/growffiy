@@ -175,7 +175,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
           return (
             <Link
               key={item.name}
-              href={item.path}
+              href={item.path || '#'}
               className={`${styles.sidebarItem} ${isActive ? styles.sidebarItemActive : ''}`}
             >
               <IconComponent size={18} />

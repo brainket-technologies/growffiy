@@ -20,14 +20,14 @@ import { Loader } from '../../../shared/components/views/Loader';
 
 export default function ClientMarketWatchPage() {
   const { stocks, colors, trades, loading, isSyncing, isWsConnected } = useAppViewModel();
-  
-  if (loading) {
-    return <Loader title="Loading Market Watch" text="Securing real-time streams and syncing live indices..." fullscreen={false} />;
-  }
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'gainers' | 'losers' | 'volume'>('all');
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string | null>(stocks[0]?.symbol || null);
   const [timeframe, setTimeframe] = useState<'1m' | '5m' | '15m' | '1h'>('5m');
+
+  if (loading) {
+    return <Loader title="Loading Market Watch" text="Securing real-time streams and syncing live indices..." fullscreen={false} />;
+  }
 
   const selectedStock = stocks.find(s => s.symbol === (selectedStockSymbol || stocks[0]?.symbol));
 
@@ -125,13 +125,7 @@ export default function ClientMarketWatchPage() {
               <span>Standby</span>
             </div>
           )}
-
-          {isSyncing && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#1E88FF', fontSize: '12px', fontWeight: 500 }}>
-              <RefreshCw size={14} style={{ animation: 'spin 1.5s linear infinite' }} />
-              <span>Syncing...</span>
-            </div>
-          )}
+          {/* Removed isSyncing loader to avoid layout flashing */}
         </div>
       </div>
 
@@ -194,11 +188,10 @@ export default function ClientMarketWatchPage() {
         <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 12px', width: '280px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
           <Search size={16} color="var(--text-secondary)" style={{ marginRight: '8px' }} />
           <input
-            type="text"
             placeholder="Search stock symbol..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ border: 'none', outline: 'none', width: '100%', fontSize: '13.5px', color: '#1e293b' }}
+            style={{ border: 'none', outline: 'none', width: '100%', fontSize: '13.5px', color: '#1e293b', backgroundColor: 'transparent', boxShadow: 'none' }}
           />
         </div>
 
@@ -279,15 +272,24 @@ export default function ClientMarketWatchPage() {
                       }}
                     >
                       <td style={{ fontWeight: 700, padding: '14px 10px', fontSize: '13px' }}>{stock.symbol}</td>
-                      <td style={{ fontWeight: 700, padding: '14px 10px', fontSize: '13px', textAlign: 'right' }}>{stock.ltp.toFixed(2)}</td>
-                      <td style={{ 
-                        fontWeight: 700, 
-                        padding: '14px 10px', 
-                        fontSize: '13px', 
-                        textAlign: 'right',
-                        color: isPositive ? 'var(--color-success)' : 'var(--color-danger)' 
-                      }}>
-                        {isPositive ? `+${stock.changePercent.toFixed(2)}%` : `${stock.changePercent.toFixed(2)}%`}
+                      <td style={{ padding: '14px 10px', fontSize: '13px', textAlign: 'right' }}>
+                        <span style={{ 
+                          fontWeight: 700, 
+                          color: stock.changePercent === 0 ? 'var(--text-heading)' : isPositive ? 'var(--accent-dark)' : 'var(--danger)'
+                        }}>{stock.ltp.toFixed(2)}</span>
+                      </td>
+                      <td style={{ padding: '14px 10px', fontSize: '13px', textAlign: 'right' }}>
+                        <span style={{ 
+                          fontWeight: 700, 
+                          color: stock.changePercent === 0 ? 'var(--text-muted)' : isPositive ? 'var(--accent-dark)' : 'var(--danger)'
+                        }}>
+                          {isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                          {stock.changePercent !== 0 && (
+                            <span style={{ fontSize: '10px', marginLeft: '4px' }}>
+                              {isPositive ? '▲' : '▼'}
+                            </span>
+                          )}
+                        </span>
                       </td>
                       <td style={{ padding: '14px 10px', fontSize: '13px', textAlign: 'right', color: 'var(--text-secondary)' }}>
                         {stock.volume > 100000 ? `${(stock.volume / 100000).toFixed(1)}L` : stock.volume.toLocaleString('en-IN')}

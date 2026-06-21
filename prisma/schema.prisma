@@ -47,6 +47,8 @@ model Client {
   dob                String?              @map("dob")
   kycStatus          String               @default("pending") @map("kyc_status")
   panNumber          String?              @map("pan_number")
+  productTypeId      String?              @map("product_type_id")
+  productType        ProductType?         @relation(fields: [productTypeId], references: [id])
   strategy           Strategy?            @relation(fields: [strategyId], references: [id])
   user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   assignments        StrategyAssignment[]
@@ -102,6 +104,17 @@ model Trade {
   @@map("trades")
 }
 
+model ProductType {
+  id        String             @id @default(uuid())
+  name      String             @unique
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+  clients   Client[]
+  plans     SubscriptionPlan[]
+
+  @@map("product_types")
+}
+
 model SubscriptionPlan {
   id            String         @id @default(uuid())
   name          String
@@ -111,7 +124,9 @@ model SubscriptionPlan {
   status        String         @default("active")
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
+  productTypeId String?        @map("product_type_id")
   payments      Payment[]
+  productType   ProductType?   @relation(fields: [productTypeId], references: [id])
   subscriptions Subscription[]
 
   @@map("subscription_plans")

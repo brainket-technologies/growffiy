@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
 import { Card } from '../../../shared/components/views/Card';
 import { Button } from '../../../shared/components/views/Button';
@@ -194,8 +194,9 @@ export default function StrategiesPage() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [previewTab, setPreviewTab] = useState<'flow' | 'test'>('flow');
 
-  // Mode state: 'list' | 'create' | 'edit' | 'detail'
-  const [viewMode, setViewMode] = useState<'list' | 'create' | 'edit' | 'detail'>('list');
+  // Mode state: 'list' | 'create' | 'edit' | 'detail' | 'preview-flow' | 'preview-test'
+  const [viewMode, setViewMode] = useState<'list' | 'create' | 'edit' | 'detail' | 'preview-flow' | 'preview-test'>('list');
+  const [editorMode, setEditorMode] = useState<'create' | 'edit'>('create');
   const [strategies, setStrategies] = useState<any[]>([]);
   const [selectedStrategy, setSelectedStrategy] = useState<any | null>(null);
   const [templates, setTemplates] = useState<any[]>([]);
@@ -205,6 +206,34 @@ export default function StrategiesPage() {
   const [filterType, setFilterType] = useState<string>('all');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [stratPage, setStratPage] = useState<number>(1);
+
+  // Synchronize viewMode state with browser history (Back button support)
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      window.history.replaceState({ viewMode }, '', '');
+      isFirstRender.current = false;
+    } else {
+      const currentState = window.history.state;
+      if (!currentState || currentState.viewMode !== viewMode) {
+        window.history.pushState({ viewMode }, '', '');
+      }
+    }
+  }, [viewMode]);
+
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state && event.state.viewMode) {
+        setViewMode(event.state.viewMode);
+      } else {
+        setViewMode('list');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
 
   // Filter Date Range State
   const [filterStartDate, setFilterStartDate] = useState<Date>(() => {
@@ -909,7 +938,7 @@ export default function StrategiesPage() {
       {/* HEADER SECTION */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          {viewMode !== 'list' && (
+          {viewMode !== 'list' && viewMode !== 'preview-flow' && viewMode !== 'preview-test' && (
             <button
               onClick={() => setViewMode('list')}
               style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px', marginBottom: '6px', padding: 0 }}
@@ -950,6 +979,77 @@ export default function StrategiesPage() {
             <Plus size={16} /> Create Strategy
           </Button>
         )}
+
+        {(viewMode === 'create' || viewMode === 'edit') && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* Status toggle */}
+            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: '8px', padding: '2px', background: 'var(--bg-secondary)', marginRight: '4px' }}>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, basicInfo: { ...formData.basicInfo, status: 'active' } })}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: formData.basicInfo.status === 'active' ? 'var(--accent)' : 'transparent',
+                  color: formData.basicInfo.status === 'active' ? '#fff' : 'var(--text-secondary)',
+                  fontWeight: 600,
+                  fontSize: '12px',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <span>🟢</span> Active
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, basicInfo: { ...formData.basicInfo, status: 'inactive' } })}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: formData.basicInfo.status === 'inactive' ? 'var(--danger)' : 'transparent',
+                  color: formData.basicInfo.status === 'inactive' ? '#fff' : 'var(--text-secondary)',
+                  fontWeight: 600,
+                  fontSize: '12px',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <span>🔴</span> Inactive
+              </button>
+            </div>
+
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setEditorMode(viewMode);
+                setViewMode('preview-flow');
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Activity size={16} /> Flow Preview
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setEditorMode(viewMode);
+                setViewMode('preview-test');
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Terminal size={16} /> Test Strategy
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* VIEW: STRATEGY LIST */}
@@ -958,73 +1058,52 @@ export default function StrategiesPage() {
           {/* Premium Stat Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
             {/* Total Strategies */}
-            <div style={{
-              background: 'linear-gradient(135deg, #1252AB 0%, #8b5cf6 100%)',
-              border: '1px solid rgba(56,189,248,0.15)',
-              borderRadius: '16px',
-              padding: '24px',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.18)'
-            }}>
-              <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(56,189,248,0.06)' }} />
+            <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--primary)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Total Strategies</p>
-                  <h3 style={{ fontSize: '36px', fontWeight: 800, color: '#fff', marginTop: '8px', fontFamily: 'var(--font-title)', lineHeight: 1 }}>{strategies.length}</h3>
-                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', marginTop: '6px' }}>All time registered</p>
-                </div>
-                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(56,189,248,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(56,189,248,0.2)' }}>
-                  <TrendingUp size={20} color="#38bdf8" />
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total Strategies</span>
+                <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <TrendingUp size={18} />
                 </div>
               </div>
-            </div>
+              <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)', lineHeight: 1 }}>
+                {strategies.length}
+              </h2>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                All time registered
+              </span>
+            </Card>
 
             {/* Active Strategies */}
-            <div style={{
-              background: 'linear-gradient(135deg, #0a1f1a 0%, #0d2b22 100%)',
-              border: '1px solid rgba(34,197,94,0.15)',
-              borderRadius: '16px',
-              padding: '24px',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.18)'
-            }}>
-              <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(34,197,94,0.06)' }} />
+            <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--purple)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Active Strategies</p>
-                  <h3 style={{ fontSize: '36px', fontWeight: 800, color: 'var(--accent)', marginTop: '8px', fontFamily: 'var(--font-title)', lineHeight: 1 }}>{strategies.filter(s => s.status === 'active').length}</h3>
-                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', marginTop: '6px' }}>Currently running</p>
-                </div>
-                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(34,197,94,0.2)' }}>
-                  <CheckCircle size={20} color="var(--accent)" />
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Active Strategies</span>
+                <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--purple-light)', color: 'var(--purple)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CheckCircle size={18} />
                 </div>
               </div>
-            </div>
+              <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)', lineHeight: 1 }}>
+                {strategies.filter(s => s.status === 'active').length}
+              </h2>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Currently running
+              </span>
+            </Card>
 
             {/* Assigned Clients */}
-            <div style={{
-              background: 'linear-gradient(135deg, #1a1500 0%, #231e00 100%)',
-              border: '1px solid rgba(234,179,8,0.15)',
-              borderRadius: '16px',
-              padding: '24px',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.18)'
-            }}>
-              <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(234,179,8,0.06)' }} />
+            <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--warning)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Assigned Clients</p>
-                  <h3 style={{ fontSize: '36px', fontWeight: 800, color: '#eab308', marginTop: '8px', fontFamily: 'var(--font-title)', lineHeight: 1 }}>{clients.filter(c => c.strategyId).length}</h3>
-                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', marginTop: '6px' }}>Across all strategies</p>
-                </div>
-                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(234,179,8,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(234,179,8,0.2)' }}>
-                  <Users size={20} color="#eab308" />
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Assigned Clients</span>
+                <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Users size={18} />
                 </div>
               </div>
-            </div>
+              <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)', lineHeight: 1 }}>
+                {clients.filter(c => c.strategyId).length}
+              </h2>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Across all strategies
+              </span>
+            </Card>
           </div>
 
           {/* Strategy Table - same style as Live Trading page */}
@@ -1133,39 +1212,8 @@ export default function StrategiesPage() {
                                     <div>
                                       <div style={{ fontWeight: 600, fontSize: '13px' }}>{strat.name}</div>
                                       {strat.description && <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{strat.description}</div>}
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600 }}>SL Order Type</label>
-                    <select
-                      value={formData.stoploss.orderType}
-                      onChange={(e: any) => setFormData({
-                        ...formData,
-                        stoploss: { ...formData.stoploss, orderType: e.target.value }
-                      })}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    >
-                      <option value="Market">Market</option>
-                      <option value="Limit">Limit</option>
-                    </select>
-                  </div>
-                  {formData.stoploss.type === 'Risk %' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Risk %</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={formData.stoploss.riskPercent}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          stoploss: { ...formData.stoploss, riskPercent: Number(e.target.value) }
-                        })}
-                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      />
-                    </div>
-                  )}
-                </div>
+                                    </div>
+                                  </div>
                                 </td>
                                 <td><span className="badge badge-blue" style={{ padding: '3px 8px', fontSize: '10px' }}>{segment}</span></td>
                                 <td><span className="badge" style={{ padding: '3px 8px', fontSize: '10px', background: 'rgba(139,92,246,0.1)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.2)', borderRadius: '4px' }}>{tradeType}</span></td>
@@ -1221,7 +1269,33 @@ export default function StrategiesPage() {
           {/* VIEW: CREATE / EDIT STRATEGY FORM */}
           {(viewMode === 'create' || viewMode === 'edit') && (
             <React.Fragment>
-            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '24px', animation: 'fadeIn 0.3s ease', background: 'rgba(255,255,255,0.3)', padding: '24px', borderRadius: '20px', border: '1px solid rgba(226,232,240,0.5)' }}>
+            <style>{`
+              .strategies-form-container input,
+              .strategies-form-container select,
+              .strategies-form-container textarea {
+                padding: 10px 14px !important;
+                border-radius: 8px !important;
+                border: 1px solid var(--border) !important;
+                background-color: var(--bg-white) !important;
+                color: var(--text-heading) !important;
+                outline: none !important;
+                font-size: 13px !important;
+                transition: border-color 0.2s, box-shadow 0.2s !important;
+              }
+              .strategies-form-container input:focus,
+              .strategies-form-container select:focus,
+              .strategies-form-container textarea:focus {
+                border-color: var(--primary) !important;
+                box-shadow: 0 0 0 3px rgba(18, 82, 171, 0.12) !important;
+              }
+              .strategies-form-container label {
+                font-size: 12.5px !important;
+                font-weight: 700 !important;
+                color: var(--text-secondary) !important;
+                margin-bottom: 4px !important;
+              }
+            `}</style>
+            <form className="strategies-form-container" onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '24px', animation: 'fadeIn 0.3s ease' }}>
               
               {formErrors && (
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '12px 16px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '12px', color: 'var(--color-danger)', fontSize: '13px' }}>
@@ -1231,19 +1305,45 @@ export default function StrategiesPage() {
               )}
   
               {viewMode === 'create' && templates.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(255,255,255,0.01)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                  <h4 style={{ fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-                    <TrendingUp size={16} color={colors.PRIMARY} /> Start with a Template Config (Optional)
+                <Card style={{ padding: '20px', borderLeft: `4px solid var(--primary)`, display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', margin: 0 }}>
+                    <TrendingUp size={16} color="var(--primary)" /> Start with a Template Config (Optional)
                   </h4>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                     {templates.map(tmpl => (
-                      <div key={tmpl.id} onClick={() => handleLoadTemplate(tmpl)} style={{ cursor: 'pointer', padding: '14px', borderRadius: '10px', border: `1px solid var(--border-color)`, background: 'rgba(255,255,255,0.02)', transition: 'all 0.25s ease' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = colors.PRIMARY; e.currentTarget.style.background = 'rgba(14,165,233,0.04)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 16px rgba(0,0,0,0.06)'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
-                        <h5 style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>{tmpl.name}</h5>
-                        <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>{tmpl.description}</p>
+                      <div 
+                        key={tmpl.id} 
+                        onClick={() => handleLoadTemplate(tmpl)} 
+                        style={{ 
+                          cursor: 'pointer', 
+                          padding: '16px', 
+                          borderRadius: '12px', 
+                          border: `1px solid var(--border)`, 
+                          background: 'var(--bg-card)', 
+                          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)' 
+                        }} 
+                        onMouseEnter={(e) => { 
+                          e.currentTarget.style.borderColor = 'var(--primary)'; 
+                          e.currentTarget.style.background = 'var(--primary-light)'; 
+                          e.currentTarget.style.transform = 'translateY(-2px)'; 
+                          e.currentTarget.style.boxShadow = '0 6px 12px rgba(18,82,171,0.08)'; 
+                        }} 
+                        onMouseLeave={(e) => { 
+                          e.currentTarget.style.borderColor = 'var(--border)'; 
+                          e.currentTarget.style.background = 'var(--bg-card)'; 
+                          e.currentTarget.style.transform = 'none'; 
+                          e.currentTarget.style.boxShadow = 'none'; 
+                        }}
+                      >
+                        <h5 style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ display: 'inline-flex', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--primary)' }} />
+                          {tmpl.name}
+                        </h5>
+                        <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: '1.4' }}>{tmpl.description}</p>
                       </div>
                     ))}
                   </div>
-                </div>
+                </Card>
               )}
   
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '28px' }}>
@@ -1258,6 +1358,7 @@ export default function StrategiesPage() {
                       </h3>
                     </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 600 }}>Strategy Name *</label>
                     <input
@@ -1454,33 +1555,6 @@ export default function StrategiesPage() {
                         style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                       />
                       <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>How often the engine checks/monitors this strategy (default: 60)</span>
-                    </div>
-                  </div>
-
-                  {/* STATUS */}
-                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '16px' }}>
-                    <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>STATUS</label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, basicInfo: { ...formData.basicInfo, status: 'active' } })}
-                        style={{
-                          padding: '8px 20px', borderRadius: '20px', border: 'none', cursor: 'pointer',
-                          background: formData.basicInfo.status === 'active' ? 'var(--accent)' : 'var(--bg-card)',
-                          color: formData.basicInfo.status === 'active' ? '#fff' : 'var(--text-secondary)',
-                          fontWeight: 600, fontSize: '12px', transition: 'all 0.2s ease'
-                        }}
-                      >🟢 Active</button>
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, basicInfo: { ...formData.basicInfo, status: 'inactive' } })}
-                        style={{
-                          padding: '8px 20px', borderRadius: '20px', border: 'none', cursor: 'pointer',
-                          background: formData.basicInfo.status === 'inactive' ? 'var(--danger)' : 'var(--bg-card)',
-                          color: formData.basicInfo.status === 'inactive' ? '#fff' : 'var(--text-secondary)',
-                          fontWeight: 600, fontSize: '12px', transition: 'all 0.2s ease'
-                        }}
-                      >🔴 Inactive</button>
                     </div>
                   </div>
                 </div>
@@ -1895,65 +1969,58 @@ export default function StrategiesPage() {
           </div>
         </form>
 
-        {/* Strategy Preview & Test Tabs */}
-        <div style={{
-          marginTop: '24px',
-          background: 'linear-gradient(135deg, rgba(18,82,171,0.03) 0%, rgba(139,92,246,0.02) 50%, rgba(14,165,233,0.03) 100%)',
-          borderRadius: '20px',
-          border: '1px solid rgba(148,163,184,0.12)',
-          padding: '20px 24px 24px',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.03)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '24px', height: '24px', borderRadius: '7px', background: 'linear-gradient(135deg, #8b5cf6, #1252AB)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 2px 6px rgba(18,82,171,0.2)' }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 22 15 16 15 16 21 8 21 8 15 2 15 2 3"/><line x1="10" y1="9" x2="14" y2="9"/></svg>
+            </React.Fragment>
+          )}
+
+          {viewMode === 'preview-flow' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeIn 0.3s ease' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode(editorMode)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px', marginBottom: '6px', padding: 0 }}
+                  >
+                    <ArrowLeft size={14} /> Back to Strategy Editor
+                  </button>
+                  <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
+                    Strategy Flow Preview
+                  </h1>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
+                    Visual diagram representing your strategy conditions and actions.
+                  </p>
+                </div>
               </div>
-              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)' }}>Strategy Preview & Testing</span>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Config se real-time preview</span>
+              <Card style={{ padding: '24px' }}>
+                <StrategyFlowPreview config={formData as any} />
+              </Card>
             </div>
-          </div>
+          )}
 
-          <div style={{ display: 'flex', gap: '4px', background: 'rgba(148,163,184,0.06)', padding: '4px', borderRadius: '12px', border: '1px solid rgba(148,163,184,0.08)', width: 'fit-content', marginBottom: '20px' }}>
-            <button
-              type="button"
-              onClick={() => setPreviewTab('flow')}
-              style={{
-                padding: '8px 22px', borderRadius: '9px', border: 'none', cursor: 'pointer',
-                fontSize: '12px', fontWeight: 600, letterSpacing: '0.2px',
-                transition: 'all 0.2s ease',
-                background: previewTab === 'flow' ? 'linear-gradient(135deg, #8b5cf6, #1252AB)' : 'transparent',
-                color: previewTab === 'flow' ? '#fff' : 'var(--text-secondary)',
-                boxShadow: previewTab === 'flow' ? '0 2px 8px rgba(18,82,171,0.25)' : 'none',
-                display: 'flex', alignItems: 'center', gap: '6px'
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-              Flow Preview
-            </button>
-            <button
-              type="button"
-              onClick={() => setPreviewTab('test')}
-              style={{
-                padding: '8px 22px', borderRadius: '9px', border: 'none', cursor: 'pointer',
-                fontSize: '12px', fontWeight: 600, letterSpacing: '0.2px',
-                transition: 'all 0.2s ease',
-                background: previewTab === 'test' ? 'linear-gradient(135deg, var(--warning), var(--warning))' : 'transparent',
-                color: previewTab === 'test' ? '#fff' : 'var(--text-secondary)',
-                boxShadow: previewTab === 'test' ? '0 2px 8px rgba(245,158,11,0.25)' : 'none',
-                display: 'flex', alignItems: 'center', gap: '6px'
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 2v7.31m4-7.31v7.31M4.5 2h15M9 22h6M9 17.5V22h6v-4.5M6 13.5C6 10.5 7.5 9 9 9h6c1.5 0 3 1.5 3 4.5"/><path d="M6 13.5c0 3 1.5 4.5 3 4.5h6c1.5 0 3-1.5 3-4.5"/></svg>
-              Test Strategy
-            </button>
-          </div>
-
-          {previewTab === 'flow' && <StrategyFlowPreview config={formData as any} />}
-          {previewTab === 'test' && <StrategyTestPanel config={formData as any} />}
-        </div>
-        </React.Fragment>
-      )}
+          {viewMode === 'preview-test' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeIn 0.3s ease' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode(editorMode)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px', marginBottom: '6px', padding: 0 }}
+                  >
+                    <ArrowLeft size={14} /> Back to Strategy Editor
+                  </button>
+                  <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
+                    Strategy Test Panel
+                  </h1>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
+                    Run simulations and test strategy conditions against live NSE pre-open data.
+                  </p>
+                </div>
+              </div>
+              <Card style={{ padding: '24px' }}>
+                <StrategyTestPanel config={formData as any} />
+              </Card>
+            </div>
+          )}
 
       {viewMode === 'detail' && selectedStrategy && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>

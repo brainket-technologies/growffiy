@@ -1045,9 +1045,19 @@ class AlgoEngineService {
           };
         });
 
-      const dateStr = new Date().toLocaleDateString('en-GB', {
+      let dateStr = new Date().toLocaleDateString('en-GB', {
         day: '2-digit', month: 'short', year: 'numeric'
       });
+
+      if (nseJson.timestamp) {
+        const parts = String(nseJson.timestamp).trim().split(' ');
+        if (parts[0]) {
+          const datePart = parts[0].replace(/-/g, ' ');
+          if (datePart.length >= 10 && datePart.length <= 12) {
+            dateStr = datePart;
+          }
+        }
+      }
 
       this.preOpenCache = freshStocks;
       this.preOpenCacheDate = dateStr;
@@ -1071,7 +1081,10 @@ class AlgoEngineService {
       day: '2-digit', month: 'short', year: 'numeric'
     });
 
-    if (this.preOpenCache.length === 0 || this.preOpenCacheDate !== todayDateStr) {
+    const isCacheExpired = this.preOpenCacheDate !== todayDateStr;
+    const canRefetch = Date.now() - this.lastPreOpenFetchTime > 5 * 60 * 1000;
+
+    if (this.preOpenCache.length === 0 || (isCacheExpired && canRefetch)) {
       console.log(`AlgoEngine: Pre-open cache empty or expired for today. Fetching fresh NSE pre-open data...`);
       await this.fetchLivePreOpenFromNSE();
     }

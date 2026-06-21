@@ -201,7 +201,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
           },
           width: width,
           height: 300,
-        });
+        }) as any;
 
         // Add Candlestick Series
         const candlestickSeries = chart.addCandlestickSeries({

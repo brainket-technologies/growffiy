@@ -10,7 +10,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, price, durationDays, features, status } = body;
+    const { name, price, durationDays, features, status, productTypeId } = body;
 
     if (!name || price === undefined || !durationDays) {
       return NextResponse.json({ success: false, error: 'Name, price, and durationDays are required' }, { status: 400 });
@@ -27,7 +27,8 @@ export async function PUT(
         price: parseFloat(String(price)),
         durationDays: parseInt(String(durationDays), 10),
         features: featuresString,
-        status: status || 'active'
+        status: status || 'active',
+        productTypeId: productTypeId || null
       }
     });
 

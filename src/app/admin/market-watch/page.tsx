@@ -10,8 +10,9 @@ import {
   TrendingDown, 
   ArrowUpRight, 
   ArrowDownRight, 
-  FileSpreadsheet, 
-  Loader2
+  Download, 
+  Loader2,
+  Search
 } from 'lucide-react';
 
 type CategoryType = 'Nifty 50' | 'Bank Nifty' | 'F&O' | 'SME' | 'Others' | 'All';
@@ -323,10 +324,7 @@ export default function MarketWatchPage() {
             borderBottom: '1px solid var(--border-light)' 
           }}>
             {/* Category Dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: '4px', overflow: 'hidden', height: '38px' }}>
-              <span style={{ padding: '0 12px', backgroundColor: 'var(--surface)', color: 'var(--text-muted)', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', height: '100%', borderRight: '1px solid var(--border-color)' }}>
-                Category
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', height: '38px', backgroundColor: 'var(--bg-white)' }}>
               <select 
                 value={category} 
                 onChange={(e) => setCategory(e.target.value as CategoryType)}
@@ -337,39 +335,36 @@ export default function MarketWatchPage() {
                   fontSize: '13px', 
                   fontWeight: 600, 
                   color: 'var(--text-heading)',
-                  backgroundColor: 'var(--bg-white)',
+                  backgroundColor: 'transparent',
                   cursor: 'pointer',
                   height: '100%'
                 }}
               >
-                <option value="Nifty 50">Nifty 50</option>
-                <option value="Bank Nifty">Bank Nifty</option>
-                <option value="F&O">F&O</option>
-                <option value="SME">SME</option>
-                <option value="Others">Others</option>
-                <option value="All">All</option>
+                <option value="All">Category: All</option>
+                <option value="Nifty 50">Category: Nifty 50</option>
+                <option value="Bank Nifty">Category: Bank Nifty</option>
+                <option value="F&O">Category: F&O</option>
+                <option value="SME">Category: SME</option>
+                <option value="Others">Category: Others</option>
               </select>
             </div>
 
             {/* Symbol Search */}
-            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: '4px', overflow: 'hidden', height: '38px', minWidth: '200px' }}>
-              <span style={{ padding: '0 12px', backgroundColor: 'var(--surface)', color: 'var(--text-muted)', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', height: '100%', borderRight: '1px solid var(--border-color)' }}>
-                Symbol
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0 12px', height: '38px', minWidth: '220px', backgroundColor: 'var(--bg-white)' }}>
+              <Search size={16} color="var(--text-secondary)" style={{ marginRight: '8px' }} />
               <input 
-                type="text" 
-                placeholder="Enter symbol" 
+                placeholder="Search symbol..." 
                 value={symbolQuery}
                 onChange={(e) => setSymbolQuery(e.target.value)}
                 style={{ 
                   border: 'none', 
                   outline: 'none', 
-                  padding: '0 12px', 
                   fontSize: '13px', 
                   color: 'var(--text-heading)',
-                  backgroundColor: 'var(--bg-white)',
+                  backgroundColor: 'transparent',
                   width: '100%',
-                  height: '100%'
+                  boxShadow: 'none',
+                  padding: 0
                 }}
               />
             </div>
@@ -408,50 +403,19 @@ export default function MarketWatchPage() {
               </button>
             </div>
 
-            {/* Clear Button */}
-            <button 
-              onClick={handleClear}
-              style={{
-                border: '1px solid #ea580c',
-                color: '#ea580c',
-                backgroundColor: 'transparent',
-                borderRadius: '4px',
-                padding: '0 20px',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                height: '38px',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(234, 88, 12, 0.08)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              Clear
-            </button>
-
-            {/* CSV Download Button */}
+            {/* CSV Export Button */}
             <button 
               onClick={downloadCSV}
+              className="btn-export"
               style={{
-                border: 'none',
-                backgroundColor: 'transparent',
-                color: 'var(--text-body)',
+                marginLeft: 'auto',
+                height: '38px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                marginLeft: 'auto',
-                height: '38px'
+                gap: '6px'
               }}
             >
-              <FileSpreadsheet size={18} style={{ color: '#16a34a' }} />
-              <span style={{ color: '#2563eb', textDecoration: 'underline' }}>Download (.csv)</span>
+              <Download size={14} /> Export Excel
             </button>
           </div>
 
@@ -482,11 +446,7 @@ export default function MarketWatchPage() {
                   }} />
                 </div>
               )}
-              {isSyncing && (
-                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--primary)' }} title="Syncing ticks...">
-                  <Loader2 size={13} style={{ animation: 'spin 1.2s linear infinite' }} />
-                </div>
-              )}
+              {/* Removed isSyncing loader to avoid layout flashing */}
             </div>
             
             {/* Change Denomination Options */}
@@ -548,12 +508,37 @@ export default function MarketWatchPage() {
                       <td style={{ padding: '12px 10px', fontSize: '13px', color: 'var(--text-body)', textAlign: 'right' }}>{stock.open.toFixed(2)}</td>
                       <td style={{ padding: '12px 10px', fontSize: '13px', color: 'var(--accent)', textAlign: 'right', fontWeight: 500 }}>{stock.high.toFixed(2)}</td>
                       <td style={{ padding: '12px 10px', fontSize: '13px', color: 'var(--danger)', textAlign: 'right', fontWeight: 500 }}>{stock.low.toFixed(2)}</td>
-                      <td style={{ padding: '12px 10px', fontSize: '13.5px', fontWeight: 700, color: 'var(--text-heading)', textAlign: 'right' }}>{stock.ltp.toFixed(2)}</td>
-                      <td style={{ padding: '12px 10px', fontSize: '13px', fontWeight: 600, color: isPositive ? 'var(--accent)' : 'var(--danger)', textAlign: 'right' }}>
-                        {isPositive ? `+${chng.toFixed(2)}` : chng.toFixed(2)}
+                      <td style={{ padding: '12px 10px', fontSize: '13.5px', textAlign: 'right' }}>
+                        <span style={{ 
+                          fontWeight: 700, 
+                          color: chng === 0 ? 'var(--text-heading)' : isPositive ? 'var(--accent-dark)' : 'var(--danger)'
+                        }}>{stock.ltp.toFixed(2)}</span>
                       </td>
-                      <td style={{ padding: '12px 10px', fontSize: '13px', fontWeight: 700, color: isPositive ? 'var(--accent)' : 'var(--danger)', textAlign: 'right' }}>
-                        {isPositive ? `+${stock.changePercent.toFixed(2)}%` : `${stock.changePercent.toFixed(2)}%`}
+                      <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>
+                        <span style={{ 
+                          fontWeight: 700, 
+                          color: chng === 0 ? 'var(--text-muted)' : isPositive ? 'var(--accent-dark)' : 'var(--danger)'
+                        }}>
+                          {isPositive ? '+' : ''}{chng.toFixed(2)}
+                          {chng !== 0 && (
+                            <span style={{ fontSize: '10px', marginLeft: '4px' }}>
+                              {isPositive ? '▲' : '▼'}
+                            </span>
+                          )}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>
+                        <span style={{ 
+                          fontWeight: 700, 
+                          color: stock.changePercent === 0 ? 'var(--text-muted)' : isPositive ? 'var(--accent-dark)' : 'var(--danger)'
+                        }}>
+                          {isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                          {stock.changePercent !== 0 && (
+                            <span style={{ fontSize: '10px', marginLeft: '4px' }}>
+                              {isPositive ? '▲' : '▼'}
+                            </span>
+                          )}
+                        </span>
                       </td>
                       <td style={{ padding: '12px 10px', fontSize: '13px', color: 'var(--text-body)', textAlign: 'right' }}>{stock.iep.toFixed(2)}</td>
                       <td style={{ padding: '12px 10px', fontSize: '12.5px', color: 'var(--text-muted)', textAlign: 'right' }}>{stock.volume.toLocaleString()}</td>

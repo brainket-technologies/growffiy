@@ -13,7 +13,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     try {
       let client = await prisma.client.findUnique({
         where: { id },
-        include: { user: true },
+        include: { user: true, strategy: true, productType: true },
       });
       if (!client) {
         return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
@@ -112,6 +112,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       tradingStatus,
       subscriptionStatus,
       strategyId,
+      productTypeId,
       accessToken,
       panNumber,
       aadhaarNumber,
@@ -162,6 +163,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
            tradingStatus: tradingStatus !== undefined ? tradingStatus : undefined,
            subscriptionStatus: subscriptionStatus !== undefined ? subscriptionStatus : undefined,
            strategyId: strategyId !== undefined ? strategyId : undefined,
+           productTypeId: productTypeId !== undefined ? productTypeId : undefined,
             capital: capital ? Number(capital) : undefined,
             accessToken: (tradingStatus === 'inactive' || accessToken === null) ? null : (accessToken !== undefined ? accessToken : undefined),
            zerodhaSession: (tradingStatus === 'inactive' || accessToken === null) ? null : undefined,
@@ -170,7 +172,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
            dob: dob !== undefined ? dob : undefined,
            kycStatus: kycStatus !== undefined ? kycStatus : undefined,
          },
-         include: { user: true },
+         include: { user: true, strategy: true, productType: true },
        });
        return NextResponse.json({ success: true, client: updatedClient });
      } catch {

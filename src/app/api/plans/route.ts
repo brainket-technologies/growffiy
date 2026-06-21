@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const plans = await prisma.subscriptionPlan.findMany({
+      include: { productType: true },
       orderBy: { price: 'asc' }
     });
     
@@ -33,7 +34,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, price, durationDays, features, status } = body;
+    const { name, price, durationDays, features, status, productTypeId } = body;
 
     if (!name || price === undefined || !durationDays) {
       return NextResponse.json({ success: false, error: 'Name, price, and durationDays are required' }, { status: 400 });
@@ -49,7 +50,8 @@ export async function POST(request: Request) {
         price: parseFloat(String(price)),
         durationDays: parseInt(String(durationDays), 10),
         features: featuresString,
-        status: status || 'active'
+        status: status || 'active',
+        productTypeId: productTypeId || null
       }
     });
 

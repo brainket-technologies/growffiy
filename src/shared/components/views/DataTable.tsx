@@ -126,7 +126,7 @@ export function DataTable<T extends Record<string, any>>({
             {(exportable && filtered.length > 0) && (
               <>
                 <button className="btn-export" onClick={handleExportCSV}>
-                  <Download size={14} /> Excel
+                  <Download size={14} /> Export Excel
                 </button>
                 <button className="btn-export btn-export-pdf" onClick={handleExportPDF}>
                   <FileText size={14} /> PDF

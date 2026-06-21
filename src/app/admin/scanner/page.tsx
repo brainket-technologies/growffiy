@@ -5,16 +5,13 @@ import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
 import { Card } from '../../../shared/components/views/Card';
 import { Button } from '../../../shared/components/views/Button';
 import { Loader } from '../../../shared/components/views/Loader';
-import { Zap, CheckCircle2, FileSpreadsheet, Loader2, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ShieldAlert } from 'lucide-react';
+import { Zap, CheckCircle2, Download, Loader2, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ShieldAlert, Search } from 'lucide-react';
 
 type CategoryType = 'Nifty 50' | 'Bank Nifty' | 'F&O' | 'SME' | 'Others' | 'All';
 
 export default function PreOpenScannerPage() {
   const { scannerResults, isTradingActive, toggleTrading, loading, isSyncing, isWsConnected, preOpenDate, refreshAllData } = useAppViewModel();
 
-  if (loading) {
-    return <Loader title="Loading Pre-Open Scanner" text="Fetching indicative quotes and syncing pre-market feeds..." fullscreen={false} />;
-  }
   const [isScanning, setIsScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(30);
@@ -39,6 +36,10 @@ export default function PreOpenScannerPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [scannerResults.length]);
 
+  if (loading) {
+    return <Loader title="Loading Pre-Open Scanner" text="Fetching indicative quotes and syncing pre-market feeds..." fullscreen={false} />;
+  }
+
   const getDenomConfig = () => {
     switch (denom) {
       case 'lakhs':
@@ -60,7 +61,6 @@ export default function PreOpenScannerPage() {
       const data = await res.json();
       if (data.success) {
         await refreshAllData();
-        setScanMessage(`Scanner complete. Fetched live pre-open quotes directly from Zerodha Kite and selected ${scannerResults[0]?.symbol || 'None'} as trade breakout candidate.`);
       } else {
         setScanMessage('Failed to scan: ' + (data.error || 'Server error'));
       }
@@ -278,16 +278,13 @@ export default function PreOpenScannerPage() {
             display: 'flex', 
             alignItems: 'center', 
             flexWrap: 'wrap', 
-            gap: '16px', 
+            gap: '12px', 
             marginBottom: '20px',
             paddingBottom: '16px',
             borderBottom: '1px solid var(--border-light)' 
           }}>
             {/* Category Dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: '4px', overflow: 'hidden', height: '38px' }}>
-              <span style={{ padding: '0 12px', backgroundColor: 'var(--surface)', color: 'var(--text-muted)', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', height: '100%', borderRight: '1px solid var(--border-color)' }}>
-                Category
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', height: '38px', backgroundColor: 'var(--bg-white)' }}>
               <select 
                 value={category} 
                 onChange={(e) => setCategory(e.target.value as CategoryType)}
@@ -298,52 +295,49 @@ export default function PreOpenScannerPage() {
                   fontSize: '13px', 
                   fontWeight: 600, 
                   color: 'var(--text-heading)',
-                  backgroundColor: 'var(--bg-white)',
+                  backgroundColor: 'transparent',
                   cursor: 'pointer',
                   height: '100%'
                 }}
               >
-                <option value="All">All</option>
-                <option value="Nifty 50">Nifty 50</option>
-                <option value="Bank Nifty">Bank Nifty</option>
-                <option value="F&O">F&O</option>
-                <option value="SME">SME</option>
-                <option value="Others">Others</option>
+                <option value="All">Category: All</option>
+                <option value="Nifty 50">Category: Nifty 50</option>
+                <option value="Bank Nifty">Category: Bank Nifty</option>
+                <option value="F&O">Category: F&O</option>
+                <option value="SME">Category: SME</option>
+                <option value="Others">Category: Others</option>
               </select>
             </div>
 
             {/* Symbol Search */}
-            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: '4px', overflow: 'hidden', height: '38px', minWidth: '220px' }}>
-              <span style={{ padding: '0 12px', backgroundColor: 'var(--surface)', color: 'var(--text-muted)', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', height: '100%', borderRight: '1px solid var(--border-color)' }}>
-                Symbol
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0 12px', height: '38px', minWidth: '220px', backgroundColor: 'var(--bg-white)' }}>
+              <Search size={16} color="var(--text-secondary)" style={{ marginRight: '8px' }} />
               <input 
-                type="text" 
-                placeholder="Enter symbol" 
+                placeholder="Search symbol..." 
                 value={symbolQuery}
                 onChange={(e) => setSymbolQuery(e.target.value)}
                 style={{ 
                   border: 'none', 
                   outline: 'none', 
-                  padding: '0 12px', 
                   fontSize: '13px', 
                   color: 'var(--text-heading)',
-                  backgroundColor: 'var(--bg-white)',
+                  backgroundColor: 'transparent',
                   width: '100%',
-                  height: '100%'
+                  boxShadow: 'none',
+                  padding: 0
                 }}
               />
             </div>
 
             {/* Filter Buttons */}
-            <div style={{ display: 'flex', gap: '6px' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 onClick={() => {
                   setActiveFilter('all');
                   setSortField('changePercent');
                   setSortAsc(false);
                 }}
-                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid var(--border-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'all' ? 'var(--color-info-bg)' : 'var(--bg-white)', color: activeFilter === 'all' ? 'var(--color-info)' : 'var(--text-body)' }}
+                style={{ padding: '0 16px', height: '38px', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'all' ? 'var(--color-info-bg)' : 'var(--bg-white)', color: activeFilter === 'all' ? 'var(--color-info)' : 'var(--text-body)' }}
               >
                 All Pre-Open
               </button>
@@ -353,7 +347,7 @@ export default function PreOpenScannerPage() {
                   setSortField('changePercent');
                   setSortAsc(false);
                 }}
-                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid var(--border-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'gainers' ? 'var(--accent-light)' : 'var(--bg-white)', color: activeFilter === 'gainers' ? 'var(--accent)' : 'var(--text-body)' }}
+                style={{ padding: '0 16px', height: '38px', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'gainers' ? 'var(--accent-light)' : 'var(--bg-white)', color: activeFilter === 'gainers' ? 'var(--accent-dark)' : 'var(--text-body)' }}
               >
                 Top Gainers
               </button>
@@ -363,56 +357,25 @@ export default function PreOpenScannerPage() {
                   setSortField('changePercent');
                   setSortAsc(true);
                 }}
-                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid var(--border-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'losers' ? 'var(--danger-light)' : 'var(--bg-white)', color: activeFilter === 'losers' ? 'var(--danger)' : 'var(--text-body)' }}
+                style={{ padding: '0 16px', height: '38px', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'losers' ? 'var(--danger-light)' : 'var(--bg-white)', color: activeFilter === 'losers' ? 'var(--danger)' : 'var(--text-body)' }}
               >
                 Top Losers
               </button>
             </div>
 
-            {/* Clear Button */}
-            <button 
-              onClick={handleClear}
-              style={{
-                border: '1px solid #ea580c',
-                color: '#ea580c',
-                backgroundColor: 'transparent',
-                borderRadius: '4px',
-                padding: '0 20px',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                height: '38px',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(234, 88, 12, 0.08)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              Clear
-            </button>
-
-            {/* CSV Download Button */}
+            {/* CSV Export Button */}
             <button 
               onClick={downloadCSV}
+              className="btn-export"
               style={{
-                border: 'none',
-                backgroundColor: 'transparent',
-                color: 'var(--text-body)',
+                marginLeft: 'auto',
+                height: '38px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                marginLeft: 'auto',
-                height: '38px'
+                gap: '6px'
               }}
             >
-              <FileSpreadsheet size={18} style={{ color: '#16a34a' }} />
-              <span style={{ color: '#2563eb', textDecoration: 'underline' }}>Download (.csv)</span>
+              <Download size={14} /> Export Excel
             </button>
           </div>
 
@@ -443,7 +406,7 @@ export default function PreOpenScannerPage() {
                   }} />
                 </div>
               )}
-              {(loading || isSyncing) && (
+              {loading && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--primary)', fontSize: '11px', fontWeight: 500 }}>
                   <Loader2 size={13} style={{ animation: 'spin 1.2s linear infinite' }} />
                   <span>Syncing ticks...</span>
@@ -473,7 +436,7 @@ export default function PreOpenScannerPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1100px' }}>
               <thead>
                 <tr style={{ borderBottom: '1.5px solid var(--border-light)', backgroundColor: 'var(--surface)' }}>
-                  <th onClick={() => handleSort('symbol')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>SYMBOL{renderSortIndicator('symbol')}</th>
+                  <th onClick={() => handleSort('symbol')} style={{ position: 'sticky', top: 0, left: 0, zIndex: 20, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', borderRight: '1px solid var(--border-light)' }}>SYMBOL{renderSortIndicator('symbol')}</th>
                   <th onClick={() => handleSort('prevClose')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>PREV. CLOSE{renderSortIndicator('prevClose')}</th>
                   <th onClick={() => handleSort('iep')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>IEP{renderSortIndicator('iep')}</th>
                   <th onClick={() => handleSort('chng')} style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--surface)', padding: '12px 10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}>CHNG{renderSortIndicator('chng')}</th>
@@ -495,28 +458,46 @@ export default function PreOpenScannerPage() {
 
                   return (
                     <tr key={stock.symbol} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                      <td style={{ fontWeight: 700, padding: '12px 10px', fontSize: '13px' }}>{stock.symbol}</td>
+                      <td style={{ position: 'sticky', left: 0, zIndex: 5, backgroundColor: 'var(--bg-white)', fontWeight: 700, padding: '12px 10px', fontSize: '13px', color: 'var(--text-heading)', borderRight: '1px solid var(--border-light)' }}>{stock.symbol}</td>
                       <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{stock.prevClose.toFixed(2)}</td>
-                      <td style={{ fontWeight: 700, padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{stock.iep.toFixed(2)}</td>
-                      <td style={{ 
-                        padding: '12px 10px', 
-                        fontSize: '13px', 
-                        fontWeight: 600,
-                        textAlign: 'right',
-                        color: chng === 0 ? 'var(--text-subtle)' : isPositive ? 'var(--accent)' : 'var(--danger)' 
-                      }}>
-                        {isPositive ? '+' : ''}{chng.toFixed(2)}
+                      <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>
+                        <span style={{ 
+                          fontWeight: 700, 
+                          color: chng === 0 ? 'var(--text-heading)' : isPositive ? 'var(--accent-dark)' : 'var(--danger)'
+                        }}>{stock.iep.toFixed(2)}</span>
                       </td>
-                      <td style={{ 
-                        padding: '12px 10px', 
-                        fontSize: '13px', 
-                        fontWeight: 700,
-                        textAlign: 'right',
-                        color: stock.changePercent === 0 ? 'var(--text-subtle)' : isPositive ? 'var(--accent)' : 'var(--danger)' 
-                      }}>
-                        {isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                      <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>
+                        <span style={{ 
+                          fontWeight: 700, 
+                          color: chng === 0 ? 'var(--text-muted)' : isPositive ? 'var(--accent-dark)' : 'var(--danger)'
+                        }}>
+                          {isPositive ? '+' : ''}{chng.toFixed(2)}
+                          {chng !== 0 && (
+                            <span style={{ fontSize: '10px', marginLeft: '4px' }}>
+                              {isPositive ? '▲' : '▼'}
+                            </span>
+                          )}
+                        </span>
                       </td>
-                      <td style={{ fontWeight: 700, padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{stock.final.toFixed(2)}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>
+                        <span style={{ 
+                          fontWeight: 700, 
+                          color: stock.changePercent === 0 ? 'var(--text-muted)' : isPositive ? 'var(--accent-dark)' : 'var(--danger)'
+                        }}>
+                          {isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                          {stock.changePercent !== 0 && (
+                            <span style={{ fontSize: '10px', marginLeft: '4px' }}>
+                              {isPositive ? '▲' : '▼'}
+                            </span>
+                          )}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>
+                        <span style={{ 
+                          fontWeight: 700, 
+                          color: chng === 0 ? 'var(--text-heading)' : isPositive ? 'var(--accent-dark)' : 'var(--danger)'
+                        }}>{stock.final.toFixed(2)}</span>
+                      </td>
                       <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{(stock.finalQuantity || 0).toLocaleString('en-IN')}</td>
                       <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{valueVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td style={{ padding: '12px 10px', fontSize: '13px', textAlign: 'right' }}>{ffmCapVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>

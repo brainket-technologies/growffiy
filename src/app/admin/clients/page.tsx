@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
 import { Card } from '../../../shared/components/views/Card';
 import { Button } from '../../../shared/components/views/Button';
@@ -20,6 +20,7 @@ export default function ClientsPage() {
   const [connectionFilter, setConnectionFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [capitalFilter, setCapitalFilter] = useState('all');
+  const [productTypeFilter, setProductTypeFilter] = useState('all');
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -33,7 +34,35 @@ export default function ClientsPage() {
   const [zerodhaApiSecret, setZerodhaApiSecret] = useState('');
   const [zerodhaPassword, setZerodhaPassword] = useState('');
   const [zerodhaTotpSecret, setZerodhaTotpSecret] = useState('');
-  const [capital, setCapital] = useState('50000');
+  const [capital, setCapital] = useState('');
+  const [strategies, setStrategies] = useState<any[]>([]);
+  const [selectedStrategyId, setSelectedStrategyId] = useState('');
+  const [productTypes, setProductTypes] = useState<any[]>([]);
+  const [selectedProductTypeId, setSelectedProductTypeId] = useState('');
+
+  // Fetch strategies & product types
+  useEffect(() => {
+    fetch('/api/admin/strategies')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.strategies) {
+          setStrategies(data.strategies);
+        }
+      })
+      .catch(err => console.error('Failed to load strategies:', err));
+
+    fetch('/api/admin/product-types')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.productTypes) {
+          setProductTypes(data.productTypes);
+        }
+      })
+      .catch(err => console.error('Failed to load product types:', err));
+  }, []);
+
+  // Autofill prevention state
+  const [focusedFields, setFocusedFields] = useState<Record<string, boolean>>({});
 
   const handleAddClient = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +75,8 @@ export default function ClientsPage() {
       zerodhaPassword,
       zerodhaTotpSecret,
       capital: Number(capital),
+      strategyId: selectedStrategyId || null,
+      productTypeId: selectedProductTypeId || null,
     });
     if (result && result.success) {
       setGeneratedCreds(result.credentials);
@@ -57,7 +88,10 @@ export default function ClientsPage() {
       setZerodhaApiSecret('');
       setZerodhaPassword('');
       setZerodhaTotpSecret('');
-      setCapital('50000');
+      setCapital('');
+      setSelectedStrategyId('');
+      setSelectedProductTypeId('');
+      setFocusedFields({});
     }
   };
 
@@ -98,7 +132,11 @@ export default function ClientsPage() {
           ? Number(client.capital) >= 50000 && Number(client.capital) <= 100000
           : Number(client.capital) > 100000;
 
-    return matchesSearch && matchesConnection && matchesStatus && matchesCapital;
+    const matchesProductType = productTypeFilter === 'all'
+      ? true
+      : client.productTypeId === productTypeFilter;
+
+    return matchesSearch && matchesConnection && matchesStatus && matchesCapital && matchesProductType;
   });
 
   // Pagination Logic
@@ -141,7 +179,7 @@ export default function ClientsPage() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '100%', overflowX: 'hidden' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -181,7 +219,7 @@ export default function ClientsPage() {
       </div>
 
       {/* Main Clients Table */}
-      <Card>
+      <Card style={{ maxWidth: '100%', overflow: 'hidden' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
             All Active & Configured Clients ({filteredClients.length})
@@ -194,7 +232,7 @@ export default function ClientsPage() {
           gap: '12px', 
           marginBottom: '24px', 
           alignItems: 'center',
-          flexWrap: 'nowrap',
+          flexWrap: 'wrap',
           background: 'var(--bg-secondary)',
           padding: '12px 16px',
           borderRadius: '12px',
@@ -270,6 +308,27 @@ export default function ClientsPage() {
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
+          
+          <select
+            value={productTypeFilter}
+            onChange={(e) => { setProductTypeFilter(e.target.value); setCurrentPage(1); }}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+              outline: 'none',
+              fontSize: '13px',
+              background: '#ffffff',
+              cursor: 'pointer',
+              minWidth: '130px',
+              width: 'auto'
+            }}
+          >
+            <option value="all">All Product Types</option>
+            {productTypes.map(type => (
+              <option key={type.id} value={type.id}>{type.name}</option>
+            ))}
+          </select>
 
           <select
             value={capitalFilter}
@@ -294,22 +353,24 @@ export default function ClientsPage() {
         </div>
 
         <div className="table-responsive">
-          <table>
+          <table className="table-compact">
             <thead>
               <tr>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Zerodha Client ID</th>
+                <th>Product Type</th>
+                <th>Strategy</th>
                 <th>Capital (INR)</th>
                 <th>Kite Session</th>
                 <th>Trading Status</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+                <th style={{ textAlign: 'right', minWidth: '120px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {currentClients.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                     No client accounts match the search or filter criteria.
                   </td>
                 </tr>
@@ -321,6 +382,58 @@ export default function ClientsPage() {
                       <td style={{ fontWeight: 600 }}>{client.user?.name || client.name}</td>
                       <td>{client.user?.email || client.email}</td>
                       <td style={{ fontFamily: 'monospace', fontWeight: 500 }}>{client.zerodhaClientId || '--'}</td>
+                      <td>
+                        {client.productType?.name ? (
+                          <span 
+                            className="badge badge-purple"
+                            style={{ 
+                              textTransform: 'none', 
+                              fontSize: '11px',
+                              padding: '4px 10px',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {client.productType.name}
+                          </span>
+                        ) : (
+                          <span 
+                            className="badge"
+                            style={{ 
+                              textTransform: 'none', 
+                              fontSize: '11px',
+                              padding: '4px 10px'
+                            }}
+                          >
+                            None
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {client.strategy?.name ? (
+                          <span 
+                            className="badge badge-purple"
+                            style={{ 
+                              textTransform: 'none', 
+                              fontSize: '11px',
+                              padding: '4px 10px',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {client.strategy.name}
+                          </span>
+                        ) : (
+                          <span 
+                            className="badge"
+                            style={{ 
+                              textTransform: 'none', 
+                              fontSize: '11px',
+                              padding: '4px 10px'
+                            }}
+                          >
+                            None
+                          </span>
+                        )}
+                      </td>
                       <td style={{ fontWeight: 600 }}>₹{Number(client.capital).toLocaleString()}</td>
                       <td>
                         {client.accessToken ? (
@@ -340,7 +453,7 @@ export default function ClientsPage() {
                           {client.tradingStatus}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'right' }}>
+                      <td style={{ textAlign: 'right', minWidth: '120px' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
                           <Link
                             href={`/admin/clients/${client.id}/performance`}
@@ -484,7 +597,7 @@ export default function ClientsPage() {
 
       {/* Add Client Modal */}
       <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add New Client">
-        <form onSubmit={handleAddClient} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <form onSubmit={handleAddClient} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} autoComplete="off">
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Client Full Name</label>
             <input
@@ -492,7 +605,11 @@ export default function ClientsPage() {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Vikash sharma"
+              placeholder="Enter Full Name"
+              autoComplete="off"
+              readOnly={!focusedFields['name']}
+              onFocus={() => setFocusedFields(prev => ({ ...prev, name: true }))}
+              onBlur={() => setFocusedFields(prev => ({ ...prev, name: false }))}
             />
           </div>
 
@@ -503,7 +620,11 @@ export default function ClientsPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. vikash@gmail.com"
+              placeholder="Enter Email Address"
+              autoComplete="off"
+              readOnly={!focusedFields['email']}
+              onFocus={() => setFocusedFields(prev => ({ ...prev, email: true }))}
+              onBlur={() => setFocusedFields(prev => ({ ...prev, email: false }))}
             />
           </div>
 
@@ -514,7 +635,11 @@ export default function ClientsPage() {
               required
               value={zerodhaClientId}
               onChange={(e) => setZerodhaClientId(e.target.value)}
-              placeholder="e.g. RZJ500"
+              placeholder="Enter Client ID"
+              autoComplete="off"
+              readOnly={!focusedFields['zerodhaClientId']}
+              onFocus={() => setFocusedFields(prev => ({ ...prev, zerodhaClientId: true }))}
+              onBlur={() => setFocusedFields(prev => ({ ...prev, zerodhaClientId: false }))}
             />
             <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block' }}>
               * Client login User ID & Password will be automatically generated.
@@ -529,7 +654,11 @@ export default function ClientsPage() {
                 required
                 value={zerodhaApiKey}
                 onChange={(e) => setZerodhaApiKey(e.target.value)}
-                placeholder="4y7j026qyv9lkacw"
+                placeholder="Enter API Key"
+                autoComplete="off"
+                readOnly={!focusedFields['zerodhaApiKey']}
+                onFocus={() => setFocusedFields(prev => ({ ...prev, zerodhaApiKey: true }))}
+                onBlur={() => setFocusedFields(prev => ({ ...prev, zerodhaApiKey: false }))}
               />
             </div>
             <div>
@@ -539,7 +668,11 @@ export default function ClientsPage() {
                 required
                 value={zerodhaApiSecret}
                 onChange={(e) => setZerodhaApiSecret(e.target.value)}
-                placeholder="xr2qwbkkn0kj8gbuzuwyn19ggxlxgye9"
+                placeholder="Enter API Secret"
+                autoComplete="off"
+                readOnly={!focusedFields['zerodhaApiSecret']}
+                onFocus={() => setFocusedFields(prev => ({ ...prev, zerodhaApiSecret: true }))}
+                onBlur={() => setFocusedFields(prev => ({ ...prev, zerodhaApiSecret: false }))}
               />
             </div>
           </div>
@@ -551,7 +684,11 @@ export default function ClientsPage() {
                 type="password"
                 value={zerodhaPassword}
                 onChange={(e) => setZerodhaPassword(e.target.value)}
-                placeholder="Zerodha Password"
+                placeholder="Enter Password"
+                autoComplete="new-password"
+                readOnly={!focusedFields['zerodhaPassword']}
+                onFocus={() => setFocusedFields(prev => ({ ...prev, zerodhaPassword: true }))}
+                onBlur={() => setFocusedFields(prev => ({ ...prev, zerodhaPassword: false }))}
               />
             </div>
             <div>
@@ -560,7 +697,11 @@ export default function ClientsPage() {
                 type="text"
                 value={zerodhaTotpSecret}
                 onChange={(e) => setZerodhaTotpSecret(e.target.value)}
-                placeholder="e.g. JBSWY3DPEHPK3PXP"
+                placeholder="Enter TOTP Secret"
+                autoComplete="off"
+                readOnly={!focusedFields['zerodhaTotpSecret']}
+                onFocus={() => setFocusedFields(prev => ({ ...prev, zerodhaTotpSecret: true }))}
+                onBlur={() => setFocusedFields(prev => ({ ...prev, zerodhaTotpSecret: false }))}
               />
             </div>
           </div>
@@ -572,7 +713,64 @@ export default function ClientsPage() {
               required
               value={capital}
               onChange={(e) => setCapital(e.target.value)}
+              placeholder="Enter Allocated Capital"
+              autoComplete="off"
+              readOnly={!focusedFields['capital']}
+              onFocus={() => setFocusedFields(prev => ({ ...prev, capital: true }))}
+              onBlur={() => setFocusedFields(prev => ({ ...prev, capital: false }))}
             />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Select Strategy</label>
+            <select
+              value={selectedStrategyId}
+              onChange={(e) => setSelectedStrategyId(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                outline: 'none',
+                fontSize: '13px',
+                backgroundColor: 'var(--bg-white)',
+                color: 'var(--text-heading)',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="">Select a Strategy (Optional)</option>
+              {strategies.map((strat) => (
+                <option key={strat.id} value={strat.id}>
+                  {strat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Select Product Type</label>
+            <select
+              value={selectedProductTypeId}
+              onChange={(e) => setSelectedProductTypeId(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                outline: 'none',
+                fontSize: '13px',
+                backgroundColor: 'var(--bg-white)',
+                color: 'var(--text-heading)',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="">Select Product Type (Optional)</option>
+              {productTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>

@@ -197,31 +197,36 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className={styles.actions}>
           {/* Status Indicator */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '5px 10px',
-            borderRadius: '6px',
-            backgroundColor: 'var(--surface)',
-            border: '1px solid var(--border-color)',
-            fontSize: '11px',
-            fontWeight: 600,
-            marginRight: '8px'
-          }}>
-            <span style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              backgroundColor: isTradingActive ? 'var(--accent)' : 'var(--danger)',
-              boxShadow: isTradingActive ? '0 0 6px var(--accent)' : 'none',
-              display: 'inline-block'
-            }} title={isTradingActive ? 'Engine is Running' : 'Engine is Stopped'} />
-            <span style={{ width: '1px', height: '10px', background: 'var(--border-color)' }} />
-            <span style={{ color: 'var(--text-secondary)' }}>
-              {tradingDayLabel === 'Trading Day' ? 'Market Day' : 'Market Off'}
-            </span>
-          </div>
+          {userRole !== 'Client Account' && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '5px 10px',
+              borderRadius: '6px',
+              backgroundColor: 'var(--surface)',
+              border: '1px solid var(--border-color)',
+              fontSize: '11px',
+              fontWeight: 600,
+              marginRight: '8px'
+            }}>
+              <span style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: isTradingActive ? 'var(--accent)' : 'var(--danger)',
+                boxShadow: isTradingActive ? '0 0 6px var(--accent)' : 'none',
+                display: 'inline-block'
+              }} title={isTradingActive ? 'Engine is Running' : 'Engine is Stopped'} />
+              <span style={{ color: isTradingActive ? 'var(--accent)' : 'var(--danger)', marginLeft: '2px' }}>
+                {isTradingActive ? 'Online' : 'Offline'}
+              </span>
+              <span style={{ width: '1px', height: '10px', background: 'var(--border-color)' }} />
+              <span style={{ color: 'var(--text-secondary)' }}>
+                {tradingDayLabel === 'Trading Day' ? 'Market Day' : 'Market Off'}
+              </span>
+            </div>
+          )}
 
           <button className={styles.iconBtn} title="Notifications">
             <Bell size={16} />
