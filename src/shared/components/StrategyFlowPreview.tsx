@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { Clock, TrendingUp, Shield, Target, Activity, Eye, ArrowDown, Zap, AlertTriangle, CheckCircle, XCircle, Layers } from 'lucide-react';
+import { Clock, TrendingUp, Shield, Target, Activity, Eye, ArrowDown, Zap, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 
 interface StrategyConfig {
   basicInfo?: any;
@@ -11,73 +11,96 @@ interface StrategyConfig {
   conditions?: any[];
 }
 
-const Connector = () => (
-  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2px 0', marginLeft: '20px' }}>
-    <div style={{ width: '2px', height: '16px', background: 'linear-gradient(to bottom, rgba(148,163,184,0.2), rgba(18,82,171,0.3))' }} />
-    <ArrowDown size={10} style={{ color: 'rgba(18,82,171,0.3)', marginTop: '-1px' }} />
-  </div>
-);
+function Connector() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '3px 0', marginLeft: '22px' }}>
+      <div style={{ width: '2px', height: '14px', background: 'var(--border)', borderRadius: '1px' }} />
+    </div>
+  );
+}
 
-const PassBadge = ({ label, passed }: { label: string; passed: boolean }) => (
-  <div style={{
-    display: 'inline-flex', alignItems: 'center', gap: '3px',
-    padding: '3px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: 600,
-    background: passed ? 'rgba(5,150,105,0.08)' : 'rgba(239,68,68,0.08)',
-    border: `1px solid ${passed ? 'rgba(5,150,105,0.2)' : 'rgba(239,68,68,0.2)'}`,
-    color: passed ? '#059669' : '#dc2626'
-  }}>
-    {passed ? <CheckCircle size={9} /> : <XCircle size={9} />}{label}
-  </div>
-);
-
-const TimingTag = ({ time }: { time: string }) => (
-  <div style={{
-    display: 'inline-flex', alignItems: 'center', gap: '3px',
-    padding: '3px 9px', borderRadius: '5px',
-    background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.15)',
-    fontSize: '9px', fontWeight: 700, color: '#1E88FF'
-  }}>
-    <Clock size={8} />{time}
-  </div>
-);
-
-const StageTag = ({ label, color }: { label: string; color: string }) => (
-  <div style={{
-    padding: '3px 9px', borderRadius: '4px',
-    background: `${color}10`, border: `1px solid ${color}20`,
-    fontSize: '8px', fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.4px'
-  }}>{label}</div>
-);
-
-const FormulaBox = ({ children }: { children: React.ReactNode }) => (
-  <div style={{
-    padding: '8px 12px', borderRadius: '6px',
-    background: 'rgba(15,23,42,0.03)', border: '1px solid rgba(15,23,42,0.05)',
-    fontSize: '10px', fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-    color: 'var(--text-secondary)', lineHeight: '1.7', marginBottom: '6px'
-  }}>
-    {children}
-  </div>
-);
-
-const StageCard = ({ children, color, accent }: { children: React.ReactNode; color: string; accent: string }) => (
-  <div style={{
-    borderRadius: '12px',
-    background: '#fff',
-    border: '1px solid rgba(148,163,184,0.12)',
-    padding: '16px 18px',
-    boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
-    position: 'relative',
-    overflow: 'hidden'
-  }}>
+function PassBadge({ label, passed }: { label: string; passed: boolean }) {
+  return (
     <div style={{
-      position: 'absolute', top: 0, left: 0, width: '3px', height: '100%',
-      background: `linear-gradient(to bottom, ${color}, ${accent})`,
-      opacity: 0.3
-    }} />
-    {children}
-  </div>
-);
+      display: 'inline-flex', alignItems: 'center', gap: '3px',
+      padding: '2px 10px', borderRadius: '999px', fontSize: '10px', fontWeight: 600, lineHeight: '20px',
+      background: passed ? 'var(--accent-light)' : 'var(--danger-light)',
+      border: `1px solid ${passed ? 'rgba(5,150,105,0.15)' : 'rgba(239,68,68,0.15)'}`,
+      color: passed ? 'var(--accent-dark)' : 'var(--danger)',
+    }}>
+      {passed ? <CheckCircle size={9} /> : <XCircle size={9} />}{label}
+    </div>
+  );
+}
+
+function TimingTag({ time }: { time: string }) {
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: '3px',
+      padding: '2px 9px', borderRadius: '999px', fontSize: '9px', fontWeight: 600, lineHeight: '20px',
+      background: 'var(--surface)', border: '1px solid var(--border)',
+      color: 'var(--text-secondary)',
+    }}>
+      <Clock size={8} />{time}
+    </div>
+  );
+}
+
+function StageTag({ label }: { label: string }) {
+  return (
+    <div style={{
+      padding: '2px 8px', borderRadius: '4px',
+      background: 'var(--surface)', border: '1px solid var(--border)',
+      fontSize: '9px', fontWeight: 600, color: 'var(--text-secondary)',
+      letterSpacing: '0.4px',
+    }}>
+      {label}
+    </div>
+  );
+}
+
+function FormulaBox({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      padding: '10px 14px', borderRadius: '8px',
+      background: 'var(--surface)', border: '1px solid var(--border-light)',
+      fontSize: '10px', fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+      color: 'var(--text-secondary)', lineHeight: '1.8', marginBottom: '8px',
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function StageCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      borderRadius: '12px',
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border-light)',
+      padding: '18px 20px',
+      boxShadow: 'var(--shadow-sm)',
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function StageCircle({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      position: 'absolute', left: '-50px', top: '14px',
+      width: '32px', height: '32px', borderRadius: '50%',
+      background: 'var(--surface)',
+      border: '1.5px solid var(--border)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: 'var(--text-secondary)',
+      zIndex: 2,
+    }}>
+      {children}
+    </div>
+  );
+}
 
 export default function StrategyFlowPreview({ config }: { config: StrategyConfig }) {
   const bi = config.basicInfo || {};
@@ -109,29 +132,20 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
       {/* Stage 1 */}
-      <div style={{ position: 'relative', paddingLeft: '52px' }}>
-        <div style={{ position: 'absolute', left: '20px', top: '0', bottom: '0', width: '2px', background: 'rgba(148,163,184,0.1)' }} />
+      <div style={{ position: 'relative', paddingLeft: '54px' }}>
+        <div style={{ position: 'absolute', left: '20px', top: '0', bottom: '0', width: '2px', background: 'var(--border-light)' }} />
         <div style={{ position: 'relative' }}>
-          <div style={{
-            position: 'absolute', left: '-36px', top: '14px',
-            width: '34px', height: '34px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, #1E88FF, #0284c7)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
-            boxShadow: '0 0 0 5px rgba(14,165,233,0.08), 0 2px 6px rgba(14,165,233,0.15)',
-            zIndex: 2
-          }}>
-            <Clock size={14} />
-          </div>
-          <StageCard color="#1E88FF" accent="#0284c7">
+          <StageCircle><Clock size={12} /></StageCircle>
+          <StageCard>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <StageTag label="Stage 1" color="#1E88FF" />
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Market Pre-Open Data</span>
+              <StageTag label="Stage 1" />
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)' }}>Market Pre-Open Data</span>
               <div style={{ marginLeft: 'auto' }}><TimingTag time={`08:00 — ${preSelectTime}`} /></div>
             </div>
-            <div style={{ fontSize: '11px', color: '#475569', lineHeight: '1.6', marginBottom: '10px' }}>
-              Token refresh → NSE pre-open fetch → Segment filter <strong>{segment}</strong> → Price change % sort → Top <strong>#{selectPos}</strong> stock
+            <div style={{ fontSize: '12px', color: 'var(--text-body)', lineHeight: '1.7', marginBottom: '10px' }}>
+              Token refresh → NSE pre-open fetch → Segment filter <strong style={{color:'var(--text-heading)'}}>{segment}</strong> → Price change % sort → Top <strong style={{color:'var(--text-heading)'}}>#{selectPos}</strong> stock
             </div>
-            <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               <PassBadge label={`Segment: ${segment}`} passed={true} />
               <PassBadge label={`Pick: #${selectPos}`} passed={true} />
               {hasConditions
@@ -146,46 +160,40 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
 
       <Connector />
 
-      {/* Stage 2: Breakout Entry */}
-      <div style={{ position: 'relative', paddingLeft: '52px' }}>
-        <div style={{ position: 'absolute', left: '20px', top: '0', bottom: '0', width: '2px', background: 'rgba(148,163,184,0.1)' }} />
+      {/* Stage 2 */}
+      <div style={{ position: 'relative', paddingLeft: '54px' }}>
+        <div style={{ position: 'absolute', left: '20px', top: '0', bottom: '0', width: '2px', background: 'var(--border-light)' }} />
         <div style={{ position: 'relative' }}>
-          <div style={{
-            position: 'absolute', left: '-36px', top: '14px',
-            width: '34px', height: '34px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
-            boxShadow: '0 0 0 5px rgba(139,92,246,0.08), 0 2px 6px rgba(139,92,246,0.15)',
-            zIndex: 2
-          }}>
-            <Zap size={14} />
-          </div>
-          <StageCard color="#8b5cf6" accent="#7c3aed">
+          <StageCircle><Zap size={12} /></StageCircle>
+          <StageCard>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <StageTag label="Stage 2" color="#8b5cf6" />
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Breakout Entry Check</span>
+              <StageTag label="Stage 2" />
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)' }}>Breakout Entry Check</span>
               <div style={{ marginLeft: 'auto' }}><TimingTag time={entryTime} /></div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 10px', borderRadius: '6px', background: 'rgba(241,245,249,0.5)', border: '1px solid rgba(226,232,240,0.5)' }}>
-                <span style={{ fontWeight: 600, fontSize: '11px', color: '#475569', minWidth: '80px' }}>① Candle:</span>
-                <span style={{ fontSize: '11px', color: '#475569' }}>Get <strong style={{color:'#7c3aed'}}>{candleType.toUpperCase()}</strong> of first 5m candle <span style={{color:'#94a3b8'}}>({preSelectTime} → {entryTime})</span></span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', background: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+                <span style={{ fontWeight: 600, fontSize: '12px', color: 'var(--text-body)', minWidth: '80px' }}>① Candle:</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-body)' }}>
+                  Get <strong style={{color:'var(--text-heading)'}}>{candleType.toUpperCase()}</strong> of first 5m candle{' '}
+                  <span style={{color:'var(--text-subtle)'}}>({preSelectTime} → {entryTime})</span>
+                </span>
               </div>
               {bufferPct > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 10px', borderRadius: '6px', background: 'rgba(241,245,249,0.5)', border: '1px solid rgba(226,232,240,0.5)' }}>
-                  <span style={{ fontWeight: 600, fontSize: '11px', color: '#475569', minWidth: '80px' }}>② Buffer:</span>
-                  <span style={{ fontSize: '11px', color: '#475569' }}>Entry price + <strong>{bufferPct}%</strong></span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', background: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+                  <span style={{ fontWeight: 600, fontSize: '12px', color: 'var(--text-body)', minWidth: '80px' }}>② Buffer:</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-body)' }}>Entry price + <strong>{bufferPct}%</strong></span>
                 </div>
               )}
-              <div style={{ padding: '8px 10px', borderRadius: '6px', background: 'rgba(255,251,235,0.5)', border: '1px solid rgba(245,158,11,0.15)' }}>
-                <span style={{ fontWeight: 600, fontSize: '11px', color: '#92400e' }}>③ Breakout Logic (exact engine):</span>
+              <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                <span style={{ fontWeight: 600, fontSize: '12px', color: 'var(--text-heading)' }}>③ Breakout Logic:</span>
                 <FormulaBox>
-                  <div>if <span style={{fontWeight:600,color:'#7c3aed'}}>isSLMarket</span> ({isSLMarket ? <span style={{color:'#059669'}}>YES →</span> : <span style={{color:'#dc2626'}}>NO →</span>}) <span style={{color:'#059669',fontWeight:600}}>auto PASS</span></div>
-                  <div>else if <span style={{fontWeight:600,color:'#7c3aed'}}>!hasPriceAction</span> ({!hasPriceAction ? <span style={{color:'#059669'}}>YES →</span> : <span style={{color:'#dc2626'}}>NO →</span>}) <span style={{color:'#059669',fontWeight:600}}>auto PASS</span></div>
+                  <div>if <span style={{fontWeight:600,color:'var(--text-heading)'}}>isSLMarket</span> ({isSLMarket ? <span style={{color:'var(--accent-dark)',fontWeight:600}}>YES →</span> : <span style={{color:'var(--danger)'}}>NO →</span>}) <span style={{color:'var(--accent-dark)',fontWeight:600}}>auto PASS</span></div>
+                  <div>else if <span style={{fontWeight:600,color:'var(--text-heading)'}}>!hasPriceAction</span> ({!hasPriceAction ? <span style={{color:'var(--accent-dark)',fontWeight:600}}>YES →</span> : <span style={{color:'var(--danger)'}}>NO →</span>}) <span style={{color:'var(--accent-dark)',fontWeight:600}}>auto PASS</span></div>
                   <div>else → <span style={{fontWeight:600}}>currentLtp {isLong ? '>=' : '<='} breakoutEntryPrice</span> ?</div>
                 </FormulaBox>
-                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                   {isSLMarket
                     ? <PassBadge label="SL-Market → Always PASS" passed={true} />
                     : !hasPriceAction
@@ -196,7 +204,7 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               <PassBadge label={`Candle: ${candleType.toUpperCase()}`} passed={true} />
               <PassBadge label={`Order: ${ta.orderType || 'Market'}`} passed={true} />
               {bufferPct > 0
@@ -211,48 +219,39 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
       <Connector />
 
       {/* Stage 3 */}
-      <div style={{ position: 'relative', paddingLeft: '52px' }}>
-        <div style={{ position: 'absolute', left: '20px', top: '0', bottom: '0', width: '2px', background: 'rgba(148,163,184,0.1)' }} />
+      <div style={{ position: 'relative', paddingLeft: '54px' }}>
+        <div style={{ position: 'absolute', left: '20px', top: '0', bottom: '0', width: '2px', background: 'var(--border-light)' }} />
         <div style={{ position: 'relative' }}>
-          <div style={{
-            position: 'absolute', left: '-36px', top: '14px',
-            width: '34px', height: '34px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, #059669, #047857)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
-            boxShadow: '0 0 0 5px rgba(5,150,105,0.08), 0 2px 6px rgba(5,150,105,0.15)',
-            zIndex: 2
-          }}>
-            <Shield size={14} />
-          </div>
-          <StageCard color="#059669" accent="#047857">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <StageTag label="Stage 3" color="#059669" />
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Position Sizing & Risk Checks</span>
+          <StageCircle><Shield size={12} /></StageCircle>
+          <StageCard>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <StageTag label="Stage 3" />
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)' }}>Position Sizing & Risk Checks</span>
             </div>
 
             <FormulaBox>
               <div>capitalAtRisk = clientCapital × (<span style={{fontWeight:600}}>{rm.riskPerTrade || 3}%</span>)</div>
-              <div style={{color:'#94a3b8'}}>── capped at DB capital limit</div>
+              <div style={{color:'var(--text-subtle)'}}>── capped at DB capital limit</div>
               <div>quantity = floor(capitalAtRisk / slPoints)</div>
-              {hasBuyingPower && <div style={{color:'#f59e0b'}}>then: min(qty, floor(capital / (entryPrice × misMarginRate)))</div>}
+              {hasBuyingPower && <div style={{color:'var(--text-secondary)'}}>then: min(qty, floor(capital / (entryPrice × misMarginRate)))</div>}
             </FormulaBox>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
-              <div style={{ padding: '8px 12px', borderRadius: '6px', background: 'rgba(241,245,249,0.5)', border: '1px solid rgba(226,232,240,0.5)' }}>
-                <div style={{ fontSize: '9px', color: '#64748b', fontWeight: 600, marginBottom: '2px' }}>RISK PER TRADE</div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{rm.riskPerTrade || 3}%</div>
-                <div style={{ fontSize: '9px', color: '#94a3b8' }}>of available capital</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+              <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+                <div style={{ fontSize: '9px', color: 'var(--text-subtle)', fontWeight: 600, marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Risk Per Trade</div>
+                <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)' }}>{rm.riskPerTrade || 3}%</div>
+                <div style={{ fontSize: '10px', color: 'var(--text-subtle)' }}>of available capital</div>
               </div>
-              <div style={{ padding: '8px 12px', borderRadius: '6px', background: 'rgba(241,245,249,0.5)', border: '1px solid rgba(226,232,240,0.5)' }}>
-                <div style={{ fontSize: '9px', color: '#64748b', fontWeight: 600, marginBottom: '2px' }}>SL POINTS ({sl.type || 'Fixed %'})</div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
+              <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+                <div style={{ fontSize: '9px', color: 'var(--text-subtle)', fontWeight: 600, marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>SL ({sl.type || 'Fixed %'})</div>
+                <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)' }}>
                   {sl.type === 'Fixed Points' ? `${sl.fixedPoints || 10} pts` : `${sl.fixedPercent || 1}%`}
                 </div>
-                <div style={{ fontSize: '9px', color: '#94a3b8' }}>of entry price</div>
+                <div style={{ fontSize: '10px', color: 'var(--text-subtle)' }}>of entry price</div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               <PassBadge label={`Max ${rm.maxOpenPositions || 3} positions`} passed={true} />
               {hasKillSwitch
                 ? <PassBadge label="Kill switch ON" passed={true} />
@@ -271,32 +270,23 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
       <Connector />
 
       {/* Stage 4 */}
-      <div style={{ position: 'relative', paddingLeft: '52px' }}>
-        <div style={{ position: 'absolute', left: '20px', top: '0', bottom: '0', width: '2px', background: 'rgba(148,163,184,0.1)' }} />
+      <div style={{ position: 'relative', paddingLeft: '54px' }}>
+        <div style={{ position: 'absolute', left: '20px', top: '0', bottom: '0', width: '2px', background: 'var(--border-light)' }} />
         <div style={{ position: 'relative' }}>
-          <div style={{
-            position: 'absolute', left: '-36px', top: '14px',
-            width: '34px', height: '34px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
-            boxShadow: '0 0 0 5px rgba(220,38,38,0.08), 0 2px 6px rgba(220,38,38,0.15)',
-            zIndex: 2
-          }}>
-            <Target size={14} />
-          </div>
-          <StageCard color="#dc2626" accent="#b91c1c">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <StageTag label="Stage 4" color="#dc2626" />
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>OCO — SL & Target Orders</span>
+          <StageCircle><Target size={12} /></StageCircle>
+          <StageCard>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <StageTag label="Stage 4" />
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)' }}>OCO — SL & Target Orders</span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
-              <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(254,242,242,0.5)', border: '1px solid rgba(220,38,38,0.08)' }}>
-                <div style={{ fontSize: '9px', color: '#dc2626', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '3px' }}>Stop Loss</div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '1px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+              <div style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Stop Loss</div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '2px' }}>
                   {sl.type || 'Fixed %'}: {sl.fixedPercent || 1}%
                 </div>
-                <div style={{ fontSize: '9px', color: '#64748b', marginBottom: '5px' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text-subtle)', marginBottom: '6px' }}>
                   {isLong ? 'Entry −' : 'Entry +'} SL pts → SL-Market SELL
                 </div>
                 {hasTrailingSL
@@ -304,12 +294,12 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
                   : <PassBadge label="Trailing: OFF" passed={false} />
                 }
               </div>
-              <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(240,253,244,0.5)', border: '1px solid rgba(5,150,105,0.08)' }}>
-                <div style={{ fontSize: '9px', color: '#059669', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '3px' }}>Target</div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '1px' }}>
+              <div style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Target</div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '2px' }}>
                   {tg.type || 'Profit %'}: {tg.profitPercent || 2}%
                 </div>
-                <div style={{ fontSize: '9px', color: '#64748b', marginBottom: '5px' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text-subtle)', marginBottom: '6px' }}>
                   {isLong ? 'Entry × ' : 'Entry × '}(1 + {tg.profitPercent || 2}%) → LIMIT SELL
                 </div>
                 {hasTrailingTarget
@@ -319,8 +309,9 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
               </div>
             </div>
 
-            <div style={{ padding: '7px 10px', borderRadius: '6px', background: 'rgba(241,245,249,0.5)', border: '1px solid rgba(226,232,240,0.5)', fontSize: '10px', color: '#64748b' }}>
-              <strong style={{color:'#334155'}}>Order Setup:</strong> Entry {ta.orderType || 'Market'} | SL-Market SELL | LIMIT SELL | Product: MIS
+            <div style={{ padding: '8px 12px', borderRadius: '8px', background: 'var(--surface)', border: '1px solid var(--border-light)', fontSize: '11px', color: 'var(--text-secondary)' }}>
+              <strong style={{color:'var(--text-heading)'}}>Order Setup:</strong>{' '}
+              Entry {ta.orderType || 'Market'} | SL-Market SELL | LIMIT SELL | Product: MIS
             </div>
           </StageCard>
         </div>
@@ -329,50 +320,41 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
       <Connector />
 
       {/* Stage 5 */}
-      <div style={{ position: 'relative', paddingLeft: '52px' }}>
-        <div style={{ position: 'absolute', left: '20px', top: '0', bottom: '0', width: '2px', background: 'rgba(148,163,184,0.1)' }} />
+      <div style={{ position: 'relative', paddingLeft: '54px' }}>
+        <div style={{ position: 'absolute', left: '20px', top: '0', bottom: '0', width: '2px', background: 'var(--border-light)' }} />
         <div style={{ position: 'relative' }}>
-          <div style={{
-            position: 'absolute', left: '-36px', top: '14px',
-            width: '34px', height: '34px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
-            boxShadow: '0 0 0 5px rgba(245,158,11,0.08), 0 2px 6px rgba(245,158,11,0.15)',
-            zIndex: 2
-          }}>
-            <Activity size={14} />
-          </div>
-          <StageCard color="#f59e0b" accent="#d97706">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <StageTag label="Stage 5" color="#f59e0b" />
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Position Monitor</span>
+          <StageCircle><Activity size={12} /></StageCircle>
+          <StageCard>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <StageTag label="Stage 5" />
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)' }}>Position Monitor</span>
               <div style={{ marginLeft: 'auto' }}><TimingTag time={`${entryTime} — ${exitTime}`} /></div>
             </div>
 
-            <div style={{ fontSize: '11px', color: '#475569', lineHeight: '1.8', marginBottom: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#1252AB'}} />
+            <div style={{ fontSize: '12px', color: 'var(--text-body)', lineHeight: '2', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'var(--text-subtle)'}} />
                 Check {isSLMarket ? 'SL/Target' : ''} order status via Kite API (every {checkInterval}s)
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#f59e0b'}} />
-                Trailing SL: {hasTrailingSL ? `+${sl.trailingSL}% per move (moves up only)` : 'OFF'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'var(--text-subtle)'}} />
+                Trailing SL: {hasTrailingSL ? `+${sl.trailingSL}% per move` : 'OFF'}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#f59e0b'}} />
-                Trailing Target: {hasTrailingTarget ? `+${tg.trailingTarget}% per move (moves up only)` : 'OFF'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'var(--text-subtle)'}} />
+                Trailing Target: {hasTrailingTarget ? `+${tg.trailingTarget}% per move` : 'OFF'}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#dc2626'}} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'var(--text-subtle)'}} />
                 Circuit breakers: Max loss ₹{rm.maxDailyLoss || 5000} | Max profit ₹{rm.maxDailyProfit || 15000}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#059669'}} />
-                Force square-off at <strong>{exitTime}</strong>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'var(--text-subtle)'}} />
+                Force square-off at <strong style={{color:'var(--text-heading)'}}>{exitTime}</strong>
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {hasTrailingSL
                 ? <PassBadge label={`Trail SL: ${sl.trailingSL}%`} passed={true} />
                 : <PassBadge label="Trail SL: OFF" passed={false} />
@@ -386,26 +368,20 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
         </div>
       </div>
 
+      <Connector />
+
       {/* Stage 6: Exit */}
-      <div style={{ position: 'relative', paddingLeft: '52px', marginTop: '0' }}>
+      <div style={{ position: 'relative', paddingLeft: '54px', marginTop: '0' }}>
+        <div style={{ position: 'absolute', left: '20px', top: '0', height: '30px', width: '2px', background: 'var(--border-light)' }} />
         <div style={{ position: 'relative' }}>
-          <div style={{
-            position: 'absolute', left: '-36px', top: '14px',
-            width: '34px', height: '34px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, #1252AB, #003A99)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
-            boxShadow: '0 0 0 5px rgba(18,82,171,0.08), 0 2px 6px rgba(18,82,171,0.15)',
-            zIndex: 2
-          }}>
-            <AlertTriangle size={14} />
-          </div>
-          <StageCard color="#1252AB" accent="#003A99">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-              <StageTag label="Exit" color="#1252AB" />
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Square Off</span>
+          <StageCircle><AlertTriangle size={12} /></StageCircle>
+          <StageCard>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <StageTag label="Exit" />
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)' }}>Square Off</span>
               <div style={{ marginLeft: 'auto' }}><TimingTag time={exitTime} /></div>
             </div>
-            <div style={{ fontSize: '11px', color: '#475569', lineHeight: '1.6' }}>
+            <div style={{ fontSize: '12px', color: 'var(--text-body)', lineHeight: '1.7' }}>
               SELL MARKET at {exitTime}. Pehle bhi exit ho sakta hai agar SL trigger ho, Target hit ho,
               ya daily loss/profit limit cross ho jaye.
             </div>

@@ -14,55 +14,123 @@ interface StrategyConfig {
   conditions?: any[];
 }
 
-const SectionHeader = ({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle?: string }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', paddingBottom: '8px', borderBottom: '1px solid rgba(226,232,240,0.5)' }}>
-    {icon}
-    <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>{title}</span>
-    {subtitle && <span style={{ fontSize: '10px', color: '#94a3b8', marginLeft: 'auto' }}>{subtitle}</span>}
-  </div>
-);
-
-const CalcRow = ({ label, value, formula, color, passed }: { label: string; value: string; formula: string; color?: string; passed?: boolean | null }) => (
-  <div style={{
-    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-    padding: '8px 12px', borderRadius: '8px',
-    background: passed === true ? 'rgba(240,253,244,0.5)' : passed === false ? 'rgba(254,242,242,0.5)' : '#fff',
-    border: passed === true ? '1px solid rgba(5,150,105,0.1)' : passed === false ? '1px solid rgba(239,68,68,0.1)' : '1px solid rgba(226,232,240,0.5)'
-  }}>
-    <div style={{ flex: 1 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
-        {passed === true && <CheckCircle2 size={11} color="#059669" />}
-        {passed === false && <XCircle size={11} color="#dc2626" />}
-        <span style={{ fontSize: '12px', fontWeight: 600, color: color || '#334155' }}>{label}</span>
-      </div>
-      <div style={{ fontSize: '10px', color: '#64748b', lineHeight: '1.5', fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>{formula}</div>
-    </div>
+function SectionHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle?: string }) {
+  return (
     <div style={{
-      fontSize: '13px', fontWeight: 700, marginLeft: '12px', whiteSpace: 'nowrap',
-      color: passed === true ? '#059669' : passed === false ? '#dc2626' : '#0f172a'
-    }}>{value}</div>
-  </div>
-);
+      display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px',
+      paddingBottom: '10px', borderBottom: '1px solid var(--border-light)',
+    }}>
+      {icon}
+      <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)' }}>{title}</span>
+      {subtitle && <span style={{ fontSize: '10px', color: 'var(--text-subtle)', marginLeft: 'auto' }}>{subtitle}</span>}
+    </div>
+  );
+}
 
-const PassBadge = ({ label, passed }: { label: string; passed: boolean }) => (
-  <div style={{
-    display: 'inline-flex', alignItems: 'center', gap: '4px',
-    padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
-    background: passed ? 'rgba(5,150,105,0.08)' : 'rgba(239,68,68,0.08)',
-    border: `1px solid ${passed ? 'rgba(5,150,105,0.18)' : 'rgba(239,68,68,0.18)'}`,
-    color: passed ? '#059669' : '#dc2626'
-  }}>
-    {passed ? <CheckCircle2 size={9} /> : <XCircle size={9} />}{label}
-  </div>
-);
+function PassBadge({ label, passed }: { label: string; passed: boolean }) {
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: '3px',
+      padding: '2px 10px', borderRadius: '999px', fontSize: '10px', fontWeight: 600, lineHeight: '20px',
+      background: passed ? 'var(--accent-light)' : 'var(--danger-light)',
+      border: `1px solid ${passed ? 'rgba(5,150,105,0.15)' : 'rgba(239,68,68,0.15)'}`,
+      color: passed ? 'var(--accent-dark)' : 'var(--danger)',
+    }}>
+      {passed ? <CheckCircle2 size={9} /> : <XCircle size={9} />}{label}
+    </div>
+  );
+}
 
-const EngineTag = ({ label, color = '#1252AB' }: { label: string; color?: string }) => (
-  <div style={{
-    display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '4px',
-    background: `${color}0d`, border: `1px solid ${color}1a`,
-    fontSize: '8px', fontWeight: 700, color, letterSpacing: '0.3px', textTransform: 'uppercase'
-  }}>{label}</div>
-);
+function CalcRow({ label, value, formula, color, passed }: { label: string; value: string; formula: string; color?: string; passed?: boolean | null }) {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+      padding: '10px 14px', borderRadius: '8px',
+      background: 'var(--surface)',
+      border: '1px solid var(--border-light)',
+    }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+          {passed === true && <CheckCircle2 size={12} color="var(--accent-dark)" />}
+          {passed === false && <XCircle size={12} color="var(--danger)" />}
+          <span style={{ fontSize: '12px', fontWeight: 600, color: color || 'var(--text-heading)' }}>{label}</span>
+        </div>
+        <div style={{ fontSize: '10px', color: 'var(--text-secondary)', lineHeight: '1.5', fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>{formula}</div>
+      </div>
+      <div style={{
+        fontSize: '13px', fontWeight: 700, marginLeft: '14px', whiteSpace: 'nowrap',
+        color: passed === true ? 'var(--accent-dark)' : passed === false ? 'var(--danger)' : 'var(--text-heading)',
+      }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function InputField({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <label style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>{label}</label>
+      <input
+        type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+        style={{
+          padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)',
+          background: 'var(--surface)', color: 'var(--text-heading)', outline: 'none',
+          fontSize: '13px', fontWeight: 500,
+          transition: 'border-color 0.15s, box-shadow 0.15s',
+        }}
+        onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px var(--primary-light)'; }}
+        onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
+      />
+    </div>
+  );
+}
+
+function FormulaLine({ label, value, detail, color }: { label: string; value: string; detail: string; color: string }) {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '8px 12px', borderRadius: '8px',
+      background: 'var(--bg-card)', border: '1px solid var(--border-light)',
+    }}>
+      <div>
+        <span style={{ fontSize: '11px', fontWeight: 600, color }}>{label}</span>
+        <span style={{ fontSize: '10px', color: 'var(--text-secondary)', marginLeft: '8px' }}>{detail}</span>
+      </div>
+      <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)' }}>{value}</span>
+    </div>
+  );
+}
+
+function ChainNode({ label, detail, passed, isLast }: { label: string; detail: string; passed: boolean; isLast: boolean }) {
+  return (
+    <div style={{ display: 'flex', gap: '12px', position: 'relative' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '22px' }}>
+        <div style={{
+          width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0,
+          background: 'var(--surface)',
+          border: `2px solid ${passed ? 'var(--accent-dark)' : 'var(--danger)'}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {passed ? <CheckCircle2 size={11} color="var(--accent-dark)" /> : <XCircle size={11} color="var(--danger)" />}
+        </div>
+        {!isLast && <div style={{ width: '1.5px', flex: 1, background: 'var(--border-light)', marginTop: '4px' }} />}
+      </div>
+      <div style={{ flex: 1, paddingBottom: isLast ? '0' : '10px' }}>
+        <div style={{ fontSize: '12px', fontWeight: 600, color: passed ? 'var(--accent-dark)' : 'var(--danger)' }}>{label}</div>
+        <div style={{ fontSize: '10px', color: 'var(--text-secondary)', lineHeight: '1.5', marginTop: '2px' }}>{detail}</div>
+      </div>
+    </div>
+  );
+}
+
+const cardSx: React.CSSProperties = {
+  background: 'var(--bg-card)',
+  borderRadius: '12px',
+  border: '1px solid var(--border-light)',
+  padding: '20px 22px',
+  boxShadow: 'var(--shadow-sm)',
+};
 
 export default function StrategyTestPanel({ config }: { config: StrategyConfig }) {
   const [symbol, setSymbol] = useState('TATASTEEL');
@@ -123,21 +191,23 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
   const dbCap = Number(dbCapital) || cap;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Mock Inputs */}
-      <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid rgba(148,163,184,0.12)', padding: '18px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.02)' }}>
-        <SectionHeader icon={<Info size={13} color="#1E88FF" />} title="Mock Inputs" subtitle="Ye values test ke liye use hongi" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+      <div style={cardSx}>
+        <SectionHeader icon={<Info size={14} color="var(--primary)" />} title="Mock Inputs" subtitle="Test ke liye values" />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
           <InputField label="Symbol" value={symbol} onChange={setSymbol} placeholder="TATASTEEL" />
           <InputField label={`LTP (₹)`} value={ltp} onChange={setLtp} placeholder="200.00" />
           <InputField label={`Candle ${candleType.toUpperCase()} (₹)`} value={candlePrice} onChange={setCandlePrice} placeholder={defaultCandle} />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px' }}>
           <InputField label="Available Capital (₹)" value={availableCapital} onChange={setAvailableCapital} placeholder="50000" />
           <InputField label="DB Capital Limit (₹)" value={dbCapital} onChange={setDbCapital} placeholder="50000" />
           <InputField label="Open Positions" value={openPositions} onChange={setOpenPositions} placeholder="0" />
           <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-            <Button type="button" variant="primary" onClick={runTest} disabled={loading} style={{ width: '100%', padding: '9px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', borderRadius: '8px' }}>
+            <Button type="button" variant="primary" onClick={runTest} disabled={loading}
+              style={{ width: '100%', padding: '9px 12px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: '8px' }}
+            >
               {loading ? <Loader2 size={13} className="animate-spin" /> : <FlaskConical size={13} />}
               {loading ? 'Testing...' : 'Run Test'}
             </Button>
@@ -146,77 +216,71 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
       </div>
 
       {/* Engine Formula Preview */}
-      <div style={{ background: 'linear-gradient(135deg, rgba(18,82,171,0.02), rgba(139,92,246,0.02))', borderRadius: '12px', border: '1px solid rgba(18,82,171,0.08)', padding: '16px 18px' }}>
-        <SectionHeader icon={<Calculator size={13} color="#1252AB" />} title="Engine Calculation Preview" subtitle="Jo formula engine actual me use karta hai" />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-          <FormulaLine
-            label="capitalAtRisk"
-            value={`₹${(cap * riskPct / 100).toFixed(0)}`}
+      <div style={cardSx}>
+        <SectionHeader icon={<Calculator size={14} color="var(--primary)" />} title="Engine Calculation Preview" subtitle="Jo formula engine use karega" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <FormulaLine label="capitalAtRisk" value={`₹${(cap * riskPct / 100).toFixed(0)}`}
             detail={`${cap.toLocaleString('en-IN')} × (${riskPct}/100), capped at ₹${dbCap.toLocaleString('en-IN')}`}
-            color="#059669"
+            color="var(--text-heading)"
           />
-          <FormulaLine
-            label="SL Points"
-            value={`₹${(sl.type === 'Fixed Points' ? (sl.fixedPoints || 10) : mockCandlePrice * (slPct/100)).toFixed(2)}`}
+          <FormulaLine label="SL Points" value={`₹${(sl.type === 'Fixed Points' ? (sl.fixedPoints || 10) : mockCandlePrice * (slPct/100)).toFixed(2)}`}
             detail={`${sl.type || 'Fixed %'}: ${slPct}% of entry (₹${mockCandlePrice.toFixed(2)})`}
-            color="#dc2626"
+            color="var(--text-heading)"
           />
-          <FormulaLine
-            label="Quantity"
-            value={`${Math.floor((cap * riskPct / 100) / ((sl.type === 'Fixed Points' ? (sl.fixedPoints || 10) : mockCandlePrice * (slPct/100)))) || 1}`}
-            detail={`floor(₹${(cap * riskPct / 100).toFixed(0)} / ₹${((sl.type === 'Fixed Points' ? (sl.fixedPoints || 10) : mockCandlePrice * (slPct/100))).toFixed(2)})`}
-            color="#f59e0b"
+          <FormulaLine label="Quantity" value={`${Math.floor((cap * riskPct / 100) / ((sl.type === 'Fixed Points' ? (sl.fixedPoints || 10) : mockCandlePrice * (slPct/100)))) || 1}`}
+            detail={`floor(${(cap * riskPct / 100).toFixed(0)} / ${((sl.type === 'Fixed Points' ? (sl.fixedPoints || 10) : mockCandlePrice * (slPct/100))).toFixed(2)})`}
+            color="var(--text-heading)"
           />
-          <FormulaLine
-            label="Breakout"
-            value={isSLMarket ? 'auto PASS' : !hasPriceAction ? 'auto PASS' : `${mockLtp} ≥ ${(bp > 0 ? mockCandlePrice * (1 + bp/100) : mockCandlePrice).toFixed(2)} ?`}
+          <FormulaLine label="Breakout" value={isSLMarket ? 'auto PASS' : !hasPriceAction ? 'auto PASS' : `${mockLtp} ≥ ${(bp > 0 ? mockCandlePrice * (1 + bp/100) : mockCandlePrice).toFixed(2)} ?`}
             detail={isSLMarket ? 'SL-Market → auto pass' : !hasPriceAction ? 'No Price Action condition → auto pass' : ''}
-            color={isSLMarket || !hasPriceAction || mockLtp >= (bp > 0 ? mockCandlePrice * (1 + bp/100) : mockCandlePrice) ? '#059669' : '#dc2626'}
+            color="var(--text-heading)"
           />
         </div>
       </div>
 
       {error && (
-        <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(254,242,242,0.5)', border: '1px solid rgba(239,68,68,0.15)', fontSize: '12px', color: '#dc2626' }}>
+        <div style={{
+          padding: '12px 16px', borderRadius: '8px',
+          background: 'var(--danger-light)', border: '1px solid rgba(239,68,68,0.2)',
+          fontSize: '12px', fontWeight: 500, color: 'var(--danger)',
+        }}>
           {error}
         </div>
       )}
 
       {results && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.3s ease' }}>
           {/* Overall Verdict */}
           <div style={{
-            background: results.wouldTrade ? 'rgba(240,253,244,0.5)' : 'rgba(254,242,242,0.5)',
+            background: results.wouldTrade ? 'var(--accent-light)' : 'var(--danger-light)',
             borderRadius: '12px',
             border: `1px solid ${results.wouldTrade ? 'rgba(5,150,105,0.15)' : 'rgba(239,68,68,0.15)'}`,
-            padding: '18px 20px'
+            padding: '20px 22px',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {results.wouldTrade ? <CheckCircle2 size={24} color="#059669" /> : <XCircle size={24} color="#dc2626" />}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {results.wouldTrade ? <CheckCircle2 size={26} color="var(--accent-dark)" /> : <XCircle size={26} color="var(--danger)" />}
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '15px', fontWeight: 700, color: results.wouldTrade ? '#059669' : '#dc2626' }}>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: results.wouldTrade ? 'var(--accent-dark)' : 'var(--danger)' }}>
                   {results.wouldTrade ? 'TRADE HOGI ✅' : 'TRADE NAHI HOGI ❌'}
                 </div>
-                <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
-                  {results.wouldTrade
-                    ? 'Sabhi engine conditions pass — OCO order place hoga'
-                    : 'Koi condition fail hui — trade skip hogi'}
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  {results.wouldTrade ? 'Sabhi conditions pass — OCO order place hoga' : 'Koi condition fail hui — trade skip hogi'}
                 </div>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginTop: '10px' }}>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '12px' }}>
               <PassBadge label={`Breakout: ${results.breakoutPassed ? 'PASS' : 'FAIL'}`} passed={results.breakoutPassed} />
               <PassBadge label={`Qty: ${results.quantity || 0}`} passed={(results.quantity || 0) > 0} />
               <PassBadge label={`MaxPos: ${results.openPositions || 0}/${rm.maxOpenPositions || 3}`} passed={(results.openPositions || 0) < (rm.maxOpenPositions || 3)} />
               {results.reasons?.slice(0, 2).map((r: string, i: number) => (
-                <span key={i} style={{ fontSize: '9px', padding: '2px 7px', borderRadius: '4px', background: '#f8fafc', color: '#64748b', border: '1px solid rgba(226,232,240,0.5)' }}>{r}</span>
+                <span key={i} style={{ fontSize: '9px', padding: '2px 8px', borderRadius: '999px', background: 'var(--surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-light)' }}>{r}</span>
               ))}
             </div>
           </div>
 
           {/* Decision Chain */}
-          <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid rgba(148,163,184,0.12)', padding: '18px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.02)' }}>
-            <SectionHeader icon={<GitBranch size={13} color="#1252AB" />} title="Decision Chain" subtitle="Algo engine exact checks" />
+          <div style={cardSx}>
+            <SectionHeader icon={<GitBranch size={14} color="var(--primary)" />} title="Decision Chain" subtitle="Algo engine checks" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
               <ChainNode label="Auto-Trade Enabled?" detail="AppSettings → auto_trade_enabled = true check" passed={true} isLast={false} />
               <ChainNode label="Trading Day?" detail="Weekday (Mon-Fri) + holidays + special days check" passed={true} isLast={false} />
@@ -253,57 +317,43 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
           </div>
 
           {/* Detailed Calculations */}
-          <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid rgba(148,163,184,0.12)', padding: '18px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.02)' }}>
-            <SectionHeader icon={<Calculator size={13} color="#1E88FF" />} title="Detailed Calculations" subtitle="Engine ke exact formulas" />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              <CalcRow label="Candle Price" value={`₹${results.candlePrice || '—'}`}
-                formula={`${results.candleType || 'high'}.toUpperCase() → first 5m candle (${bi.preSelectTime || '09:15'} → ${bi.entryTime || '09:20'})`}
-                color="#7c3aed" passed={null}
-              />
-              <CalcRow label="Breakout Entry Price" value={`₹${results.breakoutEntryPrice || '—'}`}
-                formula={bp > 0 ? `Candle ${results.candleType} (${results.candlePrice}) × (1 + ${bp}/100)` : `Candle ${results.candleType} (${results.candlePrice}) — no buffer`}
-                color="#7c3aed" passed={results.breakoutPassed ?? false}
-              />
-              <CalcRow label="Breakout Check" value={results.breakoutPassed ? 'PASS ✅' : 'FAIL ❌'}
-                formula={results.isSLMarket ? `SL-Market → auto-pass` : !results.hasPriceAction ? `No Price Action condition → auto-pass` : `LTP (${results.currentLtp}) >= Entry (${results.breakoutEntryPrice})`}
-                color={results.breakoutPassed ? '#059669' : '#dc2626'} passed={results.breakoutPassed}
-              />
-              <CalcRow label="SL Points" value={`₹${results.slPoints?.toFixed(2) || '—'}`}
-                formula={`${sl.type || 'Fixed %'}: entry (₹${results.entryPrice?.toFixed(2)}) × ${slPct}% = ₹${results.slPoints?.toFixed(2)}`}
-                color="#dc2626" passed={results.slPoints > 0}
-              />
-              <CalcRow label="Capital at Risk" value={`₹${(results.capitalAtRisk || 0).toFixed(0)}`}
-                formula={`Available (${cap.toLocaleString('en-IN')}) × riskPerTrade (${riskPct}%) = ₹${(cap * riskPct/100).toFixed(0)}, capped at ₹${dbCap.toLocaleString('en-IN')}`}
-                color="#059669" passed={results.capitalAtRisk > 0}
-              />
-              <CalcRow label="Quantity" value={results.quantity?.toString() || '0'}
-                formula={`floor(₹${(results.capitalAtRisk || 0).toFixed(0)} / ₹${(results.slPoints || 0).toFixed(2)}) = ${results.quantity || 0}`}
-                color="#f59e0b" passed={(results.quantity || 0) > 0}
-              />
+          <div style={cardSx}>
+            <SectionHeader icon={<Calculator size={14} color="var(--primary)" />} title="Detailed Calculations" subtitle="Engine ke exact formulas" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {[
+                { l: 'Candle Price', v: `₹${results.candlePrice || '—'}`, f: `${results.candleType || 'high'}.toUpperCase() → first 5m candle (${bi.preSelectTime || '09:15'} → ${bi.entryTime || '09:20'})`, c: 'var(--text-heading)', p: null },
+                { l: 'Breakout Entry Price', v: `₹${results.breakoutEntryPrice || '—'}`, f: bp > 0 ? `Candle ${results.candleType} (${results.candlePrice}) × (1 + ${bp}/100)` : `Candle ${results.candleType} (${results.candlePrice}) — no buffer`, c: 'var(--text-heading)', p: results.breakoutPassed ?? false },
+                { l: 'Breakout Check', v: results.breakoutPassed ? 'PASS ✅' : 'FAIL ❌', f: results.isSLMarket ? 'SL-Market → auto-pass' : !results.hasPriceAction ? 'No Price Action condition → auto-pass' : `LTP (${results.currentLtp}) >= Entry (${results.breakoutEntryPrice})`, c: results.breakoutPassed ? 'var(--accent-dark)' : 'var(--danger)', p: results.breakoutPassed },
+                { l: 'SL Points', v: `₹${results.slPoints?.toFixed(2) || '—'}`, f: `${sl.type || 'Fixed %'}: entry (₹${results.entryPrice?.toFixed(2)}) × ${slPct}% = ₹${results.slPoints?.toFixed(2)}`, c: 'var(--text-heading)', p: results.slPoints > 0 },
+                { l: 'Capital at Risk', v: `₹${(results.capitalAtRisk || 0).toFixed(0)}`, f: `Available (${cap.toLocaleString('en-IN')}) × riskPerTrade (${riskPct}%) = ₹${(cap * riskPct/100).toFixed(0)}, capped at ₹${dbCap.toLocaleString('en-IN')}`, c: 'var(--text-heading)', p: results.capitalAtRisk > 0 },
+                { l: 'Quantity', v: results.quantity?.toString() || '0', f: `floor(₹${(results.capitalAtRisk || 0).toFixed(0)} / ₹${(results.slPoints || 0).toFixed(2)}) = ${results.quantity || 0}`, c: 'var(--text-heading)', p: (results.quantity || 0) > 0 },
+              ].map((row, i) => (
+                <CalcRow key={i} label={row.l} value={row.v} formula={row.f} color={row.c} passed={row.p} />
+              ))}
               {rm.misMarginRate > 0 && (
                 <CalcRow label="Buying Power" value={results.quantity <= Math.floor(cap / (results.entryPrice * rm.misMarginRate)) ? '✅ OK' : '❌ Capped'}
                   formula={`misMarginRate=${rm.misMarginRate}: min(qty, floor(${cap} / (${results.entryPrice} × ${rm.misMarginRate})))`}
-                  color="#f59e0b" passed={null}
+                  color="var(--text-heading)" passed={null}
                 />
               )}
               <CalcRow label="Stop Loss" value={`₹${results.stopLoss?.toFixed(2) || '—'}`}
                 formula={`Entry (₹${results.entryPrice?.toFixed(2)}) − SL Points (₹${results.slPoints?.toFixed(2)}) = ₹${results.stopLoss?.toFixed(2)}`}
-                color="#dc2626" passed={true}
+                color="var(--text-heading)" passed={true}
               />
               <CalcRow label="Target" value={`₹${results.target?.toFixed(2) || '—'}`}
                 formula={tg.type === 'Risk Reward Ratio' ? `Entry + SL × ${tg.riskRewardRatio||2} RR` : `Entry × (1 + ${targetPct}%)`}
-                color="#059669" passed={true}
+                color="var(--text-heading)" passed={true}
               />
             </div>
           </div>
 
           {/* Reasons */}
           {results.reasons && results.reasons.length > 0 && (
-            <div style={{ background: 'linear-gradient(135deg, rgba(18,82,171,0.02), rgba(139,92,246,0.02))', borderRadius: '12px', border: '1px solid rgba(18,82,171,0.08)', padding: '16px 18px' }}>
-              <SectionHeader icon={<AlertTriangle size={12} color="#1252AB" />} title="Engine Decision Summary" subtitle="Jo engine log karega" />
+            <div style={cardSx}>
+              <SectionHeader icon={<AlertTriangle size={14} color="var(--primary)" />} title="Engine Decision Summary" subtitle="Jo engine log karega" />
               {results.reasons.map((r: string, i: number) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', marginBottom: '4px', fontSize: '11px', color: '#475569' }}>
-                  <ArrowRight size={11} style={{ marginTop: '2px', flexShrink: 0, color: '#94a3b8' }} />
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '6px', fontSize: '12px', color: 'var(--text-body)' }}>
+                  <ArrowRight size={12} style={{ marginTop: '2px', flexShrink: 0, color: 'var(--text-subtle)' }} />
                   <span>{r}</span>
                 </div>
               ))}
@@ -314,42 +364,3 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
     </div>
   );
 }
-
-const InputField = ({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-    <label style={{ fontSize: '10px', fontWeight: 600, color: '#64748b' }}>{label}</label>
-    <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-      style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid rgba(226,232,240,0.6)', background: '#f8fafc', color: '#0f172a', outline: 'none', fontSize: '12px' }}
-    />
-  </div>
-);
-
-const FormulaLine = ({ label, value, detail, color }: { label: string; value: string; detail: string; color: string }) => (
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 10px', borderRadius: '6px', background: '#fff', border: '1px solid rgba(226,232,240,0.4)' }}>
-    <div>
-      <span style={{ fontSize: '11px', fontWeight: 600, color }}>{label}</span>
-      <span style={{ fontSize: '10px', color: '#64748b', marginLeft: '8px' }}>{detail}</span>
-    </div>
-    <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>{value}</span>
-  </div>
-);
-
-const ChainNode = ({ label, detail, passed, isLast }: { label: string; detail: string; passed: boolean; isLast: boolean }) => (
-  <div style={{ display: 'flex', gap: '10px', position: 'relative' }}>
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '20px' }}>
-      <div style={{
-        width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
-        background: passed ? 'rgba(5,150,105,0.1)' : 'rgba(239,68,68,0.1)',
-        border: `2px solid ${passed ? '#059669' : '#dc2626'}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        {passed ? <CheckCircle2 size={10} color="#059669" /> : <XCircle size={10} color="#dc2626" />}
-      </div>
-      {!isLast && <div style={{ width: '1.5px', flex: 1, background: 'rgba(226,232,240,0.5)', marginTop: '3px' }} />}
-    </div>
-    <div style={{ flex: 1, paddingBottom: isLast ? '0' : '8px' }}>
-      <div style={{ fontSize: '12px', fontWeight: 600, color: passed ? '#059669' : '#dc2626' }}>{label}</div>
-      <div style={{ fontSize: '10px', color: '#64748b', lineHeight: '1.4', marginTop: '1px' }}>{detail}</div>
-    </div>
-  </div>
-);
