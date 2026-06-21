@@ -529,11 +529,54 @@ export default function ClientDetailsPage() {
 
       {/* Breadcrumb Navigation & Back Controls */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-            <span style={{ cursor: 'pointer' }} onClick={() => router.push(APP_ROUTES.ADMIN_CLIENTS)}>Clients</span>
-            <ChevronRight size={14} />
-            <span style={{ color: 'var(--text-heading)', fontWeight: 500 }}>{name}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
+          <span style={{ cursor: 'pointer' }} onClick={() => router.push(APP_ROUTES.ADMIN_CLIENTS)}>Clients</span>
+          <ChevronRight size={14} />
+          <span style={{ color: 'var(--text-heading)', fontWeight: 500 }}>{name}</span>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', letterSpacing: '-0.5px', margin: 0 }}>
+              {name}
+            </h1>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 12px',
+              borderRadius: '12px',
+              fontSize: '12px',
+              fontWeight: 600,
+              textTransform: 'capitalize',
+              backgroundColor: tradingStatus === 'active' ? 'var(--accent-light)' : 'var(--border-light)',
+              color: tradingStatus === 'active' ? 'var(--accent-dark)' : 'var(--text-muted)',
+              border: `1px solid ${tradingStatus === 'active' ? 'rgba(16, 185, 129, 0.2)' : 'var(--border)'}`
+            }}>
+              <span style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: tradingStatus === 'active' ? 'var(--accent)' : 'var(--text-subtle)',
+                display: 'inline-block'
+              }} />
+              {tradingStatus}
+            </span>
+            
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 12px',
+              borderRadius: '12px',
+              fontSize: '12px',
+              fontWeight: 600,
+              backgroundColor: accessToken ? 'rgba(14, 165, 233, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+              color: accessToken ? 'var(--primary)' : 'var(--danger)',
+              border: `1px solid ${accessToken ? 'rgba(14, 165, 233, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
+            }}>
+              {accessToken ? 'Kite Session Live' : 'Kite Session Expired'}
+            </span>
           </div>
           <div>
             {accessToken ? (
@@ -542,7 +585,7 @@ export default function ClientDetailsPage() {
                 variant="danger" 
                 onClick={() => handleSimulateConnection(false)} 
                 disabled={isDisconnecting}
-                style={{ padding: '8px 16px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
+                style={{ padding: '10px 20px', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 {isDisconnecting ? (
                   <>
@@ -566,7 +609,7 @@ export default function ClientDetailsPage() {
                 type="button" 
                 onClick={() => handleSimulateConnection(true)} 
                 className="btn-connect-kite"
-                style={{ borderRadius: '8px', padding: '8px 16px', fontSize: '12px', fontWeight: 600 }}
+                style={{ borderRadius: '8px', padding: '10px 20px', fontSize: '13px', fontWeight: 600 }}
               >
                 Connect Zerodha
               </Button>
@@ -574,55 +617,9 @@ export default function ClientDetailsPage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', letterSpacing: '-0.5px' }}>
-                {name}
-              </h1>
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '4px 12px',
-                borderRadius: '12px',
-                fontSize: '12px',
-                fontWeight: 600,
-                textTransform: 'capitalize',
-                backgroundColor: tradingStatus === 'active' ? 'var(--accent-light)' : 'var(--border-light)',
-                color: tradingStatus === 'active' ? 'var(--accent-dark)' : 'var(--text-muted)',
-                border: `1px solid ${tradingStatus === 'active' ? 'rgba(16, 185, 129, 0.2)' : 'var(--border)'}`
-              }}>
-                <span style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  backgroundColor: tradingStatus === 'active' ? 'var(--accent)' : 'var(--text-subtle)',
-                  display: 'inline-block'
-                }} />
-                {tradingStatus}
-              </span>
-              
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '4px 12px',
-                borderRadius: '12px',
-                fontSize: '12px',
-                fontWeight: 600,
-                backgroundColor: accessToken ? 'rgba(14, 165, 233, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-                color: accessToken ? 'var(--primary)' : 'var(--danger)',
-                border: `1px solid ${accessToken ? 'rgba(14, 165, 233, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
-              }}>
-                {accessToken ? 'Kite Session Live' : 'Kite Session Expired'}
-              </span>
-            </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>
-              View credentials, adjust capital limits, and manage connected Kite API secrets.
-            </p>
-          </div>
-        </div>
+        <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '-4px' }}>
+          View credentials, adjust capital limits, and manage connected Kite API secrets.
+        </p>
       </div>
 
       <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
