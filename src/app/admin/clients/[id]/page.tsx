@@ -67,6 +67,8 @@ export default function ClientDetailsPage() {
   const [showApiSecret, setShowApiSecret] = useState(false);
   const [showZerodhaPassword, setShowZerodhaPassword] = useState(false);
   const [alertModal, setAlertModal] = useState<{ title: string; message: React.ReactNode; onConfirm?: () => void } | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   useEffect(() => {
     const fetchClient = async () => {
@@ -147,7 +149,7 @@ export default function ClientDetailsPage() {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsSaving(true);
 
     try {
       const success = await updateClient(id, {
@@ -186,7 +188,7 @@ export default function ClientDetailsPage() {
         message: err.message || 'Error updating client details'
       });
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
@@ -351,6 +353,7 @@ export default function ClientDetailsPage() {
         title: 'Disconnect Zerodha',
         message: 'Are you sure you want to disconnect this client\'s Zerodha session?',
         onConfirm: async () => {
+          setIsDisconnecting(true);
           try {
             const success = await updateClient(id, { accessToken: null });
             if (success) {
@@ -372,6 +375,8 @@ export default function ClientDetailsPage() {
               title: 'Error',
               message: 'Error updating connection: ' + err.message
             });
+          } finally {
+            setIsDisconnecting(false);
           }
         }
       });
@@ -515,6 +520,10 @@ export default function ClientDetailsPage() {
           color: white;
           border: none;
           box-shadow: var(--shadow-green);
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
       `}</style>
 
@@ -828,9 +837,25 @@ export default function ClientDetailsPage() {
                       type="button" 
                       variant="danger" 
                       onClick={() => handleSimulateConnection(false)} 
-                      style={{ padding: '8px 16px', fontSize: '12px', fontWeight: 600 }}
+                      disabled={isDisconnecting}
+                      style={{ padding: '8px 16px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
-                      Disconnect Zerodha
+                      {isDisconnecting ? (
+                        <>
+                          <span style={{
+                            width: '12px',
+                            height: '12px',
+                            border: '2px solid rgba(255,255,255,0.3)',
+                            borderTopColor: 'white',
+                            borderRadius: '50%',
+                            display: 'inline-block',
+                            animation: 'spin 0.8s linear infinite'
+                          }} />
+                          Disconnecting...
+                        </>
+                      ) : (
+                        'Disconnect Zerodha'
+                      )}
                     </Button>
                   ) : (
                     <Button 
@@ -1424,16 +1449,35 @@ export default function ClientDetailsPage() {
           </Button>
           <Button 
             type="submit" 
+            disabled={isSaving}
             style={{ 
               padding: '12px 28px', 
               fontSize: '14px', 
               fontWeight: 600,
               background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
               color: 'white',
-              boxShadow: 'var(--shadow-blue)'
+              boxShadow: 'var(--shadow-blue)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}
           >
-            Save & Update Client
+            {isSaving ? (
+              <>
+                <span style={{
+                  width: '14px',
+                  height: '14px',
+                  border: '2px solid rgba(255,255,255,0.3)',
+                  borderTopColor: 'white',
+                  borderRadius: '50%',
+                  display: 'inline-block',
+                  animation: 'spin 0.8s linear infinite'
+                }} />
+                Saving...
+              </>
+            ) : (
+              'Save & Update Client'
+            )}
           </Button>
         </div>
       </form>
