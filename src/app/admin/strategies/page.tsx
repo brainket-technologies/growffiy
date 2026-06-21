@@ -958,8 +958,8 @@ export default function StrategiesPage() {
                   borderRadius: '4px', 
                   fontSize: '11px', 
                   fontWeight: 600,
-                  backgroundColor: selectedStrategy?.status === 'active' ? '#e6f7f4' : '#fee2e2',
-                  color: selectedStrategy?.status === 'active' ? 'var(--accent-dark)' : 'var(--danger)'
+                  backgroundColor: selectedStrategy?.status === 'active' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                  color: selectedStrategy?.status === 'active' ? '#22c55e' : '#ef4444'
                 }}>
                   {selectedStrategy?.status.toUpperCase()}
                 </span>
@@ -2038,7 +2038,7 @@ export default function StrategiesPage() {
                   background: 'var(--bg-white)', 
                   border: '1px solid var(--border)', 
                   fontSize: '13px', 
-                  color: '#334155',
+                  color: 'var(--text-primary)',
                   fontWeight: 500,
                   cursor: 'pointer',
                   boxShadow: '0 1px 2px rgba(0,0,0,0.02)',

@@ -24,9 +24,8 @@ function PassBadge({ label, passed }: { label: string; passed: boolean }) {
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: '3px',
       padding: '2px 10px', borderRadius: '999px', fontSize: '10px', fontWeight: 600, lineHeight: '20px',
-      background: passed ? 'var(--accent-light)' : 'var(--danger-light)',
-      border: `1px solid ${passed ? 'rgba(5,150,105,0.15)' : 'rgba(239,68,68,0.15)'}`,
-      color: passed ? 'var(--accent-dark)' : 'var(--danger)',
+      background: passed ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+      color: passed ? '#059669' : '#dc2626',
     }}>
       {passed ? <CheckCircle size={9} /> : <XCircle size={9} />}{label}
     </div>

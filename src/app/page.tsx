@@ -283,8 +283,8 @@ export default function GrowffiyLanding() {
                     <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-heading)' }}>NSE: RELIANCE</div>
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', gap: 4,
-                      fontSize: 10, fontWeight: 700, color: 'var(--accent)',
-                      background: 'var(--accent-light)', borderRadius: 99, padding: '2px 8px',
+                      fontSize: 10, fontWeight: 700, color: '#059669',
+                      background: 'rgba(34,197,94,0.12)', borderRadius: 99, padding: '2px 8px',
                     }}>
                       <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', animation: 'pulseDot 1.5s ease-in-out infinite' }} />
                       LIVE
@@ -427,7 +427,7 @@ export default function GrowffiyLanding() {
                     <BarChart2 size={18} />
                   </div>
                   <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-heading)' }}>Live Strategy Parameters</span>
-                  <span style={{ marginLeft: 'auto', fontSize: 11, background: 'var(--accent-light)', color: 'var(--accent-dark)', padding: '3px 10px', borderRadius: 99, fontWeight: 700 }}>● Active</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 11, background: 'rgba(34,197,94,0.12)', color: '#059669', padding: '3px 10px', borderRadius: 99, fontWeight: 700 }}>● Active</span>
                 </div>
 
                 {[

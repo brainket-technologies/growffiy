@@ -32,9 +32,8 @@ function PassBadge({ label, passed }: { label: string; passed: boolean }) {
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: '3px',
       padding: '2px 10px', borderRadius: '999px', fontSize: '10px', fontWeight: 600, lineHeight: '20px',
-      background: passed ? 'var(--accent-light)' : 'var(--danger-light)',
-      border: `1px solid ${passed ? 'rgba(5,150,105,0.15)' : 'rgba(239,68,68,0.15)'}`,
-      color: passed ? 'var(--accent-dark)' : 'var(--danger)',
+      background: passed ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+      color: passed ? '#059669' : '#dc2626',
     }}>
       {passed ? <CheckCircle2 size={9} /> : <XCircle size={9} />}{label}
     </div>
@@ -47,19 +46,18 @@ function CalcRow({ label, value, formula, color, passed }: { label: string; valu
       display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
       padding: '10px 14px', borderRadius: '8px',
       background: 'var(--surface)',
-      border: '1px solid var(--border-light)',
     }}>
       <div style={{ flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
-          {passed === true && <CheckCircle2 size={12} color="var(--accent-dark)" />}
-          {passed === false && <XCircle size={12} color="var(--danger)" />}
+          {passed === true && <CheckCircle2 size={12} color="#059669" />}
+          {passed === false && <XCircle size={12} color="#dc2626" />}
           <span style={{ fontSize: '12px', fontWeight: 600, color: color || 'var(--text-heading)' }}>{label}</span>
         </div>
         <div style={{ fontSize: '10px', color: 'var(--text-secondary)', lineHeight: '1.5', fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>{formula}</div>
       </div>
       <div style={{
         fontSize: '13px', fontWeight: 700, marginLeft: '14px', whiteSpace: 'nowrap',
-        color: passed === true ? 'var(--accent-dark)' : passed === false ? 'var(--danger)' : 'var(--text-heading)',
+        color: passed === true ? '#059669' : passed === false ? '#dc2626' : 'var(--text-heading)',
       }}>
         {value}
       </div>
@@ -109,15 +107,15 @@ function ChainNode({ label, detail, passed, isLast }: { label: string; detail: s
         <div style={{
           width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0,
           background: 'var(--surface)',
-          border: `2px solid ${passed ? 'var(--accent-dark)' : 'var(--danger)'}`,
+          border: `2px solid ${passed ? '#059669' : '#dc2626'}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          {passed ? <CheckCircle2 size={11} color="var(--accent-dark)" /> : <XCircle size={11} color="var(--danger)" />}
+          {passed ? <CheckCircle2 size={11} color="#059669" /> : <XCircle size={11} color="#dc2626" />}
         </div>
         {!isLast && <div style={{ width: '1.5px', flex: 1, background: 'var(--border-light)', marginTop: '4px' }} />}
       </div>
       <div style={{ flex: 1, paddingBottom: isLast ? '0' : '10px' }}>
-        <div style={{ fontSize: '12px', fontWeight: 600, color: passed ? 'var(--accent-dark)' : 'var(--danger)' }}>{label}</div>
+        <div style={{ fontSize: '12px', fontWeight: 600, color: passed ? '#059669' : '#dc2626' }}>{label}</div>
         <div style={{ fontSize: '10px', color: 'var(--text-secondary)', lineHeight: '1.5', marginTop: '2px' }}>{detail}</div>
       </div>
     </div>
@@ -240,8 +238,8 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
       {error && (
         <div style={{
           padding: '12px 16px', borderRadius: '8px',
-          background: 'var(--danger-light)', border: '1px solid rgba(239,68,68,0.2)',
-          fontSize: '12px', fontWeight: 500, color: 'var(--danger)',
+          background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+          fontSize: '12px', fontWeight: 500, color: '#dc2626',
         }}>
           {error}
         </div>
@@ -251,15 +249,15 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.3s ease' }}>
           {/* Overall Verdict */}
           <div style={{
-            background: results.wouldTrade ? 'var(--accent-light)' : 'var(--danger-light)',
+            background: results.wouldTrade ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
             borderRadius: '12px',
             border: `1px solid ${results.wouldTrade ? 'rgba(5,150,105,0.15)' : 'rgba(239,68,68,0.15)'}`,
             padding: '20px 22px',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {results.wouldTrade ? <CheckCircle2 size={26} color="var(--accent-dark)" /> : <XCircle size={26} color="var(--danger)" />}
+              {results.wouldTrade ? <CheckCircle2 size={26} color="#059669" /> : <XCircle size={26} color="#dc2626" />}
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '15px', fontWeight: 700, color: results.wouldTrade ? 'var(--accent-dark)' : 'var(--danger)' }}>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: results.wouldTrade ? '#059669' : '#dc2626' }}>
                   {results.wouldTrade ? 'TRADE HOGI ✅' : 'TRADE NAHI HOGI ❌'}
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
