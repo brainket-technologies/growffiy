@@ -142,26 +142,43 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
 
         const width = chartContainerRef.current.getBoundingClientRect().width || 400;
         
+        let bgColor = '#ffffff';
+        let textColor = '#64748b';
+        let gridColor = '#f1f5f9';
+        let borderColor = '#cbd5e1';
+        let crosshairColor = '#94a3b8';
+        
+        if (typeof window !== 'undefined') {
+          const theme = document.documentElement.getAttribute('data-theme');
+          if (theme === 'dark') {
+            bgColor = '#0f172a';
+            textColor = '#94a3b8';
+            gridColor = '#1e293b';
+            borderColor = '#334155';
+            crosshairColor = '#64748b';
+          }
+        }
+
         const chart = createChart(chartContainerRef.current, {
           layout: {
-            background: { type: 'solid' as any, color: '#ffffff' },
-            textColor: '#64748b',
+            background: { type: 'solid' as any, color: bgColor },
+            textColor: textColor,
             fontSize: 10,
             fontFamily: 'var(--font-body), system-ui, sans-serif',
           },
           grid: {
-            vertLines: { color: '#f1f5f9' },
-            horzLines: { color: '#f1f5f9' },
+            vertLines: { color: gridColor },
+            horzLines: { color: gridColor },
           },
           timeScale: {
-            borderColor: '#cbd5e1',
+            borderColor: borderColor,
             timeVisible: timeframe !== '1d',
             secondsVisible: false,
             fixLeftEdge: true,
             fixRightEdge: true,
           },
           rightPriceScale: {
-            borderColor: '#cbd5e1',
+            borderColor: borderColor,
             autoScale: true,
             visible: true,
             scaleMargins: {
@@ -172,12 +189,12 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
           crosshair: {
             mode: 1, // Magnet mode
             vertLine: {
-              color: '#94a3b8',
+              color: crosshairColor,
               width: 1,
               style: 3, // Dashed line
             },
             horzLine: {
-              color: '#94a3b8',
+              color: crosshairColor,
               width: 1,
               style: 3, // Dashed line
             },
@@ -287,7 +304,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
 
   return (
     <div style={{ 
-      backgroundColor: '#ffffff', 
+      backgroundColor: 'var(--bg-white)', 
       borderRadius: '16px', 
       border: '1px solid var(--border)', 
       padding: '20px', 
@@ -385,8 +402,8 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
               display: 'inline-block',
               fontSize: '10.5px', 
               fontWeight: 700, 
-              color: isUp ? '#047857' : '#b91c1c',
-              backgroundColor: isUp ? '#d1fae5' : '#fee2e2',
+              color: isUp ? 'var(--accent)' : 'var(--danger)',
+              backgroundColor: isUp ? 'var(--accent-light)' : 'var(--danger-light)',
               padding: '1px 6px',
               borderRadius: '9999px',
               marginTop: '2px'
