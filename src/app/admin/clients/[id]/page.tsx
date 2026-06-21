@@ -19,7 +19,8 @@ import {
   Activity,
   ChevronRight,
   Info,
-  Pencil
+  Pencil,
+  TrendingUp
 } from 'lucide-react';
 import { useAppViewModel } from '../../../../shared/viewmodels/AppContext';
 import { Modal } from '../../../../shared/components/views/Modal';
@@ -415,10 +416,105 @@ export default function ClientDetailsPage() {
         @media (max-width: 992px) {
           .client-details-grid {
             grid-template-columns: 1fr;
+            gap: 24px;
           }
         }
-        .profile-input-field {
+        .form-grid-2 {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+        }
+        @media (max-width: 600px) {
+          .form-grid-2 {
+            grid-template-columns: 1fr;
+            gap: 16px;
+          }
+        }
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .form-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .premium-input-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
           width: 100%;
+        }
+        .premium-input-icon {
+          position: absolute;
+          left: 14px;
+          color: var(--text-subtle);
+          pointer-events: none;
+          transition: color 0.2s ease;
+        }
+        .premium-input {
+          width: 100% !important;
+          height: 42px !important;
+          padding: 10px 14px 10px 42px !important;
+          border-radius: 8px !important;
+          border: 1px solid var(--border-color) !important;
+          background-color: var(--bg-white) !important;
+          color: var(--text-heading) !important;
+          font-size: 13.5px !important;
+          outline: none !important;
+          transition: all 0.2s ease !important;
+        }
+        .premium-input:focus {
+          border-color: var(--primary) !important;
+          box-shadow: 0 0 0 3px var(--primary-light) !important;
+        }
+        .premium-input-wrapper:focus-within .premium-input-icon {
+          color: var(--primary);
+        }
+        .avatar-glow {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 72px;
+          height: 72px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+          color: white;
+          font-size: 24px;
+          font-weight: 700;
+          box-shadow: 0 0 16px rgba(18, 82, 171, 0.25);
+          margin-bottom: 14px;
+          border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        .info-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 14px;
+          border-radius: 10px;
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--text-body);
+          background-color: var(--surface);
+          border: 1px solid var(--border-light);
+          width: 100%;
+          justify-content: space-between;
+        }
+        .btn-connect-kite {
+          padding: 8px 16px;
+          font-size: 12px;
+          font-weight: 600;
+          background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+          color: white;
+          border: none;
+          box-shadow: var(--shadow-green);
         }
       `}</style>
 
@@ -431,118 +527,251 @@ export default function ClientDetailsPage() {
         </div>
 
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', letterSpacing: '-0.5px' }}>
-                  {name}
-                </h1>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', letterSpacing: '-0.5px' }}>
+                {name}
+              </h1>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 12px',
+                borderRadius: '12px',
+                fontSize: '12px',
+                fontWeight: 600,
+                textTransform: 'capitalize',
+                backgroundColor: tradingStatus === 'active' ? 'var(--accent-light)' : 'var(--border-light)',
+                color: tradingStatus === 'active' ? 'var(--accent-dark)' : 'var(--text-muted)',
+                border: `1px solid ${tradingStatus === 'active' ? 'rgba(16, 185, 129, 0.2)' : 'var(--border)'}`
+              }}>
                 <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '4px 12px',
-                  borderRadius: '12px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  textTransform: 'capitalize',
-                  backgroundColor: tradingStatus === 'active' ? 'var(--accent-light)' : 'var(--border-light)',
-                  color: tradingStatus === 'active' ? 'var(--accent-dark)' : 'var(--text-muted)',
-                  border: `1px solid ${tradingStatus === 'active' ? 'rgba(16, 185, 129, 0.2)' : 'var(--border)'}`
-                }}>
-                  <span style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    backgroundColor: tradingStatus === 'active' ? 'var(--accent)' : 'var(--text-subtle)',
-                    display: 'inline-block'
-                  }} />
-                  {tradingStatus}
-                </span>
-                
-                {/* Visual Connection Token Status indicator pill */}
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '4px 12px',
-                  borderRadius: '12px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  backgroundColor: accessToken ? 'rgba(14, 165, 233, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-                  color: accessToken ? 'var(--primary)' : 'var(--danger)',
-                  border: `1px solid ${accessToken ? 'rgba(14, 165, 233, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
-                }}>
-                  {accessToken ? 'Kite Session Live' : 'Kite Session Expired'}
-                </span>
-              </div>
-              <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>
-                View credentials, adjust capital limits, and manage connected Kite API secrets.
-              </p>
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: tradingStatus === 'active' ? 'var(--accent)' : 'var(--text-subtle)',
+                  display: 'inline-block'
+                }} />
+                {tradingStatus}
+              </span>
+              
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 12px',
+                borderRadius: '12px',
+                fontSize: '12px',
+                fontWeight: 600,
+                backgroundColor: accessToken ? 'rgba(14, 165, 233, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                color: accessToken ? 'var(--primary)' : 'var(--danger)',
+                border: `1px solid ${accessToken ? 'rgba(14, 165, 233, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
+              }}>
+                {accessToken ? 'Kite Session Live' : 'Kite Session Expired'}
+              </span>
             </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>
+              View credentials, adjust capital limits, and manage connected Kite API secrets.
+            </p>
           </div>
         </div>
       </div>
 
-
-
       <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
         <div className="client-details-grid">
-          {/* Left Column: Profile Card with Avatar */}
+          {/* Left Column: Profile Card & KYC details */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
             <Card style={{ display: 'flex', flexDirection: 'column', padding: '24px', alignItems: 'center', textAlign: 'center' }}>
-              {/* Avatar representation - smaller and clean */}
-              <div style={{ 
-                width: '64px', 
-                height: '64px', 
-                borderRadius: '50%', 
-                background: 'linear-gradient(135deg, var(--primary) 0%, #1252AB 100%)',
-                color: 'white',
-                fontSize: '22px',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: 'var(--shadow-sm)',
-                marginBottom: '12px',
-                fontFamily: 'var(--font-title)'
-              }}>
+              <div className="avatar-glow">
                 {name ? name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'CL'}
               </div>
               <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', marginBottom: '2px' }}>
                 {name || 'Client Profile'}
               </h3>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '18px', wordBreak: 'break-all' }}>
+              <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginBottom: '18px', wordBreak: 'break-all' }}>
                 {email || 'No email configured'}
               </p>
               
               <div style={{ width: '100%', height: '1px', backgroundColor: 'var(--border-light)', marginBottom: '18px' }} />
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', textAlign: 'left' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Login User ID</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', textAlign: 'left' }}>
+                <div className="info-pill">
+                  <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Trading Account</span>
+                  <span style={{ fontWeight: 600, fontSize: '12px', textTransform: 'capitalize', color: tradingStatus === 'active' ? 'var(--accent-dark)' : 'var(--text-muted)' }}>
+                    {tradingStatus}
+                  </span>
+                </div>
+                
+                <div className="info-pill">
+                  <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Allocated Capital</span>
+                  <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--primary)' }}>
+                    ₹{Number(capital || 0).toLocaleString('en-IN')}
+                  </span>
+                </div>
+
+                <div className="info-pill">
+                  <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>API Status</span>
+                  <span style={{ fontWeight: 600, fontSize: '12px', color: accessToken ? 'var(--accent)' : 'var(--danger)' }}>
+                    {accessToken ? 'Connected' : 'Disconnected'}
+                  </span>
+                </div>
+
+                <Button 
+                  type="button" 
+                  onClick={() => router.push(`/admin/clients/${id}/performance`)}
+                  style={{ 
+                    marginTop: '12px',
+                    width: '100%',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    gap: '8px',
+                    fontSize: '13px', 
+                    fontWeight: 600,
+                    background: 'none',
+                    border: '1.5px solid var(--primary)',
+                    color: 'var(--primary)',
+                    borderRadius: '8px',
+                    height: '40px'
+                  }}
+                >
+                  <TrendingUp size={14} /> View Performance
+                </Button>
+              </div>
+            </Card>
+
+            {/* KYC Card under Profile Overview */}
+            <Card style={{ padding: '24px' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-title)' }}>
+                <Shield size={16} color="var(--primary)" /> KYC & Verification
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="form-group">
+                  <label className="form-label">PAN Number</label>
+                  <input 
+                    type="text" 
+                    value={panNumber} 
+                    onChange={(e) => setPanNumber(e.target.value)} 
+                    placeholder="e.g. ABCDE1234F"
+                    style={{ width: '100%', height: '40px', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px', backgroundColor: 'var(--bg-white)', color: 'var(--text-heading)' }}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Aadhaar Number</label>
+                  <input 
+                    type="text" 
+                    value={aadhaarNumber} 
+                    onChange={(e) => setAadhaarNumber(e.target.value)} 
+                    placeholder="e.g. XXXX XXXX 1234"
+                    style={{ width: '100%', height: '40px', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px', backgroundColor: 'var(--bg-white)', color: 'var(--text-heading)' }}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Date of Birth</label>
+                  <input 
+                    type="text" 
+                    value={dob} 
+                    onChange={(e) => setDob(e.target.value)} 
+                    placeholder="e.g. 15 Jan 1990"
+                    style={{ width: '100%', height: '40px', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px', backgroundColor: 'var(--bg-white)', color: 'var(--text-heading)' }}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">KYC Status</label>
                   <div style={{ position: 'relative' }}>
-                    <User size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
+                    <select
+                      value={kycStatus}
+                      onChange={(e) => setKycStatus(e.target.value)}
+                      className={`kyc-status-select-${kycStatus}`}
+                      style={{ 
+                        width: '100%', 
+                        height: '40px', 
+                        padding: '10px 24px 10px 14px', 
+                        borderRadius: '8px', 
+                        outline: 'none',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                        appearance: 'none',
+                        fontWeight: 600
+                      }}
+                    >
+                      <option value="pending" style={{ color: 'var(--text-body)', backgroundColor: 'var(--bg-white)' }}>Pending</option>
+                      <option value="verified" style={{ color: 'var(--accent)', backgroundColor: 'var(--bg-white)' }}>Verified</option>
+                      <option value="failed" style={{ color: 'var(--danger)', backgroundColor: 'var(--bg-white)' }}>Failed</option>
+                    </select>
+                    <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>▼</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Right Column: Main Config and Credentials Info */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+            {/* Account Info details */}
+            <Card style={{ padding: '24px 28px' }}>
+              <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-title)' }}>
+                <User size={18} color="var(--primary)" /> Account Credentials & Settings
+              </h4>
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="form-label">Full Name</label>
+                  <div className="premium-input-wrapper">
+                    <User size={15} className="premium-input-icon" />
+                    <input 
+                      type="text" 
+                      required 
+                      value={name} 
+                      onChange={(e) => setName(e.target.value)} 
+                      className="premium-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Email Address</label>
+                  <div className="premium-input-wrapper">
+                    <Mail size={15} className="premium-input-icon" />
+                    <input 
+                      type="email" 
+                      required 
+                      value={email} 
+                      onChange={(e) => setEmail(e.target.value)} 
+                      className="premium-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Login User ID</label>
+                  <div className="premium-input-wrapper">
+                    <User size={15} className="premium-input-icon" />
                     <input 
                       type="text" 
                       required 
                       value={userId} 
                       onChange={(e) => setUserId(e.target.value)} 
-                      style={{ paddingLeft: '36px', height: '38px', fontSize: '13px' }}
+                      className="premium-input"
                     />
                   </div>
                 </div>
-                
-                <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Login Password</label>
-                  <div style={{ position: 'relative' }}>
-                    <Lock size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
+
+                <div className="form-group">
+                  <label className="form-label">Login Password</label>
+                  <div className="premium-input-wrapper">
+                    <Lock size={15} className="premium-input-icon" />
                     <input 
                       type={showPassword ? 'text' : 'password'} 
                       required 
                       value={password} 
                       onChange={(e) => setPassword(e.target.value)} 
-                      style={{ paddingLeft: '36px', paddingRight: '36px', height: '38px', fontSize: '13px' }}
+                      className="premium-input"
+                      style={{ paddingRight: '40px !important' }}
                     />
                     <button
                       type="button"
@@ -561,79 +790,38 @@ export default function ClientDetailsPage() {
                         justifyContent: 'center'
                       }}
                     >
-                      {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Full Name</label>
-                  <div style={{ position: 'relative' }}>
-                    <User size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
-                    <input 
-                      type="text" 
-                      required 
-                      value={name} 
-                      onChange={(e) => setName(e.target.value)} 
-                      style={{ paddingLeft: '36px', height: '38px', fontSize: '13px' }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email Address</label>
-                  <div style={{ position: 'relative' }}>
-                    <Mail size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
-                    <input 
-                      type="email" 
-                      required 
-                      value={email} 
-                      onChange={(e) => setEmail(e.target.value)} 
-                      style={{ paddingLeft: '36px', height: '38px', fontSize: '13px' }}
-                    />
                   </div>
                 </div>
               </div>
             </Card>
-          </div>
 
-          {/* Right Column: API & Configuration Panel */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-            <Card style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '28px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <div style={{ padding: '10px', borderRadius: '12px', backgroundColor: 'var(--accent-light)', color: 'var(--accent-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Server size={22} />
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      Zerodha Kite Terminal API
-                      <button 
-                        type="button" 
-                        title="View Setup Guide"
-                        onClick={() => showSetupGuide(false)}
-                        style={{ 
-                          background: 'none', 
-                          border: 'none', 
-                          padding: 0, 
-                          margin: 0, 
-                          cursor: 'pointer', 
-                          color: 'var(--primary)', 
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          opacity: 0.85,
-                          transition: 'opacity 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                        onMouseLeave={(e) => e.currentTarget.style.opacity = '0.85'}
-                      >
-                        <Info size={16} />
-                      </button>
-                    </h3>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Configure connection secrets and active limits</p>
-                  </div>
-                </div>
+            {/* API Config details */}
+            <Card style={{ padding: '24px 28px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+                <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-title)' }}>
+                  <Server size={18} color="var(--primary)" /> Zerodha API Secrets & Setup
+                  <button 
+                    type="button" 
+                    title="View Setup Guide"
+                    onClick={() => showSetupGuide(false)}
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      padding: 0, 
+                      margin: 0, 
+                      cursor: 'pointer', 
+                      color: 'var(--primary)', 
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      opacity: 0.85
+                    }}
+                  >
+                    <Info size={15} />
+                  </button>
+                </h4>
                 <div>
                   {accessToken ? (
                     <Button 
@@ -648,159 +836,156 @@ export default function ClientDetailsPage() {
                     <Button 
                       type="button" 
                       onClick={() => handleSimulateConnection(true)} 
-                      style={{ 
-                        padding: '8px 16px', 
-                        fontSize: '12px', 
-                        fontWeight: 600,
-                        background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%)',
-                        color: 'white',
-                        border: 'none',
-                        boxShadow: 'var(--shadow-green)'
-                      }}
+                      className="btn-connect-kite"
+                      style={{ borderRadius: '8px' }}
                     >
                       Connect Zerodha
                     </Button>
                   )}
                 </div>
               </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
-                <div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Zerodha Client ID
-                    <button 
-                      type="button" 
-                      onClick={() => showFieldInfo('clientId')}
-                      title="Click to see where to find Client ID"
-                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
-                    >
-                      <Info size={13} />
-                    </button>
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <User size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
-                    <input 
-                      type="text" 
-                      required 
-                      value={zerodhaClientId} 
-                      onChange={(e) => setZerodhaClientId(e.target.value)} 
-                      style={{ paddingLeft: '40px' }}
-                    />
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">
+                      Zerodha Client ID
+                      <button 
+                        type="button" 
+                        onClick={() => showFieldInfo('clientId')}
+                        title="Click to see where to find Client ID"
+                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
+                      >
+                        <Info size={12} />
+                      </button>
+                    </label>
+                    <div className="premium-input-wrapper">
+                      <User size={15} className="premium-input-icon" />
+                      <input 
+                        type="text" 
+                        required 
+                        value={zerodhaClientId} 
+                        onChange={(e) => setZerodhaClientId(e.target.value)} 
+                        className="premium-input"
+                      />
+                    </div>
                   </div>
-                </div>
-                
-                <div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Kite API Key
-                    <button 
-                      type="button" 
-                      onClick={() => showFieldInfo('apiKey')}
-                      title="Click to see where to find API Key"
-                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
-                    >
-                      <Info size={13} />
-                    </button>
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <Key size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
-                    <input 
-                      type="text" 
-                      required 
-                      value={zerodhaApiKey} 
-                      onChange={(e) => setZerodhaApiKey(e.target.value)} 
-                      style={{ paddingLeft: '40px' }}
-                    />
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      Kite API Key
+                      <button 
+                        type="button" 
+                        onClick={() => showFieldInfo('apiKey')}
+                        title="Click to see where to find API Key"
+                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
+                      >
+                        <Info size={12} />
+                      </button>
+                    </label>
+                    <div className="premium-input-wrapper">
+                      <Key size={15} className="premium-input-icon" />
+                      <input 
+                        type="text" 
+                        required 
+                        value={zerodhaApiKey} 
+                        onChange={(e) => setZerodhaApiKey(e.target.value)} 
+                        className="premium-input"
+                      />
+                    </div>
                   </div>
-                </div>
-                
-                <div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Kite API Secret
-                    <button 
-                      type="button" 
-                      onClick={() => showFieldInfo('apiSecret')}
-                      title="Click to see where to find API Secret"
-                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
-                    >
-                      <Info size={13} />
-                    </button>
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
-                    <input 
-                      type={showApiSecret ? 'text' : 'password'} 
-                      required 
-                      value={zerodhaApiSecret} 
-                      onChange={(e) => setZerodhaApiSecret(e.target.value)} 
-                      style={{ paddingLeft: '40px', paddingRight: '40px' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowApiSecret(!showApiSecret)}
-                      style={{
-                        position: 'absolute',
-                        right: '14px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: 'var(--text-subtle)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      {showApiSecret ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      Kite API Secret
+                      <button 
+                        type="button" 
+                        onClick={() => showFieldInfo('apiSecret')}
+                        title="Click to see where to find API Secret"
+                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
+                      >
+                        <Info size={12} />
+                      </button>
+                    </label>
+                    <div className="premium-input-wrapper">
+                      <Lock size={15} className="premium-input-icon" />
+                      <input 
+                        type={showApiSecret ? 'text' : 'password'} 
+                        required 
+                        value={zerodhaApiSecret} 
+                        onChange={(e) => setZerodhaApiSecret(e.target.value)} 
+                        className="premium-input"
+                        style={{ paddingRight: '40px !important' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowApiSecret(!showApiSecret)}
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--text-subtle)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        {showApiSecret ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      Zerodha Password (for Auto-Login)
+                      <button 
+                        type="button" 
+                        onClick={() => showFieldInfo('password')}
+                        title="Click to see where to find Zerodha Password"
+                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
+                      >
+                        <Info size={12} />
+                      </button>
+                    </label>
+                    <div className="premium-input-wrapper">
+                      <Lock size={15} className="premium-input-icon" />
+                      <input 
+                        type={showZerodhaPassword ? 'text' : 'password'} 
+                        value={zerodhaPassword} 
+                        onChange={(e) => setZerodhaPassword(e.target.value)} 
+                        placeholder="Zerodha Password"
+                        className="premium-input"
+                        style={{ paddingRight: '40px !important' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowZerodhaPassword(!showZerodhaPassword)}
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--text-subtle)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        {showZerodhaPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                <div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Zerodha Password (for Auto-Login)
-                    <button 
-                      type="button" 
-                      onClick={() => showFieldInfo('password')}
-                      title="Click to see where to find Zerodha Password"
-                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
-                    >
-                      <Info size={13} />
-                    </button>
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
-                    <input 
-                      type={showZerodhaPassword ? 'text' : 'password'} 
-                      value={zerodhaPassword} 
-                      onChange={(e) => setZerodhaPassword(e.target.value)} 
-                      placeholder="Zerodha Password"
-                      style={{ paddingLeft: '40px', paddingRight: '40px' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowZerodhaPassword(!showZerodhaPassword)}
-                      style={{
-                        position: 'absolute',
-                        right: '14px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: 'var(--text-subtle)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      {showZerodhaPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div className="form-group">
+                  <label className="form-label">
                     Zerodha TOTP Secret (for Auto-Login)
                     <button 
                       type="button" 
@@ -808,17 +993,17 @@ export default function ClientDetailsPage() {
                       title="Click to see where to find Zerodha TOTP Secret"
                       style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
                     >
-                      <Info size={13} />
+                      <Info size={12} />
                     </button>
                   </label>
-                  <div style={{ position: 'relative' }}>
-                    <Key size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
+                  <div className="premium-input-wrapper">
+                    <Key size={15} className="premium-input-icon" />
                     <input 
                       type="text" 
                       value={zerodhaTotpSecret} 
                       onChange={(e) => setZerodhaTotpSecret(e.target.value)} 
                       placeholder="e.g. JBSWY3DPEHPK3PXP"
-                      style={{ paddingLeft: '40px' }}
+                      className="premium-input"
                     />
                   </div>
                   {zerodhaTotpSecret && (
@@ -836,34 +1021,39 @@ export default function ClientDetailsPage() {
                   )}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Allocated Capital (INR)</label>
-                    <div style={{ position: 'relative' }}>
-                      <Coins size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Allocated Capital (INR)</label>
+                    <div className="premium-input-wrapper">
+                      <Coins size={15} className="premium-input-icon" />
                       <input 
                         type="number" 
                         required 
                         value={capital} 
                         onChange={(e) => setCapital(e.target.value)} 
-                        style={{ paddingLeft: '40px' }}
+                        className="premium-input"
                       />
                     </div>
                   </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Trading Status</label>
-                    <div style={{ position: 'relative' }}>
-                      <Activity size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)', zIndex: 5 }} />
+                  
+                  <div className="form-group">
+                    <label className="form-label">Trading Status</label>
+                    <div className="premium-input-wrapper">
+                      <Activity size={15} className="premium-input-icon" style={{ zIndex: 5 }} />
                       <select
                         value={tradingStatus}
                         onChange={(e) => setTradingStatus(e.target.value)}
                         style={{ 
                           width: '100%', 
+                          height: '42px',
                           padding: '10px 14px 10px 40px', 
                           borderRadius: '8px', 
                           border: '1px solid var(--border-color)', 
                           outline: 'none',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          backgroundColor: 'var(--bg-white)',
+                          color: 'var(--text-heading)',
+                          fontSize: '13.5px'
                         }}
                       >
                         <option value="active">Active</option>
@@ -876,82 +1066,6 @@ export default function ClientDetailsPage() {
             </Card>
           </div>
         </div>
-
-        {/* Contact & KYC Information */}
-        <Card style={{ padding: '24px 28px', marginTop: '8px' }}>
-          <h4 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--primary)', marginBottom: '20px', fontFamily: 'var(--font-title)' }}>
-            Contact & KYC Information
-          </h4>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '8px' }}>PAN Number</label>
-              <div style={{ position: 'relative' }}>
-                <input 
-                  type="text" 
-                  value={panNumber} 
-                  onChange={(e) => setPanNumber(e.target.value)} 
-                  placeholder="e.g. ABCDE1234F"
-                  style={{ width: '100%', height: '40px', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px' }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '8px' }}>Aadhaar Number</label>
-              <div style={{ position: 'relative' }}>
-                <input 
-                  type="text" 
-                  value={aadhaarNumber} 
-                  onChange={(e) => setAadhaarNumber(e.target.value)} 
-                  placeholder="e.g. XXXX XXXX 1234"
-                  style={{ width: '100%', height: '40px', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px' }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '8px' }}>Date of Birth</label>
-              <div style={{ position: 'relative' }}>
-                <input 
-                  type="text" 
-                  value={dob} 
-                  onChange={(e) => setDob(e.target.value)} 
-                  placeholder="e.g. 15 Jan 1990"
-                  style={{ width: '100%', height: '40px', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px' }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '8px' }}>KYC Status</label>
-              <div style={{ position: 'relative' }}>
-                <select
-                  value={kycStatus}
-                  onChange={(e) => setKycStatus(e.target.value)}
-                  className={`kyc-status-select-${kycStatus}`}
-                  style={{ 
-                    width: '100%', 
-                    height: '40px', 
-                    padding: '10px 24px 10px 14px', 
-                    borderRadius: '8px', 
-                    outline: 'none',
-                    fontSize: '13px',
-                    cursor: 'pointer',
-                    appearance: 'none',
-                    fontWeight: 600
-                  }}
-                >
-                  <option value="pending" style={{ color: 'var(--text-body)', backgroundColor: 'var(--bg-white)' }}>Pending</option>
-                  <option value="verified" style={{ color: 'var(--accent)', backgroundColor: 'var(--bg-white)' }}>Verified</option>
-                  <option value="failed" style={{ color: 'var(--danger)', backgroundColor: 'var(--bg-white)' }}>Failed</option>
-                </select>
-                <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
-                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>▼</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
 
         {/* Render Zerodha Profile details if active session profile is loaded */}
         {profile && (
