@@ -63,12 +63,23 @@ export async function POST(request: Request) {
       }
     });
 
-    // 5. Calculate Subscription duration
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setDate(startDate.getDate() + payment.plan.durationDays);
+    // 5. Find the latest active subscription for this user to queue the next one if applicable
+    const latestSubscription = await prisma.subscription.findFirst({
+      where: {
+        userId: payment.userId,
+        status: 'active'
+      },
+      orderBy: {
+        endDate: 'desc'
+      }
+    });
 
-    // 6. Create the Subscription record
+    let startDate = new Date();
+    if (latestSubscription && latestSubscription.endDate > startDate) {
+      startDate = new Date(latestSubscription.endDate);
+    }
+    const endDate = new Date(startDate.getTime() + payment.plan.durationDays * 24 * 60 * 60 * 1000);
+
     const subscription = await prisma.subscription.create({
       data: {
         userId: payment.userId,
@@ -108,7 +119,7 @@ export async function POST(request: Request) {
       });
 
       const emailSubject = `Growffiy Invoice: Purchase Successful - ${payment.plan.name}`;
-      
+
       const emailText = `Hello ${user.name},\n\nThank you for your purchase. Your subscription to ${payment.plan.name} is now active.\n\nInvoice Details:\n- Payment ID: ${razorpayPaymentId}\n- Order ID: ${razorpayOrderId}\n- Date: ${invoiceDate}\n- Amount: ₹${Number(payment.amount).toLocaleString('en-IN')}\n- Expiry Date: ${formattedExpiry}\n\nBest Regards,\nGrowffiy Operations Team`;
 
       const emailHtml = `

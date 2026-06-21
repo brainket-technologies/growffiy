@@ -1,15 +1,15 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '../../../shared/components/views/Card';
 import { Button } from '../../../shared/components/views/Button';
-import { Shield, Server, RefreshCw, Key, Eye, EyeOff, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight, Mail, CreditCard, Globe, Info, LifeBuoy, Clock, Calendar, Plus, Trash2 } from 'lucide-react';
+import { Shield, Server, RefreshCw, Key, Eye, EyeOff, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight, Mail, CreditCard, Globe, Info, LifeBuoy, Clock, Calendar, Plus, Trash2, Image, Search, FileText, Upload } from 'lucide-react';
 import { api } from '../../../shared/services/api';
 import { Modal } from '../../../shared/components/views/Modal';
 import { API_ENDPOINTS } from '../../../core/constants';
 
 
-type TabType = 'payments' | 'smtp' | 'support' | 'algo' | 'calendar';
+type TabType = 'payments' | 'smtp' | 'support' | 'algo' | 'calendar' | 'branding' | 'website';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('payments');
@@ -42,11 +42,35 @@ export default function SettingsPage() {
   // Auto Trade Calendar
   const [autoTradeEnabled, setAutoTradeEnabled] = useState(true);
   const [tradingDays, setTradingDays] = useState<string[]>(['Mon','Tue','Wed','Thu','Fri']);
-  const [specialDays, setSpecialDays] = useState<string[]>([]);
-  const [holidays, setHolidays] = useState<string[]>([]);
+  const [specialDays, setSpecialDays] = useState<{ date: string; name: string }[]>([]);
+  const [holidays, setHolidays] = useState<{ date: string; name: string }[]>([]);
 
   const [newSpecialDay, setNewSpecialDay] = useState('');
+  const [newSpecialDayName, setNewSpecialDayName] = useState('');
   const [newHoliday, setNewHoliday] = useState('');
+  const [newHolidayName, setNewHolidayName] = useState('');
+
+  const [showSpecialDayModal, setShowSpecialDayModal] = useState(false);
+  const [showHolidayModal, setShowHolidayModal] = useState(false);
+
+  const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA'));
+const today = new Date();
+const [viewDate, setViewDate] = useState(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`);
+
+const [deleteTarget, setDeleteTarget] = useState<{ type: 'special' | 'holiday'; date: string; name: string } | null>(null);
+const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Branding
+  const [appName, setAppName] = useState('Growffiy');
+  const [appTitle, setAppTitle] = useState('Growffiy — Algo Trading Terminal');
+  const [appFavicon, setAppFavicon] = useState('');
+  const [appLogo, setAppLogo] = useState('');
+
+  // Website / SEO
+  const [metaDescription, setMetaDescription] = useState('');
+  const [metaKeywords, setMetaKeywords] = useState('');
+  const [footerText, setFooterText] = useState('');
+  const [googleAnalyticsId, setGoogleAnalyticsId] = useState('');
 
   // UI Status
   const [loading, setLoading] = useState(true);
@@ -88,6 +112,15 @@ export default function SettingsPage() {
           try { setTradingDays(JSON.parse(res.settings.trading_days || '["Mon","Tue","Wed","Thu","Fri"]')); } catch {}
           try { setSpecialDays(JSON.parse(res.settings.special_market_days || '[]')); } catch {}
           try { setHolidays(JSON.parse(res.settings.market_holidays || '[]')); } catch {}
+
+          setAppName(res.settings.app_name || 'Growffiy');
+          setAppTitle(res.settings.app_title || 'Growffiy — Algo Trading Terminal');
+          setAppFavicon(res.settings.app_favicon || '');
+          setAppLogo(res.settings.app_logo || '');
+          setMetaDescription(res.settings.meta_description || '');
+          setMetaKeywords(res.settings.meta_keywords || '');
+          setFooterText(res.settings.footer_text || '');
+          setGoogleAnalyticsId(res.settings.google_analytics_id || '');
         }
       } catch (err: any) {
         console.error('Error fetching settings:', err);
@@ -126,10 +159,25 @@ export default function SettingsPage() {
         trading_days: JSON.stringify(tradingDays),
         special_market_days: JSON.stringify(specialDays),
         market_holidays: JSON.stringify(holidays),
+        app_name: appName,
+        app_title: appTitle,
+        app_favicon: appFavicon,
+        app_logo: appLogo,
+        meta_description: metaDescription,
+        meta_keywords: metaKeywords,
+        footer_text: footerText,
+        google_analytics_id: googleAnalyticsId,
       });
 
 
       if (res.success) {
+        localStorage.setItem('growffiy_brand_logo', appLogo);
+        localStorage.setItem('growffiy_brand_name', appName);
+        localStorage.setItem('growffiy_brand_title', appTitle);
+        localStorage.setItem('growffiy_meta_description', metaDescription);
+        localStorage.setItem('growffiy_meta_keywords', metaKeywords);
+        localStorage.setItem('growffiy_footer_text', footerText);
+        window.dispatchEvent(new Event('branding-updated'));
         setNotification({
           type: 'success',
           message: 'System settings successfully synchronized and saved to Postgres DB.',
@@ -165,10 +213,68 @@ export default function SettingsPage() {
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-color)' }}>
       <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{label}</span>
       <span style={{ fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-        {value ? value : status !== undefined ? (status ? <span style={{ color: '#059669' }}>✅ {label === 'Holiday' ? 'Not a holiday' : label === 'Special Day' ? 'Special session' : 'Yes'}</span> : <span style={{ color: 'var(--danger)' }}>❌ No</span>) : ''}
+        {value ? value : status !== undefined ? (status ? <span style={{ color: 'var(--accent)' }}>✓ {label === 'Holiday' ? 'Not a holiday' : label === 'Special Day' ? 'Special session' : 'Yes'}</span> : <span style={{ color: 'var(--danger)' }}>✕ No</span>) : ''}
       </span>
     </div>
   );
+
+  const ImagePicker = ({ label, value, onChange }: { label: string; value: string; onChange: (val: string) => void }) => {
+    const [dragOver, setDragOver] = useState(false);
+    const [mode, setMode] = useState<'url' | 'upload'>('url');
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFile = (file: File) => {
+      if (!file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = () => { if (reader.result) onChange(reader.result as string); };
+      reader.readAsDataURL(file);
+    };
+
+    return (
+      <div>
+        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>{label}</label>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+          <button type="button" onClick={() => setMode('url')} style={{
+            flex: 1, border: 'none', padding: '6px 0', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+            background: mode === 'url' ? 'var(--primary)' : 'var(--surface)',
+            color: mode === 'url' ? 'white' : 'var(--text-muted)',
+          }}>URL</button>
+          <button type="button" onClick={() => setMode('upload')} style={{
+            flex: 1, border: 'none', padding: '6px 0', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+            background: mode === 'upload' ? 'var(--primary)' : 'var(--surface)',
+            color: mode === 'upload' ? 'white' : 'var(--text-muted)',
+          }}>Upload</button>
+        </div>
+        {mode === 'url' ? (
+          <input type="text" placeholder="https://example.com/image.png" value={value} onChange={(e) => onChange(e.target.value)}
+            style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+        ) : (
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); }}
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              width: '100%', minHeight: '80px', borderRadius: '8px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              border: dragOver ? '2px solid var(--primary)' : '2px dashed var(--border-color)',
+              background: dragOver ? 'rgba(59,130,246,0.05)' : 'var(--bg-primary)',
+              color: 'var(--text-muted)', fontSize: '12px', transition: 'all 0.2s',
+            }}
+          >
+            <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={(e) => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }} />
+            <Upload size={20} />
+            <span>Drag & drop or click to upload</span>
+          </div>
+        )}
+        {value && (
+          <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <img src={value} alt="preview" style={{ maxHeight: '50px', maxWidth: '100px', borderRadius: '6px', border: '1px solid var(--border-color)', objectFit: 'contain' }} />
+            <button type="button" onClick={() => onChange('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: '12px', fontWeight: 600, padding: '4px 8px' }}>Remove</button>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '1200px', margin: '0 auto' }}>
@@ -218,8 +324,9 @@ export default function SettingsPage() {
             padding: '6px 14px',
             borderRadius: '6px',
             fontSize: '13px',
-            fontWeight: 600,
+            fontWeight: activeTab === 'payments' ? 700 : 600,
             cursor: 'pointer',
+            boxShadow: activeTab === 'payments' ? 'var(--shadow-sm)' : 'none',
           }}
         >
           <CreditCard size={15} />
@@ -239,8 +346,9 @@ export default function SettingsPage() {
             padding: '6px 14px',
             borderRadius: '6px',
             fontSize: '13px',
-            fontWeight: 600,
+            fontWeight: activeTab === 'smtp' ? 700 : 600,
             cursor: 'pointer',
+            boxShadow: activeTab === 'smtp' ? 'var(--shadow-sm)' : 'none',
           }}
         >
           <Mail size={15} />
@@ -260,8 +368,9 @@ export default function SettingsPage() {
             padding: '6px 14px',
             borderRadius: '6px',
             fontSize: '13px',
-            fontWeight: 600,
+            fontWeight: activeTab === 'support' ? 700 : 600,
             cursor: 'pointer',
+            boxShadow: activeTab === 'support' ? 'var(--shadow-sm)' : 'none',
           }}
         >
           <LifeBuoy size={15} />
@@ -281,8 +390,9 @@ export default function SettingsPage() {
             padding: '6px 14px',
             borderRadius: '6px',
             fontSize: '13px',
-            fontWeight: 600,
+            fontWeight: activeTab === 'algo' ? 700 : 600,
             cursor: 'pointer',
+            boxShadow: activeTab === 'algo' ? 'var(--shadow-sm)' : 'none',
           }}
         >
           <Clock size={15} />
@@ -302,12 +412,57 @@ export default function SettingsPage() {
             padding: '6px 14px',
             borderRadius: '6px',
             fontSize: '13px',
-            fontWeight: 600,
+            fontWeight: activeTab === 'calendar' ? 700 : 600,
             cursor: 'pointer',
+            boxShadow: activeTab === 'calendar' ? 'var(--shadow-sm)' : 'none',
           }}
         >
           <Calendar size={15} />
           Market Calendar
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('branding')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            border: 'none',
+            background: activeTab === 'branding' ? 'var(--bg-white)' : 'transparent',
+            color: activeTab === 'branding' ? 'var(--text-heading)' : 'var(--text-muted)',
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: activeTab === 'branding' ? 700 : 600,
+            cursor: 'pointer',
+            boxShadow: activeTab === 'branding' ? 'var(--shadow-sm)' : 'none',
+          }}
+        >
+          <Image size={15} />
+          Branding
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('website')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            border: 'none',
+            background: activeTab === 'website' ? 'var(--bg-white)' : 'transparent',
+            color: activeTab === 'website' ? 'var(--text-heading)' : 'var(--text-muted)',
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: activeTab === 'website' ? 700 : 600,
+            cursor: 'pointer',
+            boxShadow: activeTab === 'website' ? 'var(--shadow-sm)' : 'none',
+          }}
+        >
+          <Globe size={15} />
+          Website
         </button>
       </div>
 
@@ -549,7 +704,7 @@ export default function SettingsPage() {
                 }}
               >
                 {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
-                Save & Apply Settings
+                {saving ? 'Saving...' : 'Save & Apply Settings'}
               </Button>
             </div>
           </Card>
@@ -784,7 +939,7 @@ export default function SettingsPage() {
                 }}
               >
                 {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
-                Save & Apply Settings
+                {saving ? 'Saving...' : 'Save & Apply Settings'}
               </Button>
             </div>
           </Card>
@@ -864,7 +1019,7 @@ export default function SettingsPage() {
                 }}
               >
                 {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
-                Save & Apply Settings
+                {saving ? 'Saving...' : 'Save & Apply Settings'}
               </Button>
             </div>
           </Card>
@@ -874,338 +1029,524 @@ export default function SettingsPage() {
         {/* Algo Timings View Tab */}
         {activeTab === 'algo' && (
           <Card style={{ padding: '24px 28px' }}>
-            <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'linear-gradient(135deg, #1E88FF, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                      <Clock size={16} />
-                    </div>
-                    Algo Engine Timings
+            <div style={{ marginBottom: '24px', borderBottom: '1px solid var(--border-light)', paddingBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
+                Algo Engine Timings
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Daily schedule for the automated trading engine. All times in IST (24-hour format).
+              </p>
+            </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+              <div style={{ padding: '16px 20px', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)' }}>Token Refresh</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>Daily Zerodha auto-login for all active clients</div>
                   </div>
-                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '6px', marginLeft: '42px' }}>
-                    Daily schedule for the automated trading engine. All times in IST (24-hour format).
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--surface)', padding: '4px 10px', borderRadius: '6px' }}>default: 08:00</div>
+                </div>
+                <input
+                  type="time"
+                  value={algoTokenRefreshTime}
+                  onChange={(e) => setAlgoTokenRefreshTime(e.target.value)}
+                  required
+                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ padding: '16px 20px', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)' }}>Pre-Open Fetch</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>NSE pre-open data fetch for all strategies</div>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--surface)', padding: '4px 10px', borderRadius: '6px' }}>default: 09:08</div>
+                </div>
+                <input
+                  type="time"
+                  value={algoPreopenFetchTime}
+                  onChange={(e) => setAlgoPreopenFetchTime(e.target.value)}
+                  required
+                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ padding: '16px 20px', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)' }}>Pre-Select & Entry</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>Per-strategy timing configured individually</div>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--primary)', background: 'rgba(99,102,241,0.08)', padding: '4px 10px', borderRadius: '6px', fontWeight: 600 }}>Per-Strategy</div>
+                </div>
+                <div style={{ padding: '12px 16px', borderRadius: '8px', background: 'var(--surface)', border: '1px solid var(--border-color)' }}>
+                  <p style={{ fontSize: '12px', color: 'var(--text-body)', margin: 0, lineHeight: 1.6 }}>
+                    Pre-Select Time, Entry Time, and Check Interval are configured per-strategy in{' '}
+                    <strong style={{ color: 'var(--primary)' }}>Strategies → Edit → Basic Strategy Info</strong>.
+                    This allows different strategies to run on different schedules.
                   </p>
                 </div>
               </div>
+            </div>
 
-              <div style={{ position: 'relative', paddingLeft: '32px' }}>
-                {/* Timeline line */}
-                <div style={{ position: 'absolute', left: '11px', top: '8px', bottom: '8px', width: '2px', background: 'linear-gradient(to bottom, #1E88FF, #3b82f6)', borderRadius: '1px', opacity: 0.3 }} />
-
-                {/* Token Refresh */}
-                <div style={{ display: 'flex', gap: '20px', marginBottom: '32px', position: 'relative' }}>
-                  <div style={{ position: 'absolute', left: '-26px', top: '18px', width: '14px', height: '14px', borderRadius: '50%', background: '#3b82f6', border: '3px solid rgba(59,130,246,0.15)', zIndex: 1 }} />
-                  <div style={{ flex: 1, padding: '18px 22px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'rgba(59,130,246,0.03)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)' }}>🔑 Token Refresh</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Daily Zerodha auto-login for all active clients</div>
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--bg-secondary)', padding: '4px 10px', borderRadius: '6px' }}>default: 08:00</div>
-                    </div>
-                    <input
-                      type="time"
-                      value={algoTokenRefreshTime}
-                      onChange={(e) => setAlgoTokenRefreshTime(e.target.value)}
-                      required
-                      style={{ marginTop: '12px', width: '100%', height: '42px', fontSize: '14px', padding: '0 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }}
-                    />
-                  </div>
-                </div>
-
-                {/* Pre-Open Fetch */}
-                <div style={{ display: 'flex', gap: '20px', marginBottom: '32px', position: 'relative' }}>
-                  <div style={{ position: 'absolute', left: '-26px', top: '18px', width: '14px', height: '14px', borderRadius: '50%', background: 'var(--primary)', border: '3px solid rgba(14,165,233,0.15)', zIndex: 1 }} />
-                  <div style={{ flex: 1, padding: '18px 22px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'rgba(14,165,233,0.03)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)' }}>📊 Pre-Open Fetch</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>NSE pre-open data fetch for all strategies</div>
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--bg-secondary)', padding: '4px 10px', borderRadius: '6px' }}>default: 09:08</div>
-                    </div>
-                    <input
-                      type="time"
-                      value={algoPreopenFetchTime}
-                      onChange={(e) => setAlgoPreopenFetchTime(e.target.value)}
-                      required
-                      style={{ marginTop: '12px', width: '100%', height: '42px', fontSize: '14px', padding: '0 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }}
-                    />
-                  </div>
-                </div>
-
-                {/* Pre-Select & Entry */}
-                <div style={{ display: 'flex', gap: '20px', position: 'relative' }}>
-                  <div style={{ position: 'absolute', left: '-26px', top: '18px', width: '14px', height: '14px', borderRadius: '50%', background: '#8b5cf6', border: '3px solid rgba(139,92,246,0.15)', zIndex: 1 }} />
-                  <div style={{ flex: 1, padding: '18px 22px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'rgba(139,92,246,0.03)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)' }}>⚡ Pre-Select & Entry</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Per-strategy timing configured individually</div>
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#8b5cf6', background: 'rgba(139,92,246,0.1)', padding: '4px 10px', borderRadius: '6px', fontWeight: 600 }}>Per-Strategy</div>
-                    </div>
-                    <div style={{ marginTop: '12px', padding: '12px 16px', borderRadius: '8px', background: 'rgba(139,92,246,0.04)', border: '1px solid rgba(139,92,246,0.1)' }}>
-                      <p style={{ fontSize: '12px', color: 'var(--text-body)', margin: 0, lineHeight: 1.6 }}>
-                        Pre-Select Time, Entry Time, and Check Interval are configured per-strategy in{' '}
-                        <strong style={{ color: '#8b5cf6' }}>Strategies → Edit → Basic Strategy Info</strong>.
-                        This allows different strategies to run on different schedules.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '28px' }}>
-                <Button
-                  type="submit"
-                  disabled={saving}
-                  style={{
-                    padding: '10px 28px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
-                    color: 'white',
-                    boxShadow: 'var(--shadow-blue)'
-                  }}
-                >
-                  {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
-                  Save & Apply Settings
-                </Button>
-              </div>
-            </Card>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '24px' }}>
+              <Button
+                type="submit"
+                disabled={saving}
+                style={{
+                  padding: '10px 28px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
+                  color: 'white',
+                  boxShadow: 'var(--shadow-blue)'
+                }}
+              >
+                {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
+                {saving ? 'Saving...' : 'Save & Apply Settings'}
+              </Button>
+            </div>
+          </Card>
         )}
 
         {/* Market Calendar Tab */}
         {activeTab === 'calendar' && (
-            <Card style={{ padding: '24px 28px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
-                <div>
-                  <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                      <Calendar size={16} />
-                    </div>
-                    Market Calendar
-                  </div>
-                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '6px', marginLeft: '42px' }}>
-                    Control trading days, market holidays, and special sessions for the auto engine.
-                  </p>
-                </div>
+          <><Card style={{ padding: '24px 28px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', borderBottom: '1px solid var(--border-light)', paddingBottom: '20px' }}>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
+                  Market Calendar
+                </h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Control trading days, market holidays, and special sessions for the auto engine.
+                </p>
               </div>
-
-              {/* Auto Trade Status Bar */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 22px', borderRadius: '12px', background: autoTradeEnabled ? 'linear-gradient(135deg, rgba(5,150,105,0.08), rgba(16,185,129,0.04))' : 'rgba(148,163,184,0.06)', border: `1px solid ${autoTradeEnabled ? 'rgba(5,150,105,0.2)' : 'var(--border-color)'}`, marginBottom: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: autoTradeEnabled ? 'linear-gradient(135deg, #059669, #10b981)' : 'var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                    <RefreshCw size={18} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '15px', fontWeight: 700, color: autoTradeEnabled ? '#059669' : 'var(--text-muted)' }}>
-                      Auto Trading {autoTradeEnabled ? 'Active' : 'Disabled'}
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '1px' }}>
-                      {autoTradeEnabled ? 'Engine will execute trades on approved days' : 'No trades will be executed regardless of day'}
-                    </div>
-                  </div>
-                </div>
-                <button
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <Button
                   type="button"
-                  onClick={() => setAutoTradeEnabled(!autoTradeEnabled)}
-                  style={{
-                    padding: '10px 28px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    fontSize: '14px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    background: autoTradeEnabled ? 'linear-gradient(135deg, #dc2626, #ef4444)' : 'linear-gradient(135deg, #059669, #10b981)',
-                    color: 'white',
-                    transition: 'all 0.2s',
-                    boxShadow: autoTradeEnabled ? '0 2px 8px rgba(239,68,68,0.25)' : '0 2px 8px rgba(16,185,129,0.25)'
-                  }}
+                  variant="primary"
+                  onClick={() => { setNewSpecialDay(''); setNewSpecialDayName(''); setShowSpecialDayModal(true); }}
+                  style={{ padding: '8px 18px', fontSize: '13px', fontWeight: 600, borderRadius: '8px' }}
                 >
-                  {autoTradeEnabled ? 'Turn OFF' : 'Turn ON'}
-                </button>
+                  <Plus size={14} /> Add Special Day
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  onClick={() => { setNewHoliday(''); setNewHolidayName(''); setShowHolidayModal(true); }}
+                  style={{ padding: '8px 18px', fontSize: '13px', fontWeight: 600, borderRadius: '8px' }}
+                >
+                  <Plus size={14} /> Add Holiday
+                </Button>
               </div>
+            </div>
 
-              {/* Two Column Layout */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                {/* Left: Trading Days */}
-                <div style={{ padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--primary)' }} />
-                    <span style={{ fontSize: '14px', fontWeight: 700 }}>Trading Days</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400, marginLeft: '4px' }}>Select weekdays for trading</span>
+            {/* Trading Days */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ marginBottom: '12px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)' }}>Trading Days</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '8px' }}>Select weekdays for trading</span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Mon', key: 'Mon' },
+                  { label: 'Tue', key: 'Tue' },
+                  { label: 'Wed', key: 'Wed' },
+                  { label: 'Thu', key: 'Thu' },
+                  { label: 'Fri', key: 'Fri' },
+                  { label: 'Sat', key: 'Sat' },
+                  { label: 'Sun', key: 'Sun' },
+                ].map(({ label, key }) => {
+                  const isSelected = tradingDays.includes(key);
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setTradingDays(prev => prev.includes(key) ? prev.filter(d => d !== key) : [...prev, key])}
+                      style={{
+                        flex: 1,
+                        minWidth: '60px',
+                        padding: '10px 8px',
+                        borderRadius: '8px',
+                        border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        background: isSelected ? 'var(--primary)' : 'var(--surface)',
+                        color: isSelected ? 'white' : 'var(--text-body)',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Day Checker */}
+            {(() => {
+              const d = new Date(selectedDate + 'T00:00:00');
+              const weekdayShort = d.toLocaleDateString('en-US', { weekday: 'short' });
+              const isTradingDay = tradingDays.includes(weekdayShort);
+              const isHoliday = holidays.some(h => h.date === selectedDate);
+              const isSpecialDay = specialDays.some(s => s.date === selectedDate);
+              const holidayName = holidays.find(h => h.date === selectedDate)?.name;
+              const specialName = specialDays.find(s => s.date === selectedDate)?.name;
+              const isOpen = autoTradeEnabled && !isHoliday && (isTradingDay || isSpecialDay);
+
+              const [viewYear, viewMonth] = viewDate.split('-').map(Number);
+              const firstDay = new Date(viewYear, viewMonth - 1, 1);
+              const daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
+              const startWeekday = firstDay.getDay();
+              const monthLabel = firstDay.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+              const calendarDays: (number | null)[] = [];
+              for (let i = 0; i < startWeekday; i++) calendarDays.push(null);
+              for (let i = 1; i <= daysInMonth; i++) calendarDays.push(i);
+
+              const getDateStr = (day: number) =>
+                `${viewYear}-${String(viewMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+              return (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                <div style={{ padding: '16px 20px', borderRadius: '10px', background: 'var(--surface)', border: '1px solid var(--border-color)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <button type="button" onClick={() => {
+                      const prev = new Date(viewYear, viewMonth - 2, 1);
+                      setViewDate(`${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`);
+                    }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px 8px', borderRadius: '4px', fontSize: '16px' }}>‹</button>
+                    <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)' }}>{monthLabel}</span>
+                    <button type="button" onClick={() => {
+                      const next = new Date(viewYear, viewMonth, 1);
+                      setViewDate(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`);
+                    }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px 8px', borderRadius: '4px', fontSize: '16px' }}>›</button>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {[
-                      { label: 'Mon', key: 'Mon' },
-                      { label: 'Tue', key: 'Tue' },
-                      { label: 'Wed', key: 'Wed' },
-                      { label: 'Thu', key: 'Thu' },
-                      { label: 'Fri', key: 'Fri' },
-                      { label: 'Sat', key: 'Sat' },
-                      { label: 'Sun', key: 'Sun' },
-                    ].map(({ label, key }) => {
-                      const isSelected = tradingDays.includes(key);
-                      const isWeekend = key === 'Sat' || key === 'Sun';
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center', marginBottom: '4px' }}>
+                    {['Su','Mo','Tu','We','Th','Fr','Sa'].map(day => (
+                      <span key={day} style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', padding: '4px 0' }}>{day}</span>
+                    ))}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center' }}>
+                    {calendarDays.map((day, i) => {
+                      if (day === null) return <div key={`e${i}`} />;
+                      const dateStr = getDateStr(day);
+                      const dd = new Date(dateStr + 'T00:00:00');
+                      const dw = dd.toLocaleDateString('en-US', { weekday: 'short' });
+                      const isTd = tradingDays.includes(dw);
+                      const isHol = holidays.some(h => h.date === dateStr);
+                      const isSp = specialDays.some(s => s.date === dateStr);
+                      const open = autoTradeEnabled && !isHol && (isTd || isSp);
+                      const isSelected = dateStr === selectedDate;
+                      const isToday = dateStr === today.toLocaleDateString('en-CA');
                       return (
                         <button
-                          key={key}
+                          key={dateStr}
                           type="button"
-                          onClick={() => setTradingDays(prev => prev.includes(key) ? prev.filter(d => d !== key) : [...prev, key])}
+                          onClick={() => setSelectedDate(dateStr)}
                           style={{
-                            flex: 1,
-                            minWidth: '60px',
-                            padding: '12px 8px',
-                            borderRadius: '10px',
-                            border: '2px solid',
-                            fontSize: '13px',
-                            fontWeight: 700,
+                            padding: '6px 0',
+                            borderRadius: '6px',
+                            border: isSelected ? '2px solid var(--primary)' : 'none',
+                            fontSize: '12px',
+                            fontWeight: isSelected || isToday ? 700 : 400,
                             cursor: 'pointer',
-                            background: isSelected ? 'linear-gradient(135deg, var(--primary), #1252AB)' : 'var(--bg-secondary)',
-                            borderColor: isSelected ? 'var(--primary)' : 'var(--border-color)',
-                            color: isSelected ? 'white' : isWeekend ? 'var(--text-subtle)' : 'var(--text-primary)',
-                            opacity: isWeekend && !isSelected ? 0.5 : 1,
-                            transition: 'all 0.15s'
+                            background: isSelected ? 'var(--primary)' : isToday && !isSelected ? 'var(--border-color)' : 'transparent',
+                            color: isSelected ? 'white' : open ? 'var(--accent)' : 'var(--danger)',
                           }}
                         >
-                          {label}
+                          {day}
                         </button>
                       );
                     })}
                   </div>
-                </div>
-
-                {/* Right: Today's Status */}
-                <div style={{ padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--warning)' }} />
-                    <span style={{ fontSize: '14px', fontWeight: 700 }}>Today's Status</span>
+                  <div style={{ marginTop: '10px', fontSize: '12px', fontWeight: 600, textAlign: 'center', color: isOpen ? 'var(--accent)' : 'var(--danger)' }}>
+                    {isOpen ? '● Market OPEN' : '● Market CLOSED'}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <StatusRow label="Date" value={new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })} />
-                    <StatusRow label="Weekday" value={new Date().toLocaleDateString('en-US', { weekday: 'long' })} />
-                    <StatusRow label="Trading Day" status={tradingDays.includes(new Date().toLocaleDateString('en-US', { weekday: 'short' }))} />
-                    <StatusRow label="Holiday" status={!holidays.includes(new Date().toLocaleDateString('en-CA'))} />
-                    <StatusRow label="Special Day" status={specialDays.includes(new Date().toLocaleDateString('en-CA'))} />
-                    <div style={{ marginTop: '8px', padding: '10px 14px', borderRadius: '8px', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', fontSize: '12px', fontWeight: 600, textAlign: 'center', color: !autoTradeEnabled ? 'var(--text-muted)' : holidays.includes(new Date().toLocaleDateString('en-CA')) ? 'var(--danger)' : (tradingDays.includes(new Date().toLocaleDateString('en-US', { weekday: 'short' })) || specialDays.includes(new Date().toLocaleDateString('en-CA')) ? '#059669' : 'var(--danger)') }}>
-                      {!autoTradeEnabled ? '🔴 Engine Stopped — Auto Trade OFF' :
-                       holidays.includes(new Date().toLocaleDateString('en-CA')) ? '🔴 Trade SKIP — Market Holiday' :
-                       tradingDays.includes(new Date().toLocaleDateString('en-US', { weekday: 'short' })) || specialDays.includes(new Date().toLocaleDateString('en-CA')) ? '🟢 Trade will EXECUTE Today' :
-                       '🔴 Trade SKIP — Not a Trading Day'}
+                </div>
+                <div style={{ padding: '16px 20px', borderRadius: '10px', background: 'var(--surface)', border: '1px solid var(--border-color)' }}>
+                  <div style={{ marginBottom: '12px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)' }}>Day Details</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <StatusRow label="Date" value={d.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })} />
+                    <StatusRow label="Weekday" value={d.toLocaleDateString('en-US', { weekday: 'long' })} />
+                    <StatusRow label="Trading Day" status={isTradingDay} />
+                    <StatusRow label="Holiday" status={!isHoliday} />
+                    <StatusRow label="Special Day" status={isSpecialDay} />
+                    {isHoliday && <StatusRow label="Holiday Name" value={holidayName || ''} />}
+                    {isSpecialDay && <StatusRow label="Special Name" value={specialName || ''} />}
+                    <div style={{ marginTop: '4px', padding: '8px 12px', borderRadius: '6px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', fontSize: '12px', fontWeight: 600, textAlign: 'center', color: !autoTradeEnabled ? 'var(--text-muted)' : isHoliday ? 'var(--danger)' : (isTradingDay || isSpecialDay) ? 'var(--accent)' : 'var(--danger)' }}>
+                      {!autoTradeEnabled ? 'Engine Stopped — Auto Trade OFF' :
+                       isHoliday ? 'Trade SKIP — Market Holiday' :
+                       isTradingDay || isSpecialDay ? 'Trade will EXECUTE' :
+                       'Trade SKIP — Not a Trading Day'}
                     </div>
                   </div>
                 </div>
               </div>
+              );
+            })()}
 
-              {/* Special Days & Holidays */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '24px' }}>
-                {/* Special Market Days */}
-                <div style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(5,150,105,0.2)', background: 'rgba(5,150,105,0.03)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                    <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'linear-gradient(135deg, #059669, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: 700 }}>+</div>
-                    <span style={{ fontSize: '14px', fontWeight: 700 }}>Special Market Days</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>Weekends pe trading enable karein</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-                    <input
-                      type="date"
-                      value={newSpecialDay}
-                      onChange={(e) => setNewSpecialDay(e.target.value)}
-                      style={{ flex: 1, height: '40px', fontSize: '13px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }}
-                    />
-                    <Button
-                      type="button"
-                      variant="primary"
-                      onClick={() => { if (newSpecialDay && !specialDays.includes(newSpecialDay)) { setSpecialDays([...specialDays, newSpecialDay]); setNewSpecialDay(''); } }}
-                      style={{ height: '40px', padding: '0 18px', fontSize: '12px', fontWeight: 600, borderRadius: '8px' }}
-                    >
-                      <Plus size={14} /> Add
-                    </Button>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
-                    {specialDays.length === 0 ? (
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', padding: '8px 0', textAlign: 'center' }}>No special days added yet</div>
-                    ) : (
-                      specialDays.map((date, i) => (
-                        <div key={date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: '8px', background: 'rgba(5,150,105,0.06)', border: '1px solid rgba(5,150,105,0.08)', fontSize: '13px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{ fontWeight: 500 }}>{new Date(date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                            <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>({new Date(date).toLocaleDateString('en-US', { weekday: 'long' })})</span>
-                          </div>
-                          <button type="button" onClick={() => setSpecialDays(specialDays.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', opacity: 0.6 }}><Trash2 size={14} /></button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                {/* Market Holidays */}
-                <div style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.03)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                    <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'linear-gradient(135deg, #dc2626, #ef4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: 700 }}>✕</div>
-                    <span style={{ fontSize: '14px', fontWeight: 700 }}>Market Holidays</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>Inn dinon trade skip hoga</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-                    <input
-                      type="date"
-                      value={newHoliday}
-                      onChange={(e) => setNewHoliday(e.target.value)}
-                      style={{ flex: 1, height: '40px', fontSize: '13px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }}
-                    />
-                    <Button
-                      type="button"
-                      variant="danger"
-                      onClick={() => { if (newHoliday && !holidays.includes(newHoliday)) { setHolidays([...holidays, newHoliday]); setNewHoliday(''); } }}
-                      style={{ height: '40px', padding: '0 18px', fontSize: '12px', fontWeight: 600, borderRadius: '8px' }}
-                    >
-                      <Plus size={14} /> Add
-                    </Button>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
-                    {holidays.length === 0 ? (
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', padding: '8px 0', textAlign: 'center' }}>No holidays added yet</div>
-                    ) : (
-                      holidays.map((date, i) => (
-                        <div key={date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: '8px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.08)', fontSize: '13px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{ fontWeight: 500 }}>{new Date(date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                            <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>({new Date(date).toLocaleDateString('en-US', { weekday: 'long' })})</span>
-                          </div>
-                          <button type="button" onClick={() => setHolidays(holidays.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', opacity: 0.6 }}><Trash2 size={14} /></button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+            {/* All Scheduled Days */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ marginBottom: '12px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)' }}>All Scheduled Days</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '8px' }}>Special days & holidays — sorted by date</span>
               </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '28px' }}>
-                <Button
-                  type="submit"
-                  disabled={saving}
-                  style={{
-                    padding: '10px 28px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
-                    color: 'white',
-                    boxShadow: 'var(--shadow-blue)'
-                  }}
-                >
-                  {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
-                  Save & Apply Settings
-                </Button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '250px', overflowY: 'auto' }}>
+                {(() => {
+                  const combined = [
+                    ...specialDays.map(d => ({ ...d, type: 'special' as const })),
+                    ...holidays.map(d => ({ ...d, type: 'holiday' as const })),
+                  ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                  return combined.length === 0 ? (
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', padding: '8px 0' }}>No scheduled days configured</div>
+                  ) : (
+                    combined.map((item, i) => (
+                      <div key={item.date + item.type} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: '6px', background: 'var(--surface)', border: '1px solid var(--border-color)', fontSize: '13px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{
+                            width: '8px', height: '8px', borderRadius: '50%',
+                            background: item.type === 'special' ? 'var(--accent)' : 'var(--danger)',
+                            display: 'inline-block', flexShrink: 0
+                          }} />
+                          <span style={{ fontWeight: 600 }}>{item.name}</span>
+                          <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>— {new Date(item.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })} ({new Date(item.date).toLocaleDateString('en-US', { weekday: 'long' })})</span>
+                          <span style={{ fontSize: '11px', fontWeight: 600, color: item.type === 'special' ? 'var(--accent)' : 'var(--danger)', background: item.type === 'special' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', padding: '2px 10px', borderRadius: '4px' }}>{item.type === 'special' ? 'SPECIAL' : 'HOLIDAY'}</span>
+                        </div>
+                        <button type="button" onClick={() => {
+                          setDeleteTarget({ type: item.type, date: item.date, name: item.name });
+                          setShowDeleteConfirm(true);
+                        }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', opacity: 0.6 }}><Trash2 size={14} /></button>
+                      </div>
+                    ))
+                  );
+                })()}
               </div>
+            </div>
+
             </Card>
+
+            {/* Add Special Day Modal */}
+            <Modal isOpen={showSpecialDayModal} onClose={() => setShowSpecialDayModal(false)} title="Add Special Market Day"
+              footer={
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                  <Button type="button" onClick={() => setShowSpecialDayModal(false)} variant="secondary" style={{ padding: '8px 18px', fontSize: '13px', fontWeight: 600 }}>Cancel</Button>
+                  <Button type="button" onClick={async () => {
+                    if (newSpecialDay && newSpecialDayName && !specialDays.some(d => d.date === newSpecialDay)) {
+                      const updated = [...specialDays, { date: newSpecialDay, name: newSpecialDayName }];
+                      setSpecialDays(updated);
+                      setNewSpecialDay(''); setNewSpecialDayName(''); setShowSpecialDayModal(false);
+                      setSaving(true);
+                      try {
+                        await api.put(API_ENDPOINTS.SETTINGS, {
+                          auto_trade_enabled: autoTradeEnabled ? 'true' : 'false',
+                          trading_days: JSON.stringify(tradingDays),
+                          special_market_days: JSON.stringify(updated),
+        market_holidays: JSON.stringify(holidays),
+        app_name: appName,
+        app_title: appTitle,
+        app_favicon: appFavicon,
+        app_logo: appLogo,
+        meta_description: metaDescription,
+        meta_keywords: metaKeywords,
+        footer_text: footerText,
+        google_analytics_id: googleAnalyticsId,
+                        });
+                        setNotification({ type: 'success', message: 'Special day saved.' });
+                        setTimeout(() => setNotification(null), 3000);
+                      } catch { setNotification({ type: 'error', message: 'Failed to save.' }); }
+                      finally { setSaving(false); }
+                    }
+                  }} variant="primary" style={{ padding: '8px 18px', fontSize: '13px', fontWeight: 600 }}>Add</Button>
+                </div>
+              }
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Name</label>
+                  <input type="text" placeholder="e.g. Budget Day" value={newSpecialDayName} onChange={(e) => setNewSpecialDayName(e.target.value)}
+                    style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Date</label>
+                  <input type="date" value={newSpecialDay} onChange={(e) => setNewSpecialDay(e.target.value)}
+                    style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+                </div>
+              </div>
+            </Modal>
+
+            {/* Add Holiday Modal */}
+            <Modal isOpen={showHolidayModal} onClose={() => setShowHolidayModal(false)} title="Add Market Holiday"
+              footer={
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                  <Button type="button" onClick={() => setShowHolidayModal(false)} variant="secondary" style={{ padding: '8px 18px', fontSize: '13px', fontWeight: 600 }}>Cancel</Button>
+                  <Button type="button" onClick={async () => {
+                    if (newHoliday && newHolidayName && !holidays.some(h => h.date === newHoliday)) {
+                      const updated = [...holidays, { date: newHoliday, name: newHolidayName }];
+                      setHolidays(updated);
+                      setNewHoliday(''); setNewHolidayName(''); setShowHolidayModal(false);
+                      setSaving(true);
+                      try {
+                        await api.put(API_ENDPOINTS.SETTINGS, {
+                          auto_trade_enabled: autoTradeEnabled ? 'true' : 'false',
+                          trading_days: JSON.stringify(tradingDays),
+                          special_market_days: JSON.stringify(specialDays),
+                          market_holidays: JSON.stringify(updated),
+                        });
+                        setNotification({ type: 'success', message: 'Holiday saved.' });
+                        setTimeout(() => setNotification(null), 3000);
+                      } catch { setNotification({ type: 'error', message: 'Failed to save.' }); }
+                      finally { setSaving(false); }
+                    }
+                  }} variant="danger" style={{ padding: '8px 18px', fontSize: '13px', fontWeight: 600 }}>Add</Button>
+                </div>
+              }
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Name</label>
+                  <input type="text" placeholder="e.g. Diwali" value={newHolidayName} onChange={(e) => setNewHolidayName(e.target.value)}
+                    style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Date</label>
+                  <input type="date" value={newHoliday} onChange={(e) => setNewHoliday(e.target.value)}
+                    style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+                </div>
+              </div>
+            </Modal>
+
+            {/* Delete Confirm Modal */}
+            <Modal isOpen={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} title="Confirm Delete"
+              footer={
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                  <Button type="button" onClick={() => setShowDeleteConfirm(false)} variant="secondary" style={{ padding: '8px 18px', fontSize: '13px', fontWeight: 600 }}>No</Button>
+                  <Button type="button" onClick={async () => {
+                    if (!deleteTarget) return;
+                    const updatedSpecial = deleteTarget.type === 'special'
+                      ? specialDays.filter(d => d.date !== deleteTarget.date)
+                      : specialDays;
+                    const updatedHolidays = deleteTarget.type === 'holiday'
+                      ? holidays.filter(h => h.date !== deleteTarget.date)
+                      : holidays;
+                    setSpecialDays(updatedSpecial);
+                    setHolidays(updatedHolidays);
+                    setShowDeleteConfirm(false);
+                    setDeleteTarget(null);
+                    setSaving(true);
+                    try {
+                      await api.put(API_ENDPOINTS.SETTINGS, {
+                        auto_trade_enabled: autoTradeEnabled ? 'true' : 'false',
+                        trading_days: JSON.stringify(tradingDays),
+                        special_market_days: JSON.stringify(updatedSpecial),
+                        market_holidays: JSON.stringify(updatedHolidays),
+                      });
+                      setNotification({ type: 'success', message: 'Deleted and saved.' });
+                      setTimeout(() => setNotification(null), 3000);
+                    } catch { setNotification({ type: 'error', message: 'Failed to save.' }); }
+                    finally { setSaving(false); }
+                  }} variant="danger" style={{ padding: '8px 18px', fontSize: '13px', fontWeight: 600 }}>Yes</Button>
+                </div>
+              }
+            >
+              <div style={{ fontSize: '14px', color: 'var(--text-body)', lineHeight: 1.6 }}>
+                Are you sure you want to delete <strong>{deleteTarget?.name}</strong> (
+                {deleteTarget?.type === 'special' ? 'Special Day' : 'Holiday'})?
+              </div>
+            </Modal>
+
+          </>)}
+
+        {/* Branding Tab */}
+        {activeTab === 'branding' && (
+          <Card style={{ padding: '24px 28px' }}>
+            <div style={{ marginBottom: '24px', borderBottom: '1px solid var(--border-light)', paddingBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
+                Branding Settings
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Customize app name, browser title, favicon, and logo. Changes reflect across admin, client, and website.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Application Name</label>
+                <input type="text" value={appName} onChange={(e) => setAppName(e.target.value)}
+                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Browser Tab Title</label>
+                <input type="text" value={appTitle} onChange={(e) => setAppTitle(e.target.value)}
+                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+              </div>
+              <ImagePicker label="Favicon" value={appFavicon} onChange={setAppFavicon} />
+              <ImagePicker label="Logo" value={appLogo} onChange={setAppLogo} />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '24px' }}>
+              <Button type="submit" disabled={saving} style={{
+                padding: '10px 28px', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px',
+                background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)', color: 'white', boxShadow: 'var(--shadow-blue)'
+              }}>
+                {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
+                {saving ? 'Saving...' : 'Save & Apply Settings'}
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Website / SEO Tab */}
+        {activeTab === 'website' && (
+          <Card style={{ padding: '24px 28px' }}>
+            <div style={{ marginBottom: '24px', borderBottom: '1px solid var(--border-light)', paddingBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
+                Website & SEO Settings
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Manage meta tags, search engine optimization, and analytics tracking.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Meta Description</label>
+                <textarea value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} rows={3}
+                  style={{ width: '100%', fontSize: '14px', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none', resize: 'vertical' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Meta Keywords</label>
+                <input type="text" placeholder="algo trading, stock market, trading terminal" value={metaKeywords} onChange={(e) => setMetaKeywords(e.target.value)}
+                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Footer Text</label>
+                <input type="text" placeholder="© 2026 Growffiy. All rights reserved." value={footerText} onChange={(e) => setFooterText(e.target.value)}
+                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Google Analytics ID</label>
+                <input type="text" placeholder="G-XXXXXXXXXX" value={googleAnalyticsId} onChange={(e) => setGoogleAnalyticsId(e.target.value)}
+                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '24px' }}>
+              <Button type="submit" disabled={saving} style={{
+                padding: '10px 28px', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px',
+                background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)', color: 'white', boxShadow: 'var(--shadow-blue)'
+              }}>
+                {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
+                {saving ? 'Saving...' : 'Save & Apply Settings'}
+              </Button>
+            </div>
+          </Card>
         )}
 
       </form>

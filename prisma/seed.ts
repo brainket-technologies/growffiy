@@ -140,12 +140,20 @@ async function main() {
     }
   }
 
-  // 3. Seed App Settings (Algo timings)
+  // 3. Seed App Settings (Algo timings + Branding/SEO defaults)
   const appSettingsData = [
     { settingKey: 'algo_preopen_fetch_time', settingValue: '09:08', type: 'string' },
     { settingKey: 'algo_entry_time', settingValue: '09:20', type: 'string' },
     { settingKey: 'algo_token_refresh_time', settingValue: '08:00', type: 'string' },
     { settingKey: 'algo_check_interval_sec', settingValue: '60', type: 'string' },
+    { settingKey: 'app_name', settingValue: 'Growffiy', type: 'string' },
+    { settingKey: 'app_title', settingValue: 'Growffiy — Algo Trading Terminal', type: 'string' },
+    { settingKey: 'app_favicon', settingValue: '', type: 'string' },
+    { settingKey: 'app_logo', settingValue: '', type: 'string' },
+    { settingKey: 'meta_description', settingValue: '', type: 'string' },
+    { settingKey: 'meta_keywords', settingValue: '', type: 'string' },
+    { settingKey: 'footer_text', settingValue: '', type: 'string' },
+    { settingKey: 'google_analytics_id', settingValue: '', type: 'string' },
   ];
 
   for (const s of appSettingsData) {

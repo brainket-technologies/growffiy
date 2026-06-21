@@ -17,8 +17,8 @@ export async function sendClientWelcomeEmail({
   loginUrl
 }: SendClientCredentialsOptions) {
   const finalLoginUrl = loginUrl || 
-    (typeof window !== 'undefined' ? `${window.location.origin}/websites/login` : 
-    (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/websites/login` : 'http://localhost:3000/websites/login'));
+    (typeof window !== 'undefined' ? `${window.location.origin}/vendor/login` : 
+    (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/vendor/login` : 'http://localhost:3000/vendor/login'));
   try {
     // 1. Fetch settings from DB
     const dbSettings = await prisma.appSettings.findMany();
@@ -121,6 +121,90 @@ export async function sendClientWelcomeEmail({
 
   } catch (err: any) {
     console.error('Failed to send welcome email:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+interface SendClientOtpOptions {
+  email: string;
+  name: string;
+  otp: string;
+}
+
+export async function sendClientOtpEmail({
+  email,
+  name,
+  otp
+}: SendClientOtpOptions) {
+  try {
+    const dbSettings = await prisma.appSettings.findMany();
+    const settings: Record<string, string> = {};
+    dbSettings.forEach((s) => {
+      settings[s.settingKey] = s.settingValue;
+    });
+
+    const emailStatus = settings['smtp_status'] === 'true' || settings['smtp_status'] === 'on';
+    if (!emailStatus) {
+      console.log('SMTP status is OFF. OTP mail skipped.');
+      return { success: false, reason: 'SMTP_DISABLED' };
+    }
+
+    const host = settings['smtp_host'];
+    const port = parseInt(settings['smtp_port'] || '587', 10);
+    const user = settings['smtp_user'];
+    const pass = settings['smtp_password'];
+    const fromName = settings['smtp_sender_name'] || 'Growffiy';
+    const encryption = settings['smtp_encryption'] || 'tls';
+
+    if (!host || !user || !pass) {
+      console.warn('SMTP Credentials are not configured.');
+      return { success: false, reason: 'SMTP_NOT_CONFIGURED' };
+    }
+
+    const secure = encryption === 'ssl' || port === 465;
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false }
+    });
+
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+        <div style="text-align: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 20px;">
+          <h2 style="color: #2563eb; margin: 0;">${fromName} Password Reset OTP</h2>
+        </div>
+        
+        <p style="font-size: 15px; color: #1e293b; line-height: 1.5;">Hello <strong>${name}</strong>,</p>
+        <p style="font-size: 15px; color: #475569; line-height: 1.5;">We received a request to reset your password. Use the following 6-digit verification code (OTP) to proceed. This code is valid for 10 minutes:</p>
+        
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <span style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #2563eb; font-family: monospace; display: block; margin: 0 auto;">${otp}</span>
+        </div>
+
+        <p style="font-size: 14px; color: #ef4444; font-weight: 500; margin-top: 20px;">
+          * If you did not request a password reset, please ignore this email or contact support.
+        </p>
+
+        <div style="border-top: 1px solid #e2e8f0; margin-top: 30px; padding-top: 20px; text-align: center; color: #94a3b8; font-size: 12px;">
+          This is an automated system email. Please do not reply directly.
+        </div>
+      </div>
+    `;
+
+    const mailOptions = {
+      from: `"${fromName}" <${user}>`,
+      to: email,
+      subject: `Password Reset Verification Code for ${fromName}`,
+      html: emailHtml,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('OTP email successfully dispatched:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (err: any) {
+    console.error('Failed to send OTP email:', err);
     return { success: false, error: err.message };
   }
 }

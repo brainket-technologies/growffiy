@@ -28,6 +28,14 @@ export async function GET() {
     settings['trading_days'] = '["Mon","Tue","Wed","Thu","Fri"]';
     settings['special_market_days'] = '[]';
     settings['market_holidays'] = '[]';
+    settings['app_name'] = 'Growffiy';
+    settings['app_title'] = 'Growffiy — Algo Trading Terminal';
+    settings['app_favicon'] = '';
+    settings['app_logo'] = '';
+    settings['meta_description'] = '';
+    settings['meta_keywords'] = '';
+    settings['footer_text'] = '';
+    settings['google_analytics_id'] = '';
 
 
     dbSettings.forEach((s) => {
@@ -59,7 +67,15 @@ export async function GET() {
         auto_trade_enabled: 'true',
         trading_days: '["Mon","Tue","Wed","Thu","Fri"]',
         special_market_days: '[]',
-        market_holidays: '[]'
+        market_holidays: '[]',
+        app_name: 'Growffiy',
+        app_title: 'Growffiy — Algo Trading Terminal',
+        app_favicon: '',
+        app_logo: '',
+        meta_description: '',
+        meta_keywords: '',
+        footer_text: '',
+        google_analytics_id: ''
       } 
     });
   }
@@ -85,7 +101,15 @@ export async function PUT(request: Request) {
       support_phone,
       support_timings,
       algo_preopen_fetch_time,
-      algo_token_refresh_time
+      algo_token_refresh_time,
+      app_name,
+      app_title,
+      app_favicon,
+      app_logo,
+      meta_description,
+      meta_keywords,
+      footer_text,
+      google_analytics_id
     } = body;
 
     const updates = {
@@ -109,7 +133,15 @@ export async function PUT(request: Request) {
       auto_trade_enabled: body.auto_trade_enabled,
       trading_days: body.trading_days,
       special_market_days: body.special_market_days,
-      market_holidays: body.market_holidays
+      market_holidays: body.market_holidays,
+      app_name,
+      app_title,
+      app_favicon,
+      app_logo,
+      meta_description,
+      meta_keywords,
+      footer_text,
+      google_analytics_id
     };
 
 

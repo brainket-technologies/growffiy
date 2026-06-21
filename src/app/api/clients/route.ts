@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../database/db';
 import { sendClientWelcomeEmail } from '../../../shared/services/mail';
@@ -14,6 +16,7 @@ let inMemoryClients: any[] = [
     tradingStatus: 'active',
     subscriptionStatus: 'active',
     strategyId: 'pre-open-breakout',
+    zerodhaTotpSecret: 'ZTOTPAMAN123',
   },
   {
     id: 'c2',
@@ -25,6 +28,7 @@ let inMemoryClients: any[] = [
     tradingStatus: 'inactive',
     subscriptionStatus: 'active',
     strategyId: 'pre-open-breakout',
+    zerodhaTotpSecret: 'ZTOTPRAHUL456',
   },
   {
     id: 'c3',
@@ -36,6 +40,7 @@ let inMemoryClients: any[] = [
     tradingStatus: 'inactive',
     subscriptionStatus: 'expired',
     strategyId: 'pre-open-breakout',
+    zerodhaTotpSecret: 'ZTOTPNEHA789',
   },
 ];
 
@@ -44,9 +49,18 @@ export async function GET() {
     const dbClients = await prisma.client.findMany({
       include: { user: true, strategy: true, productType: true },
     });
-    return NextResponse.json({ success: true, clients: dbClients });
+    
+    // Only use mock/in-memory clients if the database is not configured
+    const isDbConfigured = !!process.env.DATABASE_URL;
+    const finalClients = isDbConfigured ? dbClients : inMemoryClients;
+
+    return NextResponse.json({ success: true, clients: finalClients });
   } catch (error) {
     // Fallback to in-memory store if DB is not configured
+    const isDbConfigured = !!process.env.DATABASE_URL;
+    if (isDbConfigured) {
+      return NextResponse.json({ success: false, error: 'Database query failed' }, { status: 500 });
+    }
     return NextResponse.json({ success: true, clients: inMemoryClients, isDemoMode: true });
   }
 }
@@ -100,7 +114,7 @@ export async function POST(request: Request) {
         const originUrl = request.headers.get('origin') || request.headers.get('host') || 'http://localhost:3000';
         // Normalize HTTP protocol wrapper for host fallback if origin is missing
         const formattedOrigin = originUrl.startsWith('http') ? originUrl : `https://${originUrl}`;
-        const loginUrl = `${formattedOrigin}/login`;
+        const loginUrl = `${formattedOrigin}/vendor/login`;
         // Non-blocking fire and forget welcome email
         sendClientWelcomeEmail({
           email: newUser.email,

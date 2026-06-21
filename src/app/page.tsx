@@ -46,12 +46,25 @@ export default function GrowffiyLanding() {
   const [activeTab, setActiveTab] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [brandLogo, setBrandLogo] = useState('');
+  const [brandName, setBrandName] = useState('Growffiy');
 
   // Scroll detection for transparent navbar
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Branding
+  useEffect(() => {
+    const load = () => {
+      setBrandLogo(localStorage.getItem('growffiy_brand_logo') || '');
+      setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffiy');
+    };
+    load();
+    window.addEventListener('branding-updated', load);
+    return () => window.removeEventListener('branding-updated', load);
   }, []);
 
   // Tick simulation
@@ -153,9 +166,9 @@ export default function GrowffiyLanding() {
           {/* Logo */}
           <Link href="/" className="navbar-logo" onClick={() => setMobileMenuOpen(false)}>
             <div className="navbar-logo-icon">
-              <img src="/logo.png" alt="Growffiy" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+              <img src={brandLogo || '/logo.png'} alt={brandName} style={{ width: 20, height: 20, objectFit: 'contain' }} />
             </div>
-            GROWFFIY
+            {brandName.toUpperCase()}
           </Link>
 
           {/* Desktop Nav links */}
@@ -164,7 +177,7 @@ export default function GrowffiyLanding() {
             <a href="#strategy" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Strategy</a>
             <a href="#pricing" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Pricing</a>
             <a href="#faq" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>FAQ</a>
-            <Link href="/websites/login" target="_blank" className="btn-nav">Get Started →</Link>
+            <Link href="/vendor/login" target="_blank" className="btn-nav">Get Started →</Link>
           </div>
 
           {/* Hamburger Button (mobile only) */}
@@ -184,7 +197,7 @@ export default function GrowffiyLanding() {
             <a href="#strategy" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Strategy</a>
             <a href="#pricing" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
             <a href="#faq" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
-            <Link href="/websites/login" target="_blank" className="mobile-nav-cta" onClick={() => setMobileMenuOpen(false)}>
+            <Link href="/vendor/login" target="_blank" className="mobile-nav-cta" onClick={() => setMobileMenuOpen(false)}>
               Get Started →
             </Link>
           </div>
@@ -214,7 +227,7 @@ export default function GrowffiyLanding() {
             </p>
 
             <div className="hero-btns">
-              <Link href="/websites/login" target="_blank" className="btn-primary">
+              <Link href="/vendor/login" target="_blank" className="btn-primary">
                 Start Trading Now <ArrowRight size={15} />
               </Link>
               <a href="#strategy" className="btn-secondary">
@@ -525,7 +538,7 @@ export default function GrowffiyLanding() {
                       </li>
                     ))}
                   </ul>
-                  <Link href="/websites/login" target="_blank" style={{ display: 'block' }}>
+                  <Link href="/vendor/login" target="_blank" style={{ display: 'block' }}>
                     <button style={{
                       width: '100%', padding: '13px', borderRadius: 99, fontWeight: 700,
                       fontSize: 14, cursor: 'pointer', transition: 'all 0.3s',

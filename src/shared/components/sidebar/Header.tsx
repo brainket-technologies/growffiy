@@ -34,11 +34,11 @@ export const Header: React.FC<HeaderProps> = ({
     api.get(API_ENDPOINTS.SETTINGS).then((res: any) => {
       if (res.success && res.settings) {
         setAutoTradeEnabled(res.settings.auto_trade_enabled !== 'false');
-        try { setTradingDays(JSON.parse(res.settings.trading_days || '[]')); } catch {}
-        try { setHolidays(JSON.parse(res.settings.market_holidays || '[]')); } catch {}
-        try { setSpecialDays(JSON.parse(res.settings.special_market_days || '[]')); } catch {}
+        try { setTradingDays(JSON.parse(res.settings.trading_days || '[]')); } catch { }
+        try { setHolidays(JSON.parse(res.settings.market_holidays || '[]')); } catch { }
+        try { setSpecialDays(JSON.parse(res.settings.special_market_days || '[]')); } catch { }
       }
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   const getTradingDayLabel = () => {
@@ -119,7 +119,7 @@ export const Header: React.FC<HeaderProps> = ({
       const activeRole = localStorage.getItem('growffiy_logged_in_user_role');
       localStorage.removeItem('growffiy_logged_in_user_id');
       localStorage.removeItem('growffiy_logged_in_user_role');
-      window.location.href = activeRole === 'admin' ? '/admin/login' : '/websites/login';
+      window.location.href = activeRole === 'admin' ? '/admin/login' : '/vendor/login';
     }
   };
 
@@ -227,11 +227,6 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </div>
           )}
-
-          <button className={styles.iconBtn} title="Notifications">
-            <Bell size={16} />
-            <span className={styles.notifDot} />
-          </button>
 
           <div className={styles.themeToggle}>
             <button

@@ -200,7 +200,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
               localStorage.removeItem('growffiy_logged_in_user_id');
               localStorage.removeItem('growffiy_logged_in_user_role');
               localStorage.removeItem('growffiy_logged_in_user_name');
-              window.location.href = isAdmin ? '/admin/login' : '/websites/login';
+              window.location.href = isAdmin ? '/admin/login' : '/vendor/login';
             }
           }}
           style={{

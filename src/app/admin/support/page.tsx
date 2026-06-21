@@ -313,7 +313,7 @@ export default function SupportPage() {
                     onClick={() => {
                       setActiveTicket(t);
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#fafbff')}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface)')}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                   >
                     {/* Client Info Column */}

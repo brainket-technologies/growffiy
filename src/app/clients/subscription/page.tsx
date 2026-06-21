@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
 import { Card } from '../../../shared/components/views/Card';
 import { Loader } from '../../../shared/components/views/Loader';
-import { Check, ShieldCheck, Sparkles, CreditCard, HelpCircle, Zap, Shield, Gift, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, ShieldCheck, Sparkles, CreditCard, Zap, Shield } from 'lucide-react';
 import { API_ENDPOINTS } from '../../../core/constants';
 
 
@@ -15,17 +15,21 @@ export default function ClientSubscriptionPlans() {
   const [purchasingPlanId, setPurchasingPlanId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  
-  // FAQ toggles state
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedId = localStorage.getItem('growffiy_logged_in_user_id');
       if (!storedId) {
-        window.location.href = '/websites/login';
+        window.location.href = '/vendor/login';
         return;
       }
+    }
+
+    // Don't load plans until we have product type info to avoid flash
+    if (!activeUser?.client?.productTypeId) {
+      setLoadingPlans(false);
+      setPlans([]);
+      return;
     }
 
     // Load available plans from DB
@@ -33,7 +37,16 @@ export default function ClientSubscriptionPlans() {
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          setPlans(data.plans.filter((p: any) => p.status === 'active'));
+          let activePlans = data.plans.filter((p: any) => p.status === 'active');
+
+          // Filter plans to show ONLY those matching client's product type
+          if (activeUser?.client?.productTypeId) {
+            activePlans = activePlans.filter((p: any) =>
+              p.productTypeId === activeUser.client.productTypeId
+            );
+          }
+
+          setPlans(activePlans);
         } else {
           setErrorMsg('Failed to load subscription plans.');
         }
@@ -50,7 +63,7 @@ export default function ClientSubscriptionPlans() {
     return () => {
       document.body.removeChild(script);
     };
-  }, []);
+  }, [activeUser]);
 
   const handlePurchase = async (plan: any) => {
     if (!activeUser) return;
@@ -138,24 +151,6 @@ export default function ClientSubscriptionPlans() {
     }
   };
 
-  const faqs = [
-    {
-      q: "How does the automated trading execution work?",
-      a: "Growffiy links directly with your Zerodha Kite API. Once activated, our momentum breakout engines execute MIS/Bracket orders directly on your demat account based on live market breakouts. You do not need to manually place or manage trades."
-    },
-    {
-      q: "What is the Capital Risk Guard?",
-      a: "It is our proprietary risk mitigation framework that caps the risk on any single trade to exactly 1.00% of your allocated capital. This protects your portfolio from black swan events and sudden market swings."
-    },
-    {
-      q: "Can I cancel my subscription or request a refund?",
-      a: "Yes, you can cancel your automated trading status anytime. However, subscriptions are non-refundable as they represent active strategy execution slots on our high-speed terminals."
-    },
-    {
-      q: "Do you require my Zerodha login password?",
-      a: "No. Growffiy operates completely via standard API tokens. We never ask for, nor store, your master Zerodha passwords, keeping your account completely secure."
-    }
-  ];
 
   if (loadingPlans || !activeUser) {
     return <Loader title="Loading plans" text="Fetching active subscription pricing configurations..." fullscreen={false} />;
@@ -163,18 +158,18 @@ export default function ClientSubscriptionPlans() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', maxWidth: '1000px', margin: '0 auto', padding: '12px' }}>
-      
+
       {/* Header section with badge */}
       <div style={{ textAlign: 'center', margin: '12px 0 8px 0' }}>
-        <span style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '6px', 
-          backgroundColor: '#e0f2fe', 
-          color: 'var(--primary)', 
-          fontSize: '12px', 
-          fontWeight: 700, 
-          padding: '6px 16px', 
+        <span style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          backgroundColor: '#e0f2fe',
+          color: 'var(--primary)',
+          fontSize: '12px',
+          fontWeight: 700,
+          padding: '6px 16px',
           borderRadius: '999px',
           textTransform: 'uppercase',
           letterSpacing: '1px',
@@ -182,10 +177,10 @@ export default function ClientSubscriptionPlans() {
         }}>
           <Zap size={14} fill="currentColor" /> Premium Trading Strategies
         </span>
-        <h1 style={{ 
-          fontSize: '32px', 
-          fontWeight: 800, 
-          color: 'var(--text-heading)', 
+        <h1 style={{
+          fontSize: '32px',
+          fontWeight: 800,
+          color: 'var(--text-heading)',
           fontFamily: 'var(--font-title)',
           letterSpacing: '-0.75px',
           marginBottom: '12px'
@@ -198,13 +193,13 @@ export default function ClientSubscriptionPlans() {
       </div>
 
       {errorMsg && (
-        <div style={{ 
-          padding: '16px 20px', 
-          borderRadius: '12px', 
-          backgroundColor: '#fef2f2', 
-          color: 'var(--danger)', 
-          fontSize: '14px', 
-          fontWeight: 600, 
+        <div style={{
+          padding: '16px 20px',
+          borderRadius: '12px',
+          backgroundColor: 'var(--danger-light)',
+          color: 'var(--danger)',
+          fontSize: '14px',
+          fontWeight: 600,
           border: '1.5px solid rgba(239, 68, 68, 0.2)',
           boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.05)',
           display: 'flex',
@@ -216,13 +211,13 @@ export default function ClientSubscriptionPlans() {
       )}
 
       {successMsg && (
-        <div style={{ 
-          padding: '16px 20px', 
-          borderRadius: '12px', 
-          backgroundColor: '#ecfdf5', 
-          color: '#059669', 
-          fontSize: '14px', 
-          fontWeight: 600, 
+        <div style={{
+          padding: '16px 20px',
+          borderRadius: '12px',
+          backgroundColor: 'var(--accent-light)',
+          color: 'var(--accent-dark)',
+          fontSize: '14px',
+          fontWeight: 600,
           border: '1.5px solid rgba(16, 185, 129, 0.2)',
           boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.05)'
         }}>
@@ -239,7 +234,7 @@ export default function ClientSubscriptionPlans() {
         }
         .premium-plan-card {
           position: relative;
-          background: white;
+          background: var(--bg-card);
           border-radius: 20px;
           border: 1.5px solid var(--border);
           padding: 40px 32px;
@@ -328,7 +323,7 @@ export default function ClientSubscriptionPlans() {
           width: 22px;
           height: 22px;
           border-radius: 50%;
-          background: #e0f2fe;
+          background: var(--primary-light);
           color: var(--primary);
           flex-shrink: 0;
           margin-top: 1px;
@@ -336,41 +331,6 @@ export default function ClientSubscriptionPlans() {
         .feature-icon-wrapper-featured {
           background: #e0e7ff;
           color: #1252AB;
-        }
-        
-        /* FAQ section CSS */
-        .faq-wrapper {
-          margin-top: 48px;
-          border-top: 1px solid var(--border);
-          padding-top: 48px;
-        }
-        .faq-item {
-          background: white;
-          border: 1px solid var(--border);
-          border-radius: 12px;
-          margin-bottom: 12px;
-          overflow: hidden;
-          transition: all 0.3s;
-        }
-        .faq-item-active {
-          border-color: #bae6fd;
-          box-shadow: 0 4px 12px rgba(14, 165, 233, 0.04);
-        }
-        .faq-header {
-          padding: 20px 24px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          cursor: pointer;
-          font-weight: 600;
-          color: var(--text-heading);
-          user-select: none;
-        }
-        .faq-answer {
-          padding: 0 24px 20px 24px;
-          color: var(--text-muted);
-          font-size: 14px;
-          line-height: 1.6;
         }
       `}</style>
 
@@ -387,18 +347,18 @@ export default function ClientSubscriptionPlans() {
                     {plan.name}
                   </h3>
                   {isFeatured && (
-                    <span style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '4px', 
-                      backgroundColor: '#e0e7ff', 
-                      color: '#1252AB', 
-                      fontSize: '11px', 
-                      fontWeight: 700, 
-                      padding: '5px 12px', 
-                      borderRadius: '999px', 
-                      textTransform: 'uppercase', 
-                      letterSpacing: '0.5px' 
+                    <span style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      backgroundColor: '#e0e7ff',
+                      color: '#1252AB',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '5px 12px',
+                      borderRadius: '999px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
                     }}>
                       <Sparkles size={11} fill="currentColor" /> Best Value
                     </span>
@@ -470,37 +430,7 @@ export default function ClientSubscriptionPlans() {
         <span>Secure 256-bit SSL encrypted payments powered by <strong>Razorpay</strong>.</span>
       </div>
 
-      {/* FAQ Section */}
-      <div className="faq-wrapper">
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', letterSpacing: '-0.5px' }}>
-            Frequently Asked Questions
-          </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '6px' }}>
-            Everything you need to know about our plans, billing, and system operations.
-          </p>
-        </div>
 
-        <div style={{ maxWidth: '760px', margin: '0 auto' }}>
-          {faqs.map((faq, idx) => {
-            const isOpen = openFaq === idx;
-            return (
-              <div key={idx} className={`faq-item ${isOpen ? 'faq-item-active' : ''}`}>
-                <div className="faq-header" onClick={() => setOpenFaq(isOpen ? null : idx)}>
-                  <span>{faq.q}</span>
-                  {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                </div>
-                {isOpen && (
-                  <div className="faq-answer">
-                    {faq.a}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-      
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );

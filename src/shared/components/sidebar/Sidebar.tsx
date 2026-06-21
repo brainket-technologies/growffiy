@@ -21,9 +21,12 @@ import {
   X,
   PanelLeftClose,
   PanelLeft,
+  BarChart3,
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { useAppViewModel } from '../../viewmodels/AppContext';
+import { api } from '../../services/api';
+import { API_ENDPOINTS } from '../../../core/constants';
 
 interface SidebarProps {
   isAdmin?: boolean;
@@ -99,8 +102,8 @@ const userGroups: MenuGroup[] = [
   {
     label: 'Trading',
     items: [
-      { name: 'Pre-Open', path: '/clients/scanner', icon: Search },
-      { name: 'Live Market', path: '/clients/market', icon: LineChart },
+      { name: 'Live Trade', path: '/clients/trades', icon: TrendingUp },
+      { name: 'Report', path: '/clients/reports', icon: BarChart3 },
     ],
   },
   {
@@ -252,7 +255,7 @@ const SidebarGroup: React.FC<{
 
 export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
   const pathname = usePathname();
-  const { clients = [] } = useAppViewModel();
+  const { clients = [], activeUser } = useAppViewModel();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -263,6 +266,64 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
   const [userId, setUserId] = useState('');
   const [openTicketsCount, setOpenTicketsCount] = useState(0);
   const [strategiesCount, setStrategiesCount] = useState(0);
+  const [brandLogo, setBrandLogo] = useState('');
+  const [brandName, setBrandName] = useState('');
+  const [brandTitle, setBrandTitle] = useState('');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const storedLogo = localStorage.getItem('growffiy_brand_logo');
+    const storedName = localStorage.getItem('growffiy_brand_name');
+    const storedTitle = localStorage.getItem('growffiy_brand_title');
+    if (storedLogo) setBrandLogo(storedLogo);
+    if (storedName) setBrandName(storedName);
+    if (storedTitle) { setBrandTitle(storedTitle); document.title = storedTitle; }
+
+    const fetchBranding = async () => {
+      try {
+        const res = await api.get(API_ENDPOINTS.SETTINGS);
+        if (res.success && res.settings) {
+          const logo = res.settings.app_logo || '';
+          const name = res.settings.app_name || 'Growffiy';
+          const title = res.settings.app_title || 'Growffiy — Algo Trading Terminal';
+          const desc = res.settings.meta_description || '';
+          const keywords = res.settings.meta_keywords || '';
+          const gaId = res.settings.google_analytics_id || '';
+          const footerText = res.settings.footer_text || '';
+          setBrandLogo(logo); setBrandName(name); setBrandTitle(title);
+          document.title = title;
+          const metaDesc = document.querySelector('meta[name="description"]');
+          if (metaDesc) metaDesc.setAttribute('content', desc);
+          const metaKw = document.querySelector('meta[name="keywords"]');
+          if (metaKw) metaKw.setAttribute('content', keywords);
+          localStorage.setItem('growffiy_brand_logo', logo);
+          localStorage.setItem('growffiy_brand_name', name);
+          localStorage.setItem('growffiy_brand_title', title);
+          localStorage.setItem('growffiy_meta_description', desc);
+          localStorage.setItem('growffiy_meta_keywords', keywords);
+          localStorage.setItem('growffiy_footer_text', footerText);
+          injectGA(gaId);
+        }
+      } catch { }
+    };
+
+    const injectGA = (gaId: string) => {
+      if (!gaId || document.getElementById('growffiy-ga')) return;
+      const script = document.createElement('script');
+      script.id = 'growffiy-ga';
+      script.async = true;
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+      document.head.appendChild(script);
+      const inline = document.createElement('script');
+      inline.textContent = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}');`;
+      document.head.appendChild(inline);
+    };
+    fetchBranding();
+
+    const handleBrandingUpdate = () => fetchBranding();
+    window.addEventListener('branding-updated', handleBrandingUpdate);
+    return () => window.removeEventListener('branding-updated', handleBrandingUpdate);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -296,8 +357,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
   useEffect(() => {
     const fetchCounts = async () => {
       try {
-        const url = isAdmin 
-          ? '/api/support/tickets?all=true' 
+        const url = isAdmin
+          ? '/api/support/tickets?all=true'
           : `/api/support/tickets?userId=${userId}`;
         if (isAdmin || userId) {
           const res = await fetch(url);
@@ -371,13 +432,50 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
       localStorage.removeItem('growffiy_logged_in_user_id');
       localStorage.removeItem('growffiy_logged_in_user_role');
       localStorage.removeItem('growffiy_logged_in_user_name');
-      window.location.href = isAdmin ? '/admin/login' : '/websites/login';
+      window.location.href = isAdmin ? '/admin/login' : '/vendor/login';
     }
   }, [isAdmin]);
 
   const groups = React.useMemo(() => {
     const rawGroups = isAdmin ? adminGroups : userGroups;
-    return rawGroups.map((group) => ({
+
+    // For client users, filter based on product type
+    // Check product type FIRST before showing any UI - don't show then hide
+    let filteredGroups = rawGroups;
+    if (!isAdmin && activeUser?.client?.productType) {
+      const productTypeName = activeUser.client.productType.name.toLowerCase();
+      const isAlgoProduct = productTypeName.includes('algo');
+
+      if (!isAlgoProduct) {
+        // Remove Trading group items (Live Trade, Report) for non-algo products
+        filteredGroups = rawGroups.map((group) => ({
+          ...group,
+          items: group.label === 'Trading'
+            ? []
+            : group.items.filter((item) => {
+              if (item.name === 'Live Trade') return false;
+              if (item.name === 'Report') return false;
+              return true;
+            })
+        })).filter((group) => group.items.length > 0);
+      }
+    } else if (!isAdmin && !activeUser?.client?.productType) {
+      // If product type is not loaded yet, show minimal UI to avoid flash
+      // Only show Dashboard and Subscription Plans until product type is confirmed
+      filteredGroups = rawGroups.map((group) => ({
+        ...group,
+        items: group.items.filter((item) => {
+          // Only show safe items that don't depend on product type
+          if (item.name === 'Dashboard') return true;
+          if (item.name === 'Subscription Plans') return true;
+          if (item.name === 'Payment History') return true;
+          if (item.name === 'Support') return true;
+          return false;
+        })
+      })).filter((group) => group.items.length > 0);
+    }
+
+    return filteredGroups.map((group) => ({
       ...group,
       items: group.items.map((item) => {
         if (item.name === 'Clients') {
@@ -392,12 +490,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
         return item;
       }),
     }));
-  }, [isAdmin, clients.length, strategiesCount, openTicketsCount]);
+  }, [isAdmin, clients.length, strategiesCount, openTicketsCount, activeUser]);
 
+  const userEmail = typeof window !== 'undefined' ? (localStorage.getItem('growffiy_logged_in_user_email') || activeUser?.email || '') : (activeUser?.email || '');
   const userInitial = userName.charAt(0).toUpperCase();
-  const userEmail = userId 
-    ? (userId.includes('@') ? userId : `${userId}@growffiy.com`) 
-    : (isAdmin ? 'admin@growffiy.com' : 'client@growffiy.com');
 
   return (
     <>
@@ -419,9 +515,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
         {/* Brand */}
         <div className={styles.brand}>
           <div className={styles.brandLogo}>
-            <img src="/logo.png" alt="Growffiy" />
+            {brandLogo ? <img src={brandLogo} alt={brandName} /> : <img src="/logo.png" alt={brandName} style={{ filter: 'brightness(0) invert(1)' }} />}
           </div>
-          <span className={styles.brandText}>GROWFFIY</span>
+          <span className={styles.brandText}>{brandName.toUpperCase()}</span>
           {!isMobile && (
             <button
               onClick={toggleCollapsed}

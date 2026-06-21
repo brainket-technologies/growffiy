@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../database/db';
 
@@ -17,8 +19,15 @@ export async function GET() {
       },
       orderBy: { createdAt: 'desc' },
     });
-    return NextResponse.json({ success: true, trades: dbTrades });
+    
+    const isDbConfigured = !!process.env.DATABASE_URL;
+    const finalTrades = isDbConfigured ? dbTrades : inMemoryTrades;
+    return NextResponse.json({ success: true, trades: finalTrades });
   } catch (error) {
+    const isDbConfigured = !!process.env.DATABASE_URL;
+    if (isDbConfigured) {
+      return NextResponse.json({ success: false, error: 'Database query failed' }, { status: 500 });
+    }
     return NextResponse.json({ success: true, trades: inMemoryTrades, isDemoMode: true });
   }
 }

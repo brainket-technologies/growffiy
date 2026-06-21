@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import BrandingProvider from "../shared/components/branding/BrandingProvider";
 
 export const metadata: Metadata = {
   title: "Growffiy | Institutional Algo Trading Platform",
@@ -23,7 +24,7 @@ export default function RootLayout({
         }} />
       </head>
       <body>
-        {children}
+        <BrandingProvider>{children}</BrandingProvider>
       </body>
     </html>
   );

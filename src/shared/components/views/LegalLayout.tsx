@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Activity, ArrowLeft } from 'lucide-react';
 import Footer from './Footer';
@@ -12,6 +12,19 @@ interface LegalLayoutProps {
 }
 
 export default function LegalLayout({ title, lastUpdated, children }: LegalLayoutProps) {
+  const [brandLogo, setBrandLogo] = useState('');
+  const [brandName, setBrandName] = useState('Growffiy');
+
+  useEffect(() => {
+    const load = () => {
+      setBrandLogo(localStorage.getItem('growffiy_brand_logo') || '');
+      setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffiy');
+    };
+    load();
+    window.addEventListener('branding-updated', load);
+    return () => window.removeEventListener('branding-updated', load);
+  }, []);
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -39,13 +52,13 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
               background: 'linear-gradient(135deg, #1E88FF, #1252AB)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <img src="/logo.png" alt="Growffiy" style={{ width: 18, height: 18, objectFit: 'contain' }} />
+              <img src={brandLogo || '/logo.png'} alt={brandName} style={{ width: 18, height: 18, objectFit: 'contain' }} />
             </div>
             <span style={{
               fontSize: 16, fontWeight: 800, color: 'var(--text-heading)',
               fontFamily: 'var(--font-title)',
             }}>
-              GROWFFIY
+              {brandName.toUpperCase()}
             </span>
           </Link>
 

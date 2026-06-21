@@ -16,17 +16,61 @@ export async function GET(request: Request) {
     }
 
     const now = new Date();
-    
-    // Range of exactly 7 days from today
+
+    // 1. SCAN AND EXPIRE SUBSCRIPTIONS THAT HAVE PASSED END DATE
+    const expiredSubscriptions = await prisma.subscription.findMany({
+      where: {
+        status: 'active',
+        endDate: {
+          lt: now
+        }
+      }
+    });
+
+    const expiredUsers = new Set<string>();
+    for (const sub of expiredSubscriptions) {
+      await prisma.subscription.update({
+        where: { id: sub.id },
+        data: { status: 'expired' }
+      });
+      expiredUsers.add(sub.userId);
+    }
+
+    // Update Client subscriptionStatus to expired if they don't have any other active plan currently running
+    for (const userId of expiredUsers) {
+      const currentActiveSub = await prisma.subscription.findFirst({
+        where: {
+          userId,
+          status: 'active',
+          startDate: {
+            lte: now
+          },
+          endDate: {
+            gte: now
+          }
+        }
+      });
+
+      if (!currentActiveSub) {
+        await prisma.client.updateMany({
+          where: { userId },
+          data: {
+            subscriptionStatus: 'expired',
+            tradingStatus: 'inactive'
+          }
+        });
+      }
+    }
+
+    // 2. SCAN FOR SUBSCRIPTIONS EXPIRING IN 7 DAYS (Alert daily starting 7 days before expiry)
     const targetDateMin = new Date();
-    targetDateMin.setDate(now.getDate() + 7);
     targetDateMin.setHours(0, 0, 0, 0);
 
     const targetDateMax = new Date();
     targetDateMax.setDate(now.getDate() + 7);
     targetDateMax.setHours(23, 59, 59, 999);
 
-    // Fetch active subscriptions expiring in exactly 7 days
+    // Fetch active subscriptions expiring in the next 7 days
     const expiringSubscriptions = await prisma.subscription.findMany({
       where: {
         status: 'active',
@@ -46,15 +90,36 @@ export async function GET(request: Request) {
     for (const sub of expiringSubscriptions) {
       if (!sub.user.email) continue;
 
+      // Check if user has a queued subscription that starts after this one expires
+      const hasQueued = await prisma.subscription.findFirst({
+        where: {
+          userId: sub.userId,
+          status: 'active',
+          startDate: {
+            gte: sub.endDate
+          }
+        }
+      });
+      if (hasQueued) {
+        continue;
+      }
+
       const formattedExpiry = new Date(sub.endDate).toLocaleDateString('en-IN', {
         day: '2-digit',
         month: 'long',
         year: 'numeric'
       });
 
-      const emailSubject = `Alert: Your Growffiy Subscription expires in 7 days`;
+      const end = new Date(sub.endDate);
+      const today = new Date();
+      end.setHours(0, 0, 0, 0);
+      today.setHours(0, 0, 0, 0);
+      const diffTime = end.getTime() - today.getTime();
+      const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      const emailSubject = `Alert: Your Growffiy Subscription expires in ${daysLeft} days`;
       
-      const emailText = `Hello ${sub.user.name},\n\nYour Growffiy automated trading subscription (${sub.plan.name}) is expiring in 1 week on ${formattedExpiry}.\n\nTo prevent any disruption to your automated momentum breakout execution, please renew your subscription package by visiting your billing dashboard: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/clients/subscription.\n\nBest Regards,\nGrowffiy Operations Team`;
+      const emailText = `Hello ${sub.user.name},\n\nYour Growffiy automated trading subscription (${sub.plan.name}) is expiring in ${daysLeft} days on ${formattedExpiry}.\n\nTo prevent any disruption to your automated momentum breakout execution, please renew your subscription package by visiting your billing dashboard: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/clients/subscription.\n\nBest Regards,\nGrowffiy Operations Team`;
 
       const emailHtml = `
         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 32px; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
@@ -66,7 +131,7 @@ export async function GET(request: Request) {
           <p style="font-size: 15px; line-height: 1.6; color: #334155;">Hello <strong>${sub.user.name}</strong>,</p>
           
           <p style="font-size: 15px; line-height: 1.6; color: #334155;">
-            This is a friendly reminder that your active automated trading plan is expiring in <strong>1 week</strong>.
+            This is a friendly reminder that your active automated trading plan is expiring in <strong>${daysLeft} ${daysLeft === 1 ? 'day' : 'days'}</strong>.
           </p>
           
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin: 24px 0;">

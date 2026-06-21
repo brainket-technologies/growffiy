@@ -16,7 +16,7 @@ export default function ClientPaymentHistory() {
     if (typeof window !== 'undefined') {
       const storedId = localStorage.getItem('growffiy_logged_in_user_id');
       if (!storedId) {
-        window.location.href = '/websites/login';
+        window.location.href = '/vendor/login';
         return;
       }
     }

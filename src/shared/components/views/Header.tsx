@@ -81,7 +81,7 @@ export const Header: React.FC<HeaderProps> = ({
       if (activeRole === 'admin') {
         window.location.href = '/admin/login';
       } else {
-        window.location.href = '/websites/login';
+        window.location.href = '/vendor/login';
       }
     }
   };

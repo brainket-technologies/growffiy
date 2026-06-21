@@ -169,6 +169,7 @@ export default function AdminDashboard() {
 
   // Extract stats
   const totalClients = stats?.totalClients || 0;
+  const activeSubscriptions = stats?.activeSubscriptions || 0;
   const activeStrategies = stats?.activeStrategies || 0;
   const liveAccounts = stats?.activeClients || 0;
   const totalPnl = stats?.totalPnl || 0;
@@ -378,8 +379,8 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* 4 Top KPI Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '18px' }}>
+      {/* 5 Top KPI Cards Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '18px' }}>
         <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--primary)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total Clients</span>
@@ -392,6 +393,21 @@ export default function AdminDashboard() {
           </h2>
           <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
             <Activity size={12} /> ↑ 12.5%
+          </span>
+        </Card>
+
+        <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--accent)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Subscribed</span>
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--accent-light)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Users size={18} />
+            </div>
+          </div>
+          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
+            {activeSubscriptions}
+          </h2>
+          <span style={{ fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
+            Active subscriptions
           </span>
         </Card>
 

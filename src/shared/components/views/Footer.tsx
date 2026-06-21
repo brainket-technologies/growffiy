@@ -1,10 +1,25 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Activity, Mail, Phone, MapPin } from 'lucide-react';
 
 export default function Footer() {
+  const [brandLogo, setBrandLogo] = useState('');
+  const [brandName, setBrandName] = useState('Growffiy');
+  const [footerText, setFooterText] = useState('');
+
+  useEffect(() => {
+    const load = () => {
+      setBrandLogo(localStorage.getItem('growffiy_brand_logo') || '');
+      setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffiy');
+      setFooterText(localStorage.getItem('growffiy_footer_text') || '');
+    };
+    load();
+    window.addEventListener('branding-updated', load);
+    return () => window.removeEventListener('branding-updated', load);
+  }, []);
+
   return (
     <footer className="footer">
       <div className="footer-inner">
@@ -13,9 +28,9 @@ export default function Footer() {
           <div>
             <div className="footer-brand-logo">
               <div className="footer-brand-logo-icon">
-                <img src="/logo.png" alt="Growffiy" style={{ width: 18, height: 18, objectFit: 'contain' }} />
+                {brandLogo ? <img src={brandLogo} alt={brandName} style={{ width: 18, height: 18, objectFit: 'contain' }} /> : <img src="/logo.png" alt={brandName} style={{ width: 18, height: 18, objectFit: 'contain' }} />}
               </div>
-              <span className="footer-brand-name">GROWFFIY</span>
+              <span className="footer-brand-name">{brandName.toUpperCase()}</span>
             </div>
             <p className="footer-brand-desc">
               Advanced algorithmic trading middleware connecting directly with Zerodha Kite API.
@@ -39,16 +54,16 @@ export default function Footer() {
             <Link href="/#features" className="footer-link">Features</Link>
             <Link href="/#strategy" className="footer-link">Strategy</Link>
             <Link href="/#pricing" className="footer-link">Pricing</Link>
-            <Link href="/websites/login" className="footer-link" style={{ color: '#1E88FF' }}>Client Portal</Link>
+            <Link href="/vendor/login" className="footer-link" style={{ color: '#1E88FF' }}>Client Portal</Link>
           </div>
 
           {/* Legal */}
           <div>
             <div className="footer-col-title">Legal</div>
-            <Link href="/websites/privacy" className="footer-link">Privacy Policy</Link>
-            <Link href="/websites/terms" className="footer-link">Terms &amp; Conditions</Link>
-            <Link href="/websites/refund" className="footer-link">Refund Policy</Link>
-            <Link href="/websites/disclaimer" className="footer-link">Risk Disclaimer</Link>
+            <Link href="/vendor/privacy" className="footer-link">Privacy Policy</Link>
+            <Link href="/vendor/terms" className="footer-link">Terms &amp; Conditions</Link>
+            <Link href="/vendor/refund" className="footer-link">Refund Policy</Link>
+            <Link href="/vendor/disclaimer" className="footer-link">Risk Disclaimer</Link>
           </div>
 
           {/* Contact */}
@@ -75,7 +90,7 @@ export default function Footer() {
         </div>
 
         <div className="footer-bottom">
-          <span>© 2026 Growffiy Inc. All rights reserved.</span>
+          <span>{footerText || '© 2026 Growffiy Inc. All rights reserved.'}</span>
           <span>Designed for NSE/BSE Intraday Algo Traders</span>
         </div>
       </div>

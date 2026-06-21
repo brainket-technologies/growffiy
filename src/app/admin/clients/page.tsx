@@ -363,6 +363,7 @@ export default function ClientsPage() {
                 <th>Strategy</th>
                 <th>Capital (INR)</th>
                 <th>Kite Session</th>
+                <th>Subscribed</th>
                 <th>Trading Status</th>
                 <th style={{ textAlign: 'right', minWidth: '120px' }}>Actions</th>
               </tr>
@@ -370,7 +371,7 @@ export default function ClientsPage() {
             <tbody>
               {currentClients.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                  <td colSpan={10} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                     No client accounts match the search or filter criteria.
                   </td>
                 </tr>
@@ -442,6 +443,15 @@ export default function ClientsPage() {
                           <span className="badge badge-red">Expired</span>
                         ) : (
                           <span className="badge">Disconnected</span>
+                        )}
+                      </td>
+                      <td>
+                        {client.subscriptionStatus === 'active' ? (
+                          <span className="badge badge-green">Active</span>
+                        ) : client.subscriptionStatus === 'expired' ? (
+                          <span className="badge badge-red">Expired</span>
+                        ) : (
+                          <span className="badge badge-yellow">Pending</span>
                         )}
                       </td>
                       <td>
