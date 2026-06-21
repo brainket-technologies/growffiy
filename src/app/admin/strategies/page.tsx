@@ -1560,6 +1560,86 @@ export default function StrategiesPage() {
                 </div>
               </Card>
 
+              {/* Dynamic Condition Builder */}
+              <Card hoverable>
+                <div style={{ background: 'linear-gradient(135deg, rgba(18,82,171,0.06) 0%, rgba(79,70,229,0.04) 100%)', margin: '-24px -24px 16px -24px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', borderRadius: '16px 16px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                    <FileCode size={16} color="var(--color-info)" /> Dynamic Entry Conditions
+                  </h3>
+                  <Button type="button" variant="secondary" onClick={addCondition} style={{ padding: '6px 14px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, background: 'rgba(18,82,171,0.08)', border: '1px solid rgba(18,82,171,0.2)', color: 'var(--color-primary)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(18,82,171,0.15)'; e.currentTarget.style.borderColor = 'rgba(18,82,171,0.35)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(18,82,171,0.08)'; e.currentTarget.style.borderColor = 'rgba(18,82,171,0.2)'; }}>
+                    <Plus size={14} /> Add Rule
+                  </Button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {formData.conditions.map((cond, idx) => (
+                    <div key={idx} style={{ display: 'grid', gridTemplateColumns: idx > 0 ? '56px 1fr 120px 130px 28px' : '1fr 120px 130px 28px', gap: '8px', alignItems: 'center', background: idx % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border-color)', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = colors.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}>
+                      {idx > 0 && (
+                        <select
+                          value={cond.logical}
+                          onChange={(e: any) => handleConditionChange(idx, 'logical', e.target.value)}
+                          style={{ width: '56px', padding: '6px 4px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', fontSize: '11px', fontWeight: 700 }}
+                        >
+                          <option value="AND">AND</option>
+                          <option value="OR">OR</option>
+                        </select>
+                      )}
+                      <select
+                        value={cond.indicator}
+                        onChange={(e) => handleConditionChange(idx, 'indicator', e.target.value)}
+                        style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', fontSize: '12px' }}
+                      >
+                        {INDICATORS.map(ind => (
+                          <option key={ind} value={ind}>{ind}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={cond.operator}
+                        onChange={(e) => handleConditionChange(idx, 'operator', e.target.value)}
+                        style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', fontSize: '12px' }}
+                      >
+                        <option value=">">&gt;</option>
+                        <option value="<">&lt;</option>
+                        <option value="==">==</option>
+                        <option value=">=">&gt;=</option>
+                        <option value="<=">&lt;=</option>
+                        <option value="crosses-above">↑ crosses</option>
+                        <option value="crosses-below">↓ crosses</option>
+                      </select>
+                      <input
+                        type="text"
+                        value={cond.value}
+                        onChange={(e) => handleConditionChange(idx, 'value', e.target.value)}
+                        style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', fontSize: '12px', boxSizing: 'border-box' }}
+                        placeholder="e.g. 50"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeCondition(idx)}
+                        style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', transition: 'all 0.2s' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.transform = 'none'; }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  {formData.conditions.length === 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px', gap: '12px', color: 'var(--text-secondary)', background: 'rgba(18,82,171,0.03)', borderRadius: '12px', border: '1px dashed var(--border-color)' }}>
+                      <FileCode size={24} style={{ opacity: 0.3 }} />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <p style={{ fontSize: '13px', textAlign: 'center', margin: 0 }}>No conditions set.</p>
+                        <p style={{ fontSize: '11px', textAlign: 'center', margin: 0, opacity: 0.7 }}>Trades will trigger at entry time automatically.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
+
+            {/* RIGHT: DYNAMIC CONDITION BUILDER & STOPLOSS/TARGET/RISK */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              
               {/* Trade Action config */}
               <Card hoverable>
                 <div style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.06) 0%, rgba(5,150,105,0.04) 100%)', margin: '-24px -24px 16px -24px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', borderRadius: '16px 16px 0 0' }}>
@@ -1651,86 +1731,6 @@ export default function StrategiesPage() {
                     style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                     placeholder="e.g. 0.05%"
                   />
-                </div>
-              </Card>
-            </div>
-
-            {/* RIGHT: DYNAMIC CONDITION BUILDER & STOPLOSS/TARGET/RISK */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              
-              {/* Dynamic Condition Builder */}
-              <Card hoverable>
-                <div style={{ background: 'linear-gradient(135deg, rgba(18,82,171,0.06) 0%, rgba(79,70,229,0.04) 100%)', margin: '-24px -24px 16px -24px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', borderRadius: '16px 16px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                    <FileCode size={16} color="var(--color-info)" /> Dynamic Entry Conditions
-                  </h3>
-                  <Button type="button" variant="secondary" onClick={addCondition} style={{ padding: '6px 14px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, background: 'rgba(18,82,171,0.08)', border: '1px solid rgba(18,82,171,0.2)', color: 'var(--color-primary)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(18,82,171,0.15)'; e.currentTarget.style.borderColor = 'rgba(18,82,171,0.35)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(18,82,171,0.08)'; e.currentTarget.style.borderColor = 'rgba(18,82,171,0.2)'; }}>
-                    <Plus size={14} /> Add Rule
-                  </Button>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {formData.conditions.map((cond, idx) => (
-                    <div key={idx} style={{ display: 'grid', gridTemplateColumns: idx > 0 ? '56px 1fr 120px 130px 28px' : '1fr 120px 130px 28px', gap: '8px', alignItems: 'center', background: idx % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border-color)', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = colors.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}>
-                      {idx > 0 && (
-                        <select
-                          value={cond.logical}
-                          onChange={(e: any) => handleConditionChange(idx, 'logical', e.target.value)}
-                          style={{ width: '56px', padding: '6px 4px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', fontSize: '11px', fontWeight: 700 }}
-                        >
-                          <option value="AND">AND</option>
-                          <option value="OR">OR</option>
-                        </select>
-                      )}
-                      <select
-                        value={cond.indicator}
-                        onChange={(e) => handleConditionChange(idx, 'indicator', e.target.value)}
-                        style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', fontSize: '12px' }}
-                      >
-                        {INDICATORS.map(ind => (
-                          <option key={ind} value={ind}>{ind}</option>
-                        ))}
-                      </select>
-                      <select
-                        value={cond.operator}
-                        onChange={(e) => handleConditionChange(idx, 'operator', e.target.value)}
-                        style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', fontSize: '12px' }}
-                      >
-                        <option value=">">&gt;</option>
-                        <option value="<">&lt;</option>
-                        <option value="==">==</option>
-                        <option value=">=">&gt;=</option>
-                        <option value="<=">&lt;=</option>
-                        <option value="crosses-above">↑ crosses</option>
-                        <option value="crosses-below">↓ crosses</option>
-                      </select>
-                      <input
-                        type="text"
-                        value={cond.value}
-                        onChange={(e) => handleConditionChange(idx, 'value', e.target.value)}
-                        style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', fontSize: '12px', boxSizing: 'border-box' }}
-                        placeholder="e.g. 50"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeCondition(idx)}
-                        style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', transition: 'all 0.2s' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.transform = 'none'; }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
-                  {formData.conditions.length === 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px', gap: '12px', color: 'var(--text-secondary)', background: 'rgba(18,82,171,0.03)', borderRadius: '12px', border: '1px dashed var(--border-color)' }}>
-                      <FileCode size={24} style={{ opacity: 0.3 }} />
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <p style={{ fontSize: '13px', textAlign: 'center', margin: 0 }}>No conditions set.</p>
-                        <p style={{ fontSize: '11px', textAlign: 'center', margin: 0, opacity: 0.7 }}>Trades will trigger at entry time automatically.</p>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </Card>
 
