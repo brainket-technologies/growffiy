@@ -529,10 +529,49 @@ export default function ClientDetailsPage() {
 
       {/* Breadcrumb Navigation & Back Controls */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-          <span style={{ cursor: 'pointer' }} onClick={() => router.push(APP_ROUTES.ADMIN_CLIENTS)}>Clients</span>
-          <ChevronRight size={14} />
-          <span style={{ color: 'var(--text-heading)', fontWeight: 500 }}>{name}</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
+            <span style={{ cursor: 'pointer' }} onClick={() => router.push(APP_ROUTES.ADMIN_CLIENTS)}>Clients</span>
+            <ChevronRight size={14} />
+            <span style={{ color: 'var(--text-heading)', fontWeight: 500 }}>{name}</span>
+          </div>
+          <div>
+            {accessToken ? (
+              <Button 
+                type="button" 
+                variant="danger" 
+                onClick={() => handleSimulateConnection(false)} 
+                disabled={isDisconnecting}
+                style={{ padding: '8px 16px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                {isDisconnecting ? (
+                  <>
+                    <span style={{
+                      width: '12px',
+                      height: '12px',
+                      border: '2px solid rgba(255,255,255,0.3)',
+                      borderTopColor: 'white',
+                      borderRadius: '50%',
+                      display: 'inline-block',
+                      animation: 'spin 0.8s linear infinite'
+                    }} />
+                    Disconnecting...
+                  </>
+                ) : (
+                  'Disconnect Zerodha'
+                )}
+              </Button>
+            ) : (
+              <Button 
+                type="button" 
+                onClick={() => handleSimulateConnection(true)} 
+                className="btn-connect-kite"
+                style={{ borderRadius: '8px', padding: '8px 16px', fontSize: '12px', fontWeight: 600 }}
+              >
+                Connect Zerodha
+              </Button>
+            )}
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
@@ -827,43 +866,6 @@ export default function ClientDetailsPage() {
                     <Info size={15} />
                   </button>
                 </h4>
-                <div>
-                  {accessToken ? (
-                    <Button 
-                      type="button" 
-                      variant="danger" 
-                      onClick={() => handleSimulateConnection(false)} 
-                      disabled={isDisconnecting}
-                      style={{ padding: '8px 16px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      {isDisconnecting ? (
-                        <>
-                          <span style={{
-                            width: '12px',
-                            height: '12px',
-                            border: '2px solid rgba(255,255,255,0.3)',
-                            borderTopColor: 'white',
-                            borderRadius: '50%',
-                            display: 'inline-block',
-                            animation: 'spin 0.8s linear infinite'
-                          }} />
-                          Disconnecting...
-                        </>
-                      ) : (
-                        'Disconnect Zerodha'
-                      )}
-                    </Button>
-                  ) : (
-                    <Button 
-                      type="button" 
-                      onClick={() => handleSimulateConnection(true)} 
-                      className="btn-connect-kite"
-                      style={{ borderRadius: '8px' }}
-                    >
-                      Connect Zerodha
-                    </Button>
-                  )}
-                </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
