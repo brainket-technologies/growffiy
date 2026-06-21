@@ -204,31 +204,25 @@ export default function SettingsPage() {
       )}
 
       {/* Tabs Switcher Navigation Bar */}
-      <div style={{ 
-        display: 'flex', 
-        borderBottom: '1px solid var(--border-light)', 
-        gap: '24px',
-        marginBottom: '4px' 
-      }}>
+      <div style={{ display: 'flex', background: 'var(--surface)', padding: '2px', borderRadius: '8px', border: '1px solid var(--border)', width: 'fit-content' }}>
         <button
           type="button"
           onClick={() => setActiveTab('payments')}
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            padding: '14px 4px',
-            fontSize: '14px',
-            fontWeight: 600,
+            gap: '6px',
             border: 'none',
-            borderBottom: activeTab === 'payments' ? '2px solid var(--primary)' : '2px solid transparent',
-            color: activeTab === 'payments' ? 'var(--primary)' : 'var(--text-secondary)',
-            background: 'none',
+            background: activeTab === 'payments' ? 'var(--bg-white)' : 'transparent',
+            color: activeTab === 'payments' ? 'var(--text-heading)' : 'var(--text-muted)',
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: 600,
             cursor: 'pointer',
-            transition: 'all 0.2s',
           }}
         >
-          <CreditCard size={16} />
+          <CreditCard size={15} />
           Payment Gateway
         </button>
 
@@ -238,20 +232,19 @@ export default function SettingsPage() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            padding: '14px 4px',
-            fontSize: '14px',
-            fontWeight: 600,
+            gap: '6px',
             border: 'none',
-            borderBottom: activeTab === 'smtp' ? '2px solid var(--primary)' : '2px solid transparent',
-            color: activeTab === 'smtp' ? 'var(--primary)' : 'var(--text-secondary)',
-            background: 'none',
+            background: activeTab === 'smtp' ? 'var(--bg-white)' : 'transparent',
+            color: activeTab === 'smtp' ? 'var(--text-heading)' : 'var(--text-muted)',
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: 600,
             cursor: 'pointer',
-            transition: 'all 0.2s',
           }}
         >
-          <Mail size={16} />
-          SMTP Mail Configuration
+          <Mail size={15} />
+          SMTP Mail
         </button>
 
         <button
@@ -260,19 +253,18 @@ export default function SettingsPage() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            padding: '14px 4px',
-            fontSize: '14px',
-            fontWeight: 600,
+            gap: '6px',
             border: 'none',
-            borderBottom: activeTab === 'support' ? '2px solid var(--primary)' : '2px solid transparent',
-            color: activeTab === 'support' ? 'var(--primary)' : 'var(--text-secondary)',
-            background: 'none',
+            background: activeTab === 'support' ? 'var(--bg-white)' : 'transparent',
+            color: activeTab === 'support' ? 'var(--text-heading)' : 'var(--text-muted)',
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: 600,
             cursor: 'pointer',
-            transition: 'all 0.2s',
           }}
         >
-          <LifeBuoy size={16} />
+          <LifeBuoy size={15} />
           Support Info
         </button>
 
@@ -282,40 +274,39 @@ export default function SettingsPage() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            padding: '14px 4px',
-            fontSize: '14px',
-            fontWeight: 600,
+            gap: '6px',
             border: 'none',
-            borderBottom: activeTab === 'algo' ? '2px solid var(--primary)' : '2px solid transparent',
-            color: activeTab === 'algo' ? 'var(--primary)' : 'var(--text-secondary)',
-            background: 'none',
+            background: activeTab === 'algo' ? 'var(--bg-white)' : 'transparent',
+            color: activeTab === 'algo' ? 'var(--text-heading)' : 'var(--text-muted)',
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: 600,
             cursor: 'pointer',
-            transition: 'all 0.2s',
           }}
         >
-          <Clock size={16} />
+          <Clock size={15} />
           Algo Timings
         </button>
+
         <button
           type="button"
           onClick={() => setActiveTab('calendar')}
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            padding: '14px 4px',
-            fontSize: '14px',
-            fontWeight: 600,
+            gap: '6px',
             border: 'none',
-            borderBottom: activeTab === 'calendar' ? '2px solid var(--primary)' : '2px solid transparent',
-            color: activeTab === 'calendar' ? 'var(--primary)' : 'var(--text-secondary)',
-            background: 'none',
+            background: activeTab === 'calendar' ? 'var(--bg-white)' : 'transparent',
+            color: activeTab === 'calendar' ? 'var(--text-heading)' : 'var(--text-muted)',
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: 600,
             cursor: 'pointer',
-            transition: 'all 0.2s',
           }}
         >
-          <Calendar size={16} />
+          <Calendar size={15} />
           Market Calendar
         </button>
       </div>
@@ -732,6 +723,7 @@ export default function SettingsPage() {
                     value={smtpUser}
                     onChange={(e) => setSmtpUser(e.target.value)}
                     placeholder="notifications@yourdomain.com"
+                    autoComplete="off"
                     style={{ height: '38px', fontSize: '13px' }}
                   />
                 </div>
@@ -747,6 +739,7 @@ export default function SettingsPage() {
                       value={smtpPassword}
                       onChange={(e) => setSmtpPassword(e.target.value)}
                       placeholder="Enter App Password"
+                      autoComplete="new-password"
                       style={{ paddingRight: '36px', height: '38px', fontSize: '13px' }}
                     />
                     <button
@@ -876,14 +869,12 @@ export default function SettingsPage() {
             </div>
           </Card>
         )}
-      </form>
 
 
         {/* Algo Timings View Tab */}
         {activeTab === 'algo' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <Card style={{ padding: '28px 32px' }}>
-              <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Card style={{ padding: '24px 28px' }}>
+            <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'linear-gradient(135deg, #1E88FF, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
@@ -986,14 +977,11 @@ export default function SettingsPage() {
                 </Button>
               </div>
             </Card>
-          </div>
         )}
 
         {/* Market Calendar Tab */}
         {activeTab === 'calendar' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* Header Card */}
-            <Card style={{ padding: '28px 32px' }}>
+            <Card style={{ padding: '24px 28px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
                 <div>
                   <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1218,8 +1206,9 @@ export default function SettingsPage() {
                 </Button>
               </div>
             </Card>
-          </div>
         )}
+
+      </form>
 
       {/* Info Help Modal */}
       {infoModal && (

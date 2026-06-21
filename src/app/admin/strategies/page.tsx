@@ -2334,55 +2334,55 @@ export default function StrategiesPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1.3fr', gap: '20px' }}>
                 <Card style={{ borderRadius: '12px', border: '1px solid var(--border)' }}>
                   <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', marginBottom: '14px' }}>Performance Metrics</h4>
-                  <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }} className="metrics-table">
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
-                        <th style={{ padding: '4px 0', color: 'var(--text-muted)', fontWeight: 600, width: '30%', fontSize: '10px' }}>METRIC</th>
-                        <th style={{ padding: '4px 0', color: 'var(--text-muted)', fontWeight: 600, textAlign: 'right', width: '22%', fontSize: '10px' }}>VALUE</th>
-                        <th style={{ padding: '4px 0', color: 'var(--text-muted)', fontWeight: 600, textAlign: 'right', width: '24%', fontSize: '9px', whiteSpace: 'nowrap' }}>30 DAYS</th>
-                        <th style={{ padding: '4px 0', color: 'var(--text-muted)', fontWeight: 600, textAlign: 'right', width: '24%', fontSize: '9px', whiteSpace: 'nowrap' }}>90 DAYS</th>
+                        <th style={{ width: '30%' }}>METRIC</th>
+                        <th style={{ textAlign: 'right', width: '22%' }}>VALUE</th>
+                        <th style={{ textAlign: 'right', width: '24%', whiteSpace: 'nowrap' }}>30D</th>
+                        <th style={{ textAlign: 'right', width: '24%', whiteSpace: 'nowrap' }}>90D</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr style={{ borderBottom: '1px solid var(--surface)' }}>
-                        <td style={{ padding: '5px 0', color: 'var(--text-body)', fontSize: '11px' }}>Total P&L (₹)</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontWeight: 600, fontSize: '11px', color: selectedStrategyPnl >= 0 ? 'var(--accent)' : 'var(--danger)' }}>₹{selectedStrategyPnl.toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontSize: '10px', color: selectedStrategyPnl >= last30dPnL ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyPnl, last30dPnL)}</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontSize: '10px', color: selectedStrategyPnl >= last90dPnL ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyPnl, last90dPnL)}</td>
+                      <tr>
+                        <td>Total P&L (₹)</td>
+                        <td style={{ textAlign: 'right', fontWeight: 600, color: selectedStrategyPnl >= 0 ? 'var(--accent)' : 'var(--danger)' }}>₹{selectedStrategyPnl.toLocaleString('en-IN')}</td>
+                        <td className="cmp" style={{ textAlign: 'right', color: selectedStrategyPnl >= last30dPnL ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyPnl, last30dPnL)}</td>
+                        <td className="cmp" style={{ textAlign: 'right', color: selectedStrategyPnl >= last90dPnL ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyPnl, last90dPnL)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid var(--surface)' }}>
-                        <td style={{ padding: '5px 0', color: 'var(--text-body)', fontSize: '11px' }}>Net Profit (₹)</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontWeight: 600, fontSize: '11px', color: 'var(--accent)' }}>₹{selectedStrategyWinsSum.toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontSize: '10px', color: selectedStrategyWinsSum >= (last30DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)) ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyWinsSum, (last30DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)))}</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontSize: '10px', color: selectedStrategyWinsSum >= (last90DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)) ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyWinsSum, (last90DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)))}</td>
+                      <tr>
+                        <td>Net Profit (₹)</td>
+                        <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--accent)' }}>₹{selectedStrategyWinsSum.toLocaleString('en-IN')}</td>
+                        <td className="cmp" style={{ textAlign: 'right', color: selectedStrategyWinsSum >= (last30DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)) ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyWinsSum, (last30DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)))}</td>
+                        <td className="cmp" style={{ textAlign: 'right', color: selectedStrategyWinsSum >= (last90DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)) ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyWinsSum, (last90DaysTrades.filter(t => Number(t.pnl || 0) > 0).reduce((acc, t) => acc + Number(t.pnl || 0), 0)))}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid var(--surface)' }}>
-                        <td style={{ padding: '5px 0', color: 'var(--text-body)', fontSize: '11px' }}>Net Loss (₹)</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontWeight: 600, fontSize: '11px', color: 'var(--danger)' }}>-₹{Math.abs(selectedStrategyLossesSum).toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontSize: '10px', color: Math.abs(selectedStrategyLossesSum) <= Math.abs(last30dLossesSum) ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyLossesSum, last30dLossesSum)}</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontSize: '10px', color: Math.abs(selectedStrategyLossesSum) <= Math.abs(last90dLossesSum) ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyLossesSum, last90dLossesSum)}</td>
+                      <tr>
+                        <td>Net Loss (₹)</td>
+                        <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--danger)' }}>-₹{Math.abs(selectedStrategyLossesSum).toLocaleString('en-IN')}</td>
+                        <td className="cmp" style={{ textAlign: 'right', color: Math.abs(selectedStrategyLossesSum) <= Math.abs(last30dLossesSum) ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyLossesSum, last30dLossesSum)}</td>
+                        <td className="cmp" style={{ textAlign: 'right', color: Math.abs(selectedStrategyLossesSum) <= Math.abs(last90dLossesSum) ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyLossesSum, last90dLossesSum)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid var(--surface)' }}>
-                        <td style={{ padding: '5px 0', color: 'var(--text-body)', fontSize: '11px' }}>Win Rate</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontWeight: 600, fontSize: '11px' }}>{selectedStrategyWinRate.toFixed(1)}%</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontSize: '10px', color: selectedStrategyWinRate >= last30dWinRate ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyWinRate, last30dWinRate)}</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontSize: '10px', color: selectedStrategyWinRate >= last90dWinRate ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyWinRate, last90dWinRate)}</td>
+                      <tr>
+                        <td>Win Rate</td>
+                        <td style={{ textAlign: 'right', fontWeight: 600 }}>{selectedStrategyWinRate.toFixed(1)}%</td>
+                        <td className="cmp" style={{ textAlign: 'right', color: selectedStrategyWinRate >= last30dWinRate ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyWinRate, last30dWinRate)}</td>
+                        <td className="cmp" style={{ textAlign: 'right', color: selectedStrategyWinRate >= last90dWinRate ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyWinRate, last90dWinRate)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid var(--surface)' }}>
-                        <td style={{ padding: '5px 0', color: 'var(--text-body)', fontSize: '11px' }}>Profit Factor</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontWeight: 600, fontSize: '11px' }}>{selectedStrategyProfitFactor.toFixed(2)}</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontSize: '10px', color: selectedStrategyProfitFactor >= last30dProfitFactor ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyProfitFactor, last30dProfitFactor)}</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontSize: '10px', color: selectedStrategyProfitFactor >= last90dProfitFactor ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyProfitFactor, last90dProfitFactor)}</td>
+                      <tr>
+                        <td>Profit Factor</td>
+                        <td style={{ textAlign: 'right', fontWeight: 600 }}>{selectedStrategyProfitFactor.toFixed(2)}</td>
+                        <td className="cmp" style={{ textAlign: 'right', color: selectedStrategyProfitFactor >= last30dProfitFactor ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyProfitFactor, last30dProfitFactor)}</td>
+                        <td className="cmp" style={{ textAlign: 'right', color: selectedStrategyProfitFactor >= last90dProfitFactor ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyProfitFactor, last90dProfitFactor)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid var(--surface)' }}>
-                        <td style={{ padding: '5px 0', color: 'var(--text-body)', fontSize: '11px' }}>Max Drawdown (₹)</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontWeight: 600, fontSize: '11px' }}>₹{selectedStrategyDrawdown.toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontSize: '10px', color: selectedStrategyDrawdown <= last30dDrawdown ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyDrawdown, last30dDrawdown)}</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontSize: '10px', color: selectedStrategyDrawdown <= last90dDrawdown ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyDrawdown, last90dDrawdown)}</td>
+                      <tr>
+                        <td>Max Drawdown (₹)</td>
+                        <td style={{ textAlign: 'right', fontWeight: 600 }}>₹{selectedStrategyDrawdown.toLocaleString('en-IN')}</td>
+                        <td className="cmp" style={{ textAlign: 'right', color: selectedStrategyDrawdown <= last30dDrawdown ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyDrawdown, last30dDrawdown)}</td>
+                        <td className="cmp" style={{ textAlign: 'right', color: selectedStrategyDrawdown <= last90dDrawdown ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyDrawdown, last90dDrawdown)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid var(--surface)' }}>
-                        <td style={{ padding: '5px 0', color: 'var(--text-body)', fontSize: '11px' }}>Max Drawdown (%)</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontWeight: 600, fontSize: '11px' }}>{(() => {
+                      <tr>
+                        <td>Max Drawdown (%)</td>
+                        <td style={{ textAlign: 'right', fontWeight: 600 }}>{(() => {
                            if (closedTrades.length === 0) return '0.00%';
                            let peak = 0; let maxDd = 0; let running = 0;
                            for (const t of closedTrades) {
@@ -2395,20 +2395,20 @@ export default function StrategiesPage() {
                            const totalInvested = closedTrades.reduce((s, t) => s + Number(t.entryPrice || 0) * Number(t.quantity || 1), 0);
                            return totalInvested > 0 ? `${((maxDd / totalInvested) * 100).toFixed(2)}%` : '0.00%';
                          })()}</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontSize: '10px', color: 'var(--text-muted)' }}>—</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontSize: '10px', color: 'var(--text-muted)' }}>—</td>
-                      </tr>
-                      <tr style={{ borderBottom: '1px solid var(--surface)' }}>
-                        <td style={{ padding: '5px 0', color: 'var(--text-body)', fontSize: '11px' }}>Total Trades</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontWeight: 600, fontSize: '11px' }}>{selectedStrategyTradesCount}</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontSize: '10px', color: selectedStrategyTradesCount >= last30dTradesCount ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyTradesCount, last30dTradesCount)}</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontSize: '10px', color: selectedStrategyTradesCount >= last90dTradesCount ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyTradesCount, last90dTradesCount)}</td>
+                        <td className="cmp" style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
+                        <td className="cmp" style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
                       </tr>
                       <tr>
-                        <td style={{ padding: '5px 0', color: 'var(--text-body)', fontSize: '11px' }}>Average Trade (₹)</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontWeight: 600, fontSize: '11px' }}>₹{selectedStrategyExpectancy.toFixed(2)}</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontSize: '10px', color: selectedStrategyExpectancy >= (last30dTradesCount === 0 ? 0 : last30dPnL / last30dTradesCount) ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyExpectancy, (last30dTradesCount === 0 ? 0 : last30dPnL / last30dTradesCount))}</td>
-                        <td style={{ padding: '5px 0', textAlign: 'right', fontSize: '10px', color: selectedStrategyExpectancy >= (last90dTradesCount === 0 ? 0 : last90dPnL / last90dTradesCount) ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyExpectancy, (last90dTradesCount === 0 ? 0 : last90dPnL / last90dTradesCount))}</td>
+                        <td>Total Trades</td>
+                        <td style={{ textAlign: 'right', fontWeight: 600 }}>{selectedStrategyTradesCount}</td>
+                        <td className="cmp" style={{ textAlign: 'right', color: selectedStrategyTradesCount >= last30dTradesCount ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyTradesCount, last30dTradesCount)}</td>
+                        <td className="cmp" style={{ textAlign: 'right', color: selectedStrategyTradesCount >= last90dTradesCount ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyTradesCount, last90dTradesCount)}</td>
+                      </tr>
+                      <tr>
+                        <td>Average Trade (₹)</td>
+                        <td style={{ textAlign: 'right', fontWeight: 600 }}>₹{selectedStrategyExpectancy.toFixed(2)}</td>
+                        <td className="cmp" style={{ textAlign: 'right', color: selectedStrategyExpectancy >= (last30dTradesCount === 0 ? 0 : last30dPnL / last30dTradesCount) ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyExpectancy, (last30dTradesCount === 0 ? 0 : last30dPnL / last30dTradesCount))}</td>
+                        <td className="cmp" style={{ textAlign: 'right', color: selectedStrategyExpectancy >= (last90dTradesCount === 0 ? 0 : last90dPnL / last90dTradesCount) ? 'var(--accent)' : 'var(--danger)' }}>{getPctChange(selectedStrategyExpectancy, (last90dTradesCount === 0 ? 0 : last90dPnL / last90dTradesCount))}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -2515,9 +2515,6 @@ export default function StrategiesPage() {
 
                 {selectedClientIds.length > 0 && (
                   <div style={{ display: 'flex', gap: '10px' }}>
-                    <Button variant="success" onClick={() => handleBulkAssign(false)} style={{ padding: '6px 12px', fontSize: '12px' }}>
-                      Bulk Assign
-                    </Button>
                     <Button variant="danger" onClick={() => handleBulkAssign(true)} style={{ padding: '6px 12px', fontSize: '12px' }}>
                       Bulk Remove
                     </Button>
@@ -2564,8 +2561,8 @@ export default function StrategiesPage() {
                           <td style={{ padding: '12px' }}><span className="badge badge-info">{client.segment || 'NSE F&O'}</span></td>
                           <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600 }}>₹{Number(client.capital).toLocaleString()}</td>
                           <td style={{ padding: '12px', textAlign: 'center' }}>
-                            <span className={`badge ${client.tradingStatus === 'active' ? 'badge-success' : 'badge-danger'}`}>
-                              {client.tradingStatus?.toUpperCase() || 'INACTIVE'}
+                            <span className={`badge ${client.strategyStatus === 'active' ? 'badge-success' : 'badge-danger'}`}>
+                              {client.strategyStatus?.toUpperCase() || 'INACTIVE'}
                             </span>
                           </td>
                           <td style={{ padding: '12px', textAlign: 'center' }}>
