@@ -2133,7 +2133,7 @@ export default function StrategiesPage() {
               {/* Row 1: 5 KPI Cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
                 {/* Total P&L Card */}
-                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>Total P&L (₹)</span>
                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#f5f3ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>₹</div>
@@ -2150,7 +2150,7 @@ export default function StrategiesPage() {
                 </Card>
 
                 {/* Win Rate Card */}
-                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>Win Rate</span>
                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>%</div>
@@ -2167,7 +2167,7 @@ export default function StrategiesPage() {
                 </Card>
 
                 {/* Profit Factor Card */}
-                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>Profit Factor</span>
                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>PF</div>
@@ -2184,7 +2184,7 @@ export default function StrategiesPage() {
                 </Card>
 
                 {/* Max Drawdown Card */}
-                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>Max Drawdown (₹)</span>
                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#fef2f2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>DD</div>
@@ -2201,7 +2201,7 @@ export default function StrategiesPage() {
                 </Card>
 
                 {/* Total Trades Card */}
-                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>Total Trades</span>
                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#fcf6f0', color: 'var(--warning)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>#</div>
@@ -2220,7 +2220,7 @@ export default function StrategiesPage() {
 
               {/* Row 2: Equity Curve (2fr), P&L Distribution (1.5fr), Trade Performance (1.5fr) */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.3fr 1.3fr', gap: '20px' }}>
-                <Card style={{ borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                <Card style={{ borderRadius: '12px', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>Equity Curve</h4>
                     <select style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '11px', outline: 'none' }}>
@@ -2238,7 +2238,7 @@ export default function StrategiesPage() {
                   />
                 </Card>
 
-                <Card style={{ display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                <Card style={{ display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)' }}>
                   <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', marginBottom: '14px' }}>P&L Distribution</h4>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', flex: 1, justifyContent: 'center' }}>
                     <div style={{ width: '100px', height: '100px', position: 'relative' }}>
@@ -2282,7 +2282,7 @@ export default function StrategiesPage() {
                   </div>
                 </Card>
 
-                <Card style={{ borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                <Card style={{ borderRadius: '12px', border: '1px solid var(--border)' }}>
                   <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', marginBottom: '14px' }}>Trade Performance</h4>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--surface)', paddingBottom: '6px' }}>
@@ -2332,7 +2332,7 @@ export default function StrategiesPage() {
 
               {/* Row 3: Performance Metrics (1.5fr), stacked Bar Charts (1.5fr), Strategy Overview (1.5fr) */}
               <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1.3fr', gap: '20px' }}>
-                <Card style={{ borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                <Card style={{ borderRadius: '12px', border: '1px solid var(--border)' }}>
                   <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', marginBottom: '14px' }}>Performance Metrics</h4>
                   <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
                     <thead>
@@ -2416,7 +2416,7 @@ export default function StrategiesPage() {
 
                 {/* Middle: Stacked Bar Charts */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                  <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                       <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)' }}>P&L by Day of Week (₹)</h4>
                       <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>P&L</span>
@@ -2434,7 +2434,7 @@ export default function StrategiesPage() {
                     </div>
                   </Card>
 
-                  <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                  <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                       <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)' }}>P&L by Month (₹)</h4>
                       <select style={{ padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '10px', outline: 'none' }}>
@@ -2458,7 +2458,7 @@ export default function StrategiesPage() {
                 </div>
 
                 {/* Right: Strategy Overview */}
-                <Card style={{ borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                <Card style={{ borderRadius: '12px', border: '1px solid var(--border)' }}>
                   <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', marginBottom: '14px' }}>Strategy Overview</h4>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -2506,7 +2506,7 @@ export default function StrategiesPage() {
 
           {/* TAB: CLIENT ASSIGNMENT */}
           {detailTab === 'assignment' && (
-            <Card style={{ borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+            <Card style={{ borderRadius: '12px', border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div>
                   <h3 style={{ fontSize: '15px', fontWeight: 600, fontFamily: 'var(--font-title)' }}>Deploy clients to {selectedStrategy.name}</h3>
@@ -2599,7 +2599,7 @@ export default function StrategiesPage() {
 
           {/* TAB: STRATEGY LOGS */}
           {detailTab === 'logs' && (
-            <Card style={{ borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+            <Card style={{ borderRadius: '12px', border: '1px solid var(--border)' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Terminal size={16} /> Strategy Live Console Logs
               </h3>

@@ -225,13 +225,13 @@ export default function GrowffiyLanding() {
             {/* Stats strip */}
             <div style={{ display: 'flex', gap: 32, marginTop: 8 }}>
               {[
-                { val: '₹12.4Cr+', lbl: 'Capital Managed', color: '#10b981' },
-                { val: '1,200+', lbl: 'Trades Executed', color: '#0f172a' },
-                { val: '68%', lbl: 'Win Rate', color: '#1E88FF' },
+                { val: '₹12.4Cr+', lbl: 'Capital Managed', color: 'var(--accent)' },
+                { val: '1,200+', lbl: 'Trades Executed', color: 'var(--text-heading)' },
+                { val: '68%', lbl: 'Win Rate', color: 'var(--primary)' },
               ].map((s, i) => (
                 <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   <span style={{ fontFamily: 'var(--font-title)', fontSize: 22, fontWeight: 800, color: s.color }}>{s.val}</span>
-                  <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.lbl}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-subtle)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.lbl}</span>
                 </div>
               ))}
             </div>
@@ -242,68 +242,68 @@ export default function GrowffiyLanding() {
             {/* Badge top-right */}
             <div style={{
               position: 'absolute', top: 80, right: -50, zIndex: 10,
-              background: 'white', borderRadius: 16, padding: '14px 18px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.10)', border: '1px solid #e8edf5',
+              background: 'var(--bg-card)', borderRadius: 16, padding: '14px 18px',
+              boxShadow: 'var(--shadow-lg)',
               animation: 'floatCard2 6s ease-in-out infinite',
             }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Today&apos;s P&amp;L</div>
-              <div style={{ fontFamily: 'var(--font-title)', fontSize: 20, fontWeight: 800, color: '#10b981' }}>+₹{pnl.toLocaleString()}</div>
-              <div style={{ fontSize: 11, color: '#10b981', fontWeight: 600, marginTop: 2 }}>▲ 3.24% today</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Today&apos;s P&amp;L</div>
+              <div style={{ fontFamily: 'var(--font-title)', fontSize: 20, fontWeight: 800, color: 'var(--accent)' }}>+₹{pnl.toLocaleString()}</div>
+              <div style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600, marginTop: 2 }}>▲ 3.24% today</div>
             </div>
 
             {/* Badge bottom-left */}
             <div style={{
               position: 'absolute', bottom: 150, left: -50, zIndex: 10,
-              background: 'white', borderRadius: 16, padding: '14px 18px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.10)', border: '1px solid #e8edf5',
+              background: 'var(--bg-card)', borderRadius: 16, padding: '14px 18px',
+              boxShadow: 'var(--shadow-lg)',
               animation: 'floatCard1 5s ease-in-out infinite',
             }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Risk Per Trade</div>
-              <div style={{ fontFamily: 'var(--font-title)', fontSize: 20, fontWeight: 800, color: '#0f172a' }}>1.00%</div>
-              <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 600, marginTop: 2 }}>Capital Protected</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Risk Per Trade</div>
+              <div style={{ fontFamily: 'var(--font-title)', fontSize: 20, fontWeight: 800, color: 'var(--text-heading)' }}>1.00%</div>
+              <div style={{ fontSize: 11, color: 'var(--warning)', fontWeight: 600, marginTop: 2 }}>Capital Protected</div>
             </div>
 
             {/* Main Chart Card */}
             <div style={{
-              background: 'white', borderRadius: 24,
+              background: 'var(--bg-card)', borderRadius: 24,
               padding: '24px 24px 20px',
-              boxShadow: '0 24px 64px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04)',
-              border: '1px solid #e8edf5', overflow: 'hidden', position: 'relative',
+              boxShadow: 'var(--shadow-xl)',
+              overflow: 'hidden', position: 'relative',
             }}>
               <div style={{
                 position: 'absolute', top: 0, left: 0, right: 0, height: 3,
                 background: isUp(stocks[0].change)
-                  ? 'linear-gradient(90deg,#10b981,#1E88FF)'
-                  : 'linear-gradient(90deg,#ef4444,#f59e0b)',
+                  ? 'linear-gradient(90deg,var(--accent),var(--primary))'
+                  : 'linear-gradient(90deg,var(--danger),var(--warning))',
               }} />
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>NSE: RELIANCE</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-heading)' }}>NSE: RELIANCE</div>
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', gap: 4,
-                      fontSize: 10, fontWeight: 700, color: '#10b981',
-                      background: '#f0fdf4', borderRadius: 99, padding: '2px 8px',
+                      fontSize: 10, fontWeight: 700, color: 'var(--accent)',
+                      background: 'var(--accent-light)', borderRadius: 99, padding: '2px 8px',
                     }}>
-                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#10b981', display: 'inline-block', animation: 'pulseDot 1.5s ease-in-out infinite' }} />
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', animation: 'pulseDot 1.5s ease-in-out infinite' }} />
                       LIVE
                     </span>
                   </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Reliance Industries Ltd.</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-subtle)', marginTop: 2 }}>Reliance Industries Ltd.</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'var(--font-title)', fontSize: 24, fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>
+                  <div style={{ fontFamily: 'var(--font-title)', fontSize: 24, fontWeight: 800, color: 'var(--text-heading)', lineHeight: 1 }}>
                     ₹{stocks[0].ltp.toFixed(2)}
                   </div>
                   <div style={{
                     fontSize: 12, fontWeight: 700, marginTop: 4,
-                    color: isUp(stocks[0].change) ? '#10b981' : '#ef4444',
+                    color: isUp(stocks[0].change) ? 'var(--accent)' : 'var(--danger)',
                     display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end',
                   }}>
                     <span style={{
                       width: 7, height: 7, borderRadius: '50%',
-                      background: isUp(stocks[0].change) ? '#10b981' : '#ef4444',
+                      background: isUp(stocks[0].change) ? 'var(--accent)' : 'var(--danger)',
                       display: 'inline-block', animation: 'pulseDot 1.5s ease-in-out infinite',
                     }} />
                     {isUp(stocks[0].change) ? '+' : ''}{stocks[0].change.toFixed(2)}%
@@ -322,15 +322,15 @@ export default function GrowffiyLanding() {
 
               <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                borderTop: '1px solid #f1f5f9', paddingTop: 10, marginTop: 6, fontSize: 11,
+                borderTop: '1px solid var(--border-light)', paddingTop: 10, marginTop: 6, fontSize: 11,
               }}>
-                <span style={{ color: '#94a3b8' }}>
-                  H: <strong style={{ color: '#16181fff' }}>₹{stocks[0].high}</strong>
-                  {'  '}L: <strong style={{ color: '#0f172a' }}>₹{stocks[0].low}</strong>
-                  {'  '}Vol: <strong style={{ color: '#0f172a' }}>{stocks[0].volume}</strong>
+                <span style={{ color: 'var(--text-subtle)' }}>
+                  H: <strong style={{ color: 'var(--text-heading)' }}>₹{stocks[0].high}</strong>
+                  {'  '}L: <strong style={{ color: 'var(--text-heading)' }}>₹{stocks[0].low}</strong>
+                  {'  '}Vol: <strong style={{ color: 'var(--text-heading)' }}>{stocks[0].volume}</strong>
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#10b981', fontWeight: 700 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block', animation: 'pulseDot 1.5s ease-in-out infinite' }} />
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--accent)', fontWeight: 700 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', animation: 'pulseDot 1.5s ease-in-out infinite' }} />
                   Live · 2s ticks
                 </span>
               </div>
@@ -340,12 +340,12 @@ export default function GrowffiyLanding() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginTop: 12 }}>
               {stocks.slice(1, 4).map(s => (
                 <div key={s.symbol} style={{
-                  background: 'white', borderRadius: 12, padding: '10px 12px',
-                  border: '1px solid #e8edf5', boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                  background: 'var(--bg-card)', borderRadius: 12, padding: '10px 12px',
+                  boxShadow: 'var(--shadow-sm)',
                 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', marginBottom: 3 }}>{s.symbol}</div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>₹{s.ltp.toFixed(0)}</div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: isUp(s.change) ? '#10b981' : '#ef4444', marginTop: 2 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-subtle)', marginBottom: 3 }}>{s.symbol}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-heading)' }}>₹{s.ltp.toFixed(0)}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: isUp(s.change) ? 'var(--accent)' : 'var(--danger)', marginTop: 2 }}>
                     {isUp(s.change) ? '▲' : '▼'} {Math.abs(s.change).toFixed(2)}%
                   </div>
                 </div>
@@ -358,7 +358,7 @@ export default function GrowffiyLanding() {
       {/* ════════════════════════════════════════
           FEATURES SECTION
       ════════════════════════════════════════ */}
-      <section id="features" className="section" style={{ background: 'white' }}>
+      <section id="features" className="section" style={{ background: 'var(--bg-white)' }}>
         <div className="section-inner">
           <div className="text-center">
             <div className="section-tag">
@@ -388,7 +388,7 @@ export default function GrowffiyLanding() {
       {/* ════════════════════════════════════════
           STRATEGY SECTION
       ════════════════════════════════════════ */}
-      <section id="strategy" className="section" style={{ background: '#f8fafc' }}>
+      <section id="strategy" className="section" style={{ background: 'var(--surface)' }}>
         <div className="section-inner">
           <div className="strategy-grid">
             {/* Left: Steps */}
@@ -423,11 +423,11 @@ export default function GrowffiyLanding() {
             <div>
               <div className="params-card">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                  <div style={{ padding: '8px', borderRadius: 10, background: 'linear-gradient(135deg,rgba(14,165,233,0.12),rgba(18,82,171,0.12))', color: '#1E88FF' }}>
+                  <div style={{ padding: '8px', borderRadius: 10, background: 'var(--primary-light)', color: 'var(--primary)' }}>
                     <BarChart2 size={18} />
                   </div>
-                  <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>Live Strategy Parameters</span>
-                  <span style={{ marginLeft: 'auto', fontSize: 11, background: '#d1fae5', color: '#059669', padding: '3px 10px', borderRadius: 99, fontWeight: 700 }}>● Active</span>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-heading)' }}>Live Strategy Parameters</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 11, background: 'var(--accent-light)', color: 'var(--accent-dark)', padding: '3px 10px', borderRadius: 99, fontWeight: 700 }}>● Active</span>
                 </div>
 
                 {[
@@ -447,8 +447,8 @@ export default function GrowffiyLanding() {
                 ))}
 
                 {/* Mini chart */}
-                <div style={{ marginTop: 20, padding: '16px', background: '#f8fafc', borderRadius: 12 }}>
-                  <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ marginTop: 20, padding: '16px', background: 'var(--surface)', borderRadius: 12 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     Simulated Trade P&L Curve
                   </div>
                   <PerformanceChart
@@ -470,7 +470,7 @@ export default function GrowffiyLanding() {
       {/* ════════════════════════════════════════
           PRICING SECTION
       ════════════════════════════════════════ */}
-      <section id="pricing" className="section" style={{ background: '#f8fafc' }}>
+      <section id="pricing" className="section" style={{ background: 'var(--surface)' }}>
         <div className="section-inner">
           <div className="text-center">
             <div className="section-tag"><Sparkles size={14} /> Subscription Plans</div>

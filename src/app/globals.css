@@ -843,7 +843,7 @@ tr.clickable-row:hover td {
   border-radius: var(--radius-full);
   font-size: 14px;
   font-weight: 600;
-  background: white;
+  background: var(--bg-card);
   color: var(--text-body);
   border: 1.5px solid var(--border);
   cursor: pointer;
@@ -900,11 +900,11 @@ tr.clickable-row:hover td {
 }
 
 .chart-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 24px;
   padding: 20px 24px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.1), 0 4px 16px rgba(0,0,0,0.06);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border);
   position: relative;
   overflow: hidden;
 }
@@ -970,10 +970,10 @@ tr.clickable-row:hover td {
 /* Mini floating stat cards */
 .mini-card {
   position: absolute;
-  background: white;
+  background: var(--bg-card);
   border-radius: 14px;
   padding: 12px 16px;
-  box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-lg);
   border: 1px solid var(--border);
   min-width: 140px;
   z-index: 5;
@@ -1088,10 +1088,9 @@ tr.clickable-row:hover td {
 }
 
 .feature-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 20px;
   padding: 28px;
-  border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -1169,8 +1168,8 @@ tr.clickable-row:hover td {
   align-items: flex-start;
   padding: 20px;
   border-radius: 16px;
-  background: white;
-  border: 1px solid var(--border);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
   transition: all 0.3s;
 }
 
@@ -1209,11 +1208,10 @@ tr.clickable-row:hover td {
 
 /* Params Table Card */
 .params-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 20px;
   padding: 28px;
-  border: 1px solid var(--border);
-  box-shadow: 0 20px 48px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow-lg);
   position: relative;
   overflow: hidden;
 }
@@ -1246,7 +1244,7 @@ tr.clickable-row:hover td {
 /* ========================
    LIVE DATA SECTION
 ======================== */
-.live-section { background: white; }
+.live-section { background: var(--bg-card); }
 
 .live-grid {
   display: grid;
@@ -1438,7 +1436,7 @@ tr.clickable-row:hover td {
 }
 
 .faq-item {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   border: 1px solid var(--border);
   overflow: hidden;

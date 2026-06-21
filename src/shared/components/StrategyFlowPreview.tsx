@@ -63,7 +63,7 @@ function FormulaBox({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
       padding: '10px 14px', borderRadius: '8px',
-      background: 'var(--surface)', border: '1px solid var(--border-light)',
+      background: 'var(--surface)',
       fontSize: '10px', fontFamily: 'ui-monospace, SFMono-Regular, monospace',
       color: 'var(--text-secondary)', lineHeight: '1.8', marginBottom: '8px',
     }}>
@@ -77,7 +77,6 @@ function StageCard({ children }: { children: React.ReactNode }) {
     <div style={{
       borderRadius: '12px',
       background: 'var(--bg-card)',
-      border: '1px solid var(--border-light)',
       padding: '18px 20px',
       boxShadow: 'var(--shadow-sm)',
     }}>

@@ -127,7 +127,6 @@ function ChainNode({ label, detail, passed, isLast }: { label: string; detail: s
 const cardSx: React.CSSProperties = {
   background: 'var(--bg-card)',
   borderRadius: '12px',
-  border: '1px solid var(--border-light)',
   padding: '20px 22px',
   boxShadow: 'var(--shadow-sm)',
 };
