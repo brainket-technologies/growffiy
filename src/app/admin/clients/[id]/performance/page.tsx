@@ -1283,7 +1283,7 @@ export default function ClientPerformancePage() {
                     padding: '4px 10px', 
                     borderRadius: '6px', 
                     border: '1px solid var(--border-color)', 
-                    background: currentPage === i + 1 ? 'var(--primary)' : 'white', 
+                    background: currentPage === i + 1 ? 'var(--primary)' : 'var(--bg-white)', 
                     color: currentPage === i + 1 ? 'white' : 'var(--text-body)',
                     fontWeight: 600,
                     cursor: 'pointer'

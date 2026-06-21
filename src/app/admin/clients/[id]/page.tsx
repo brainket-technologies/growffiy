@@ -928,24 +928,22 @@ export default function ClientDetailsPage() {
                 <select
                   value={kycStatus}
                   onChange={(e) => setKycStatus(e.target.value)}
+                  className={`kyc-status-select-${kycStatus}`}
                   style={{ 
                     width: '100%', 
                     height: '40px', 
                     padding: '10px 24px 10px 14px', 
                     borderRadius: '8px', 
-                    border: '1px solid var(--border-color)', 
                     outline: 'none',
                     fontSize: '13px',
                     cursor: 'pointer',
                     appearance: 'none',
-                    fontWeight: 600,
-                    color: kycStatus === 'verified' ? 'var(--color-success)' : kycStatus === 'failed' ? 'var(--color-danger)' : 'var(--text-secondary)',
-                    backgroundColor: kycStatus === 'verified' ? 'var(--color-success-bg)' : kycStatus === 'failed' ? '#fee2e2' : 'var(--surface)'
+                    fontWeight: 600
                   }}
                 >
-                  <option value="pending" style={{ color: 'var(--text-body)', backgroundColor: '#ffffff' }}>Pending</option>
-                  <option value="verified" style={{ color: 'var(--color-success)', backgroundColor: '#ffffff' }}>Verified</option>
-                  <option value="failed" style={{ color: 'var(--color-danger)', backgroundColor: '#ffffff' }}>Failed</option>
+                  <option value="pending" style={{ color: 'var(--text-body)', backgroundColor: 'var(--bg-white)' }}>Pending</option>
+                  <option value="verified" style={{ color: 'var(--accent)', backgroundColor: 'var(--bg-white)' }}>Verified</option>
+                  <option value="failed" style={{ color: 'var(--danger)', backgroundColor: 'var(--bg-white)' }}>Failed</option>
                 </select>
                 <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
                   <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>▼</span>
@@ -1040,9 +1038,9 @@ export default function ClientDetailsPage() {
                         fontWeight: 600, 
                         padding: '4px 10px', 
                         borderRadius: '6px', 
-                        backgroundColor: '#eff6ff', 
-                        color: '#1e40af',
-                        border: '1px solid #bfdbfe'
+                        backgroundColor: 'var(--primary-light)', 
+                        color: 'var(--primary-dark)',
+                        border: '1px solid var(--border-light)'
                       }}
                     >
                       {product}
@@ -1064,9 +1062,9 @@ export default function ClientDetailsPage() {
                         fontWeight: 600, 
                         padding: '4px 10px', 
                         borderRadius: '6px', 
-                        backgroundColor: '#f0fdf4', 
-                        color: '#166534',
-                        border: '1px solid #bbf7d0'
+                        backgroundColor: 'var(--accent-light)', 
+                        color: 'var(--accent-dark)',
+                        border: '1px solid var(--border-light)'
                       }}
                     >
                       {orderType}
@@ -1111,7 +1109,7 @@ export default function ClientDetailsPage() {
                   padding: '20px', 
                   borderRadius: '12px', 
                   border: '1px solid var(--border-light)', 
-                  backgroundColor: margins.equity.enabled ? 'rgba(248, 250, 252, 0.5)' : '#fafafa',
+                  backgroundColor: margins.equity.enabled ? 'var(--surface)' : 'rgba(128, 128, 128, 0.05)',
                   opacity: margins.equity.enabled ? 1 : 0.6
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -1207,7 +1205,7 @@ export default function ClientDetailsPage() {
                   padding: '20px', 
                   borderRadius: '12px', 
                   border: '1px solid var(--border-light)', 
-                  backgroundColor: margins.commodity.enabled ? 'rgba(248, 250, 252, 0.5)' : '#fafafa',
+                  backgroundColor: margins.commodity.enabled ? 'var(--surface)' : 'rgba(128, 128, 128, 0.05)',
                   opacity: margins.commodity.enabled ? 1 : 0.6
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
