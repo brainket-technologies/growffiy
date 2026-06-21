@@ -297,8 +297,8 @@ export default function PreOpenScannerPage() {
                   padding: '0 12px', 
                   fontSize: '13px', 
                   fontWeight: 600, 
-                  color: '#1e293b',
-                  backgroundColor: '#ffffff',
+                  color: 'var(--text-heading)',
+                  backgroundColor: 'var(--bg-white)',
                   cursor: 'pointer',
                   height: '100%'
                 }}
@@ -327,7 +327,8 @@ export default function PreOpenScannerPage() {
                   outline: 'none', 
                   padding: '0 12px', 
                   fontSize: '13px', 
-                  color: '#1e293b',
+                  color: 'var(--text-heading)',
+                  backgroundColor: 'var(--bg-white)',
                   width: '100%',
                   height: '100%'
                 }}
@@ -342,7 +343,7 @@ export default function PreOpenScannerPage() {
                   setSortField('changePercent');
                   setSortAsc(false);
                 }}
-                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid var(--border-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'all' ? 'var(--color-info-bg)' : '#ffffff', color: activeFilter === 'all' ? 'var(--color-info)' : 'var(--text-body)' }}
+                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid var(--border-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'all' ? 'var(--color-info-bg)' : 'var(--bg-white)', color: activeFilter === 'all' ? 'var(--color-info)' : 'var(--text-body)' }}
               >
                 All Pre-Open
               </button>
@@ -352,7 +353,7 @@ export default function PreOpenScannerPage() {
                   setSortField('changePercent');
                   setSortAsc(false);
                 }}
-                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid var(--border-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'gainers' ? '#e6f4ea' : '#ffffff', color: activeFilter === 'gainers' ? 'var(--accent)' : 'var(--text-body)' }}
+                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid var(--border-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'gainers' ? 'var(--accent-light)' : 'var(--bg-white)', color: activeFilter === 'gainers' ? 'var(--accent)' : 'var(--text-body)' }}
               >
                 Top Gainers
               </button>
@@ -362,7 +363,7 @@ export default function PreOpenScannerPage() {
                   setSortField('changePercent');
                   setSortAsc(true);
                 }}
-                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid var(--border-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'losers' ? '#fde8e8' : '#ffffff', color: activeFilter === 'losers' ? 'var(--danger)' : 'var(--text-body)' }}
+                style={{ padding: '0 16px', height: '38px', borderRadius: '4px', border: '1px solid var(--border-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, backgroundColor: activeFilter === 'losers' ? 'var(--danger-light)' : 'var(--bg-white)', color: activeFilter === 'losers' ? 'var(--danger)' : 'var(--text-body)' }}
               >
                 Top Losers
               </button>
@@ -384,7 +385,7 @@ export default function PreOpenScannerPage() {
                 transition: 'all 0.2s'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#fff7ed';
+                e.currentTarget.style.backgroundColor = 'rgba(234, 88, 12, 0.08)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
