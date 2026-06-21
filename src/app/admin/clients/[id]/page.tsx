@@ -690,7 +690,7 @@ export default function ClientDetailsPage() {
 
                 <div className="form-group">
                   <label className="form-label">KYC Status</label>
-                  <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <select
                       value={kycStatus}
                       onChange={(e) => setKycStatus(e.target.value)}
@@ -698,12 +698,11 @@ export default function ClientDetailsPage() {
                       style={{ 
                         width: '100%', 
                         height: '40px', 
-                        padding: '10px 24px 10px 14px', 
+                        padding: '10px 36px 10px 14px', 
                         borderRadius: '8px', 
                         outline: 'none',
                         fontSize: '13px',
                         cursor: 'pointer',
-                        appearance: 'none',
                         fontWeight: 600
                       }}
                     >
@@ -711,9 +710,6 @@ export default function ClientDetailsPage() {
                       <option value="verified" style={{ color: 'var(--accent)', backgroundColor: 'var(--bg-white)' }}>Verified</option>
                       <option value="failed" style={{ color: 'var(--danger)', backgroundColor: 'var(--bg-white)' }}>Failed</option>
                     </select>
-                    <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>▼</span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -1071,7 +1067,7 @@ export default function ClientDetailsPage() {
                         style={{ 
                           width: '100%', 
                           height: '42px',
-                          padding: '10px 14px 10px 40px', 
+                          padding: '10px 36px 10px 40px', 
                           borderRadius: '8px', 
                           border: '1px solid var(--border-color)', 
                           outline: 'none',
