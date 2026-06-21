@@ -1218,8 +1218,7 @@ export default function StrategiesPage() {
                                 <td><span className="badge badge-blue" style={{ padding: '3px 8px', fontSize: '10px' }}>{segment}</span></td>
                                 <td><span className="badge" style={{ padding: '3px 8px', fontSize: '10px', background: 'rgba(139,92,246,0.1)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.2)', borderRadius: '4px' }}>{tradeType}</span></td>
                                 <td>
-                                  <span className="badge" style={{ padding: '3px 8px', fontSize: '10px', background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '4px' }}>{timeframe}</span>
-                                  {entryTime && <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '3px' }}>{entryTime} – {exitTime}</div>}
+                                   <span className="badge" style={{ padding: '3px 8px', fontSize: '10px', background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '4px' }}>{timeframe}</span>
                                 </td>
                                 <td style={{ fontWeight: 600, color: assignedCount > 0 ? '#eab308' : 'var(--text-secondary)' }}>{assignedCount}</td>
                                 <td style={{ fontWeight: 500 }}>{tradeCount}</td>
