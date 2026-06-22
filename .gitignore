@@ -44,3 +44,4 @@ next-env.d.ts
 /scratch
 HOSTINGER_DEPLOY.md
 /growffiy.zip
+/backups/db_backup.json
