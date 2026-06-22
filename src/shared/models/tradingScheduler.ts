@@ -87,8 +87,8 @@ export class TradingScheduler {
           let config: any;
           try { config = JSON.parse(strategy.configJson); } catch { continue; }
 
-          const preSelectTime = config.basicInfo?.preSelectTime;
-          const entryTime = config.basicInfo?.entryTime;
+          const preSelectTime = config.basicInfo?.preSelectTime ? config.basicInfo.preSelectTime.slice(0, 5) : null;
+          const entryTime = config.basicInfo?.entryTime ? config.basicInfo.entryTime.slice(0, 5) : null;
 
           if (preSelectTime && currentTimeStr === preSelectTime && lastPreSelectByStrategy.get(strategy.id) !== currentDateKey) {
             console.log(`AlgoEngine Scheduler: Pre-select time ${preSelectTime} reached for strategy "${strategy.name}".`);
