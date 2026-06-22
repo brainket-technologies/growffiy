@@ -4,6 +4,7 @@ import { KiteClient } from '../services/kite';
 import { performKiteAutoLogin } from '../services/kiteAutoLogin';
 import type { StockQuote } from './algoEngine';
 import type { WsLiveFeed } from './wsLiveFeed';
+import { getTickSizeAndRound } from '../utils/tickSizeUtil';
 
 export interface EngineAccess {
   todayTokenRefreshed: Set<string>;
@@ -363,15 +364,16 @@ export class TradingScheduler {
                     const newSlTrigger = entryPrice + (trailsToApply * trailStepValue);
                     if (newSlTrigger > currentSlTrigger) {
                       try {
+                        const finalSlTrigger = await getTickSizeAndRound(client.zerodhaApiKey, client.accessToken, exchangeParam, trade.symbol, newSlTrigger);
                         const modRes = await KiteClient.modifyOrder(client.zerodhaApiKey, client.accessToken, trade.slOrderId, {
-                          trigger_price: Number(newSlTrigger.toFixed(2))
+                          trigger_price: finalSlTrigger
                         });
                         if (modRes?.status === 'success') {
                           await prisma.trade.update({
                             where: { id: trade.id },
-                            data: { slTriggerPrice: Number(newSlTrigger.toFixed(2)) }
+                            data: { slTriggerPrice: finalSlTrigger }
                           });
-                          console.log(`AlgoEngine Monitor: Trailing SL for ${trade.symbol}: ${currentSlTrigger} → ${newSlTrigger.toFixed(2)} (price: ${price})`);
+                          console.log(`AlgoEngine Monitor: Trailing SL for ${trade.symbol}: ${currentSlTrigger} → ${finalSlTrigger} (price: ${price})`);
                         }
                       } catch (e) { console.warn(`AlgoEngine Monitor: Trailing SL modify failed for ${trade.symbol}:`, e); }
                     }
@@ -391,15 +393,16 @@ export class TradingScheduler {
                     const newTarget = entryPrice + (trailsToApply * trailStepValue);
                     if (newTarget > currentTarget) {
                       try {
+                        const finalTarget = await getTickSizeAndRound(client.zerodhaApiKey, client.accessToken, exchangeParam, trade.symbol, newTarget);
                         const modRes = await KiteClient.modifyOrder(client.zerodhaApiKey, client.accessToken, trade.targetOrderId, {
-                          price: Number(newTarget.toFixed(2))
+                          price: finalTarget
                         });
                         if (modRes?.status === 'success') {
                           await prisma.trade.update({
                             where: { id: trade.id },
-                            data: { target: Number(newTarget.toFixed(2)) }
+                            data: { target: finalTarget }
                           });
-                          console.log(`AlgoEngine Monitor: Trailing Target for ${trade.symbol}: ${currentTarget} → ${newTarget.toFixed(2)} (price: ${price})`);
+                          console.log(`AlgoEngine Monitor: Trailing Target for ${trade.symbol}: ${currentTarget} → ${finalTarget} (price: ${price})`);
                         }
                       } catch (e) { console.warn(`AlgoEngine Monitor: Trailing Target modify failed for ${trade.symbol}:`, e); }
                     }
@@ -420,6 +423,19 @@ export class TradingScheduler {
                   // Entry fill hui — ab SL aur Target place karo
                   let newSlOrderId = '';
                   let newTargetOrderId = '';
+                  const productParam = trade.orderType;
+
+                  const rawSlTrigger = Number(trade.slTriggerPrice || (filledPrice > 0 ? filledPrice * (1 - slPercent / 100) : 0));
+                  const rawTarget = Number(trade.target || (filledPrice > 0 ? filledPrice * (1 + targetPercent / 100) : 0));
+
+                  let finalSlTrigger = rawSlTrigger;
+                  let finalTarget = rawTarget;
+
+                  if (client.zerodhaApiKey && client.accessToken) {
+                    finalSlTrigger = await getTickSizeAndRound(client.zerodhaApiKey, client.accessToken, exchangeParam, trade.symbol, rawSlTrigger);
+                    finalTarget = await getTickSizeAndRound(client.zerodhaApiKey, client.accessToken, exchangeParam, trade.symbol, rawTarget);
+                  }
+
                   if (client.zerodhaApiKey && client.accessToken) {
                     try {
                       const slParams = {
@@ -427,7 +443,7 @@ export class TradingScheduler {
                         transaction_type: 'SELL' as const, quantity: Number(trade.quantity),
                         order_type: 'SL-M' as const, product: productParam as any,
                         validity: 'DAY' as const,
-                        trigger_price: Number(Number(trade.slTriggerPrice || (filledPrice > 0 ? filledPrice * (1 - slPercent / 100) : 0)).toFixed(2)),
+                        trigger_price: finalSlTrigger,
                         market_protection: marketProtectionVal
                       };
                       const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, slParams);
@@ -441,7 +457,7 @@ export class TradingScheduler {
                         transaction_type: 'SELL' as const, quantity: Number(trade.quantity),
                         order_type: 'LIMIT' as const, product: productParam as any,
                         validity: 'DAY' as const,
-                        price: Number(Number(trade.target || (filledPrice > 0 ? filledPrice * (1 + targetPercent / 100) : 0)).toFixed(2))
+                        price: finalTarget
                       };
                       const tgtRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, targetParams);
                       if (tgtRes?.status === 'success' && tgtRes.data?.order_id) {
@@ -453,7 +469,11 @@ export class TradingScheduler {
                     where: { id: trade.id },
                     data: {
                       slOrderId: newSlOrderId || null,
-                      targetOrderId: newTargetOrderId || null
+                      targetOrderId: newTargetOrderId || null,
+                      slTriggerPrice: finalSlTrigger,
+                      target: finalTarget,
+                      originalStopLoss: Number(trade.originalStopLoss) || rawSlTrigger,
+                      originalTarget: Number(trade.originalTarget) || rawTarget
                     }
                   });
                   console.log(`AlgoEngine Monitor: Entry ${trade.entryOrderId} filled. SL: ${newSlOrderId || 'N/A'}, Target: ${newTargetOrderId || 'N/A'} placed for ${trade.symbol}.`);

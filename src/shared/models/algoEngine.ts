@@ -12,6 +12,7 @@ import { performKiteAutoLogin } from '../services/kiteAutoLogin';
 import { applyOperator, calculateRSI, calculateEMA, calculateSMA, calculateMACD, calculateATR, calculateVWAP, calculateBollingerBands, calculateSuperTrend, calculateADX } from '../services/indicators';
 import { WsLiveFeed } from './wsLiveFeed';
 import { TradingScheduler } from './tradingScheduler';
+import { getTickSizeAndRound } from '../utils/tickSizeUtil';
 
 export interface StockQuote {
   symbol: string;
@@ -798,6 +799,22 @@ class AlgoEngineService {
             target = entryPrice * (1 + targetPercent / 100);
           }
 
+          // Keep original calculated values
+          const rawEntryPrice = entryPrice;
+          const rawStopLoss = stopLoss;
+          const rawTarget = target;
+
+          // Round values to tick size dynamically using Zerodha Quote API
+          let finalEntryPrice = entryPrice;
+          let finalStopLoss = stopLoss;
+          let finalTarget = target;
+
+          if (client.zerodhaApiKey && activeAccessToken) {
+            finalEntryPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, exchangeParam, targetStock.symbol, entryPrice);
+            finalStopLoss = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, exchangeParam, targetStock.symbol, stopLoss);
+            finalTarget = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, exchangeParam, targetStock.symbol, target);
+          }
+
           let orderTypeParam: 'MARKET' | 'LIMIT' | 'SL' | 'SL-M' = 'MARKET';
           let priceParam: number | undefined = undefined;
           let triggerPriceParam: number | undefined = undefined;
@@ -809,24 +826,29 @@ class AlgoEngineService {
 
           if (configOrderType === 'Limit') {
             orderTypeParam = 'LIMIT';
-            priceParam = Number(entryPrice.toFixed(2));
+            priceParam = finalEntryPrice;
           } else if (configOrderType === 'SL-Limit') {
             orderTypeParam = 'SL';
-            triggerPriceParam = Number(entryPrice.toFixed(2));
+            triggerPriceParam = finalEntryPrice;
             if (!config?.tradeAction?.bufferPercent) {
               console.log(`AlgoEngine: tradeAction.bufferPercent not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
               return;
             }
             const bufferPercent = config.tradeAction.bufferPercent;
-            priceParam = Number((entryPrice * (1 + bufferPercent / 100)).toFixed(2));
+            const rawLimitPrice = entryPrice * (1 + bufferPercent / 100);
+            if (client.zerodhaApiKey && activeAccessToken) {
+              priceParam = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, exchangeParam, targetStock.symbol, rawLimitPrice);
+            } else {
+              priceParam = Number(rawLimitPrice.toFixed(2));
+            }
           } else if (configOrderType === 'SL-Market') {
             orderTypeParam = 'SL-M';
-            triggerPriceParam = Number(entryPrice.toFixed(2));
+            triggerPriceParam = finalEntryPrice;
           } else {
             orderTypeParam = 'MARKET';
           }
 
-          console.log(`AlgoEngine: Placing trade for ${client.user.name} under database strategy "${strategy.name}" - Buy ${quantity} qty of ${targetStock.symbol} @ ${entryPrice} using ${orderTypeParam} order`);
+          console.log(`AlgoEngine: Placing trade for ${client.user.name} under database strategy "${strategy.name}" - Buy ${quantity} qty of ${targetStock.symbol} @ ${finalEntryPrice} using ${orderTypeParam} order`);
 
           let orderId = '';
           let orderStatus = 'open';
@@ -868,8 +890,11 @@ class AlgoEngineService {
                   data: {
                     clientId: client.id, strategyId: strategy.id,
                     symbol: targetStock.symbol, orderType: productParam,
-                    entryPrice: entryPrice, quantity: quantity,
-                    stopLoss: stopLoss, target: target,
+                    entryPrice: finalEntryPrice, quantity: quantity,
+                    stopLoss: finalStopLoss, target: finalTarget,
+                    originalEntryPrice: rawEntryPrice,
+                    originalStopLoss: rawStopLoss,
+                    originalTarget: rawTarget,
                     status: 'FAILED', entryTime: new Date(),
                     kiteResponse: orderRes || { error: errMsg }
                   }
@@ -885,8 +910,11 @@ class AlgoEngineService {
                 data: {
                   clientId: client.id, strategyId: strategy.id,
                   symbol: targetStock.symbol, orderType: productParam,
-                  entryPrice: entryPrice, quantity: quantity,
-                  stopLoss: stopLoss, target: target,
+                  entryPrice: finalEntryPrice, quantity: quantity,
+                  stopLoss: finalStopLoss, target: finalTarget,
+                  originalEntryPrice: rawEntryPrice,
+                  originalStopLoss: rawStopLoss,
+                  originalTarget: rawTarget,
                   status: 'FAILED', entryTime: new Date(),
                   kiteResponse: { error: kiteErr.message || String(kiteErr) }
                 }
@@ -901,7 +929,7 @@ class AlgoEngineService {
             return;
           }
 
-          let actualEntryPrice = entryPrice;
+          let actualEntryPrice = finalEntryPrice;
           let slOrderId = '';
           let targetOrderId = '';
 
@@ -933,13 +961,13 @@ class AlgoEngineService {
                         order_type: 'SL-M' as const,
                         product: productParam as any,
                         validity: 'DAY' as const,
-                        trigger_price: Number(stopLoss.toFixed(2)),
+                        trigger_price: finalStopLoss,
                         market_protection: marketProtectionVal
                       };
                       const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slParams);
                       if (slRes?.status === 'success' && slRes.data?.order_id) {
                         slOrderId = slRes.data.order_id;
-                        console.log(`AlgoEngine: SL-M order placed: ${slOrderId} for ${targetStock.symbol} @ trigger ₹${stopLoss.toFixed(2)}`);
+                        console.log(`AlgoEngine: SL-M order placed: ${slOrderId} for ${targetStock.symbol} @ trigger ₹${finalStopLoss}`);
                       } else {
                         console.warn(`AlgoEngine: SL-M order failed: ${slRes?.message || 'unknown'}`);
                       }
@@ -956,12 +984,12 @@ class AlgoEngineService {
                         order_type: 'LIMIT' as const,
                         product: productParam as any,
                         validity: 'DAY' as const,
-                        price: Number(target.toFixed(2))
+                        price: finalTarget
                       };
                       const targetRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, targetParams);
                       if (targetRes?.status === 'success' && targetRes.data?.order_id) {
                         targetOrderId = targetRes.data.order_id;
-                        console.log(`AlgoEngine: Target LIMIT order placed: ${targetOrderId} for ${targetStock.symbol} @ ₹${target.toFixed(2)}`);
+                        console.log(`AlgoEngine: Target LIMIT order placed: ${targetOrderId} for ${targetStock.symbol} @ ₹${finalTarget}`);
                       } else {
                         console.warn(`AlgoEngine: Target LIMIT order failed: ${targetRes?.message || 'unknown'}`);
                       }
@@ -991,7 +1019,10 @@ class AlgoEngineService {
                 clientId: client.id, strategyId: strategy.id,
                 symbol: targetStock.symbol, orderType: productParam,
                 entryPrice: actualEntryPrice, quantity: quantity,
-                stopLoss: stopLoss, target: target,
+                stopLoss: finalStopLoss, target: finalTarget,
+                originalEntryPrice: rawEntryPrice,
+                originalStopLoss: rawStopLoss,
+                originalTarget: rawTarget,
                 status: 'FAILED', entryTime: new Date(),
                 kiteResponse: { error: 'Entry order cancelled or rejected' }
               }
@@ -1008,13 +1039,16 @@ class AlgoEngineService {
               clientId: client.id, strategyId: strategy.id,
               symbol: targetStock.symbol, orderType: productParam,
               entryPrice: actualEntryPrice, quantity: quantity,
-              stopLoss: stopLoss, target: target,
+              stopLoss: finalStopLoss, target: finalTarget,
+              originalEntryPrice: rawEntryPrice,
+              originalStopLoss: rawStopLoss,
+              originalTarget: rawTarget,
               status: 'open',
               entryTime: new Date(),
               entryOrderId: orderId,
               slOrderId: slOrderId || null,
               targetOrderId: targetOrderId || null,
-              slTriggerPrice: stopLoss,
+              slTriggerPrice: finalStopLoss,
               kiteResponse: orderRes
             }
           });
