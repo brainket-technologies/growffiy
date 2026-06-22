@@ -1466,6 +1466,7 @@ export default function StrategiesPage() {
                         <label style={{ fontSize: '11px', fontWeight: 600 }}>Pre-Select Time</label>
                         <input
                           type="time"
+                          step="1"
                           value={formData.basicInfo.preSelectTime}
                           onChange={(e) => setFormData({
                             ...formData,
@@ -1478,6 +1479,7 @@ export default function StrategiesPage() {
                         <label style={{ fontSize: '11px', fontWeight: 600 }}>Entry Time</label>
                         <input
                           type="time"
+                          step="1"
                           value={formData.basicInfo.entryTime}
                           onChange={(e) => setFormData({
                             ...formData,
@@ -1490,6 +1492,7 @@ export default function StrategiesPage() {
                         <label style={{ fontSize: '11px', fontWeight: 600 }}>Exit Time</label>
                         <input
                           type="time"
+                          step="1"
                           value={formData.basicInfo.exitTime}
                           onChange={(e) => setFormData({
                             ...formData,

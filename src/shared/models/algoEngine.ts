@@ -483,21 +483,62 @@ class AlgoEngineService {
                 try {
                   const today = new Date();
                   const formatKiteDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-                  const from = `${formatKiteDate(today)}%20${config.basicInfo.preSelectTime.replace(':', '%20')}`;
-                  const to = `${formatKiteDate(today)}%20${config.basicInfo.entryTime.replace(':', '%20')}`;
+                  
+                  const preSelectTime = config.basicInfo.preSelectTime || '09:15';
+                  const entryTime = config.basicInfo.entryTime || '09:20';
+                  
+                  const normalizeTime = (t: string) => {
+                    const parts = t.split(':').map(Number);
+                    const h = parts[0] || 0;
+                    const m = parts[1] || 0;
+                    const s = parts[2] || 0;
+                    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                  };
+                  
+                  const preSelectNormalized = normalizeTime(preSelectTime);
+                  const entryNormalized = normalizeTime(entryTime);
+                  
+                  const addMinute = (t: string) => {
+                    const [h, m, s] = t.split(':').map(Number);
+                    let newM = m + 1;
+                    let newH = h;
+                    if (newM >= 60) { newM = 0; newH = (newH + 1) % 24; }
+                    return `${String(newH).padStart(2,'0')}:${String(newM).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                  };
+                  
+                  const from = `${formatKiteDate(today)}%20${preSelectNormalized}`;
+                  const to = `${formatKiteDate(today)}%20${addMinute(entryNormalized)}`;
+                  
+                  console.log(`AlgoEngine: Fetching historical data for ${candidateStock.symbol} token=${instTokenStr} from=${from} to=${to}`);
                   const res = await KiteClient.getHistoricalData(client.zerodhaApiKey, client.accessToken, instTokenStr, '5minute', from, to);
+                  console.log(`AlgoEngine: Historical response for ${candidateStock.symbol}: status=${res.status}, candles=${res.data?.candles?.length ?? 0}`);
                   if (res.status === 'success' && Array.isArray(res.data?.candles) && res.data.candles.length > 0) {
                     const priceIdx: Record<string, number> = { open: 1, high: 2, low: 3, close: 4 };
                     const candleType = config.tradeAction?.candlePriceType || 'high';
                     candlePrice = Number(res.data.candles[0][priceIdx[candleType]]);
+                    console.log(`AlgoEngine: Candle price for ${candidateStock.symbol} (${candleType}): ${candlePrice}`);
+                  } else {
+                    console.warn(`AlgoEngine: No candle data for ${candidateStock.symbol} - status: ${res.status}, error: ${res.message ?? 'none'}`);
                   }
-                } catch {}
+                } catch (histErr) {
+                  console.error(`AlgoEngine: Historical data fetch failed for ${candidateStock.symbol}:`, histErr);
+                }
+              } else {
+                console.warn(`AlgoEngine: Instrument token not found for ${candidateStock.symbol}`);
               }
             }
 
             if (candlePrice === 0) {
-              console.log(`AlgoEngine: Could not determine candle price for ${candidateStock.symbol}. Skipping.`);
-              return;
+              const fallbackPrice = candidateStock.high || candidateStock.ltp || candidateStock.iep;
+              if (fallbackPrice && fallbackPrice > 0) {
+                console.log(`AlgoEngine: Kite historical data unavailable for ${candidateStock.symbol}, using fallback price (high/ltp): ${fallbackPrice}`);
+                candlePrice = fallbackPrice;
+              } else {
+                const reason = `Could not determine candle price for ${candidateStock.symbol} and no fallback available`;
+                console.log(`AlgoEngine: ${reason}. Logging FAILED trade for ${client.user.name}.`);
+                await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, 0, reason);
+                return;
+              }
             }
 
             const bufferPct = config.tradeAction?.bufferPercent;
@@ -522,18 +563,24 @@ class AlgoEngineService {
           }
 
           if (!targetStock) {
-            console.log(`AlgoEngine: No breakout candidate found for client ${client.user.name}. Skipping trades for today.`);
+            const reason = `Breakout not met: LTP ${candidateStock.ltp || candidateStock.iep} < breakout entry ${breakoutEntryPrice}`;
+            console.log(`AlgoEngine: ${reason} for ${client.user.name}. Logging FAILED trade.`);
+            await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, breakoutEntryPrice, reason);
             return;
           }
 
           const entryPrice = breakoutEntryPrice;
 
           if (!config?.stoploss?.fixedPercent) {
-            console.log(`AlgoEngine: stoploss.fixedPercent not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+            const reason = `stoploss.fixedPercent not configured for strategy "${strategy.name}"`;
+            console.log(`AlgoEngine: ${reason}. Logging FAILED trade for ${client.user.name}.`);
+            await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, entryPrice, reason);
             return;
           }
           if (!config?.target?.profitPercent) {
-            console.log(`AlgoEngine: target.profitPercent not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+            const reason = `target.profitPercent not configured for strategy "${strategy.name}"`;
+            console.log(`AlgoEngine: ${reason}. Logging FAILED trade for ${client.user.name}.`);
+            await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, entryPrice, reason);
             return;
           }
           const slPercent = config.stoploss.fixedPercent;
@@ -1237,6 +1284,41 @@ class AlgoEngineService {
     return this.preOpenCacheDate || new Date().toLocaleDateString('en-GB', {
       day: '2-digit', month: 'short', year: 'numeric'
     });
+  }
+
+  private async logFailedTrade(
+    client: any,
+    strategy: any,
+    symbol: string,
+    orderType: string,
+    entryPrice: number,
+    reason: string
+  ): Promise<void> {
+    try {
+      await prisma.trade.create({
+        data: {
+          clientId: client.id,
+          strategyId: strategy.id,
+          symbol,
+          orderType,
+          entryPrice: entryPrice || 0,
+          quantity: 0,
+          status: 'FAILED',
+          entryTime: new Date(),
+          kiteResponse: { message: reason }
+        }
+      });
+      await prisma.strategyLog.create({
+        data: {
+          strategyId: strategy.id,
+          message: `Trade skipped for ${client.user.name} (${symbol}): ${reason}`,
+          logType: 'warning'
+        }
+      });
+      console.log(`AlgoEngine: Logged FAILED trade for ${client.user.name} (${symbol}) - ${reason}`);
+    } catch (e) {
+      console.error(`AlgoEngine: Failed to log failed trade for ${symbol}:`, e);
+    }
   }
 }
 
