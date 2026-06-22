@@ -14,17 +14,21 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: 'Unauthorized cron execution' }, { status: 401 });
     }
 
-    // Find all active, subscribed clients who have auto-login credentials
+    // Find all active, subscribed clients who are assigned to the 'Algo' product type and have credentials
     const clients = await prisma.client.findMany({
       where: {
         tradingStatus: 'active',
         subscriptionStatus: 'active',
         zerodhaPassword: { not: null },
         zerodhaTotpSecret: { not: null },
-        zerodhaClientId: { not: null }
+        zerodhaClientId: { not: null },
+        productType: {
+          name: 'Algo'
+        }
       },
       include: {
-        user: true
+        user: true,
+        productType: true
       }
     });
 
