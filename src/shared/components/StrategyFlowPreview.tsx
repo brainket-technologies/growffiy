@@ -259,7 +259,7 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
                 ? <PassBadge label={`MIS margin: ${rm.misMarginRate}x`} passed={true} />
                 : <PassBadge label="MIS margin: disabled" passed={false} />
               }
-              <PassBadge label={`Daily loss: ₹${rm.maxDailyLoss || 5000}`} passed={true} />
+              <PassBadge label={rm.maxDailyLoss === -1 ? 'Daily loss: Disabled' : `Daily loss: ₹${rm.maxDailyLoss}`} passed={true} />
             </div>
           </StageCard>
         </div>
@@ -344,7 +344,7 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'var(--text-subtle)'}} />
-                Circuit breakers: Max loss ₹{rm.maxDailyLoss || 5000} | Max profit ₹{rm.maxDailyProfit || 15000}
+                Circuit breakers: Max loss {rm.maxDailyLoss === -1 ? 'Disabled' : `₹${rm.maxDailyLoss}`} | Max profit {rm.maxDailyProfit === -1 ? 'Disabled' : `₹${rm.maxDailyProfit}`}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'var(--text-subtle)'}} />

@@ -35,6 +35,17 @@ export async function PUT(
 
       if (configJson) {
         const config = JSON.parse(configJson);
+        // Sanitize risk values (prevent < -1)
+        if (config.riskManagement) {
+          if (config.riskManagement.maxDailyLoss !== undefined && config.riskManagement.maxDailyLoss < -1) config.riskManagement.maxDailyLoss = -1;
+          if (config.riskManagement.maxDailyProfit !== undefined && config.riskManagement.maxDailyProfit < -1) config.riskManagement.maxDailyProfit = -1;
+          if (config.riskManagement.misMarginRate !== undefined && config.riskManagement.misMarginRate < -1) config.riskManagement.misMarginRate = -1;
+          if (config.riskManagement.capitalAllocation !== undefined && config.riskManagement.capitalAllocation < -1) config.riskManagement.capitalAllocation = -1;
+        }
+        if (config.stoploss && config.stoploss.trailingSL !== undefined && config.stoploss.trailingSL < -1) config.stoploss.trailingSL = -1;
+        if (config.target && config.target.trailingTarget !== undefined && config.target.trailingTarget < -1) config.target.trailingTarget = -1;
+        if (config.tradeAction && config.tradeAction.marketProtection !== undefined && config.tradeAction.marketProtection < -1) config.tradeAction.marketProtection = -1;
+        body.configJson = JSON.stringify(config);
         if (config.conditions && Array.isArray(config.conditions)) {
           for (const cond of config.conditions) {
             await prisma.strategyCondition.create({

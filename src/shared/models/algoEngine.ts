@@ -219,10 +219,19 @@ class AlgoEngineService {
       return;
     }
 
+    const algoType = await prisma.productType.findUnique({ where: { name: 'Algo' } });
+    if (!algoType) {
+      console.log('AlgoEngine preSelect: Algo product type not found. Skipping.');
+      return;
+    }
+
     const where: any = {
       tradingStatus: 'active',
       subscriptionStatus: 'active',
-      strategyId: { not: null }
+      productTypeId: algoType.id,
+      strategyId: { not: null },
+      accessToken: { not: null },
+      zerodhaApiKey: { not: null }
     };
     if (strategyId) where.strategyId = strategyId;
 
@@ -232,7 +241,7 @@ class AlgoEngineService {
     });
 
     if (clients.length === 0) {
-      console.log('AlgoEngine preSelect: No active clients.');
+      console.log('AlgoEngine preSelect: No active clients with connected Kite session.');
       return;
     }
 
@@ -251,6 +260,14 @@ class AlgoEngineService {
 
         const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
         if (!config) return;
+        // Safety clamp: prevent risk values < -1
+        if (config.riskManagement) {
+          if (config.riskManagement.maxDailyLoss < -1) config.riskManagement.maxDailyLoss = -1;
+          if (config.riskManagement.maxDailyProfit < -1) config.riskManagement.maxDailyProfit = -1;
+          if (config.riskManagement.misMarginRate < -1) config.riskManagement.misMarginRate = -1;
+        }
+        if (config.stoploss?.trailingSL < -1) config.stoploss.trailingSL = -1;
+        if (config.target?.trailingTarget < -1) config.target.trailingTarget = -1;
 
         if (!config.basicInfo?.segment || !config.tradeAction?.action || !config.basicInfo?.selectPosition) {
           console.log(`AlgoEngine preSelect: Strategy config missing required fields (segment/action/selectPosition) for client ${client.user.name}. Skipping.`);
@@ -328,10 +345,19 @@ class AlgoEngineService {
         return;
       }
 
+      const algoType = await prisma.productType.findUnique({ where: { name: 'Algo' } });
+      if (!algoType) {
+        console.log('AlgoEngine: Algo product type not found. Skipping trade execution.');
+        return;
+      }
+
       const where: any = {
         tradingStatus: 'active',
         subscriptionStatus: 'active',
-        strategyId: { not: null }
+        productTypeId: algoType.id,
+        strategyId: { not: null },
+        accessToken: { not: null },
+        zerodhaApiKey: { not: null }
       };
       if (strategyId) where.strategyId = strategyId;
 
@@ -341,7 +367,7 @@ class AlgoEngineService {
       });
 
       if (clients.length === 0) {
-        console.log('AlgoEngine: No active clients assigned to any strategy.');
+        console.log('AlgoEngine: No active clients with connected Kite session.');
         return;
       }
 
@@ -540,7 +566,7 @@ class AlgoEngineService {
             return;
           }
 
-          if (process.env.KITE_AUTO_LOGIN_ENABLED === 'true') {
+          if (process.env.KITE_AUTO_LOGIN_ENABLED === 'true' && client.productTypeId === algoType.id) {
             if (this.todayTokenRefreshed.has(client.id) && activeAccessToken) {
               console.log(`AlgoEngine: Client ${client.user.name} already refreshed today, using existing token.`);
             } else if (client.zerodhaPassword && client.zerodhaTotpSecret) {
@@ -605,8 +631,16 @@ class AlgoEngineService {
 
           let capitalAtRisk = clientCapital * (riskPercent / 100);
 
+          const capitalAllocPct = config?.riskManagement?.capitalAllocation;
+          if (capitalAllocPct !== undefined && capitalAllocPct !== null && capitalAllocPct > 0) {
+            const allocLimit = clientCapital * (capitalAllocPct / 100);
+            if (capitalAtRisk > allocLimit) {
+              capitalAtRisk = allocLimit;
+            }
+          }
+
           const dbCapitalLimit = Number(client.capital);
-          if (capitalAtRisk > dbCapitalLimit) {
+          if (dbCapitalLimit !== -1 && capitalAtRisk > dbCapitalLimit) {
             capitalAtRisk = dbCapitalLimit;
           }
 
@@ -824,10 +858,11 @@ class AlgoEngineService {
           let slOrderId = '';
           let targetOrderId = '';
 
+          let entryFilled = false;
+
+          // Entry order place hone ke baad — poll karo fill hone tak
           if (orderId && client.zerodhaApiKey && activeAccessToken) {
-            console.log(`AlgoEngine: Polling entry order ${orderId} for completion...`);
-            const isInstantFill = orderTypeParam === 'MARKET' || orderTypeParam === 'SL-M';
-            const maxPolls = isInstantFill ? 3 : 10;
+            const maxPolls = 30; // 30 × 2s = 60s wait for trigger
             for (let attempt = 0; attempt < maxPolls; attempt++) {
               await new Promise(r => setTimeout(r, 2000));
               try {
@@ -838,6 +873,55 @@ class AlgoEngineService {
                     actualEntryPrice = Number(filledAvgPrice);
                   }
                   console.log(`AlgoEngine: Entry order ${orderId} COMPLETE at avg price ₹${actualEntryPrice}`);
+                  entryFilled = true;
+
+                  // Entry fill hote hi SL + Target place karo
+                  if (client.zerodhaApiKey && activeAccessToken) {
+                    try {
+                      const slParams = {
+                        exchange: exchangeParam,
+                        tradingsymbol: targetStock.symbol,
+                        transaction_type: 'SELL' as const,
+                        quantity: quantity,
+                        order_type: 'SL-M' as const,
+                        product: productParam as any,
+                        validity: 'DAY' as const,
+                        trigger_price: Number(stopLoss.toFixed(2)),
+                        market_protection: marketProtectionVal
+                      };
+                      const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slParams);
+                      if (slRes?.status === 'success' && slRes.data?.order_id) {
+                        slOrderId = slRes.data.order_id;
+                        console.log(`AlgoEngine: SL-M order placed: ${slOrderId} for ${targetStock.symbol} @ trigger ₹${stopLoss.toFixed(2)}`);
+                      } else {
+                        console.warn(`AlgoEngine: SL-M order failed: ${slRes?.message || 'unknown'}`);
+                      }
+                    } catch (slErr) {
+                      console.error(`AlgoEngine: Error placing SL-M order:`, slErr);
+                    }
+
+                    try {
+                      const targetParams = {
+                        exchange: exchangeParam,
+                        tradingsymbol: targetStock.symbol,
+                        transaction_type: 'SELL' as const,
+                        quantity: quantity,
+                        order_type: 'LIMIT' as const,
+                        product: productParam as any,
+                        validity: 'DAY' as const,
+                        price: Number(target.toFixed(2))
+                      };
+                      const targetRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, targetParams);
+                      if (targetRes?.status === 'success' && targetRes.data?.order_id) {
+                        targetOrderId = targetRes.data.order_id;
+                        console.log(`AlgoEngine: Target LIMIT order placed: ${targetOrderId} for ${targetStock.symbol} @ ₹${target.toFixed(2)}`);
+                      } else {
+                        console.warn(`AlgoEngine: Target LIMIT order failed: ${targetRes?.message || 'unknown'}`);
+                      }
+                    } catch (tgtErr) {
+                      console.error(`AlgoEngine: Error placing Target LIMIT order:`, tgtErr);
+                    }
+                  }
                   break;
                 }
                 if (orderStatusRes?.data?.status === 'CANCELLED' || orderStatusRes?.data?.status === 'REJECTED') {
@@ -845,7 +929,9 @@ class AlgoEngineService {
                   orderId = '';
                   break;
                 }
-                console.log(`AlgoEngine: Entry order status: ${orderStatusRes?.data?.status || 'unknown'} (attempt ${attempt + 1})`);
+                if (attempt === 0 || attempt === maxPolls - 1 || attempt % 5 === 4) {
+                  console.log(`AlgoEngine: Entry order status: ${orderStatusRes?.data?.status || 'unknown'} (poll ${attempt + 1}/${maxPolls})`);
+                }
               } catch (pollErr) {
                 console.warn(`AlgoEngine: Error polling entry order (attempt ${attempt + 1}):`, pollErr);
               }
@@ -860,59 +946,14 @@ class AlgoEngineService {
                 entryPrice: actualEntryPrice, quantity: quantity,
                 stopLoss: stopLoss, target: target,
                 status: 'FAILED', entryTime: new Date(),
-                kiteResponse: { error: 'Entry order did not complete' }
+                kiteResponse: { error: 'Entry order cancelled or rejected' }
               }
             });
             return;
           }
 
-          if (client.zerodhaApiKey && activeAccessToken) {
-            try {
-              const slParams = {
-                exchange: exchangeParam,
-                tradingsymbol: targetStock.symbol,
-                transaction_type: 'SELL' as const,
-                quantity: quantity,
-                order_type: 'SL-M' as const,
-                product: productParam as any,
-                validity: 'DAY' as const,
-                trigger_price: Number(stopLoss.toFixed(2)),
-                market_protection: marketProtectionVal
-              };
-              const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slParams);
-              if (slRes?.status === 'success' && slRes.data?.order_id) {
-                slOrderId = slRes.data.order_id;
-                console.log(`AlgoEngine: SL-M order placed: ${slOrderId} for ${targetStock.symbol} @ trigger ₹${stopLoss.toFixed(2)}`);
-              } else {
-                console.warn(`AlgoEngine: SL-M order failed: ${slRes?.message || 'unknown'}`);
-              }
-            } catch (slErr) {
-              console.error(`AlgoEngine: Error placing SL-M order:`, slErr);
-            }
-          }
-
-          if (client.zerodhaApiKey && activeAccessToken) {
-            try {
-              const targetParams = {
-                exchange: exchangeParam,
-                tradingsymbol: targetStock.symbol,
-                transaction_type: 'SELL' as const,
-                quantity: quantity,
-                order_type: 'LIMIT' as const,
-                product: productParam as any,
-                validity: 'DAY' as const,
-                price: Number(target.toFixed(2))
-              };
-              const targetRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, targetParams);
-              if (targetRes?.status === 'success' && targetRes.data?.order_id) {
-                targetOrderId = targetRes.data.order_id;
-                console.log(`AlgoEngine: Target LIMIT order placed: ${targetOrderId} for ${targetStock.symbol} @ ₹${target.toFixed(2)}`);
-              } else {
-                console.warn(`AlgoEngine: Target LIMIT order failed: ${targetRes?.message || 'unknown'}`);
-              }
-            } catch (tgtErr) {
-              console.error(`AlgoEngine: Error placing Target LIMIT order:`, tgtErr);
-            }
+          if (!entryFilled) {
+            console.log(`AlgoEngine: Entry order ${orderId} placed (trigger pending). SL/Target will be placed by monitoring scheduler once entry fills.`);
           }
 
           await prisma.trade.create({

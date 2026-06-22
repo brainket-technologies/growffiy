@@ -134,11 +134,11 @@ const INITIAL_CONFIG: StrategyConfig = {
     trailingTarget: -1
   },
   riskManagement: {
-    capitalAllocation: 10.0,
+    capitalAllocation: -1,
     riskPerTrade: 3,
     misMarginRate: 0.20,
-    maxDailyLoss: 5000,
-    maxDailyProfit: 15000,
+    maxDailyLoss: -1,
+    maxDailyProfit: -1,
     maxOpenPositions: 3,
     killSwitch: false
   },
@@ -1759,25 +1759,32 @@ export default function StrategiesPage() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 600 }}>SL Target Value</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={formData.stoploss.type === 'Fixed Points' ? formData.stoploss.fixedPoints : formData.stoploss.type === 'Trailing SL' ? formData.stoploss.trailingSL : formData.stoploss.type === 'Risk %' ? formData.stoploss.riskPercent : formData.stoploss.fixedPercent}
-                      onChange={(e) => {
-                        const val = Number(e.target.value);
-                        if (formData.stoploss.type === 'Fixed Points') {
-                          setFormData({ ...formData, stoploss: { ...formData.stoploss, fixedPoints: val } });
-                        } else if (formData.stoploss.type === 'Trailing SL') {
-                          setFormData({ ...formData, stoploss: { ...formData.stoploss, trailingSL: val } });
-                        } else if (formData.stoploss.type === 'Risk %') {
-                          setFormData({ ...formData, stoploss: { ...formData.stoploss, riskPercent: val } });
-                        } else {
-                          setFormData({ ...formData, stoploss: { ...formData.stoploss, fixedPercent: val } });
-                        }
-                      }}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    />
-                    {formData.stoploss.type === 'Trailing SL' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min={formData.stoploss.type === 'Trailing SL' ? -1 : undefined}
+                        value={formData.stoploss.type === 'Fixed Points' ? formData.stoploss.fixedPoints : formData.stoploss.type === 'Trailing SL' ? formData.stoploss.trailingSL : formData.stoploss.type === 'Risk %' ? formData.stoploss.riskPercent : formData.stoploss.fixedPercent}
+                        onChange={(e) => {
+                          let val = Number(e.target.value);
+                          if (formData.stoploss.type === 'Trailing SL' && val < -1) val = -1;
+                          if (formData.stoploss.type === 'Fixed Points') {
+                            setFormData({ ...formData, stoploss: { ...formData.stoploss, fixedPoints: val } });
+                          } else if (formData.stoploss.type === 'Trailing SL') {
+                            setFormData({ ...formData, stoploss: { ...formData.stoploss, trailingSL: val } });
+                          } else if (formData.stoploss.type === 'Risk %') {
+                            setFormData({ ...formData, stoploss: { ...formData.stoploss, riskPercent: val } });
+                          } else {
+                            setFormData({ ...formData, stoploss: { ...formData.stoploss, fixedPercent: val } });
+                          }
+                        }}
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: formData.stoploss.type === 'Trailing SL' && formData.stoploss.trailingSL <= 0 ? '1px solid rgba(239,68,68,0.3)' : '1px solid var(--border-color)', background: 'transparent', color: formData.stoploss.type === 'Trailing SL' && formData.stoploss.trailingSL <= 0 ? '#ef4444' : 'var(--text-primary)', outline: 'none' }}
+                      />
+                      {formData.stoploss.type === 'Trailing SL' && formData.stoploss.trailingSL <= 0 && (
+                        <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>🛑 Disabled</span>
+                      )}
+                    </div>
+                    {formData.stoploss.type === 'Trailing SL' && formData.stoploss.trailingSL > 0 && (
                       <span style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.7 }}>Set -1 to disable trailing SL</span>
                     )}
                   </div>
@@ -1839,17 +1846,26 @@ export default function StrategiesPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <label style={{ fontSize: '12px', fontWeight: 600 }}>Trailing Target %</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={formData.target.trailingTarget}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          target: { ...formData.target, trailingTarget: Number(e.target.value) }
-                        })}
-                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      />
-                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.7 }}>Set -1 to disable trailing target</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="-1"
+                          value={formData.target.trailingTarget}
+                          onChange={(e) => {
+                            let val = Number(e.target.value);
+                            if (val < -1) val = -1;
+                            setFormData({ ...formData, target: { ...formData.target, trailingTarget: val } });
+                          }}
+                          style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: formData.target.trailingTarget <= 0 ? '1px solid rgba(239,68,68,0.3)' : '1px solid var(--border-color)', background: 'transparent', color: formData.target.trailingTarget <= 0 ? '#ef4444' : 'var(--text-primary)', outline: 'none' }}
+                        />
+                        {formData.target.trailingTarget <= 0 && (
+                          <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>🛑 Disabled</span>
+                        )}
+                      </div>
+                      {formData.target.trailingTarget > 0 && (
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.7 }}>Set -1 to disable trailing target</span>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1865,15 +1881,22 @@ export default function StrategiesPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 600 }}>Capital Allocation %</label>
-                    <input
-                      type="number"
-                      value={formData.riskManagement.capitalAllocation}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        riskManagement: { ...formData.riskManagement, capitalAllocation: Number(e.target.value) }
-                      })}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="number"
+                        min="-1"
+                        value={formData.riskManagement.capitalAllocation}
+                        onChange={(e) => {
+                          let val = Number(e.target.value);
+                          if (val < -1) val = -1;
+                          setFormData({ ...formData, riskManagement: { ...formData.riskManagement, capitalAllocation: val } });
+                        }}
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: formData.riskManagement.capitalAllocation <= 0 ? '1px solid rgba(239,68,68,0.3)' : '1px solid var(--border-color)', background: 'transparent', color: formData.riskManagement.capitalAllocation <= 0 ? '#ef4444' : 'var(--text-primary)', outline: 'none' }}
+                      />
+                      {formData.riskManagement.capitalAllocation <= 0 && (
+                        <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>🛑 Disabled</span>
+                      )}
+                    </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 600 }}>Risk % (of Total Capital)</label>
@@ -1892,42 +1915,63 @@ export default function StrategiesPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 600 }}>MIS Margin Rate (%)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.riskManagement.misMarginRate}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        riskManagement: { ...formData.riskManagement, misMarginRate: Number(e.target.value) }
-                      })}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="-1"
+                        value={formData.riskManagement.misMarginRate}
+                        onChange={(e) => {
+                          let val = Number(e.target.value);
+                          if (val < -1) val = -1;
+                          setFormData({ ...formData, riskManagement: { ...formData.riskManagement, misMarginRate: val } });
+                        }}
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: formData.riskManagement.misMarginRate <= 0 ? '1px solid rgba(239,68,68,0.3)' : '1px solid var(--border-color)', background: 'transparent', color: formData.riskManagement.misMarginRate <= 0 ? '#ef4444' : 'var(--text-primary)', outline: 'none' }}
+                      />
+                      {formData.riskManagement.misMarginRate <= 0 && (
+                        <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>🛑 Disabled</span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 600 }}>Max Daily Loss (₹)</label>
-                    <input
-                      type="number"
-                      value={formData.riskManagement.maxDailyLoss}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        riskManagement: { ...formData.riskManagement, maxDailyLoss: Number(e.target.value) }
-                      })}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="number"
+                        min="-1"
+                        value={formData.riskManagement.maxDailyLoss}
+                        onChange={(e) => {
+                          let val = Number(e.target.value);
+                          if (val < -1) val = -1;
+                          setFormData({ ...formData, riskManagement: { ...formData.riskManagement, maxDailyLoss: val } });
+                        }}
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: formData.riskManagement.maxDailyLoss === -1 ? '1px solid rgba(239,68,68,0.3)' : '1px solid var(--border-color)', background: 'transparent', color: formData.riskManagement.maxDailyLoss === -1 ? '#ef4444' : 'var(--text-primary)', outline: 'none' }}
+                      />
+                      {formData.riskManagement.maxDailyLoss === -1 && (
+                        <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>🛑 Disabled</span>
+                      )}
+                    </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 600 }}>Max Daily Profit (₹)</label>
-                    <input
-                      type="number"
-                      value={formData.riskManagement.maxDailyProfit}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        riskManagement: { ...formData.riskManagement, maxDailyProfit: Number(e.target.value) }
-                      })}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="number"
+                        min="-1"
+                        value={formData.riskManagement.maxDailyProfit}
+                        onChange={(e) => {
+                          let val = Number(e.target.value);
+                          if (val < -1) val = -1;
+                          setFormData({ ...formData, riskManagement: { ...formData.riskManagement, maxDailyProfit: val } });
+                        }}
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: formData.riskManagement.maxDailyProfit === -1 ? '1px solid rgba(239,68,68,0.3)' : '1px solid var(--border-color)', background: 'transparent', color: formData.riskManagement.maxDailyProfit === -1 ? '#ef4444' : 'var(--text-primary)', outline: 'none' }}
+                      />
+                      {formData.riskManagement.maxDailyProfit === -1 && (
+                        <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>🛑 Disabled</span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>

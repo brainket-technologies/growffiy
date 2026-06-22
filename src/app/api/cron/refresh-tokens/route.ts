@@ -14,15 +14,22 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: 'Unauthorized cron execution' }, { status: 401 });
     }
 
-    // Find all active, subscribed clients who are assigned to the static 'Algo' product type ID and have credentials
+    const algoType = await prisma.productType.findUnique({ where: { name: 'Algo' } });
+    if (!algoType) {
+      return NextResponse.json({ success: false, error: 'Algo product type not found in database' }, { status: 500 });
+    }
+
+    // Find all active, subscribed Algo clients with Kite credentials
     const clients = await prisma.client.findMany({
       where: {
         tradingStatus: 'active',
         subscriptionStatus: 'active',
-        zerodhaPassword: { not: null },
-        zerodhaTotpSecret: { not: null },
+        productTypeId: algoType.id,
         zerodhaClientId: { not: null },
-        productTypeId: 'prod-algo' // Static ID for Algo product type
+        zerodhaApiKey: { not: null },
+        zerodhaApiSecret: { not: null },
+        zerodhaPassword: { not: null },
+        zerodhaTotpSecret: { not: null }
       },
       include: {
         user: true,

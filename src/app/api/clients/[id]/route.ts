@@ -58,8 +58,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         }
       }
 
-      // 2. If token is missing/expired, attempt auto-login
-      if (!client.accessToken && client.tradingStatus === 'active' && client.zerodhaPassword && client.zerodhaTotpSecret && client.zerodhaClientId) {
+      // 2. If token is missing/expired, attempt auto-login (only for Algo product type clients)
+      if (!client.accessToken && client.tradingStatus === 'active' && client.productType?.name === 'Algo' && client.zerodhaPassword && client.zerodhaTotpSecret && client.zerodhaClientId) {
         try {
           console.log(`API: Token expired or null. Attempting auto-login for client ${client.id}...`);
           const loginRes = await performKiteAutoLogin(client.id);
@@ -164,7 +164,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
            subscriptionStatus: subscriptionStatus !== undefined ? subscriptionStatus : undefined,
            strategyId: strategyId !== undefined ? strategyId : undefined,
            productTypeId: productTypeId !== undefined ? productTypeId : undefined,
-            capital: capital ? Number(capital) : undefined,
+             capital: capital ? Math.max(-1, Number(capital)) : undefined,
             accessToken: (tradingStatus === 'inactive' || accessToken === null) ? null : (accessToken !== undefined ? accessToken : undefined),
            zerodhaSession: (tradingStatus === 'inactive' || accessToken === null) ? null : undefined,
            panNumber: panNumber !== undefined ? panNumber : undefined,
@@ -197,7 +197,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
            tradingStatus: tradingStatus ?? current.tradingStatus,
            subscriptionStatus: subscriptionStatus ?? current.subscriptionStatus,
            strategyId: strategyId ?? current.strategyId,
-           capital: capital ? Number(capital) : current.capital,
+            capital: capital ? Math.max(-1, Number(capital)) : current.capital,
            riskPercentage: riskPercentage ? Number(riskPercentage) : current.riskPercentage,
            accessToken: (tradingStatus === 'inactive' || accessToken === null) ? null : (accessToken !== undefined ? accessToken : current.accessToken),
            zerodhaSession: (tradingStatus === 'inactive' || accessToken === null) ? null : current.zerodhaSession,

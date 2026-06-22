@@ -666,8 +666,8 @@ export default function ClientDetailsPage() {
                 
                 <div className="info-pill">
                   <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Allocated Capital</span>
-                  <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--primary)' }}>
-                    ₹{Number(capital || 0).toLocaleString('en-IN')}
+                  <span style={{ fontWeight: 700, fontSize: '13px', color: capital === '-1' ? 'var(--accent)' : 'var(--primary)' }}>
+                    {capital === '-1' ? 'Live Balance' : `₹${Number(capital || 0).toLocaleString('en-IN')}`}
                   </span>
                 </div>
 
@@ -1061,15 +1061,21 @@ export default function ClientDetailsPage() {
                 <div className="form-grid-2">
                   <div className="form-group">
                     <label className="form-label">Allocated Capital (INR)</label>
-                    <div className="premium-input-wrapper">
-                      <Coins size={15} className="premium-input-icon" />
-                      <input 
-                        type="number" 
-                        required 
-                        value={capital} 
-                        onChange={(e) => setCapital(e.target.value)} 
-                        className="premium-input"
-                      />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div className="premium-input-wrapper" style={{ flex: 1, marginBottom: 0 }}>
+                        <Coins size={15} className="premium-input-icon" />
+                        <input 
+                          type="number" 
+                          required 
+                          value={capital} 
+                          onChange={(e) => setCapital(e.target.value)} 
+                          className="premium-input"
+                          style={capital === '-1' ? { color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' } : {}}
+                        />
+                      </div>
+                      {capital === '-1' && (
+                        <span style={{ color: '#10b981', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>Live Balance</span>
+                      )}
                     </div>
                   </div>
                   

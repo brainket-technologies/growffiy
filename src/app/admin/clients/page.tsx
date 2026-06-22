@@ -435,7 +435,7 @@ export default function ClientsPage() {
                           </span>
                         )}
                       </td>
-                      <td style={{ fontWeight: 600 }}>₹{Number(client.capital).toLocaleString()}</td>
+                      <td style={{ fontWeight: 600, color: Number(client.capital) === -1 ? '#10b981' : 'inherit' }}>{Number(client.capital) === -1 ? 'Live Balance' : `₹${Number(client.capital).toLocaleString()}`}</td>
                       <td>
                         {client.accessToken ? (
                           <span className="badge badge-green">Connected</span>
@@ -718,17 +718,23 @@ export default function ClientsPage() {
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Allocated Capital (INR)</label>
-            <input
-              type="number"
-              required
-              value={capital}
-              onChange={(e) => setCapital(e.target.value)}
-              placeholder="Enter Allocated Capital"
-              autoComplete="off"
-              readOnly={!focusedFields['capital']}
-              onFocus={() => setFocusedFields(prev => ({ ...prev, capital: true }))}
-              onBlur={() => setFocusedFields(prev => ({ ...prev, capital: false }))}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input
+                type="number"
+                required
+                value={capital}
+                onChange={(e) => setCapital(e.target.value)}
+                placeholder="Enter -1 for Live Balance"
+                autoComplete="off"
+                readOnly={!focusedFields['capital']}
+                onFocus={() => setFocusedFields(prev => ({ ...prev, capital: true }))}
+                onBlur={() => setFocusedFields(prev => ({ ...prev, capital: false }))}
+                style={{ flex: 1, border: capital === '-1' ? '1px solid rgba(16,185,129,0.3)' : undefined, color: capital === '-1' ? '#10b981' : undefined }}
+              />
+              {capital === '-1' && (
+                <span style={{ color: '#10b981', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>Live Balance</span>
+              )}
+            </div>
           </div>
 
           <div>

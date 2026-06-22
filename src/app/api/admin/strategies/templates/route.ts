@@ -44,8 +44,8 @@ const DEFAULT_TEMPLATES = [
         capitalAllocation: 10.0,
         riskPerTrade: 3,
         misMarginRate: 0.20,
-        maxDailyLoss: 5000,
-        maxDailyProfit: 15000,
+        maxDailyLoss: -1,
+        maxDailyProfit: -1,
         maxOpenPositions: 3,
         killSwitch: false
       },
@@ -94,8 +94,8 @@ const DEFAULT_TEMPLATES = [
         capitalAllocation: 20.0,
         riskPerTrade: 3,
         misMarginRate: 0.20,
-        maxDailyLoss: 8000,
-        maxDailyProfit: 24000,
+        maxDailyLoss: -1,
+        maxDailyProfit: -1,
         maxOpenPositions: 1,
         killSwitch: false
       },

@@ -151,10 +151,21 @@ export class TradingScheduler {
           console.log(`AlgoEngine Scheduler: Token refresh time ${cachedRefreshTime} reached. Starting daily token refresh...`);
           lastRefreshedDate = currentDateKey;
 
+          const algoType = await prisma.productType.findUnique({ where: { name: 'Algo' } });
+          if (!algoType) {
+            console.log('AlgoEngine Scheduler: Algo product type not found. Skipping token refresh.');
+            return;
+          }
+
           const clients = await prisma.client.findMany({
             where: {
               tradingStatus: 'active', subscriptionStatus: 'active',
-              zerodhaPassword: { not: null }, zerodhaTotpSecret: { not: null }, zerodhaClientId: { not: null }
+              productTypeId: algoType.id,
+              zerodhaClientId: { not: null },
+              zerodhaApiKey: { not: null },
+              zerodhaApiSecret: { not: null },
+              zerodhaPassword: { not: null },
+              zerodhaTotpSecret: { not: null }
             },
             include: { user: true }
           });
@@ -397,8 +408,67 @@ export class TradingScheduler {
               }
             }
 
-            // --- Priority 2: Fallback candle-based check ---
-            if (!exitTriggered && !trade.slOrderId && !trade.targetOrderId) {
+            // --- Priority 2: Entry placed but SL/Target not yet set ---
+            if (!exitTriggered && !trade.slOrderId && !trade.targetOrderId && trade.entryOrderId) {
+              try {
+                const entryStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.entryOrderId);
+                if (entryStatus?.status === 'success' && entryStatus?.data?.status === 'COMPLETE') {
+                  const filledPrice = Number(entryStatus.data.average_price || entryStatus.data.filled_price || 0);
+                  if (filledPrice > 0) {
+                    await prisma.trade.update({ where: { id: trade.id }, data: { entryPrice: filledPrice } });
+                  }
+                  // Entry fill hui — ab SL aur Target place karo
+                  let newSlOrderId = '';
+                  let newTargetOrderId = '';
+                  if (client.zerodhaApiKey && client.accessToken) {
+                    try {
+                      const slParams = {
+                        exchange: exchangeParam, tradingsymbol: trade.symbol,
+                        transaction_type: 'SELL' as const, quantity: Number(trade.quantity),
+                        order_type: 'SL-M' as const, product: productParam as any,
+                        validity: 'DAY' as const,
+                        trigger_price: Number(Number(trade.slTriggerPrice || (filledPrice > 0 ? filledPrice * (1 - slPercent / 100) : 0)).toFixed(2)),
+                        market_protection: marketProtectionVal
+                      };
+                      const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, slParams);
+                      if (slRes?.status === 'success' && slRes.data?.order_id) {
+                        newSlOrderId = slRes.data.order_id;
+                      }
+                    } catch (slErr) { console.warn(`AlgoEngine Monitor: SL placement failed for ${trade.symbol}:`, slErr); }
+                    try {
+                      const targetParams = {
+                        exchange: exchangeParam, tradingsymbol: trade.symbol,
+                        transaction_type: 'SELL' as const, quantity: Number(trade.quantity),
+                        order_type: 'LIMIT' as const, product: productParam as any,
+                        validity: 'DAY' as const,
+                        price: Number(Number(trade.target || (filledPrice > 0 ? filledPrice * (1 + targetPercent / 100) : 0)).toFixed(2))
+                      };
+                      const tgtRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, targetParams);
+                      if (tgtRes?.status === 'success' && tgtRes.data?.order_id) {
+                        newTargetOrderId = tgtRes.data.order_id;
+                      }
+                    } catch (tgtErr) { console.warn(`AlgoEngine Monitor: Target placement failed for ${trade.symbol}:`, tgtErr); }
+                  }
+                  await prisma.trade.update({
+                    where: { id: trade.id },
+                    data: {
+                      slOrderId: newSlOrderId || null,
+                      targetOrderId: newTargetOrderId || null
+                    }
+                  });
+                  console.log(`AlgoEngine Monitor: Entry ${trade.entryOrderId} filled. SL: ${newSlOrderId || 'N/A'}, Target: ${newTargetOrderId || 'N/A'} placed for ${trade.symbol}.`);
+                  return; // next cycle monitor karega SL/Target
+                }
+                if (entryStatus?.data?.status === 'CANCELLED' || entryStatus?.data?.status === 'REJECTED') {
+                  await prisma.trade.update({ where: { id: trade.id }, data: { status: 'FAILED' } });
+                  console.warn(`AlgoEngine Monitor: Entry order ${trade.entryOrderId} ${entryStatus.data.status}. Trade ${trade.id} marked FAILED.`);
+                  return;
+                }
+              } catch (e) { console.warn(`AlgoEngine Monitor: Entry status check failed for ${trade.symbol}:`, e); }
+            }
+
+            // --- Priority 3: Fallback candle-based check (no SL/Target and no entry order) ---
+            if (!exitTriggered && !trade.slOrderId && !trade.targetOrderId && !trade.entryOrderId) {
               if (instrumentTokenStr) {
                 let intervalParam = '5minute';
                 const tf = config?.basicInfo?.timeframe;
