@@ -14,17 +14,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: 'Unauthorized cron execution' }, { status: 401 });
     }
 
-    // Find the 'Algo' product type ID first
-    const algoProductType = await prisma.productType.findUnique({
-      where: { name: 'Algo' }
-    });
-
-    if (!algoProductType) {
-      console.error("Cron Refresh Tokens: Algo product type not found in database.");
-      return NextResponse.json({ success: false, error: 'Algo product type not found' }, { status: 500 });
-    }
-
-    // Find all active, subscribed clients who are assigned to the 'Algo' product type ID and have credentials
+    // Find all active, subscribed clients who are assigned to the static 'Algo' product type ID and have credentials
     const clients = await prisma.client.findMany({
       where: {
         tradingStatus: 'active',
@@ -32,7 +22,7 @@ export async function GET(request: Request) {
         zerodhaPassword: { not: null },
         zerodhaTotpSecret: { not: null },
         zerodhaClientId: { not: null },
-        productTypeId: algoProductType.id
+        productTypeId: 'prod-algo' // Static ID for Algo product type
       },
       include: {
         user: true,

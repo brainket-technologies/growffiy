@@ -47,27 +47,19 @@ async function main() {
       }
     }
   });
-  await prisma.productType.deleteMany({
-    where: {
-      id: {
-        in: ['prod-algo', 'prod-scanner']
-      }
-    }
-  });
-
   const prodAlgo = await prisma.productType.upsert({
-    where: { name: 'Algo' },
-    update: {},
-    create: { name: 'Algo' }
+    where: { id: 'prod-algo' },
+    update: { name: 'Algo' },
+    create: { id: 'prod-algo', name: 'Algo' }
   });
-  console.log('ProductType seeded (Auto ID):', prodAlgo.id, prodAlgo.name);
+  console.log('ProductType seeded:', prodAlgo.id, prodAlgo.name);
 
   const prodScanner = await prisma.productType.upsert({
-    where: { name: 'Scanner' },
-    update: {},
-    create: { name: 'Scanner' }
+    where: { id: 'prod-scanner' },
+    update: { name: 'Scanner' },
+    create: { id: 'prod-scanner', name: 'Scanner' }
   });
-  console.log('ProductType seeded (Auto ID):', prodScanner.id, prodScanner.name);
+  console.log('ProductType seeded:', prodScanner.id, prodScanner.name);
 
   // 2. Seed Subscription Plans
   const plans = [
