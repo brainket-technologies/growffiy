@@ -503,7 +503,8 @@ export class TradingScheduler {
                   console.warn(`AlgoEngine Monitor: Entry order ${trade.entryOrderId} ${entryOrderStatus}. Trade ${trade.id} marked FAILED.`);
                   return;
                 }
-              } catch (e) { console.warn(`AlgoEngine Monitor: Entry status check failed for ${trade.symbol}:`, e); }
+              }
+            } catch (e) { console.warn(`AlgoEngine Monitor: Entry status check failed for ${trade.symbol}:`, e); }
             }
 
             // --- Priority 3: Fallback candle-based check (no SL/Target and no entry order) ---
