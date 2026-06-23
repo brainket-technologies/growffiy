@@ -406,6 +406,7 @@ class AlgoEngineService {
       const candlePriceCache = new Map<string, number>();
 
       const processClientEntry = async (client: any): Promise<void> => {
+        let lockKey = '';
         try {
           const strategy = client.strategy;
           if (!strategy || strategy.status !== 'active') {
@@ -486,7 +487,7 @@ class AlgoEngineService {
           let targetStock: StockQuote | null = null;
           let breakoutEntryPrice = 0;
 
-          const lockKey = `${client.id}:${candidateStock.symbol}`;
+          lockKey = `${client.id}:${candidateStock.symbol}`;
           if (this.entryLock.has(lockKey)) {
             console.log(`AlgoEngine: Entry already in progress for ${candidateStock.symbol} (${client.user.name}). Skipping.`);
             return;
