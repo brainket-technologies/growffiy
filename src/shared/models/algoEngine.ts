@@ -216,6 +216,9 @@ class AlgoEngineService {
   }
 
   async preSelectAllClients(strategyId?: string): Promise<void> {
+    this.preselectedStockByStrategy.clear();
+    this.marginCache.clear();
+
     const preOpenStocks = this.preOpenCache.length > 0
       ? this.preOpenCache
       : await this.getPreOpenStocks();
@@ -261,7 +264,8 @@ class AlgoEngineService {
     }
 
     for (const [, { strategy, clients: strategyClients }] of uniqueStrategies) {
-      const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
+      let config: any = null;
+      try { config = strategy.configJson ? JSON.parse(strategy.configJson) : null; } catch { console.warn(`AlgoEngine preSelect: Invalid configJson for strategy ${strategy.name}. Skipping.`); continue; }
       if (!config) continue;
 
       if (config.riskManagement) {
@@ -409,7 +413,8 @@ class AlgoEngineService {
             return;
           }
 
-          const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
+          let config: any = null;
+          try { config = strategy.configJson ? JSON.parse(strategy.configJson) : null; } catch { console.warn(`AlgoEngine: Invalid configJson for strategy "${strategy.name}". Skipping client ${client.user.name}.`); return; }
           if (!config) {
             console.log(`AlgoEngine: Skipping client ${client.user.name} - Strategy configJson is missing.`);
             return;
@@ -467,6 +472,13 @@ class AlgoEngineService {
             }
 
             candidateStock = sortedStocks[selectPosition - 1];
+          }
+
+          if (candidateStock && config.conditions?.length > 0) {
+            if (!await this.matchesConditions(candidateStock, config.conditions, client)) {
+              console.log(`AlgoEngine: Preselected stock ${candidateStock.symbol} failed conditions for ${client.user.name}. Skipping.`);
+              return;
+            }
           }
 
           console.log(`AlgoEngine: Client ${client.user.name} | Stock ${candidateStock.symbol}(${candidateStock.changePercent}%)`);

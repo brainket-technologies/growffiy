@@ -304,13 +304,13 @@ export class TradingScheduler {
                 try {
                   const slStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.slOrderId);
                   if (slStatus?.status === 'success' && slStatus?.data) {
-                    const slData = slStatus.data;
-                    if (slData.status === 'COMPLETE') {
+                    const slData = Array.isArray(slStatus.data) ? slStatus.data[0] : slStatus.data;
+                    if (slData?.status === 'COMPLETE') {
                       slComplete = true;
-                      slAvgPrice = Number(slData.average_price || slData.filled_price || 0);
+                      slAvgPrice = Number(slData?.average_price || slData?.filled_price || 0);
                       console.log(`AlgoEngine Monitor: SL order ${trade.slOrderId} COMPLETE for ${trade.symbol} @ ₹${slAvgPrice}`);
-                    } else if (slData.status === 'CANCELLED' || slData.status === 'REJECTED') {
-                      console.log(`AlgoEngine Monitor: SL order ${trade.slOrderId} ${slData.status}`);
+                    } else if (slData?.status === 'CANCELLED' || slData?.status === 'REJECTED') {
+                      console.log(`AlgoEngine Monitor: SL order ${trade.slOrderId} ${slData?.status}`);
                     }
                   }
                 } catch (e) { console.warn(`AlgoEngine Monitor: SL order status check failed for ${trade.symbol}:`, e); }
@@ -320,13 +320,13 @@ export class TradingScheduler {
                 try {
                   const tgtStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.targetOrderId);
                   if (tgtStatus?.status === 'success' && tgtStatus?.data) {
-                    const tgtData = tgtStatus.data;
-                    if (tgtData.status === 'COMPLETE') {
+                    const tgtData = Array.isArray(tgtStatus.data) ? tgtStatus.data[0] : tgtStatus.data;
+                    if (tgtData?.status === 'COMPLETE') {
                       targetComplete = true;
-                      targetAvgPrice = Number(tgtData.average_price || tgtData.filled_price || 0);
+                      targetAvgPrice = Number(tgtData?.average_price || tgtData?.filled_price || 0);
                       console.log(`AlgoEngine Monitor: Target order ${trade.targetOrderId} COMPLETE for ${trade.symbol} @ ₹${targetAvgPrice}`);
-                    } else if (tgtData.status === 'CANCELLED' || tgtData.status === 'REJECTED') {
-                      console.log(`AlgoEngine Monitor: Target order ${trade.targetOrderId} ${tgtData.status}`);
+                    } else if (tgtData?.status === 'CANCELLED' || tgtData?.status === 'REJECTED') {
+                      console.log(`AlgoEngine Monitor: Target order ${trade.targetOrderId} ${tgtData?.status}`);
                     }
                   }
                 } catch (e) { console.warn(`AlgoEngine Monitor: Target order status check failed for ${trade.symbol}:`, e); }
@@ -432,8 +432,10 @@ export class TradingScheduler {
             if (!exitTriggered && !trade.slOrderId && !trade.targetOrderId && trade.entryOrderId) {
               try {
                 const entryStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.entryOrderId);
-                if (entryStatus?.status === 'success' && entryStatus?.data?.status === 'COMPLETE') {
-                  const filledPrice = Number(entryStatus.data.average_price || entryStatus.data.filled_price || 0);
+                if (entryStatus?.status === 'success') {
+                  const entryOrderStatus = entryStatus?.data?.status || (Array.isArray(entryStatus?.data) ? entryStatus.data[0]?.status : null);
+                  if (entryOrderStatus === 'COMPLETE') {
+                    const filledPrice = Number(entryStatus.data?.average_price || entryStatus.data?.filled_price || (Array.isArray(entryStatus.data) ? entryStatus.data[0]?.average_price || entryStatus.data[0]?.filled_price : 0));
                   if (filledPrice > 0) {
                     await prisma.trade.update({ where: { id: trade.id }, data: { entryPrice: filledPrice } });
                   }
@@ -496,9 +498,9 @@ export class TradingScheduler {
                   console.log(`AlgoEngine Monitor: Entry ${trade.entryOrderId} filled. SL: ${newSlOrderId || 'N/A'}, Target: ${newTargetOrderId || 'N/A'} placed for ${trade.symbol}.`);
                   return; // next cycle monitor karega SL/Target
                 }
-                if (entryStatus?.data?.status === 'CANCELLED' || entryStatus?.data?.status === 'REJECTED') {
+                if (entryOrderStatus === 'CANCELLED' || entryOrderStatus === 'REJECTED') {
                   await prisma.trade.update({ where: { id: trade.id }, data: { status: 'FAILED' } });
-                  console.warn(`AlgoEngine Monitor: Entry order ${trade.entryOrderId} ${entryStatus.data.status}. Trade ${trade.id} marked FAILED.`);
+                  console.warn(`AlgoEngine Monitor: Entry order ${trade.entryOrderId} ${entryOrderStatus}. Trade ${trade.id} marked FAILED.`);
                   return;
                 }
               } catch (e) { console.warn(`AlgoEngine Monitor: Entry status check failed for ${trade.symbol}:`, e); }
@@ -612,10 +614,14 @@ export class TradingScheduler {
                 }).catch(() => {});
               } else {
                 console.error(`AlgoEngine Monitor: Failed to place exit order for ${trade.symbol}:`, sellRes?.message);
+                await prisma.trade.update({
+                  where: { id: trade.id },
+                  data: { status: 'FAILED', exitTime: new Date(), exitReason: `Exit failed: ${sellRes?.message || 'Unknown'}`, kiteResponse: sellRes }
+                });
                 await prisma.strategyLog.create({
                   data: {
                     strategyId: strategy.id,
-                    message: `Failed to place exit order for ${client.user.name} (${trade.symbol}): ${sellRes?.message || 'Unknown error'}`,
+                    message: `Exit failed for ${client.user.name} (${trade.symbol}): ${sellRes?.message || 'Unknown'}. Trade marked FAILED.`,
                     logType: 'error'
                   }
                 });
