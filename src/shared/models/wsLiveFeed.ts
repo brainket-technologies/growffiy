@@ -196,7 +196,13 @@ export class WsLiveFeed {
       console.log('Kite Socket disconnected. Reconnecting in 30 seconds...');
       setTimeout(() => {
         WsLiveFeed.isReconnecting = false;
-        this.connectKiteWebSocket(apiKey, accessToken);
+        this.getActiveCredentials().then(creds => {
+          if (creds) {
+            this.connectKiteWebSocket(creds.apiKey, creds.accessToken);
+          } else {
+            this.connectKiteWebSocket(apiKey, accessToken);
+          }
+        });
       }, 30000);
     });
   }

@@ -13,6 +13,7 @@ import { applyOperator, calculateRSI, calculateEMA, calculateSMA, calculateMACD,
 import { WsLiveFeed } from './wsLiveFeed';
 import { TradingScheduler } from './tradingScheduler';
 import { getTickSizeAndRound } from '../utils/tickSizeUtil';
+import { batchArray, concurrentMap } from '../../core/helpers';
 
 export interface StockQuote {
   symbol: string;
@@ -45,11 +46,15 @@ class AlgoEngineService {
   private lastPreOpenFetchTime: number = 0;
   private preOpenCacheDate: string = '';
 
-  private preselectedForClient: Map<string, StockQuote> = new Map();
+  private preselectedStockByStrategy: Map<string, StockQuote> = new Map();
   todayTokenRefreshed: Set<string> = new Set();
 
   private conditionCache: Map<string, boolean> = new Map();
   private conditionCacheDate: string = '';
+
+  private marginCache: Map<string, number> = new Map();
+  private marginCacheDate: string = '';
+  private entryLock: Set<string> = new Set();
 
   private lastHttpFetchTime = 0;
   private initialized = false;
@@ -60,7 +65,7 @@ class AlgoEngineService {
   constructor() {
     this.wsLive = new WsLiveFeed(
       () => this.preOpenCache,
-      () => this.preselectedForClient
+      () => this.preselectedStockByStrategy
     );
     this.tradingScheduler = new TradingScheduler(
       {
@@ -246,92 +251,102 @@ class AlgoEngineService {
       return;
     }
 
-    if (!strategyId) {
-      this.preselectedForClient.clear();
+    const uniqueStrategies = new Map<string, { strategy: any; clients: any[] }>();
+    for (const client of clients) {
+      if (!client.strategy || client.strategy.status !== 'active') continue;
+      if (!uniqueStrategies.has(client.strategy.id)) {
+        uniqueStrategies.set(client.strategy.id, { strategy: client.strategy, clients: [] });
+      }
+      uniqueStrategies.get(client.strategy.id)!.clients.push(client);
+    }
+
+    for (const [, { strategy, clients: strategyClients }] of uniqueStrategies) {
+      const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
+      if (!config) continue;
+
+      if (config.riskManagement) {
+        if (config.riskManagement.maxDailyLoss < -1) config.riskManagement.maxDailyLoss = -1;
+        if (config.riskManagement.maxDailyProfit < -1) config.riskManagement.maxDailyProfit = -1;
+        if (config.riskManagement.misMarginRate < -1) config.riskManagement.misMarginRate = -1;
+      }
+      if (config.stoploss?.trailingSL < -1) config.stoploss.trailingSL = -1;
+      if (config.target?.trailingTarget < -1) config.target.trailingTarget = -1;
+
+      if (!config.basicInfo?.segment || !config.tradeAction?.action || !config.basicInfo?.selectPosition) {
+        console.log(`AlgoEngine preSelect: Strategy config missing required fields (segment/action/selectPosition) for strategy ${strategy.name}. Skipping.`);
+        continue;
+      }
+
+      const segment = config.basicInfo.segment;
+      const action = config.tradeAction.action;
+      const selectPosition = config.basicInfo.selectPosition;
+
+      let matchingStocks = preOpenStocks.filter(stock => {
+        if (segment === 'NSE F&O' || segment === 'Futures' || segment === 'Options') {
+          if (!stock.isFo) return false;
+        } else if (segment === 'Nifty 50' || segment === 'Nifty') {
+          if (!stock.isNifty50) return false;
+        } else if (segment === 'Bank Nifty' || segment === 'BankNifty') {
+          if (!stock.isBankNifty) return false;
+        }
+        return true;
+      });
+
+      if (matchingStocks.length === 0) {
+        console.log(`AlgoEngine preSelect: No matching stocks for strategy ${strategy.name}.`);
+        continue;
+      }
+
+      const filteredStocks: any[] = [];
+      for (const stock of matchingStocks) {
+        if (await this.matchesConditions(stock, config.conditions, null)) {
+          filteredStocks.push(stock);
+        }
+      }
+      matchingStocks = filteredStocks;
+
+      if (matchingStocks.length === 0) {
+        console.log(`AlgoEngine preSelect: No stocks passed conditions for strategy ${strategy.name}.`);
+        continue;
+      }
+
+      const sortedStocks = [...matchingStocks].sort((a, b) =>
+        action === 'Long' ? a.changePercent - b.changePercent : b.changePercent - a.changePercent
+      );
+
+      if (sortedStocks.length < selectPosition) {
+        console.log(`AlgoEngine preSelect: Only ${sortedStocks.length} stocks, cannot pick #${selectPosition} for strategy ${strategy.name}.`);
+        continue;
+      }
+
+      const selected = sortedStocks[selectPosition - 1];
+      this.preselectedStockByStrategy.set(strategy.id, selected);
+      this.wsLive.subscribeSymbols([selected.symbol]);
+      console.log(`AlgoEngine preSelect: Strategy "${strategy.name}" → #${selectPosition} ${selected.symbol}(${selected.changePercent}%)`);
+    }
+
+    if (strategyId) {
+      const selected = this.preselectedStockByStrategy.get(strategyId);
+      if (selected) {
+        console.log(`AlgoEngine preSelect: Clients of strategy "${strategyId}" will trade ${selected.symbol}.`);
+      }
     } else {
-      for (const client of clients) {
-        this.preselectedForClient.delete(client.id);
-      }
+      console.log(`AlgoEngine preSelect: ${this.preselectedStockByStrategy.size} strategies have preselected stocks.`);
     }
 
-    const preSelectClient = async (client: any) => {
-      try {
-        const strategy = client.strategy;
-        if (!strategy || strategy.status !== 'active') return;
-
-        const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
-        if (!config) return;
-        // Safety clamp: prevent risk values < -1
-        if (config.riskManagement) {
-          if (config.riskManagement.maxDailyLoss < -1) config.riskManagement.maxDailyLoss = -1;
-          if (config.riskManagement.maxDailyProfit < -1) config.riskManagement.maxDailyProfit = -1;
-          if (config.riskManagement.misMarginRate < -1) config.riskManagement.misMarginRate = -1;
-        }
-        if (config.stoploss?.trailingSL < -1) config.stoploss.trailingSL = -1;
-        if (config.target?.trailingTarget < -1) config.target.trailingTarget = -1;
-
-        if (!config.basicInfo?.segment || !config.tradeAction?.action || !config.basicInfo?.selectPosition) {
-          console.log(`AlgoEngine preSelect: Strategy config missing required fields (segment/action/selectPosition) for client ${client.user.name}. Skipping.`);
-          return;
-        }
-        const segment = config.basicInfo.segment;
-        const action = config.tradeAction.action;
-        const selectPosition = config.basicInfo.selectPosition;
-
-        let matchingStocks = preOpenStocks.filter(stock => {
-          if (segment === 'NSE F&O' || segment === 'Futures' || segment === 'Options') {
-            if (!stock.isFo) return false;
-          } else if (segment === 'Nifty 50' || segment === 'Nifty') {
-            if (!stock.isNifty50) return false;
-          } else if (segment === 'Bank Nifty' || segment === 'BankNifty') {
-            if (!stock.isBankNifty) return false;
+    const PRE_SELECT_CONCURRENCY = 15;
+    await concurrentMap(clients, async (client: any) => {
+      if (client.zerodhaApiKey && client.accessToken) {
+        try {
+          const marginRes = await KiteClient.getMargins(client.zerodhaApiKey, client.accessToken);
+          if (marginRes?.status === 'success' && marginRes.data?.equity?.net !== undefined) {
+            this.marginCache.set(client.id, Number(marginRes.data.equity.net));
           }
-          return true;
-        });
-
-        if (matchingStocks.length === 0) {
-          console.log(`AlgoEngine preSelect: No matching stocks for client ${client.user.name}.`);
-          return;
-        }
-
-        const filteredStocks: any[] = [];
-        for (const stock of matchingStocks) {
-          if (await this.matchesConditions(stock, config.conditions, client)) {
-            filteredStocks.push(stock);
-          }
-        }
-        matchingStocks = filteredStocks;
-
-        if (matchingStocks.length === 0) {
-          console.log(`AlgoEngine preSelect: No stocks passed conditions for client ${client.user.name}.`);
-          return;
-        }
-
-        const sortedStocks = [...matchingStocks].sort((a, b) =>
-          action === 'Long' ? a.changePercent - b.changePercent : b.changePercent - a.changePercent
-        );
-
-        if (sortedStocks.length < selectPosition) {
-          console.log(`AlgoEngine preSelect: Only ${sortedStocks.length} stocks for ${client.user.name}, cannot pick #${selectPosition}.`);
-          return;
-        }
-
-        const selected = sortedStocks[selectPosition - 1];
-        this.preselectedForClient.set(client.id, selected);
-        this.wsLive.subscribeSymbols([selected.symbol]);
-        console.log(`AlgoEngine preSelect: ${client.user.name} → #${selectPosition} ${selected.symbol}(${selected.changePercent}%)`);
-      } catch (err) {
-        console.error(`AlgoEngine preSelect: Error for client ${client.user.name}:`, err);
+        } catch {}
       }
-    };
+    }, PRE_SELECT_CONCURRENCY);
 
-    const PRE_SELECT_CONCURRENCY = 10;
-    for (let i = 0; i < clients.length; i += PRE_SELECT_CONCURRENCY) {
-      const batch = clients.slice(i, i + PRE_SELECT_CONCURRENCY);
-      await Promise.allSettled(batch.map(client => preSelectClient(client)));
-    }
-
-    console.log(`AlgoEngine preSelect: ${this.preselectedForClient.size}/${clients.length} clients have a preselected stock ready.`);
+    console.log(`AlgoEngine preSelect: Margins cached for ${this.marginCache.size}/${clients.length} clients.`);
   }
 
   public async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyId?: string): Promise<void> {
@@ -384,6 +399,7 @@ class AlgoEngineService {
       }
 
       const BATCH_SIZE = 20;
+      const candlePriceCache = new Map<string, number>();
 
       const processClientEntry = async (client: any): Promise<void> => {
         try {
@@ -407,8 +423,7 @@ class AlgoEngineService {
           const tradeType = config.basicInfo.tradeType;
           const productParam = tradeType === 'Delivery' ? 'CNC' : (tradeType === 'Carry Forward' || tradeType === 'Normal' || tradeType === 'NRML') ? 'NRML' : 'MIS';
 
-          let candidateStock: StockQuote | null = this.preselectedForClient.get(client.id) || null;
-          this.preselectedForClient.delete(client.id);
+          let candidateStock: StockQuote | null = this.preselectedStockByStrategy.get(strategy.id) || null;
 
           if (!candidateStock) {
             if (!config.basicInfo?.segment || !config.tradeAction?.action || !config.basicInfo?.selectPosition) {
@@ -459,6 +474,13 @@ class AlgoEngineService {
           let targetStock: StockQuote | null = null;
           let breakoutEntryPrice = 0;
 
+          const lockKey = `${client.id}:${candidateStock.symbol}`;
+          if (this.entryLock.has(lockKey)) {
+            console.log(`AlgoEngine: Entry already in progress for ${candidateStock.symbol} (${client.user.name}). Skipping.`);
+            return;
+          }
+          this.entryLock.add(lockKey);
+
           try {
             const existingTrade = await prisma.trade.findFirst({
               where: {
@@ -477,38 +499,17 @@ class AlgoEngineService {
               console.log(`AlgoEngine: basicInfo.preSelectTime or entryTime not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
               return;
             }
-            let candlePrice = 0;
-            if (client.zerodhaApiKey && client.accessToken) {
+            let candlePrice = candlePriceCache.get(candidateStock.symbol) || 0;
+            if (candlePrice === 0 && client.zerodhaApiKey && client.accessToken) {
               const instTokenStr = Object.entries(this.wsLive.instrumentToSymbol).find(([, sym]) => sym === candidateStock.symbol)?.[0];
               if (instTokenStr) {
                 try {
                   const today = new Date();
                   const formatKiteDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-                  
-                  const preSelectTime = config.basicInfo.preSelectTime || '09:15';
-                  const entryTime = config.basicInfo.entryTime || '09:20';
-                  
-                  const normalizeTime = (t: string) => {
-                    const parts = t.split(':').map(Number);
-                    const h = parts[0] || 0;
-                    const m = parts[1] || 0;
-                    const s = parts[2] || 0;
-                    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-                  };
-                  
-                  const preSelectNormalized = normalizeTime(preSelectTime);
-                  const entryNormalized = normalizeTime(entryTime);
-                  
-                  const addMinute = (t: string) => {
-                    const [h, m, s] = t.split(':').map(Number);
-                    let newM = m + 1;
-                    let newH = h;
-                    if (newM >= 60) { newM = 0; newH = (newH + 1) % 24; }
-                    return `${String(newH).padStart(2,'0')}:${String(newM).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-                  };
-                  
-                  const from = `${formatKiteDate(today)}%20${preSelectNormalized}`;
-                  const to = `${formatKiteDate(today)}%20${addMinute(entryNormalized)}`;
+                  const formatDateOnly = (d: Date) => formatKiteDate(d);
+
+                  const from = formatDateOnly(today);
+                  const to = formatDateOnly(today);
                   
                   console.log(`AlgoEngine: Fetching historical data for ${candidateStock.symbol} token=${instTokenStr} from=${from} to=${to}`);
                   const res = await KiteClient.getHistoricalData(client.zerodhaApiKey, client.accessToken, instTokenStr, '5minute', from, to);
@@ -517,6 +518,7 @@ class AlgoEngineService {
                     const priceIdx: Record<string, number> = { open: 1, high: 2, low: 3, close: 4 };
                     const candleType = config.tradeAction?.candlePriceType || 'high';
                     candlePrice = Number(res.data.candles[0][priceIdx[candleType]]);
+                    candlePriceCache.set(candidateStock.symbol, candlePrice);
                     console.log(`AlgoEngine: Candle price for ${candidateStock.symbol} (${candleType}): ${candlePrice}`);
                   } else {
                     console.warn(`AlgoEngine: No candle data for ${candidateStock.symbol} - status: ${res.status}, error: ${res.message ?? 'none'}`);
@@ -527,6 +529,23 @@ class AlgoEngineService {
               } else {
                 console.warn(`AlgoEngine: Instrument token not found for ${candidateStock.symbol}`);
               }
+            } else if (candlePrice > 0) {
+              console.log(`AlgoEngine: Using cached candle price for ${candidateStock.symbol}: ${candlePrice}`);
+            }
+
+            if (candlePrice === 0) {
+              try {
+                console.log(`AlgoEngine: Fetching live quote for ${exchangeParam}:${candidateStock.symbol}`);
+                const quoteRes = await KiteClient.getQuotes(client.zerodhaApiKey!, client.accessToken!, [`${exchangeParam}:${candidateStock.symbol}`]);
+                if (quoteRes?.status === 'success' && quoteRes.data?.[`${exchangeParam}:${candidateStock.symbol}`]) {
+                  const q = quoteRes.data[`${exchangeParam}:${candidateStock.symbol}`];
+                  const livePrice = q.last_price || q.ohlc?.high || q.ohlc?.open || 0;
+                  if (livePrice > 0) {
+                    candlePrice = livePrice;
+                    console.log(`AlgoEngine: Using live quote price for ${candidateStock.symbol}: ${candlePrice}`);
+                  }
+                }
+              } catch {}
             }
 
             if (candlePrice === 0) {
@@ -655,18 +674,23 @@ class AlgoEngineService {
             return;
           }
 
-          let clientCapital = Number(client.capital);
-          try {
-            console.log(`AlgoEngine: Fetching live Zerodha margins for client ${client.user.name}...`);
-            const marginRes = await KiteClient.getMargins(client.zerodhaApiKey!, activeAccessToken);
-            if (marginRes && marginRes.status === 'success' && marginRes.data?.equity?.net !== undefined) {
-              clientCapital = Number(marginRes.data.equity.net);
-              console.log(`AlgoEngine: Successfully fetched live Net Cash Balance for ${client.user.name}: ₹${clientCapital}`);
-            } else {
-              console.warn(`AlgoEngine: Margin API response unsuccessful for ${client.user.name}. Falling back to DB capital: ₹${clientCapital}`);
+          let clientCapital = this.marginCache.get(client.id) || Number(client.capital);
+          if (this.marginCache.has(client.id)) {
+            console.log(`AlgoEngine: Using cached margin for ${client.user.name}: ₹${clientCapital}`);
+          } else {
+            try {
+              console.log(`AlgoEngine: Fetching live Zerodha margins for client ${client.user.name}...`);
+              const marginRes = await KiteClient.getMargins(client.zerodhaApiKey!, activeAccessToken);
+              if (marginRes && marginRes.status === 'success' && marginRes.data?.equity?.net !== undefined) {
+                clientCapital = Number(marginRes.data.equity.net);
+                this.marginCache.set(client.id, clientCapital);
+                console.log(`AlgoEngine: Successfully fetched live Net Cash Balance for ${client.user.name}: ₹${clientCapital}`);
+              } else {
+                console.warn(`AlgoEngine: Margin API response unsuccessful for ${client.user.name}. Falling back to DB capital: ₹${clientCapital}`);
+              }
+            } catch (marginErr: any) {
+              console.error(`AlgoEngine: Error fetching live Zerodha margins for ${client.user.name}. Falling back to DB capital: ₹${clientCapital}`, marginErr);
             }
-          } catch (marginErr: any) {
-            console.error(`AlgoEngine: Error fetching live Zerodha margins for ${client.user.name}. Falling back to DB capital: ₹${clientCapital}`, marginErr);
           }
 
           const configRisk = config?.riskManagement?.riskPerTrade;
@@ -942,8 +966,9 @@ class AlgoEngineService {
               await new Promise(r => setTimeout(r, 2000));
               try {
                 const orderStatusRes = await KiteClient.getOrderById(client.zerodhaApiKey, activeAccessToken, orderId);
-                if (orderStatusRes?.status === 'success' && orderStatusRes?.data?.status === 'COMPLETE') {
-                  const filledAvgPrice = orderStatusRes.data.average_price || orderStatusRes.data.filled_price;
+                const isComplete = orderStatusRes?.data?.status === 'COMPLETE' || (Array.isArray(orderStatusRes?.data) && orderStatusRes.data[0]?.status === 'COMPLETE');
+                if (orderStatusRes?.status === 'success' && isComplete) {
+                  const filledAvgPrice = orderStatusRes.data?.average_price || orderStatusRes.data?.filled_price || (Array.isArray(orderStatusRes.data) ? orderStatusRes.data[0]?.average_price || orderStatusRes.data[0]?.filled_price : 0);
                   if (filledAvgPrice && Number(filledAvgPrice) > 0) {
                     actualEntryPrice = Number(filledAvgPrice);
                   }
@@ -999,13 +1024,16 @@ class AlgoEngineService {
                   }
                   break;
                 }
-                if (orderStatusRes?.data?.status === 'CANCELLED' || orderStatusRes?.data?.status === 'REJECTED') {
-                  console.warn(`AlgoEngine: Entry order ${orderId} ${orderStatusRes.data.status}. Aborting trade.`);
+                const orderCancelled = orderStatusRes?.data?.status === 'CANCELLED' || orderStatusRes?.data?.status === 'REJECTED' || (Array.isArray(orderStatusRes?.data) && (orderStatusRes.data[0]?.status === 'CANCELLED' || orderStatusRes.data[0]?.status === 'REJECTED'));
+                if (orderCancelled) {
+                  const cancelStatus = orderStatusRes?.data?.status || (Array.isArray(orderStatusRes?.data) ? orderStatusRes.data[0]?.status : 'unknown');
+                  console.warn(`AlgoEngine: Entry order ${orderId} ${cancelStatus}. Aborting trade.`);
                   orderId = '';
                   break;
                 }
                 if (attempt === 0 || attempt === maxPolls - 1 || attempt % 5 === 4) {
-                  console.log(`AlgoEngine: Entry order status: ${orderStatusRes?.data?.status || 'unknown'} (poll ${attempt + 1}/${maxPolls})`);
+                  const pollStatus = orderStatusRes?.data?.status || (Array.isArray(orderStatusRes?.data) ? orderStatusRes.data[0]?.status : null) || 'unknown';
+                  console.log(`AlgoEngine: Entry order status: ${pollStatus} (poll ${attempt + 1}/${maxPolls})`);
                 }
               } catch (pollErr) {
                 console.warn(`AlgoEngine: Error polling entry order (attempt ${attempt + 1}):`, pollErr);
@@ -1075,14 +1103,13 @@ class AlgoEngineService {
 
         } catch (clientErr: any) {
           console.error(`AlgoEngine: Error executing pre-open trade for client ${client.id}:`, clientErr);
+        } finally {
+          this.entryLock.delete(lockKey);
         }
       };
 
-      for (let i = 0; i < clients.length; i += BATCH_SIZE) {
-        const batch = clients.slice(i, i + BATCH_SIZE);
-        await Promise.allSettled(batch.map(client => processClientEntry(client)));
-        console.log(`AlgoEngine: Batch processed ${batch.length} clients (${Math.min(i + BATCH_SIZE, clients.length)}/${clients.length})`);
-      }
+      console.log(`AlgoEngine: Processing ${clients.length} clients with concurrency ${BATCH_SIZE}...`);
+      await concurrentMap(clients, client => processClientEntry(client), BATCH_SIZE);
 
     } catch (e: any) {
       console.error('AlgoEngine: executePreOpenTrades error:', e);
@@ -1233,23 +1260,38 @@ class AlgoEngineService {
 
     try {
       console.log(`Fetching HTTP live quotes for ${symbols.length} symbols from Kite API...`);
-      const queryParams = symbols.map(sym => `i=NSE:${sym}`).join('&');
-      const url = `${API_ENDPOINTS.KITE_BASE}/quote?${queryParams}`;
 
-      const res = await fetch(url, {
-        headers: {
-          'Authorization': `token ${creds.apiKey}:${creds.accessToken}`,
-          'X-Kite-Version': '3'
+      const BATCH_SIZE = 30;
+      const batches = batchArray(symbols, BATCH_SIZE);
+      console.log(`Split into ${batches.length} batches of up to ${BATCH_SIZE} symbols each.`);
+
+      const headers = {
+        'Authorization': `token ${creds.apiKey}:${creds.accessToken}`,
+        'X-Kite-Version': '3'
+      };
+
+      const batchResults = await Promise.allSettled(
+        batches.map(batch => {
+          const queryParams = batch.map(sym => `i=NSE:${sym}`).join('&');
+          const url = `${API_ENDPOINTS.KITE_BASE}/quote?${queryParams}`;
+          return fetch(url, { headers }).then(res => {
+            if (!res.ok) throw new Error(`Kite batch quote fetch failed with status ${res.status}`);
+            return res.json();
+          });
+        })
+      );
+
+      let mergedData: any = {};
+      for (const result of batchResults) {
+        if (result.status === 'fulfilled' && result.value?.status === 'success' && result.value?.data) {
+          mergedData = { ...mergedData, ...result.value.data };
         }
-      });
+      }
 
-      if (!res.ok) throw new Error(`Kite HTTP quote fetch failed with status ${res.status}`);
-
-      const json = await res.json();
-      if (json && json.status === 'success' && json.data) {
+      if (Object.keys(mergedData).length > 0) {
         this.wsLive.stocksState = (this.wsLive.stocksState.length > 0 ? this.wsLive.stocksState : this.preOpenCache).map(stock => {
           const key = `NSE:${stock.symbol}`;
-          const tick = json.data[key];
+          const tick = mergedData[key];
           if (tick) {
             const ltp = tick.last_price;
             const close = tick.ohlc?.close || stock.prevClose || ltp;
@@ -1273,6 +1315,9 @@ class AlgoEngineService {
 
         this.lastHttpFetchTime = Date.now();
         console.log('Successfully updated stocksState with live quotes from Kite HTTP API.');
+      } else {
+        const failedCount = batchResults.filter(r => r.status === 'rejected').length;
+        console.warn(`All ${batches.length} quote batches failed. ${failedCount} batches errored.`);
       }
     } catch (err) {
       console.error('Failed to update live quotes from Kite HTTP API:', err);

@@ -79,7 +79,7 @@ export const SETTINGS_KEYS = {
 
 // Scheduler Intervals (in milliseconds)
 export const SCHEDULER_INTERVALS = {
-  STRATEGY_CHECK: 60 * 1000,    // 60s — pre-select & entry time check
+  STRATEGY_CHECK: 10 * 1000,    // 10s — pre-select & entry time check (fast trigger for price-sensitive entry)
   TOKEN_REFRESH: 60 * 1000,     // 60s — Kite auto-login refresh
   TRADE_MONITOR: 10 * 1000,     // 10s — open trades monitoring loop
 };

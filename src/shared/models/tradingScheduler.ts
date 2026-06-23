@@ -5,6 +5,7 @@ import { performKiteAutoLogin } from '../services/kiteAutoLogin';
 import type { StockQuote } from './algoEngine';
 import type { WsLiveFeed } from './wsLiveFeed';
 import { getTickSizeAndRound } from '../utils/tickSizeUtil';
+import { concurrentMap } from '../../core/helpers';
 
 export interface EngineAccess {
   todayTokenRefreshed: Set<string>;
@@ -97,7 +98,7 @@ export class TradingScheduler {
             preSelectTasks.push(() => this.engine.preSelectAllClients(strategy.id));
           }
 
-          if (entryTime && currentTimeStr === entryTime && lastEntryByStrategy.get(strategy.id) !== currentDateKey) {
+          if (entryTime && currentTimeStr >= entryTime && lastEntryByStrategy.get(strategy.id) !== currentDateKey) {
             console.log(`AlgoEngine Scheduler: Entry time ${entryTime} reached for strategy "${strategy.name}". Starting execution...`);
             lastEntryByStrategy.set(strategy.id, currentDateKey);
 
@@ -175,21 +176,22 @@ export class TradingScheduler {
 
           this.engine.todayTokenRefreshed.clear();
 
-          for (let i = 0; i < clients.length; i += TradingScheduler.BATCH_CONCURRENCY) {
-            const batch = clients.slice(i, i + TradingScheduler.BATCH_CONCURRENCY);
-            await Promise.allSettled(batch.map(async (client) => {
-              try {
-                console.log(`AlgoEngine Scheduler: Auto-logging in client ${client.user.name} (${client.zerodhaClientId})...`);
-                const loginRes = await performKiteAutoLogin(client.id);
-                if (loginRes.success) {
-                  this.engine.todayTokenRefreshed.add(client.id);
-                }
-                console.log(`AlgoEngine Scheduler: Auto-login result for ${client.user.name}:`, loginRes.success);
-              } catch (err: any) {
-                console.error(`AlgoEngine Scheduler: Error auto-logging in client ${client.user.name}:`, err);
+          const CONCURRENCY = 15;
+          const LOGIN_TIMEOUT = 20000;
+          console.log(`AlgoEngine Scheduler: Auto-login ${clients.length} clients with concurrency ${CONCURRENCY}...`);
+          await concurrentMap(clients, async (client) => {
+            try {
+              console.log(`AlgoEngine Scheduler: Auto-logging in client ${client.user.name} (${client.zerodhaClientId})...`);
+              const loginRes = await performKiteAutoLogin(client.id);
+              if (loginRes.success) {
+                this.engine.todayTokenRefreshed.add(client.id);
               }
-            }));
-          }
+              console.log(`AlgoEngine Scheduler: Auto-login result for ${client.user.name}:`, loginRes.success);
+            } catch (err: any) {
+              console.error(`AlgoEngine Scheduler: Error auto-logging in client ${client.user.name}:`, err);
+            }
+          }, CONCURRENCY, LOGIN_TIMEOUT);
+          console.log(`AlgoEngine Scheduler: Auto-login completed for ${clients.length} clients.`);
         }
       } catch (err) {
         console.error('AlgoEngine Scheduler: Error in token refresh cron interval execution:', err);
@@ -408,6 +410,21 @@ export class TradingScheduler {
                     }
                   }
                 }
+              }
+            }
+
+            // --- Priority 1.5: Check entry order for cancellation/rejection ---
+            if (!exitTriggered && trade.entryOrderId) {
+              try {
+                const orderData = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.entryOrderId);
+                const orderStatus = orderData?.data?.status || (Array.isArray(orderData?.data) ? orderData.data[0]?.status : null);
+                if (orderStatus === 'CANCELLED' || orderStatus === 'REJECTED') {
+                  await prisma.trade.update({ where: { id: trade.id }, data: { status: 'FAILED' } });
+                  console.warn(`AlgoEngine Monitor: Entry order ${trade.entryOrderId} ${orderStatus}. Trade ${trade.id} marked FAILED.`);
+                  return;
+                }
+              } catch (e) {
+                console.warn(`AlgoEngine Monitor: Entry order status check failed for ${trade.symbol}:`, e);
               }
             }
 

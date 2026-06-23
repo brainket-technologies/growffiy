@@ -91,7 +91,7 @@ async function main() {
       timeframe: '5m',
       checkIntervalSec: 60,
       description: 'Pre-Open Momentum Breakout Strategy',
-      exitTime: '15:25'
+      exitTime: '15:24:00'
     },
     stoploss: {
       type: 'Trailing SL',
@@ -120,7 +120,7 @@ async function main() {
       maxOpenPositions: 3,
       maxDailyLoss: -1,
       maxDailyProfit: -1,
-      capitalAllocation: 10,
+      capitalAllocation: -1,
       misMarginRate: -1
     },
     conditions: []
@@ -152,14 +152,14 @@ async function main() {
     update: {
       userId: userVikash.id,
       zerodhaClientId: 'RZJ500',
-      accessToken: 'bQTr62YaMJU7CrtmyLGMyLchq6Cdi9wi',
+      accessToken: '0bgo5ncPohRjD1Ro6T7v7gqn6Uj4r7Pl',
       capital: '500000',
       strategyId: strategy.id,
       tradingStatus: 'active',
       subscriptionStatus: 'active',
       zerodhaApiKey: '4y7j026qyv9lkacw',
       zerodhaApiSecret: 'xr2qwbkkn0kj8gbuzuwyn19ggxlxgye9',
-      zerodhaSession: '{"user_type":"individual/ind_with_nom","email":"js9650141@gmail.com","user_name":"Janvi Sharma","user_shortname":"Janvi","broker":"ZERODHA","exchanges":["BSE","MF","NSE"],"products":["CNC","NRML","MIS","BO","CO"],"order_types":["MARKET","LIMIT","SL","SL-M"],"avatar_url":null,"user_id":"RZJ500","api_key":"4y7j026qyv9lkacw","access_token":"bQTr62YaMJU7CrtmyLGMyLchq6Cdi9wi","public_token":"TPkQFecFWqYZfDdREfzXazBcRx3gDdlD","refresh_token":"","enctoken":"jsLJJd5Zrs/SR+cfw5udsdXZA4pbNolnv3PLRrW6Fvl+rGLsp+eHWSTOwJzvbeIa6mDAnYnl5xnat9JHxfxvqPIjcBsIvbLrphm2rqAnmyWKYXLO94faU+r3a0TWhRM=","login_time":"2026-06-22 05:01:30","meta":{"demat_consent":"consent"}}',
+      zerodhaSession: '{"user_type":"individual/ind_with_nom","email":"js9650141@gmail.com","user_name":"Janvi Sharma","user_shortname":"Janvi","broker":"ZERODHA","exchanges":["BSE","MF","NSE"],"products":["CNC","NRML","MIS","BO","CO"],"order_types":["MARKET","LIMIT","SL","SL-M"],"avatar_url":null,"user_id":"RZJ500","api_key":"4y7j026qyv9lkacw","access_token":"0bgo5ncPohRjD1Ro6T7v7gqn6Uj4r7Pl","public_token":"TPkQFecFWqYZfDdREfzXazBcRx3gDdlD","refresh_token":"","enctoken":"jsLJJd5Zrs/SR+cfw5udsdXZA4pbNolnv3PLRrW6Fvl+rGLsp+eHWSTOwJzvbeIa6mDAnYnl5xnat9JHxfxvqPIjcBsIvbLrphm2rqAnmyWKYXLO94faU+r3a0TWhRM=","login_time":"2026-06-22 05:01:30","meta":{"demat_consent":"consent"}}',
       zerodhaPassword: '987654321',
       zerodhaTotpSecret: 'JT5PXX4UOZZYNHTV7X525T6QSA4QNQDQ',
       aadhaarNumber: '',
@@ -172,14 +172,14 @@ async function main() {
       id: 'b364d72f-e2e2-4dbc-bbef-3286c75e1875',
       userId: userVikash.id,
       zerodhaClientId: 'RZJ500',
-      accessToken: 'bQTr62YaMJU7CrtmyLGMyLchq6Cdi9wi',
+      accessToken: '0bgo5ncPohRjD1Ro6T7v7gqn6Uj4r7Pl',
       capital: '500000',
       strategyId: strategy.id,
       tradingStatus: 'active',
       subscriptionStatus: 'active',
       zerodhaApiKey: '4y7j026qyv9lkacw',
       zerodhaApiSecret: 'xr2qwbkkn0kj8gbuzuwyn19ggxlxgye9',
-      zerodhaSession: '{"user_type":"individual/ind_with_nom","email":"js9650141@gmail.com","user_name":"Janvi Sharma","user_shortname":"Janvi","broker":"ZERODHA","exchanges":["BSE","MF","NSE"],"products":["CNC","NRML","MIS","BO","CO"],"order_types":["MARKET","LIMIT","SL","SL-M"],"avatar_url":null,"user_id":"RZJ500","api_key":"4y7j026qyv9lkacw","access_token":"bQTr62YaMJU7CrtmyLGMyLchq6Cdi9wi","public_token":"TPkQFecFWqYZfDdREfzXazBcRx3gDdlD","refresh_token":"","enctoken":"jsLJJd5Zrs/SR+cfw5udsdXZA4pbNolnv3PLRrW6Fvl+rGLsp+eHWSTOwJzvbeIa6mDAnYnl5xnat9JHxfxvqPIjcBsIvbLrphm2rqAnmyWKYXLO94faU+r3a0TWhRM=","login_time":"2026-06-22 05:01:30","meta":{"demat_consent":"consent"}}',
+      zerodhaSession: '{"user_type":"individual/ind_with_nom","email":"js9650141@gmail.com","user_name":"Janvi Sharma","user_shortname":"Janvi","broker":"ZERODHA","exchanges":["BSE","MF","NSE"],"products":["CNC","NRML","MIS","BO","CO"],"order_types":["MARKET","LIMIT","SL","SL-M"],"avatar_url":null,"user_id":"RZJ500","api_key":"4y7j026qyv9lkacw","access_token":"0bgo5ncPohRjD1Ro6T7v7gqn6Uj4r7Pl","public_token":"TPkQFecFWqYZfDdREfzXazBcRx3gDdlD","refresh_token":"","enctoken":"jsLJJd5Zrs/SR+cfw5udsdXZA4pbNolnv3PLRrW6Fvl+rGLsp+eHWSTOwJzvbeIa6mDAnYnl5xnat9JHxfxvqPIjcBsIvbLrphm2rqAnmyWKYXLO94faU+r3a0TWhRM=","login_time":"2026-06-22 05:01:30","meta":{"demat_consent":"consent"}}',
       zerodhaPassword: '987654321',
       zerodhaTotpSecret: 'JT5PXX4UOZZYNHTV7X525T6QSA4QNQDQ',
       aadhaarNumber: '',
