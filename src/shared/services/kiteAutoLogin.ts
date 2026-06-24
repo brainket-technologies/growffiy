@@ -69,7 +69,7 @@ export async function performKiteAutoLogin(clientId: string): Promise<{ success:
     allCookies = mergeCookies(allCookies, extractCookies(res));
 
     // 4. Connect redirect
-    res = await fetch(`${KITE}/connect/login?v=3&api_key=${apiKey}&skip_session=true`, {
+    res = await fetch(`${KITE}/connect/login?v=3&api_key=${apiKey}&skip_session=true&redirect_params=state%3D${clientId}`, {
       redirect: 'manual', headers: { Cookie: allCookies }
     });
     const location1 = res.headers.get('location') || '';
@@ -77,19 +77,23 @@ export async function performKiteAutoLogin(clientId: string): Promise<{ success:
       return { success: false, error: 'No redirect after connect step' };
     }
 
-    // 5. Follow to /connect/finish or get request_token directly
-    const finishRes = await fetch(location1, {
-      redirect: 'manual', headers: { Cookie: allCookies }
-    });
-    const location2 = finishRes.headers.get('location') || '';
-    if (!location2) {
-      return { success: false, error: 'No redirect from finish page' };
+    // 5. Try to extract request_token from location1 directly
+    let rtMatch = location1.match(/request_token=([A-Za-z0-9]+)/);
+    if (!rtMatch) {
+      // Follow redirect and check location2
+      const finishRes = await fetch(location1, {
+        redirect: 'manual', headers: { Cookie: allCookies }
+      });
+      const location2 = finishRes.headers.get('location') || '';
+      if (!location2) {
+        return { success: false, error: 'No redirect from finish page' };
+      }
+      rtMatch = location2.match(/request_token=([A-Za-z0-9]+)/);
     }
 
     // 6. Extract request_token
-    const rtMatch = location2.match(/request_token=([A-Za-z0-9]+)/);
     if (!rtMatch) {
-      return { success: false, error: `No request_token in redirect: ${location2.substring(0, 100)}` };
+      return { success: false, error: `No request_token in redirect: ${(location1 + ' ' + (finishRes?.headers?.get('location') || '')).substring(0, 100)}` };
     }
     const requestToken = rtMatch[1];
 
