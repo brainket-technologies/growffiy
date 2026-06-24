@@ -17,6 +17,21 @@ function mergeCookies(existing: string, incoming: string): string {
   return Array.from(map.values()).join('; ');
 }
 
+function extractRedirectFromBody(body: string): string | null {
+  const metaMatch = body.match(/<meta[^>]*http-equiv=["']refresh["'][^>]*content=["']\d+;\s*url=['"]([^'"]+)['"]/i);
+  if (metaMatch) return metaMatch[1];
+  const formMatch = body.match(/<form[^>]*action=["']([^"']+)["']/i);
+  if (formMatch && !formMatch[1].includes('logout') && !formMatch[1].includes('login')) return formMatch[1];
+  const jsMatch = body.match(/window\.location\.href\s*=\s*['"]([^'"]+)['"]/);
+  if (jsMatch) return jsMatch[1];
+  const anchorMatch = body.match(/<a[^>]*href=["']([^"']+)["'][^>]*>.*?(?:continue|proceed|next|authorize)/i);
+  if (anchorMatch) return anchorMatch[1];
+  return null;
+}
+
+const KITE = 'https://kite.zerodha.com';
+const API = 'https://api.kite.trade';
+
 export async function performKiteAutoLogin(clientId: string): Promise<{ success: boolean; accessToken?: string; error?: string; user_name?: string }> {
   try {
     if (process.env.KITE_AUTO_LOGIN_ENABLED !== 'true') {
@@ -36,14 +51,13 @@ export async function performKiteAutoLogin(clientId: string): Promise<{ success:
       return { success: false, error: 'Missing required credentials' };
     }
 
-    const KITE = 'https://kite.zerodha.com';
-    const API = 'https://api.kite.trade';
+    let requestToken: string | null = null;
 
-    // 1. Initial connect page visit (get kf_session cookie)
+    // ── Step 1: Initial connect page visit (get kf_session cookie) ──
     let res = await fetch(`${KITE}/connect/login?v=3&api_key=${apiKey}`, { redirect: 'manual' });
     let allCookies = extractCookies(res);
 
-    // 2. Login
+    // ── Step 2: Login ──
     res = await fetch(`${KITE}/api/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': allCookies },
@@ -55,7 +69,7 @@ export async function performKiteAutoLogin(clientId: string): Promise<{ success:
     }
     allCookies = mergeCookies(allCookies, extractCookies(res));
 
-    // 3. 2FA with skip_session=true
+    // ── Step 3: 2FA with skip_session=true ──
     const totp = generateTOTP(totpSecret);
     res = await fetch(`${KITE}/api/twofa`, {
       method: 'POST',
@@ -68,36 +82,67 @@ export async function performKiteAutoLogin(clientId: string): Promise<{ success:
     }
     allCookies = mergeCookies(allCookies, extractCookies(res));
 
-    // 4. Connect redirect
-    res = await fetch(`${KITE}/connect/login?v=3&api_key=${apiKey}&skip_session=true&redirect_params=state%3D${clientId}`, {
-      redirect: 'manual', headers: { Cookie: allCookies }
-    });
-    const location1 = res.headers.get('location') || '';
-    if (!location1) {
+    // ── Step 4: Get request_token (try multiple methods) ──
+
+    // Method A: 2FA response already contains redirect / request_token
+    if (twofaData.data?.redirect) {
+      const rtMatch = twofaData.data.redirect.match(/request_token=([A-Za-z0-9]+)/);
+      if (rtMatch) requestToken = rtMatch[1];
+    }
+    if (!requestToken && twofaData.data?.request_token) {
+      requestToken = twofaData.data.request_token;
+    }
+
+    // Method B: Visit connect login page, expect HTTP redirect
+    if (!requestToken) {
+      res = await fetch(`${KITE}/connect/login?v=3&api_key=${apiKey}&skip_session=true&redirect_params=state%3D${clientId}`, {
+        redirect: 'manual', headers: { Cookie: allCookies }
+      });
+      const location1 = res.headers.get('location') || '';
+
+      if (location1) {
+        const rtMatch = location1.match(/request_token=([A-Za-z0-9]+)/);
+        if (rtMatch) {
+          requestToken = rtMatch[1];
+        } else {
+          // Follow redirect and check next one
+          const finishRes = await fetch(location1, {
+            redirect: 'manual', headers: { Cookie: allCookies }
+          });
+          const location2 = finishRes.headers.get('location') || '';
+          if (location2) {
+            const rtMatch2 = location2.match(/request_token=([A-Za-z0-9]+)/);
+            if (rtMatch2) requestToken = rtMatch2[1];
+          }
+        }
+      }
+
+      // Method C: No HTTP redirect — try to extract from HTML body
+      if (!requestToken) {
+        const body = await res.text();
+        const redirectUrl = extractRedirectFromBody(body);
+        if (redirectUrl) {
+          const rtMatch = redirectUrl.match(/request_token=([A-Za-z0-9]+)/);
+          if (rtMatch) {
+            requestToken = rtMatch[1];
+          } else {
+            // Follow the extracted redirect URL
+            const followRes = await fetch(redirectUrl.startsWith('http') ? redirectUrl : `${KITE}${redirectUrl}`, {
+              redirect: 'manual', headers: { Cookie: allCookies }
+            });
+            const loc = followRes.headers.get('location') || '';
+            const rtMatch2 = loc.match(/request_token=([A-Za-z0-9]+)/);
+            if (rtMatch2) requestToken = rtMatch2[1];
+          }
+        }
+      }
+    }
+
+    if (!requestToken) {
       return { success: false, error: 'No redirect after connect step' };
     }
 
-    // 5. Try to extract request_token from location1 directly
-    let rtMatch = location1.match(/request_token=([A-Za-z0-9]+)/);
-    if (!rtMatch) {
-      // Follow redirect and check location2
-      const finishRes = await fetch(location1, {
-        redirect: 'manual', headers: { Cookie: allCookies }
-      });
-      const location2 = finishRes.headers.get('location') || '';
-      if (!location2) {
-        return { success: false, error: 'No redirect from finish page' };
-      }
-      rtMatch = location2.match(/request_token=([A-Za-z0-9]+)/);
-    }
-
-    // 6. Extract request_token
-    if (!rtMatch) {
-      return { success: false, error: `No request_token in redirect: ${(location1 + ' ' + (finishRes?.headers?.get('location') || '')).substring(0, 100)}` };
-    }
-    const requestToken = rtMatch[1];
-
-    // 7. Exchange for access token
+    // ── Step 5: Exchange for access token ──
     const checksum = createHash('sha256').update(apiKey + requestToken + apiSecret).digest('hex');
     const sessionRes = await fetch(`${API}/session/token`, {
       method: 'POST',
@@ -112,7 +157,7 @@ export async function performKiteAutoLogin(clientId: string): Promise<{ success:
     const accessToken = sessionData.data.access_token;
     const userName = sessionData.data.user_name;
 
-    // 8. Save to DB
+    // ── Step 6: Save to DB ──
     await prisma.client.update({
       where: { id: clientId },
       data: { accessToken, zerodhaSession: JSON.stringify(sessionData.data) }
