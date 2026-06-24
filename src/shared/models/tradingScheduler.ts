@@ -42,14 +42,17 @@ export class TradingScheduler {
 
     const checkAndExecute = async () => {
       try {
-        cachedFetchTime = await this.engine.getAlgoSetting('algo_preopen_fetch_time', '09:08');
-
         const istDateStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
         const istDate = new Date(istDateStr);
         const hours = istDate.getHours();
         const minutes = istDate.getMinutes();
         const currentDateKey = istDate.toLocaleDateString();
         const currentTimeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+
+        // Market hours guard: 07:00-16:00 IST ke bahar zero DB/logs
+        if (hours < 7 || hours >= 16) return;
+
+        cachedFetchTime = await this.engine.getAlgoSetting('algo_preopen_fetch_time', '09:08');
 
         if (currentTimeStr === cachedFetchTime && lastFetchedDate !== currentDateKey) {
           console.log(`AlgoEngine Scheduler: Pre-open fetch time ${cachedFetchTime} reached. Fetching NSE pre-open data...`);
