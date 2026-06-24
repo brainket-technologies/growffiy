@@ -14,6 +14,7 @@ import { WsLiveFeed } from './wsLiveFeed';
 import { TradingScheduler } from './tradingScheduler';
 import { getTickSizeAndRound } from '../utils/tickSizeUtil';
 import { batchArray, concurrentMap } from '../../core/helpers';
+import { logSystemEvent } from '../services/auditLogger';
 
 export interface StockQuote {
   symbol: string;
@@ -691,27 +692,47 @@ class AlgoEngineService {
                 logType: 'error'
               }
             });
+            await logSystemEvent({
+              action: 'KITE SESSION ERROR',
+              newValue: `Client: ${client.user.name} | ${errMsg}`
+            });
             return;
           }
 
-          let clientCapital = this.marginCache.get(client.id) || Number(client.capital);
-          if (this.marginCache.has(client.id)) {
-            console.log(`AlgoEngine: Using cached margin for ${client.user.name}: ₹${clientCapital}`);
+          const cachedMargin = this.marginCache.get(client.id);
+          const dbCapital = Number(client.capital);
+
+          // Agar DB capital -1 hai to DB ko ignore karo — sirf live margin use hoga
+          const dbDisabled = dbCapital === -1;
+
+          let marginOrApi: number;
+
+          if (cachedMargin !== undefined) {
+            marginOrApi = cachedMargin;
+            console.log(`AlgoEngine: Using cached margin for ${client.user.name}: ₹${marginOrApi}`);
           } else {
             try {
               console.log(`AlgoEngine: Fetching live Zerodha margins for client ${client.user.name}...`);
               const marginRes = await KiteClient.getMargins(client.zerodhaApiKey!, activeAccessToken);
               if (marginRes && marginRes.status === 'success' && marginRes.data?.equity?.net !== undefined) {
-                clientCapital = Number(marginRes.data.equity.net);
-                this.marginCache.set(client.id, clientCapital);
-                console.log(`AlgoEngine: Successfully fetched live Net Cash Balance for ${client.user.name}: ₹${clientCapital}`);
+                marginOrApi = Number(marginRes.data.equity.net);
+                this.marginCache.set(client.id, marginOrApi);
+                console.log(`AlgoEngine: Successfully fetched live Net Cash Balance for ${client.user.name}: ₹${marginOrApi}`);
               } else {
-                console.warn(`AlgoEngine: Margin API response unsuccessful for ${client.user.name}. Falling back to DB capital: ₹${clientCapital}`);
+                marginOrApi = dbDisabled ? 0 : dbCapital;
+                console.warn(`AlgoEngine: Margin API response unsuccessful for ${client.user.name}. Using DB capital: ₹${marginOrApi}`);
               }
             } catch (marginErr: any) {
-              console.error(`AlgoEngine: Error fetching live Zerodha margins for ${client.user.name}. Falling back to DB capital: ₹${clientCapital}`, marginErr);
+              marginOrApi = dbDisabled ? 0 : dbCapital;
+              console.error(`AlgoEngine: Error fetching live Zerodha margins for ${client.user.name}. Using DB capital: ₹${marginOrApi}`, marginErr);
             }
           }
+
+          // Pick the LOWER of (marginCache/live-API value) and (DB capital)
+          // This ensures we never risk more than the DB record allows.
+          // If DB capital is -1, DB is disabled — use only live margin.
+          let clientCapital = dbDisabled ? marginOrApi : Math.min(marginOrApi, dbCapital);
+          console.log(`AlgoEngine: Final clientCapital for ${client.user.name} = ${dbDisabled ? 'live-only' : `min(margin=${marginOrApi}, db=${dbCapital})`} = ₹${clientCapital}`);
 
           const configRisk = config?.riskManagement?.riskPerTrade;
           if (!configRisk || configRisk <= 0) {

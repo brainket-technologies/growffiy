@@ -364,13 +364,23 @@ export default function ClientDetailsPage() {
     }
 
     if (connect) {
+      if (!zerodhaApiKey || !zerodhaApiSecret) {
+        setAlertModal({
+          title: 'Missing Credentials',
+          message: 'Please enter and save the Zerodha API Key and API Secret first before connecting.'
+        });
+        return;
+      }
+
       if (zerodhaTotpSecret) {
         setAlertModal({
           title: 'Auto-Login in Progress',
           message: 'Connecting to Zerodha using Auto-Login...',
         });
         try {
-          const res = await api.post(`${API_ENDPOINTS.CLIENTS}/${id}/autologin`, {});
+          const res = await api.post(`${API_ENDPOINTS.CLIENTS}/${id}/autologin`, {}).catch(err => {
+            return { success: false, error: err.message || 'Auto-login failed' };
+          });
           if (res.success) {
             setAlertModal({
               title: 'Connected',
@@ -380,19 +390,43 @@ export default function ClientDetailsPage() {
           } else {
             setAlertModal({
               title: 'Auto-Login Failed',
-              message: res.error || 'Failed to auto-login. Falling back to manual setup.',
-              onConfirm: () => showSetupGuide(true)
+              message: (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <p>{res.error || 'Failed to auto-login.'}</p>
+                  <p style={{ fontWeight: 600, fontSize: '13.5px', color: 'var(--text-heading)', marginTop: '4px' }}>
+                    Would you like to log in manually instead?
+                  </p>
+                </div>
+              ),
+              onConfirm: () => {
+                window.location.href = KiteClient.getLoginUrl(zerodhaApiKey, id);
+              }
             });
           }
         } catch (err: any) {
           setAlertModal({
             title: 'Auto-Login Error',
-            message: err.message || 'Error occurred during auto-login. Falling back to manual setup.',
-            onConfirm: () => showSetupGuide(true)
+            message: (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <p>{err.message || 'Error occurred during auto-login.'}</p>
+                <p style={{ fontWeight: 600, fontSize: '13.5px', color: 'var(--text-heading)', marginTop: '4px' }}>
+                  Would you like to log in manually instead?
+                </p>
+              </div>
+            ),
+            onConfirm: () => {
+              window.location.href = KiteClient.getLoginUrl(zerodhaApiKey, id);
+            }
           });
         }
       } else {
-        showSetupGuide(true);
+        setAlertModal({
+          title: 'Manual Login',
+          message: 'You have not configured a Zerodha TOTP Secret for Auto-Login. Do you want to connect manually via the standard Zerodha login page?',
+          onConfirm: () => {
+            window.location.href = KiteClient.getLoginUrl(zerodhaApiKey, id);
+          }
+        });
       }
     } else {
       setAlertModal({

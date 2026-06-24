@@ -15,6 +15,7 @@ export default function AuditLogsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalLogs, setTotalLogs] = useState(0);
+  const [isLive, setIsLive] = useState(true);
   const itemsPerPage = 10;
 
   const executeClearLogs = async () => {
@@ -34,8 +35,8 @@ export default function AuditLogsPage() {
     }
   };
 
-  const fetchLogs = async (page = 1) => {
-    setLoading(true);
+  const fetchLogs = async (page = 1, silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await api.get(`${API_ENDPOINTS.AUDIT_LOGS}?page=${page}&limit=${itemsPerPage}`);
       if (res.success) {
@@ -54,13 +55,21 @@ export default function AuditLogsPage() {
       setTotalPages(Math.ceil(localLogs.length / itemsPerPage));
       setCurrentPage(page);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchLogs(currentPage);
   }, [currentPage]);
+
+  useEffect(() => {
+    if (!isLive || currentPage !== 1) return;
+    const interval = setInterval(() => {
+      fetchLogs(currentPage, true);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isLive, currentPage]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -72,7 +81,21 @@ export default function AuditLogsPage() {
           </h1>
           <p style={{ color: 'var(--text-secondary)' }}>View real-time security events, administrator actions, and engine executions.</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}>
+            <input
+              type="checkbox"
+              checked={isLive}
+              onChange={(e) => setIsLive(e.target.checked)}
+              style={{
+                cursor: 'pointer',
+                accentColor: '#58a6ff',
+                width: '14px',
+                height: '14px'
+              }}
+            />
+            Live Feed (Auto-refresh)
+          </label>
           <button
             onClick={() => setIsClearModalOpen(true)}
             disabled={loading}
@@ -112,28 +135,79 @@ export default function AuditLogsPage() {
         </div>
       </div>
 
-      {/* Audit Log Timeline */}
-      <Card>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '24px' }}>
-          <ShieldCheck color="var(--primary)" size={20} />
-          <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
-            Activity Logs History
-          </h3>
+      {/* Terminal Audit Log View */}
+      <div
+        style={{
+          backgroundColor: '#090d13',
+          border: '1px solid #30363d',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.35)',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        {/* Terminal Title Bar */}
+        <div
+          style={{
+            backgroundColor: '#161b22',
+            borderBottom: '1px solid #30363d',
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            userSelect: 'none'
+          }}
+        >
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ff5f56', display: 'inline-block' }} />
+            <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ffbd2e', display: 'inline-block' }} />
+            <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#27c93f', display: 'inline-block' }} />
+            <span
+              style={{
+                marginLeft: '12px',
+                color: '#8b949e',
+                fontSize: '12px',
+                fontFamily: 'monospace',
+                fontWeight: 600,
+                letterSpacing: '0.5px'
+              }}
+            >
+              growffiy-system-console.log
+            </span>
+          </div>
+          <span style={{ color: '#58a6ff', fontSize: '11px', fontFamily: 'monospace', fontWeight: 600 }}>
+            sh - {totalLogs} events
+          </span>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Terminal Console Body */}
+        <div
+          style={{
+            padding: '24px',
+            fontFamily: "'Fira Code', 'Menlo', 'Monaco', 'Consolas', 'Courier New', monospace",
+            fontSize: '13px',
+            lineHeight: '1.6',
+            color: '#c9d1d9',
+            minHeight: '400px',
+            maxHeight: '650px',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}
+        >
           {loading && auditLogs.length === 0 ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '36px', color: 'var(--text-secondary)', fontWeight: 500 }}>
-              Loading audit log records...
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: '#8b949e', gap: '10px' }}>
+              <span className="spin" style={{ display: 'inline-block' }}>⚙️</span> Loading console event buffer...
             </div>
           ) : auditLogs.length === 0 ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-              No system logs recorded.
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: '#8b949e' }}>
+              growffiy:~$ [No log records registered in active session buffer]
             </div>
           ) : (
             (() => {
-              // Internal React component style block
-              const AuditLogList = () => {
+              const AuditLogTerminalList = () => {
                 const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
 
                 const toggleExpand = (logKey: string) => {
@@ -145,7 +219,7 @@ export default function AuditLogsPage() {
                   const parts = detailsStr.split(' | ');
                   let payload = '';
                   let result = '';
-                  let label = '';
+                  let label = 'Result';
                   
                   parts.forEach(part => {
                     if (part.startsWith('Payload: ')) {
@@ -162,16 +236,16 @@ export default function AuditLogsPage() {
                 };
 
                 return (
-                  <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                     {auditLogs.map((log, idx) => {
                       const isApiLog = log.action.startsWith('API SUCCESS:') || log.action.startsWith('API ERROR:');
-                      const hasPayload = log.details && log.details.includes(' | Payload: ');
                       const isSuccess = log.action.startsWith('API SUCCESS:') || !log.action.startsWith('API ERROR:');
+                      const hasPayload = log.details && log.details.includes(' | Payload: ');
                       const logKey = `${log.time}-${log.action}-${idx}`;
                       const isExpanded = !!expandedLogs[logKey];
 
-                      let method = '';
-                      let path = '';
+                      let method = 'EXEC';
+                      let path = log.action;
                       if (isApiLog) {
                         const cleanAction = log.action.replace('API SUCCESS: ', '').replace('API ERROR: ', '');
                         const actionParts = cleanAction.split(' ');
@@ -179,239 +253,265 @@ export default function AuditLogsPage() {
                         path = actionParts.slice(1).join(' ');
                       }
 
+                      // Determine colors based on types and status
+                      const timestampColor = '#8b949e';
+                      const actorColor = '#58a6ff';
+                      const typeColor = 
+                        log.type === 'security' ? '#ff7b72' : 
+                        log.type === 'system' ? '#7ee787' : '#d2a8ff';
+                      
+                      const actionColor = 
+                        !isSuccess ? '#ff7b72' : 
+                        method === 'POST' ? '#79c0ff' : 
+                        method === 'DELETE' ? '#ff7b72' : 
+                        method === 'PUT' ? '#d2a8ff' : '#a5d6ff';
+
                       return (
                         <div
                           key={idx}
                           style={{
+                            borderBottom: '1px solid #21262d',
+                            paddingBottom: '12px',
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: '8px',
-                            paddingBottom: '16px',
-                            borderBottom: idx !== auditLogs.length - 1 ? '1px solid var(--border-light)' : 'none',
+                            gap: '4px'
                           }}
                         >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
-                            <div style={{ flex: 1, minWidth: '280px' }}>
-                              {isApiLog ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                    <span style={{
-                                      padding: '2px 6px',
-                                      borderRadius: '4px',
-                                      fontSize: '10px',
-                                      fontWeight: 700,
-                                      color: 'white',
-                                      backgroundColor: 
-                                        method === 'GET' ? '#3b82f6' : 
-                                        method === 'POST' ? 'var(--accent)' : 
-                                        method === 'PUT' ? 'var(--warning)' : 'var(--danger)'
-                                    }}>{method}</span>
-                                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
-                                      {path}
-                                    </span>
-                                    <span style={{
-                                      fontSize: '9px',
-                                      fontWeight: 600,
-                                      color: isSuccess ? 'var(--accent-dark)' : 'var(--danger)',
-                                      backgroundColor: isSuccess ? 'var(--accent-light)' : 'var(--danger-light)',
-                                      padding: '1px 6px',
-                                      borderRadius: '4px'
-                                    }}>{isSuccess ? 'Success' : 'Failed'}</span>
-                                    <button
-                                      onClick={() => toggleExpand(logKey)}
-                                      style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: 'var(--primary)',
-                                        cursor: 'pointer',
-                                        fontSize: '11px',
-                                        fontWeight: 600,
-                                        padding: '2px 6px',
-                                        textDecoration: 'underline'
-                                      }}
-                                    >
-                                      {isExpanded ? 'Hide Details' : 'Show Details'}
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : hasPayload ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  <p style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>{log.action}</p>
-                                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                    {log.details.split(' | ')[0]}
-                                  </p>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                                    <button
-                                      onClick={() => toggleExpand(logKey)}
-                                      style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: 'var(--primary)',
-                                        cursor: 'pointer',
-                                        fontSize: '11px',
-                                        fontWeight: 600,
-                                        padding: '0',
-                                        textDecoration: 'underline'
-                                      }}
-                                    >
-                                      {isExpanded ? 'Hide Details' : 'Show Details'}
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div>
-                                  <p style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>{log.action}</p>
-                                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                    {log.details}
-                                  </p>
-                                </div>
+                          {/* Log Main Title String */}
+                          <div
+                            onClick={() => (isApiLog || hasPayload) && toggleExpand(logKey)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              justifyContent: 'space-between',
+                              cursor: (isApiLog || hasPayload) ? 'pointer' : 'default',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              transition: 'background-color 0.2s',
+                              backgroundColor: isExpanded ? '#161b22' : 'transparent',
+                              gap: '12px'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (isApiLog || hasPayload) e.currentTarget.style.backgroundColor = '#161b22';
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isExpanded) e.currentTarget.style.backgroundColor = 'transparent';
+                            }}
+                          >
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                              {/* Timestamp */}
+                              <span style={{ color: timestampColor }}>[{log.time}]</span>
+                              
+                              {/* Type badge */}
+                              <span style={{ color: typeColor, fontWeight: 'bold' }}>[{log.type.toUpperCase()}]</span>
+                              
+                              {/* Actor */}
+                              <span style={{ color: actorColor }}>{log.user}:</span>
+
+                              {/* Method Tag if API */}
+                              {isApiLog && (
+                                <span
+                                  style={{
+                                    backgroundColor: 
+                                      method === 'GET' ? '#1f6feb' : 
+                                      method === 'POST' ? '#238636' : 
+                                      method === 'PUT' ? '#9e6a03' : '#da3633',
+                                    color: 'white',
+                                    padding: '1px 5px',
+                                    borderRadius: '3px',
+                                    fontSize: '11px',
+                                    fontWeight: 'bold'
+                                  }}
+                                >
+                                  {method}
+                                </span>
+                              )}
+
+                              {/* Action Path / Description */}
+                              <span style={{ color: actionColor, fontWeight: 500 }}>
+                                {isApiLog ? path : log.action}
+                              </span>
+
+                              {/* Success/Failed status */}
+                              {!isSuccess && (
+                                <span style={{ color: '#ff7b72', fontSize: '11px', fontWeight: 'bold' }}>(FAILED)</span>
                               )}
                               
-                              <p style={{ fontSize: '10px', color: 'var(--text-subtle)', marginTop: '6px' }}>
-                                Actor: <strong>{log.user}</strong>
-                              </p>
-                            </div>
-                            
-                            <div style={{ textAlign: 'right' }}>
-                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{log.time}</span>
-                              <div style={{ marginTop: '6px' }}>
-                                <span className={`badge ${
-                                  log.type === 'security' ? 'badge-red' :
-                                  log.type === 'system' ? 'badge-blue' :
-                                  log.type === 'action' ? 'badge-purple' : 'badge-green'
-                                }`}>
-                                  {log.type}
+                              {(isApiLog || hasPayload) && (
+                                <span style={{ color: '#8b949e', fontSize: '11px', textDecoration: 'underline', marginLeft: '6px' }}>
+                                  {isExpanded ? '[Collapse]' : '[Expand]'}
                                 </span>
-                              </div>
+                              )}
                             </div>
                           </div>
 
-                          {(isApiLog || hasPayload) && isExpanded && (() => {
-                            const { payload, result, label } = parseDetails(log.details);
-                            return (
-                              <div style={{
-                                marginTop: '4px',
-                                padding: '12px',
-                                backgroundColor: 'var(--surface)',
-                                border: '1px solid var(--border)',
-                                borderRadius: '8px',
-                                fontSize: '11px',
-                                fontFamily: 'monospace',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '8px',
-                                overflowX: 'auto',
-                                color: 'var(--text-body)'
-                              }}>
-                                <div>
-                                  <strong style={{ color: 'var(--text-muted)' }}>Payload:</strong>
-                                  <pre style={{ margin: '4px 0 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-all', backgroundColor: 'var(--surface)', padding: '6px', borderRadius: '4px' }}>
-                                    {payload}
-                                  </pre>
-                                </div>
-                                {result && (
-                                  <div>
-                                    <strong style={{ color: 'var(--text-muted)' }}>{label}:</strong>
-                                    <pre style={{ margin: '4px 0 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-all', backgroundColor: 'var(--surface)', padding: '6px', borderRadius: '4px' }}>
-                                      {result}
-                                    </pre>
+                          {/* Log ASCII Details Tree */}
+                          <div style={{ display: 'flex', flexDirection: 'column', paddingLeft: '16px', color: '#8b949e' }}>
+                            {/* Details Row */}
+                            <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                              <span style={{ color: '#30363d', marginRight: '6px' }}>├──</span>
+                              <span style={{ color: '#c9d1d9', wordBreak: 'break-all' }}>
+                                {hasPayload ? log.details.split(' | ')[0] : log.details}
+                              </span>
+                            </div>
+
+                            {/* Collapsed/Expanded Inspector Area */}
+                            {isExpanded && (isApiLog || hasPayload) ? (
+                              (() => {
+                                const { payload, result, label } = parseDetails(log.details);
+                                return (
+                                  <div style={{ display: 'flex', flexDirection: 'column', marginTop: '2px' }}>
+                                    {/* Payload display */}
+                                    <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                      <span style={{ color: '#30363d', marginRight: '6px' }}>├──</span>
+                                      <span style={{ color: '#8b949e', marginRight: '6px' }}>Payload:</span>
+                                      <div
+                                        style={{
+                                          backgroundColor: '#0d1117',
+                                          border: '1px solid #30363d',
+                                          borderRadius: '6px',
+                                          padding: '8px 12px',
+                                          marginTop: '4px',
+                                          width: '100%',
+                                          fontSize: '12px',
+                                          color: '#79c0ff',
+                                          whiteSpace: 'pre-wrap',
+                                          wordBreak: 'break-all'
+                                        }}
+                                      >
+                                        {payload || '{}'}
+                                      </div>
+                                    </div>
+
+                                    {/* Response / Error display */}
+                                    {result && (
+                                      <div style={{ display: 'flex', alignItems: 'flex-start', marginTop: '4px' }}>
+                                        <span style={{ color: '#30363d', marginRight: '6px' }}>└──</span>
+                                        <span style={{ color: label === 'Error' ? '#ff7b72' : '#7ee787', marginRight: '6px' }}>{label}:</span>
+                                        <div
+                                          style={{
+                                            backgroundColor: '#0d1117',
+                                            border: '1px solid #30363d',
+                                            borderRadius: '6px',
+                                            padding: '8px 12px',
+                                            marginTop: '4px',
+                                            width: '100%',
+                                            fontSize: '12px',
+                                            color: label === 'Error' ? '#ff7b72' : '#85e89d',
+                                            whiteSpace: 'pre-wrap',
+                                            wordBreak: 'break-all'
+                                          }}
+                                        >
+                                          {result}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
-                                )}
+                                );
+                              })()
+                            ) : (
+                              // Default closed branch terminator
+                              <div style={{ display: 'flex', alignItems: 'center' }}>
+                                <span style={{ color: '#30363d', marginRight: '6px' }}>└──</span>
+                                <span style={{ fontSize: '11px', color: '#566270' }}>Event ID: {idx + totalLogs} | Session Buffer OK</span>
                               </div>
-                            );
-                          })()}
+                            )}
+                          </div>
                         </div>
                       );
                     })}
-                  </>
+                  </div>
                 );
               };
 
-              return (
-                <>
-                  <AuditLogList />
-                  {totalPages > 1 && (
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginTop: '20px',
-                      paddingTop: '16px',
-                      borderTop: '1px solid var(--border-light)',
-                    }}>
-                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                        Showing <strong>{((currentPage - 1) * itemsPerPage) + 1}</strong> to <strong>{Math.min(currentPage * itemsPerPage, totalLogs)}</strong> of <strong>{totalLogs}</strong> logs
-                      </span>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-                          disabled={currentPage === 1}
-                          style={{
-                            padding: '6px 12px',
-                            borderRadius: '6px',
-                            border: '1px solid var(--border-color)',
-                            background: 'var(--bg-white)',
-                            color: 'var(--text-primary)',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                            opacity: currentPage === 1 ? 0.5 : 1,
-                          }}
-                        >
-                          Previous
-                        </button>
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
-                          if (totalPages > 5 && Math.abs(pageNum - currentPage) > 1 && pageNum !== 1 && pageNum !== totalPages) {
-                            if (pageNum === 2 || pageNum === totalPages - 1) {
-                              return <span key={pageNum} style={{ padding: '0 4px', color: 'var(--text-muted)', alignSelf: 'center' }}>...</span>;
-                            }
-                            return null;
-                          }
-                          return (
-                            <button
-                              key={pageNum}
-                              onClick={() => setCurrentPage(pageNum)}
-                              style={{
-                                padding: '6px 12px',
-                                borderRadius: '6px',
-                                border: pageNum === currentPage ? '1px solid var(--primary)' : '1px solid var(--border-color)',
-                                background: pageNum === currentPage ? 'var(--primary)' : 'white',
-                                color: pageNum === currentPage ? 'white' : 'var(--text-primary)',
-                                fontSize: '12px',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              {pageNum}
-                            </button>
-                          );
-                        })}
-                        <button
-                          onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
-                          disabled={currentPage === totalPages}
-                          style={{
-                            padding: '6px 12px',
-                            borderRadius: '6px',
-                            border: '1px solid var(--border-color)',
-                            background: 'var(--bg-white)',
-                            color: 'var(--text-primary)',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                            opacity: currentPage === totalPages ? 0.5 : 1,
-                          }}
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              );
+              return <AuditLogTerminalList />;
             })()
           )}
         </div>
-      </Card>
+
+        {/* Terminal Status / Pagination Bar */}
+        {totalPages > 1 && (
+          <div
+            style={{
+              backgroundColor: '#161b22',
+              borderTop: '1px solid #30363d',
+              padding: '12px 20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}
+          >
+            <span style={{ fontSize: '12px', color: '#8b949e', fontFamily: 'monospace' }}>
+              Showing <strong style={{ color: '#c9d1d9' }}>{((currentPage - 1) * itemsPerPage) + 1}</strong>-
+              <strong style={{ color: '#c9d1d9' }}>{Math.min(currentPage * itemsPerPage, totalLogs)}</strong> of{' '}
+              <strong style={{ color: '#c9d1d9' }}>{totalLogs}</strong> events
+            </span>
+            <div style={{ display: 'flex', gap: '8px', fontFamily: 'monospace' }}>
+              <button
+                onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                disabled={currentPage === 1}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '4px',
+                  border: '1px solid #30363d',
+                  background: '#21262d',
+                  color: currentPage === 1 ? '#484f58' : '#c9d1d9',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                &lt; Prev
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+                if (totalPages > 5 && Math.abs(pageNum - currentPage) > 1 && pageNum !== 1 && pageNum !== totalPages) {
+                  if (pageNum === 2 || pageNum === totalPages - 1) {
+                    return <span key={pageNum} style={{ padding: '0 4px', color: '#484f58', alignSelf: 'center' }}>...</span>;
+                  }
+                  return null;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '4px',
+                      border: pageNum === currentPage ? '1px solid #58a6ff' : '1px solid #30363d',
+                      background: pageNum === currentPage ? '#1f6feb' : '#21262d',
+                      color: '#c9d1d9',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '4px',
+                  border: '1px solid #30363d',
+                  background: '#21262d',
+                  color: currentPage === totalPages ? '#484f58' : '#c9d1d9',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Next &gt;
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Clear Logs Custom Confirmation Modal */}
       <Modal
         isOpen={isClearModalOpen}

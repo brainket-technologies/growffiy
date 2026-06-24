@@ -1,367 +1,355 @@
-# Trading Flow — Pre-Open Momentum Breakout
+# 📊 Trading Flow — Har Line Ka Calculation
 
-## Database Values (Neon PostgreSQL)
+## Real Data
+| Item | Value | Source |
+|------|-------|--------|
+| Client | Vikash Sharma | DB |
+| Zerodha Wallet (equity.net) | ₹11,791.70 | Live Kite API (25 June 2026) |
+| DB Capital (client.capital) | ₹5,00,000 | Seed/DB |
+| Strategy | Pre-Open Momentum Breakout | DB |
+| Config Conditions | [] (empty) | configJson |
+| Selected Stock | CANBK | Pre-select sort |
+| 5-min Candle High | ₹488 | Kite historical |
+| Entry Trigger Price | ₹488.50 | breakoutEntryPrice (after tick round) |
 
-### Strategy: Pre-Open Momentum Breakout
+---
+
+## Code Execution — Line by Line
+
+### 1. marginCache Check (Pre-select 09:15:30 se)
 ```
-ID:     c7bafa89-3403-44c3-bcd0-199602c878e1
-Status: active
-
-entryTime:        "09:20:30"
-preSelectTime:    "09:15:30"
-exitTime:         "15:24:00"
-selectPosition:   1 (weakest)
-segment:          "NSE F&O"
-exchange:         "NSE"
-tradeType:        "Intraday" (MIS)
-orderType:        "SL-Market"
-action:           "Long"
-bufferPercent:    0.1%
-candlePriceType:  "high"
-
-stoploss.fixedPercent:  1%
-target.profitPercent:   2%
-
-riskPerTrade:       3%
-capitalAllocation:  -1 (DISABLED — only 3% risk used)
-maxOpenPositions:   3
-maxDailyLoss:       -1 (unlimited)
-maxDailyProfit:     -1 (unlimited)
-
-conditions: [] (empty — all stocks eligible)
+Line 346: marginRes = await KiteClient.getMargins(client.zerodhaApiKey, client.accessToken)
+Line 348: this.marginCache.set(client.id, Number(marginRes.data.equity.net))
+         = Number(11791.7)
+         = 11791.70
 ```
+marginCache["b364d72f-..."] = **₹11,791.70** ✅
 
-### Client: Vikash Sharma
-```
-Kite ID:     RZJ500
-Capital:     ₹5,00,000.00
-Status:      active + active subscription
-Strategy:    Pre-Open Momentum Breakout
-```
+---
 
-### App Settings
+### 2. Candle Price Fetch (Entry 09:20:30)
 ```
-algo_token_refresh_time: 08:00
-algo_preopen_fetch_time: 09:08
-algo_entry_time:         09:20:30
-auto_trade_enabled:      true
-isTradingActive:         true
+Line 539: KiteClient.getHistoricalData(apiKey, token, instToken, '5minute', from, to)
+Line 543: candleType = config.tradeAction?.candlePriceType || 'high'
+Line 545: candlePrice = Number(res.data.candles[0][2])   // index 2 = high
+            = 488
+```
+candlePrice = **₹488** ✅
+
+---
+
+### 3. Breakout Entry Price
+```
+Line 601: bufferPct = config.tradeAction?.bufferPercent = 0.1
+Line 604: breakoutEntryPrice = candlePrice * (1 + bufferPct / 100)
+            = 488 * (1 + 0.1/100)
+            = 488 * 1.001
+            = 488.488
+Line 878: finalEntryPrice = getTickSizeAndRound(..., 488.488) = 488.50
+```
+breakoutEntryPrice = **₹488.50** (rounded to tick size)
+
+---
+
+### 4. Breakout Check
+```
+Line 608: isSLMarket = config.tradeAction?.orderType === 'SL-Market'
+           = 'SL-Market' === 'SL-Market'
+           = true
+Line 610: if (isSLMarket || !hasPriceAction || currentLtp >= breakoutEntryPrice)
+           if (true) → targetStock = candidateStock (CANBK) ✅
+```
+SL-Market hai → price check skip, order khud trigger handle karega.
+
+---
+
+### 5. entryPrice
+```
+Line 616: const entryPrice = breakoutEntryPrice
+           = 488.50
 ```
 
 ---
 
-## ⏰ 08:00 — Token Refresh
-
-tradingScheduler.startDailyTokenRefreshScheduler() → 08:00 trigger
-
-1. Query DB: active clients with accessToken
-2. Vikash (RZJ500):
-   - accessToken exists? Yes
-   - Already refreshed today? No → login
-   - performKiteAutoLogin(Vikash.id)
-   - password + TOTP → Kite session → new access_token
-   - DB update
-   - todayTokenRefreshed.add(Vikash.id)
-
-Total: 1 client → ~2 sec → **08:00:02 ✅**
-
----
-
-## ⏰ 09:08 — Pre-Open Fetch
-
-NSE API: `https://www.nseindia.com/api/market-data-pre-open?key=F&O`
-
-2000+ stocks fetched → preOpenCache stored in memory
-
-Single API call → ~5 sec → **09:08:05 ✅**
-
----
-
-## ⏰ 09:15:30 — Pre-Select (SIRF EK BAAR, repeat nahi hogi)
-
-tradingScheduler checks every 10s → jab time >= "09:15:30" ho jayega, **sirf ek baar** run hoga.
-
-preSelectAllClients() called → **Har client ko jo strategy assign hai, uske according stock select hoga**
-
+### 6. slPercent and targetPercent
 ```
-┌─ Vikash (RZJ500) ─────────────────────────────────────────┐
-│  Assigned Strategy: "Pre-Open Momentum Breakout"           │
-│  Segment: NSE F&O → Sort weakest → CANBK ✅               │
-│  preselectedStockByStrategy["strat-id"] = CANBK            │
-│  WebSocket: subscribe CANBK                                │
-└─────────────────────────────────────────────────────────────┘
-
-┌─ Agar Client 2 ko "Gap Up Momentum" assigned hota ───────┐
-│  Assigned Strategy: "Gap Up Momentum"                      │
-│  Segment: Nifty 50 → Conditions apply → Sort → RELIANCE ✅│
-│  preselectedStockByStrategy["strat-2-id"] = RELIANCE       │
-│  WebSocket: subscribe RELIANCE                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-✅ **Process sirf ek baar chalta hai** — baar baar pre-select nahi hoga.
-✅ **Jo client jis strategy se assigned hai, usi ke config+conditions use hote hain.**
-✅ **Jo stocks select hue, unke WebSocket subscribe ho jate hain** — live ticks aate rehte hain.
-✅ **Entry time (09:20:30) pe latest data WebSocket se milta hai.**
-
-### Example 1 — "Pre-Open Momentum Breakout" (conditions: empty)
-
-Har stock eligible → sirf segment filter + sorting se select hota hai.
-
-| Step | Action | Result |
-|------|--------|--------|
-| 1 | Get preOpenCache (2000 stocks) | ✅ |
-| 2 | Segment filter NSE F&O (isFo=true) | ~180 stocks |
-| 3 | Conditions [] empty → **sab pass** | 180 stocks |
-| 4 | Sort by changePercent ASC (Long = weakest first) | CANBK -1.20% = #1 |
-| 5 | Store in preselectedStockByStrategy[strategyId] | CANBK |
-| 6 | WebSocket subscribe CANBK | ✅ |
-
-Top stocks by weakness:
-```
-CANBK      ₹485    -1.20%  ← #1 SELECTED
-IDEA       ₹12.50  -0.90%
-PNB        ₹135    -0.70%
-INDUSINDBK ₹1,450  -0.50%
-```
-
-### Example 2 — Strategy with conditions (e.g., Gap Up + Volume)
-
-Maano kisi strategy me conditions hain:
-```json
-"conditions": [
-  { "indicator": "Gap Up", "operator": ">", "value": 0.5 },
-  { "indicator": "Volume", "operator": ">", "value": 100000 }
-]
-```
-
-Tab flow aisa hoga:
-
-| Step | Action | Result |
-|------|--------|--------|
-| 1 | Get preOpenCache (2000 stocks) | ✅ |
-| 2 | Segment filter (e.g., Nifty 50) | ~50 stocks |
-| 3 | Apply conditions: Gap Up > 0.5% **AND** Volume > 1,00,000 | Sirf wahi stocks jo dono condition pass karein |
-| 4 | Sort by changePercent ASC/DESC (according to action) | Top pick |
-| 5 | Store in preselectedStockByStrategy[strategyId] | Selected stock ✅ |
-| 6 | WebSocket subscribe | ✅ |
-
-Example — Nifty 50 stocks with conditions:
-```
-RELIANCE   ₹2,850  Gap: +0.8%  Vol: 5,20,000  → PASS ✅
-TCS        ₹3,920  Gap: +0.3%  Vol: 1,80,000  → FAIL (Gap < 0.5%)
-HDFCBANK   ₹1,680  Gap: +1.2%  Vol: 8,50,000  → PASS ✅ → #1 SELECTED
-ICICIBANK  ₹1,230  Gap: -0.2%  Vol: 3,00,000  → FAIL (Gap Down, not Up)
-INFY       ₹1,750  Gap: +0.6%  Vol: 90,000    → FAIL (Volume < 1L)
-```
-
-Har strategy apne **conditions array** ke hisaab se stocks filter karti hai, phir sorting hoti hai.
-
-**09:15:30 — Strategy selection done ✅ (~50ms)**
-
-### Margin Fetch (per client, 50 concurrent)
-
-Vikash:
-- KiteClient.getMargins(apiKey, accessToken)
-- Response: equity.net = ₹4,80,000
-- marginCache["client-id"] = ₹4,80,000 ✅
-
-1 client, 50 concurrent → ~1 sec → **09:15:31 ✅**
-
----
-
-## ⏰ 09:20:30 — Entry Execution
-
-tradingScheduler checks every 10s → time >= "09:20:30" ✅
-executePreOpenTrades("system-admin", strategy.id)
-
-Entry ka logic aise hai:
-
-```
-09:15 ───────────── 5min candle ──────────── 09:20 ── 09:20:30
-
-Candle ban rahi hai:                     Candle complete ✅
-  Open: ₹484                              Kite API se candle fetch
-  High: ₹488  ← ye value use hogi         high = ₹488
-  Low:  ₹482                              Buffer 0.1% → ₹488 × 1.001 = ₹488.49
-  Close: ₹487                             SL-Market trigger = ₹488.49
-```
-
-09:15 se 09:20 tak jo **5min candle** bani, uske **high** price ko strategy se `candlePriceType: "high"` pada hai. Phir usme `bufferPercent: 0.1%` add karke breakout/trigger price banega. Ye price SL-Market order ke trigger ke roop me use hoga.
-
-### Flow — Pehle common trigger price, phir har client ki quantity
-
-```
- ╔═══════════════════════════════════════════════════════╗
- ║  1️⃣ COMMON (sab clients ke liye same)               ║
- ║     Candle high (09:15-09:20) → + buffer → trigger   ║
- ║     price = ₹488.49 ✅                                ║
- ╠═══════════════════════════════════════════════════════╣
- ║  2️⃣ PER CLIENT (capital/margin ke hisaab se)        ║
- ║     Vikash: ₹5,00,000 → 3% risk → qty = 2,944      ║
- ║     Raj:    ₹3,20,000 → 3% risk → qty = 1,885      ║
- ║     Priya:  ₹6,00,000 → 3% risk → qty = 3,533      ║
- ╠═══════════════════════════════════════════════════════╣
- ║  3️⃣ TRADE (har client same price pe individual qty) ║
- ║     Vikash: BUY 2944 CANBK SL-M @ ₹488.49          ║
- ║     Raj:    BUY 1885 CANBK SL-M @ ₹488.49          ║
- ║     Priya:  BUY 3533 CANBK SL-M @ ₹488.49          ║
- ╚═══════════════════════════════════════════════════════╝
-```
-
-### Steps in detail
-
-| # | Step | Type | Detail |
-|---|------|------|--------|
-| 1 | Get preselected stock | **COMMON** | preselectedStockByStrategy → CANBK ✅ |
-| 2 | Check existing trade today | **PER CLIENT** | prisma.trade.findFirst → none → Fresh ✅ |
-| 3 | Fetch 09:15-09:20 5min candle high | **COMMON (1 API call, cached)** | Kite API historical → high = ₹488. candlePriceCache me store → baaki clients cache se le lenge |
-| 4 | Trigger price | **COMMON** | ₹488 × (1 + 0.1/100) = ₹488.49 ✅ |
-| 5 | Margin | **PER CLIENT (cached)** | marginCache se → ₹4,80,000 — 0 API call |
-| 6 | Quantity: riskPercent (3%) | **PER CLIENT** | capitalAtRisk = margin × 3% |
-| 7 | Quantity: capitalAlloc limit | **PER CLIENT** | Agar -1 nahi hai to allocLimit bhi check |
-| 8 | Quantity: DB capital limit | **PER CLIENT** | DB capital se bada nahi hona chahiye |
-| 9 | Quantity: SL points | **COMMON** | ₹488.49 × (1 - 1%) = ₹483.60, SL points = ₹4.89 |
-| 10 | Final quantity | **PER CLIENT** | min(capitalAtRisk/SL_points, allocLimit/price) |
-| 11 | Place SL-Market order | **PER CLIENT** | Har client apni qty ke saath trade karega |
-
-### Vikash (RZJ500) — Example calculation
-
-```
-margin           = ₹4,80,000
-riskPercent      = 3%
-capitalAtRisk    = ₹4,80,000 × 3% = ₹14,400
-
-SL Price         = ₹488.49 × (1 - 1/100) = ₹483.60
-SL Points        = ₹488.49 - ₹483.60 = ₹4.89
-
-Qty              = ₹14,400 / ₹4.89 = 2,944
-```
-
-### Quantity Calculation
-```
-margin           = ₹4,80,000
-capitalAllocation = -1 (disabled) → no alloc limit
-riskPercent       = 3%
-capitalAtRisk     = ₹4,80,000 × 3% = ₹14,400
-
-SL Price   = ₹488.49 × (1 - 1/100) = ₹483.60
-SL Points  = ₹488.49 - ₹483.60 = ₹4.89
-
-Qty        = ₹14,400 / ₹4.89 = 2,944
-```
-
-### Order Details
-```
-exchange:    NSE
-symbol:     CANBK
-type:       BUY
-quantity:   2944
-order_type: SL-MARKET
-trigger:    ₹488.49
-product:    MIS
-validity:   DAY
-```
-
-**09:20:31 — Order placed ✅ (~1 sec for 1 client)**
-
----
-
-## ⏰ 09:20:33 — Order Polling (background, every 10s)
-
-startActiveTradesMonitoringScheduler() → every 10s
-
-```
-09:20:33 → Kite.orderHistory → status: "TRIGGER PENDING" ❌ (abhi fill nahi hui)
-09:20:43 → status: "TRIGGER PENDING" ❌
-09:20:53 → status: "COMPLETE" @ ₹488.50, qty 2944 ✅ (fill ho gayi)
-```
-
-### Jaise hi entry fill hui → Trade + SL + Target ek saath
-
-```
-╔════════════════════════════════════════════════════════╗
-║  09:20:53 — Entry ORDER FILLED ✅                     ║
-║                                                       ║
-║  ┌─ TRADE DB CREATE ───────────────────────────────┐  ║
-║  │  symbol: CANBK, entry: ₹488.50, qty: 2944      │  ║
-║  │  status: OPEN                                   │  ║
-║  └──────────────────────────────────────────────────┘  ║
-║                                                       ║
-║  ┌─ SL ORDER ───────────────────────────────────────┐  ║
-║  │  SELL 2944 CANBK SL-MARKET @ ₹483.60 ✅          │  ║
-║  │  order_id: 25062300012346                        │  ║
-║  └──────────────────────────────────────────────────┘  ║
-║                                                       ║
-║  ┌─ TARGET ORDER ────────────────────────────────────┐ ║
-║  │  SELL 2944 CANBK LIMIT @ ₹498.27 ✅               │ ║
-║  │  order_id: 25062300012347                         │ ║
-║  └──────────────────────────────────────────────────┘  ║
-║                                                       ║
-║  09:20:55 — Trade OPEN + SL/Target placed ✅         ║
-╚════════════════════════════════════════════════════════╝
-```
-
-### Important — Entry fill nahi hui to SL/Target nahi lagega
-
-```
-╔════════════════════════════════════════════════════════╗
-║  CASE 1: Entry fill hui → SL + Target place hoga ✅  ║
-║                                                       ║
-║  CASE 2: Entry TRIGGER PENDING raha                   ║
-║          → SL/Target place nahi hoga                  ║
-║          → Monitoring cycle me check hota rahega      ║
-║                                                       ║
-║  CASE 3: Entry REJECTED / CANCELLED                   ║
-║          → Trade FAILED mark                           ║
-║          → SL/Target kabhi place nahi hoga ❌         ║
-║                                                       ║
-║  CASE 4: Entry market close tak TRIGGER PENDING       ║
-║          → Trade FAILED at 15:24 (square off)         ║
-║          → SL/Target nahi laga ❌                     ║
-╚════════════════════════════════════════════════════════╝
+Line 636: slPercent = config.stoploss.fixedPercent = 1
+Line 637: targetPercent = config.target.profitPercent = 2
 ```
 
 ---
 
-## ⏰ 09:20 to 15:24 — Monitor (every 10s)
-
-| Time | CANBK Price | Action |
-|------|-------------|--------|
-| 09:30 | ₹492 | SL trail? trailingSL=-1 disabled → no trail |
-| 10:00 | ₹495 | No action |
-| 10:30 | ₹502 | **TARGET HIT 🎯** |
-| | | Target SELL filled @ ₹502 |
-| | | SL cancelled |
-| | | Trade status: CLOSED |
-
-### Vikash Final PnL
+### 7. Access Token Check
 ```
-Entry:  ₹488.50 (2944 shares)
-Exit:   ₹502.00 (2944 shares)
-PnL:    2944 × ₹13.50 = ₹39,744 PROFIT ✅
-ROI:    39,744 / 14,400 (risk) = 276% 🎯
+Line 639: activeAccessToken = client.accessToken = "nKDLbxnRhHFcvp6BCqqFkwvwcIlTAzyq"
+Line 640: isAutoLoginPossible = process.env.KITE_AUTO_LOGIN_ENABLED === 'true'
+                               && client.zerodhaPassword
+                               && client.zerodhaTotpSecret
 ```
-
-**15:24:00** — Exit time → any open trades SQUARE OFF
+activeAccessToken exists ✅, no auto-login needed.
 
 ---
 
-## Timeline Summary
+### 8. Client Capital — EXACT
 
-| Step | Time | Duration | Total |
-|------|------|----------|-------|
-| Token Refresh (1 client) | 08:00 | ~2 sec | 08:00:02 |
-| Pre-Open Fetch | 09:08 | ~5 sec | 09:08:05 |
-| Stock Selection | 09:15:30 | ~50ms | 09:15:30 |
-| Margin Cache (1 client) | 09:15:30 | ~1 sec | 09:15:31 |
-| ENTRY PLACE | 09:20:30 | ~1 sec | 09:20:31 |
-| Order Fill | 09:20:33 | ~20-30s | 09:20:55 |
-| Monitor / SL-Target | 09:20 | every 10s | 15:24:00 (square) |
+#### Step 8a: marginOrApi
+```
+Line 706: cachedMargin = this.marginCache.get(client.id) = 11791.70
+Line 713: marginOrApi = cachedMargin = 11791.70
+```
+marginOrApi = **₹11,791.70** (from marginCache)
 
-### Key Points
-- Stock selection happens **ONCE per strategy**, not per client
-- All clients of same strategy trade **same stock** with individual quantity
-- capitalAllocation = -1 means **only riskPerTrade (3%)** limits the quantity
-- Database currently has **only 1 active client** (Vikash)
-- ~500ms per client for entry (cached candle + cached margin + order API)
+#### Step 8b: dbCapital
+```
+Line 707: dbCapital = Number(client.capital) = Number(500000) = 500000
+```
+dbCapital = **₹5,00,000**
+
+#### Step 8c: Check DB disabled?
+```
+Line 710: dbDisabled = (dbCapital === -1) = (500000 === -1) = false
+```
+
+#### Step 8d: clientCapital
+```
+Line 722: clientCapital = dbDisabled ? marginOrApi : Math.min(marginOrApi, dbCapital)
+            = Math.min(11791.70, 500000)
+            = 11791.70
+```
+clientCapital = **₹11,791.70** ✅ (wallet are DB dono me最小值)
+
+---
+
+### 9. Risk Percent
+```
+Line 726: riskPercent = config.riskManagement.riskPerTrade = 3
+```
+
+### 10. marginRate
+```
+Line 727: marginRate = config?.riskManagement?.misMarginRate = -1  (disabled)
+```
+
+---
+
+### 11. capitalAtRisk — EXACT
+
+#### Step 11a: Base calculation
+```
+Line 729: capitalAtRisk = clientCapital * (riskPercent / 100)
+            = 11791.70 * (3 / 100)
+            = 11791.70 * 0.03
+            = 353.751
+```
+capitalAtRisk = **₹353.751**
+
+#### Step 11b: capitalAllocation cap
+```
+Line 731: capitalAllocPct = config?.riskManagement?.capitalAllocation = -1
+Line 732: if (-1 > 0) → false → skip
+```
+
+#### Step 11c: dbCapitalLimit cap
+```
+Line 739: dbCapitalLimit = Number(client.capital) = 500000
+Line 740: if (500000 !== -1 && 353.751 > 500000)
+            if (true && false) → false → skip
+```
+
+#### Step 11d: FINAL capitalAtRisk
+```
+capitalAtRisk = ₹353.751
+```
+
+---
+
+### 12. Stop Loss Points — EXACT
+
+#### Step 12a: slType
+```
+Line 748: slType = config.stoploss.type = 'Trailing SL'
+```
+
+#### Step 12b: slPoints
+```
+Line 749: if (slType === 'Fixed Points') → false
+Line 756: else if (slType === 'Risk %') → false
+Line 762: else → slPoints = entryPrice * (slPercent / 100)
+            = 488.50 * (1 / 100)
+            = 488.50 * 0.01
+            = 4.885
+```
+slPoints = **₹4.885**
+
+#### Step 12c: Minimum check
+```
+Line 765: if (slPoints <= 0) slPoints = 1
+            if (4.885 <= 0) → false → skip
+```
+slPoints = **₹4.885** ✅
+
+---
+
+### 13. Quantity — EXACT
+
+#### Step 13a: Base calculation
+```
+Line 783: quantity = Math.floor(capitalAtRisk / slPoints)
+            = Math.floor(353.751 / 4.885)
+            = Math.floor(72.416...)
+            = 72
+```
+quantity = **72 shares**
+
+#### Step 13b: misMarginRate cap
+```
+Line 785: marginRate = -1
+          if (-1 > 0) → false → skip
+```
+
+#### Step 13c: quantity ≤ 0 check
+```
+Line 790: if (quantity <= 0) → if (72 <= 0) → false → proceed
+```
+quantity = **72** → NOT failed ✅
+
+---
+
+### 14. Kill Switch
+```
+Line 810: killSwitch = config?.riskManagement?.killSwitch === true = false === true = false
+           if (false) → skip
+```
+
+---
+
+### 15. Max Open Positions
+```
+Line 816: maxOpen = config?.riskManagement?.maxOpenPositions = 3
+Line 818: openCount = prisma.trade.count({ where: { clientId, strategyId, status: 'open' } })
+           = 0 (assuming no open trades)
+Line 821: if (0 >= 3) → false → proceed
+```
+
+---
+
+### 16. Daily Limits
+```
+Line 833: maxDailyLoss = config?.riskManagement?.maxDailyLoss = -1
+          if (-1 !== undefined && -1 !== null && -1 !== -1) → (false) → skip
+
+Line 838: maxDailyProfit = config?.riskManagement?.maxDailyProfit = -1
+          if (-1 !== undefined && -1 !== null && -1 !== -1) → (false) → skip
+```
+
+---
+
+### 17. Stop Loss Price — EXACT
+```
+Line 848: stopLoss = entryPrice - slPoints
+            = 488.50 - 4.885
+            = 483.615
+Line 879: finalStopLoss = getTickSizeAndRound(..., 483.615) = 483.60
+```
+stopLoss = **₹483.60**
+
+---
+
+### 18. Target Price — EXACT
+```
+Line 854: targetType = config.target.type = 'Trailing Target'
+Line 856: if (targetType === 'Risk Reward Ratio') → false
+Line 864: target = entryPrice * (1 + targetPercent / 100)
+            = 488.50 * (1 + 2/100)
+            = 488.50 * 1.02
+            = 498.27
+Line 880: finalTarget = getTickSizeAndRound(..., 498.27) = 498.30
+```
+target = **₹498.30**
+
+---
+
+### 19. Order Type
+```
+Line 909: configOrderType = config.tradeAction.orderType = 'SL-Market'
+          if ('SL-Market' === 'SL-Market') → true
+Line 910: orderTypeParam = 'SL-M'
+Line 911: triggerPriceParam = finalEntryPrice = 488.50
+```
+Order: **SL-M** (Stop Loss Market), Trigger: **₹488.50**
+
+---
+
+### 20. ORDER PLACED
+```
+KiteClient.placeOrder(apiKey, token, {
+    exchange: 'NSE',
+    tradingsymbol: 'CANBK',
+    transaction_type: 'BUY',
+    quantity: 72,
+    order_type: 'SL-M',
+    product: 'MIS',
+    validity: 'DAY',
+    trigger_price: 488.50
+})
+```
+
+---
+
+### 21. Order Polling (Fill Check)
+```
+Line 938: maxPolls = 30
+Line 941: setTimeout(2000)  // har 2 second check
+
+Attempt 1: orderStatus = KiteClient.getOrderById(...)
+           if status === 'COMPLETE' → false (trigger pending)
+Attempt 2: status = 'COMPLETE' → true ✅
+
+           filledAvgPrice = orderStatusRes.data.average_price = 489.20
+           actualEntryPrice = 489.20
+
+           // Entry fill -> place SL-M SELL + LIMIT SELL
+           SL-M SELL 72 CANBK @ trigger 483.60
+           LIMIT SELL 72 CANBK @ 498.30
+```
+
+---
+
+### 22. TRADE CREATED
+```
+prisma.trade.create({
+    clientId: "b364d72f-...",
+    symbol: "CANBK",
+    quantity: 72,
+    entryPrice: 489.20,
+    stopLoss: 483.60,
+    target: 498.30,
+    status: 'open',
+    entryOrderId: "240626000xxxxx"
+})
+```
+
+---
+
+## Summary — All Calculated Values
+
+| Variable | Code Line | Expression | Result |
+|----------|-----------|-----------|--------|
+| marginOrApi | 713 | marginCache.get() | ₹11,791.70 |
+| dbCapital | 707 | Number(client.capital) | ₹5,00,000 |
+| clientCapital | 722 | Math.min(11791.70, 500000) | **₹11,791.70** |
+| riskPercent | 726 | config.riskManagement.riskPerTrade | **3** |
+| capitalAtRisk | 729 | 11791.70 × 3/100 | **₹353.75** |
+| slPercent | 636 | config.stoploss.fixedPercent | **1** |
+| slPoints | 762 | 488.50 × 1/100 | **₹4.885** |
+| quantity | 783 | Math.floor(353.75 / 4.885) | **72 shares** |
+| stopLoss | 848 | 488.50 - 4.885 → tick round | **₹483.60** |
+| target | 864 | 488.50 × 1.02 → tick round | **₹498.30** |
+| orderType | 910 | config.tradeAction.orderType | **SL-Market** |
+| triggerPrice | 911 | finalEntryPrice | **₹488.50** |
+
+## Important
+- Code me **koi lot size check nahi hai** — 72 shares ka order place hoga
+- CANBK F&O ka lot size 100 hai, lekin code ye check nahi karta
+- Agar Kite API lot size enforce karegi to order API side se reject ho sakta hai
+- Agar DB capital = -1 hota to `dbDisabled = true`, sirf live margin use hota

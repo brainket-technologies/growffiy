@@ -58,27 +58,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         }
       }
 
-      // 2. If token is missing/expired, attempt auto-login (only for Algo product type clients)
-      if (!client.accessToken && client.tradingStatus === 'active' && client.productType?.name === 'Algo' && client.zerodhaPassword && client.zerodhaTotpSecret && client.zerodhaClientId) {
-        try {
-          console.log(`API: Token expired or null. Attempting auto-login for client ${client.id}...`);
-          const loginRes = await performKiteAutoLogin(client.id);
-          if (loginRes.success && loginRes.accessToken) {
-            client.accessToken = loginRes.accessToken;
-            // Fetch profile data with new token
-            if (client.zerodhaApiKey) {
-              const check = await checkAndFetchData(client.zerodhaApiKey, loginRes.accessToken);
-              if (check.isValid) {
-                profileData = check.profile;
-                marginData = check.margins;
-              }
-            }
-          }
-        } catch (autoLoginErr) {
-          console.error('API: Auto-login failed during client fetch:', autoLoginErr);
-        }
-      }
-
       return NextResponse.json({ success: true, client, profile: profileData, margin: marginData, marginError });
     } catch {
       let client = inMemoryClients.find((c) => c.id === id);

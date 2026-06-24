@@ -6,6 +6,7 @@ import type { StockQuote } from './algoEngine';
 import type { WsLiveFeed } from './wsLiveFeed';
 import { getTickSizeAndRound } from '../utils/tickSizeUtil';
 import { concurrentMap } from '../../core/helpers';
+import { logSystemEvent } from '../services/auditLogger';
 
 export interface EngineAccess {
   todayTokenRefreshed: Set<string>;
@@ -119,8 +120,8 @@ export class TradingScheduler {
           }
 
           if (entryTime) {
-            const entryDebug = `[${strategy.name}] now=${currentTimeStr} entry=${entryTime} cmp=${currentTimeStr >= entryTime ? 'Y' : 'N'} lastEntry=${lastEntryByStrategy.get(strategy.id) || '-'} today=${currentDateKey}`;
-            if (currentTimeStr >= entryTime && lastEntryByStrategy.get(strategy.id) !== currentDateKey) {
+            const entryDebug = `[${strategy.name}] now=${currentTimeStr} entry=${entryTime} cmp=${currentTimeStr === entryTime ? 'Y' : 'N'} lastEntry=${lastEntryByStrategy.get(strategy.id) || '-'} today=${currentDateKey}`;
+            if (currentTimeStr === entryTime && lastEntryByStrategy.get(strategy.id) !== currentDateKey) {
               console.log(`AlgoEngine Scheduler: Entry time ${entryTime} reached for "${strategy.name}". Triggering. (${entryDebug})`);
               lastEntryByStrategy.set(strategy.id, currentDateKey);
 
@@ -239,6 +240,37 @@ export class TradingScheduler {
       if (this.isMonitoringRunning) return;
       this.isMonitoringRunning = true;
       try {
+        const istDateStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+        const istDate = new Date(istDateStr);
+        const hours = istDate.getHours();
+        const minutes = istDate.getMinutes();
+        const currentTimeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+
+        const strategies = await prisma.strategy.findMany({ where: { status: 'active' } });
+        if (strategies.length === 0) {
+          this.isMonitoringRunning = false;
+          return;
+        }
+
+        let isWithinActiveWindow = false;
+        for (const strategy of strategies) {
+          if (!strategy.configJson) continue;
+          try {
+            const config = JSON.parse(strategy.configJson);
+            const preSelectTime = config.basicInfo?.preSelectTime?.slice(0, 5) || '09:15';
+            const exitTime = config.basicInfo?.exitTime?.slice(0, 5) || '15:24';
+            if (currentTimeStr >= preSelectTime && currentTimeStr <= exitTime) {
+              isWithinActiveWindow = true;
+              break;
+            }
+          } catch {}
+        }
+
+        if (!isWithinActiveWindow) {
+          this.isMonitoringRunning = false;
+          return;
+        }
+
         const openTrades = await prisma.trade.findMany({
           where: { status: 'open' },
           include: { client: { include: { user: true } }, strategy: true }
@@ -631,13 +663,11 @@ export class TradingScheduler {
                   }
                 });
 
-                await prisma.auditLog.create({
-                  data: {
-                    adminId: 'system-scheduler', action: 'AUTO TRADE CLOSED',
-                    oldValue: `Trade ID: ${trade.id}`,
-                    newValue: `Sold ${trade.quantity} ${trade.symbol} @ ₹${exitPrice.toFixed(2)} | ${exitReason} | P&L: ₹${pnlValue.toFixed(2)}`
-                  }
-                }).catch(() => {});
+                await logSystemEvent({
+                  action: 'AUTO TRADE CLOSED',
+                  oldValue: `Trade ID: ${trade.id}`,
+                  newValue: `Sold ${trade.quantity} ${trade.symbol} @ ₹${exitPrice.toFixed(2)} | ${exitReason} | P&L: ₹${pnlValue.toFixed(2)}`
+                });
               } else {
                 console.error(`AlgoEngine Monitor: Failed to place exit order for ${trade.symbol}:`, sellRes?.message);
                 await prisma.trade.update({
@@ -650,6 +680,11 @@ export class TradingScheduler {
                     message: `Exit failed for ${client.user.name} (${trade.symbol}): ${sellRes?.message || 'Unknown'}. Trade marked FAILED.`,
                     logType: 'error'
                   }
+                });
+                await logSystemEvent({
+                  action: 'AUTO TRADE EXIT FAILED',
+                  oldValue: `Trade ID: ${trade.id}`,
+                  newValue: `Failed exit for ${client.user.name} (${trade.symbol}) | Error: ${sellRes?.message || 'Unknown'}`
                 });
               }
             }
