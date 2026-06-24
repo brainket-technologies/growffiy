@@ -35,6 +35,8 @@ export class TradingScheduler {
     let lastFetchedDate = '';
     const lastPreSelectByStrategy: Map<string, string> = new Map();
     const lastEntryByStrategy: Map<string, string> = new Map();
+    const knownPreSelectTime: Map<string, string> = new Map();
+    const knownEntryTime: Map<string, string> = new Map();
     let cachedFetchTime = '09:08';
 
     const checkAndExecute = async () => {
@@ -92,22 +94,45 @@ export class TradingScheduler {
           const preSelectTime = config.basicInfo?.preSelectTime ? config.basicInfo.preSelectTime.slice(0, 5) : null;
           const entryTime = config.basicInfo?.entryTime ? config.basicInfo.entryTime.slice(0, 5) : null;
 
+          if (preSelectTime) {
+            const prevTime = knownPreSelectTime.get(strategy.id);
+            if (prevTime !== undefined && prevTime !== preSelectTime) {
+              console.log(`AlgoEngine Scheduler: Pre-select time changed for "${strategy.name}" ${prevTime} -> ${preSelectTime}. Resetting trigger.`);
+              lastPreSelectByStrategy.delete(strategy.id);
+            }
+            knownPreSelectTime.set(strategy.id, preSelectTime);
+          }
+
+          if (entryTime) {
+            const prevTime = knownEntryTime.get(strategy.id);
+            if (prevTime !== undefined && prevTime !== entryTime) {
+              console.log(`AlgoEngine Scheduler: Entry time changed for "${strategy.name}" ${prevTime} -> ${entryTime}. Resetting trigger.`);
+              lastEntryByStrategy.delete(strategy.id);
+            }
+            knownEntryTime.set(strategy.id, entryTime);
+          }
+
           if (preSelectTime && currentTimeStr === preSelectTime && lastPreSelectByStrategy.get(strategy.id) !== currentDateKey) {
             console.log(`AlgoEngine Scheduler: Pre-select time ${preSelectTime} reached for strategy "${strategy.name}".`);
             lastPreSelectByStrategy.set(strategy.id, currentDateKey);
             preSelectTasks.push(() => this.engine.preSelectAllClients(strategy.id));
           }
 
-          if (entryTime && currentTimeStr >= entryTime && lastEntryByStrategy.get(strategy.id) !== currentDateKey) {
-            console.log(`AlgoEngine Scheduler: Entry time ${entryTime} reached for strategy "${strategy.name}". Starting execution...`);
-            lastEntryByStrategy.set(strategy.id, currentDateKey);
+          if (entryTime) {
+            const entryDebug = `[${strategy.name}] now=${currentTimeStr} entry=${entryTime} cmp=${currentTimeStr >= entryTime ? 'Y' : 'N'} lastEntry=${lastEntryByStrategy.get(strategy.id) || '-'} today=${currentDateKey}`;
+            if (currentTimeStr >= entryTime && lastEntryByStrategy.get(strategy.id) !== currentDateKey) {
+              console.log(`AlgoEngine Scheduler: Entry time ${entryTime} reached for "${strategy.name}". Triggering. (${entryDebug})`);
+              lastEntryByStrategy.set(strategy.id, currentDateKey);
 
-            if (!adminId || adminId === 'system-scheduler') {
-              const firstAdmin = await prisma.user.findFirst({ where: { role: 'admin' } });
-              if (firstAdmin) adminId = firstAdmin.id;
+              if (!adminId || adminId === 'system-scheduler') {
+                const firstAdmin = await prisma.user.findFirst({ where: { role: 'admin' } });
+                if (firstAdmin) adminId = firstAdmin.id;
+              }
+
+              entryTasks.push(() => this.engine.executePreOpenTrades(adminId, undefined, strategy.id));
+            } else {
+              console.log(`AlgoEngine Scheduler: Entry skip for "${strategy.name}" (${entryDebug})`);
             }
-
-            entryTasks.push(() => this.engine.executePreOpenTrades(adminId, undefined, strategy.id));
           }
         }
 

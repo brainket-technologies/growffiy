@@ -376,7 +376,6 @@ class AlgoEngineService {
         subscriptionStatus: 'active',
         productTypeId: algoType.id,
         strategyId: { not: null },
-        accessToken: { not: null },
         zerodhaApiKey: { not: null }
       };
       if (strategyId) where.strategyId = strategyId;
@@ -387,8 +386,13 @@ class AlgoEngineService {
       });
 
       if (clients.length === 0) {
-        console.log('AlgoEngine: No active clients with connected Kite session.');
+        console.log('AlgoEngine: No active clients with valid Kite API key found. Auto-login will be attempted per client.');
         return;
+      }
+
+      const clientsWithoutToken = clients.filter(c => !c.accessToken);
+      if (clientsWithoutToken.length > 0) {
+        console.log(`AlgoEngine: ${clientsWithoutToken.length} client(s) have null accessToken. Auto-login will be attempted during processing.`);
       }
 
       console.log(`AlgoEngine: Processing strategies for ${clients.length} active client(s).`);
@@ -546,10 +550,10 @@ class AlgoEngineService {
               console.log(`AlgoEngine: Using cached candle price for ${candidateStock.symbol}: ${candlePrice}`);
             }
 
-            if (candlePrice === 0) {
+            if (candlePrice === 0 && client.zerodhaApiKey && client.accessToken) {
               try {
                 console.log(`AlgoEngine: Fetching live quote for ${exchangeParam}:${candidateStock.symbol}`);
-                const quoteRes = await KiteClient.getQuotes(client.zerodhaApiKey!, client.accessToken!, [`${exchangeParam}:${candidateStock.symbol}`]);
+                const quoteRes = await KiteClient.getQuotes(client.zerodhaApiKey, client.accessToken, [`${exchangeParam}:${candidateStock.symbol}`]);
                 if (quoteRes?.status === 'success' && quoteRes.data?.[`${exchangeParam}:${candidateStock.symbol}`]) {
                   const q = quoteRes.data[`${exchangeParam}:${candidateStock.symbol}`];
                   const livePrice = q.last_price || q.ohlc?.high || q.ohlc?.open || 0;
@@ -646,6 +650,7 @@ class AlgoEngineService {
             return;
           }
 
+          let autoLoginErrorStr = '';
           if (process.env.KITE_AUTO_LOGIN_ENABLED === 'true' && client.productTypeId === algoType.id) {
             if (this.todayTokenRefreshed.has(client.id) && activeAccessToken) {
               console.log(`AlgoEngine: Client ${client.user.name} already refreshed today, using existing token.`);
@@ -656,15 +661,17 @@ class AlgoEngineService {
                 activeAccessToken = autoLoginRes.accessToken;
                 this.todayTokenRefreshed.add(client.id);
               } else {
-                console.warn(`AlgoEngine: Dynamic auto-login failed for ${client.user.name}: ${autoLoginRes.error}`);
+                autoLoginErrorStr = autoLoginRes.error || 'Unknown auto-login error';
+                console.warn(`AlgoEngine: Dynamic auto-login failed for ${client.user.name}: ${autoLoginErrorStr}`);
               }
             } else {
+              autoLoginErrorStr = 'Missing password or TOTP secret';
               console.log(`AlgoEngine: Auto-login is enabled but client ${client.user.name} is missing password or TOTP secret. Skipping dynamic auto-refresh.`);
             }
           }
 
           if (!activeAccessToken) {
-            const errMsg = 'Skipped: Kite session could not be established (auto-login failed or manual login required).';
+            const errMsg = `Skipped: Kite session could not be established. ${autoLoginErrorStr ? `Reason: ${autoLoginErrorStr}` : '(auto-login failed or manual login required)'}`;
             console.log(`AlgoEngine: Skipping client ${client.user.name} - ${errMsg}`);
 
             await prisma.trade.create({
@@ -680,7 +687,7 @@ class AlgoEngineService {
             await prisma.strategyLog.create({
               data: {
                 strategyId: strategy.id,
-                message: `Skipped trade execution for ${client.user.name}: Kite session could not be established (auto-login failed or manual login required).`,
+                message: `Skipped trade execution for ${client.user.name}: ${errMsg}`,
                 logType: 'error'
               }
             });

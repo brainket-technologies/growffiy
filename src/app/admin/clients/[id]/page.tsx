@@ -364,7 +364,36 @@ export default function ClientDetailsPage() {
     }
 
     if (connect) {
-      showSetupGuide(true);
+      if (zerodhaTotpSecret) {
+        setAlertModal({
+          title: 'Auto-Login in Progress',
+          message: 'Connecting to Zerodha using Auto-Login...',
+        });
+        try {
+          const res = await api.post(`${API_ENDPOINTS.CLIENTS}/${id}/autologin`, {});
+          if (res.success) {
+            setAlertModal({
+              title: 'Connected',
+              message: 'Zerodha Kite Connect session established successfully via Auto-Login!',
+              onConfirm: () => window.location.reload()
+            });
+          } else {
+            setAlertModal({
+              title: 'Auto-Login Failed',
+              message: res.error || 'Failed to auto-login. Falling back to manual setup.',
+              onConfirm: () => showSetupGuide(true)
+            });
+          }
+        } catch (err: any) {
+          setAlertModal({
+            title: 'Auto-Login Error',
+            message: err.message || 'Error occurred during auto-login. Falling back to manual setup.',
+            onConfirm: () => showSetupGuide(true)
+          });
+        }
+      } else {
+        showSetupGuide(true);
+      }
     } else {
       setAlertModal({
         title: 'Disconnect Zerodha',

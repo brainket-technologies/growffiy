@@ -2,6 +2,7 @@ import WebSocket from 'ws';
 import { prisma } from '../../database/db';
 import { API_ENDPOINTS } from '../../core/constants';
 import { KiteClient } from '../services/kite';
+import { performKiteAutoLogin } from '../services/kiteAutoLogin';
 import type { StockQuote } from './algoEngine';
 
 export class WsLiveFeed {
@@ -11,6 +12,7 @@ export class WsLiveFeed {
   lastUpdate: { [symbol: string]: number } = {};
   activeApiKey: string | null = null;
   activeAccessToken: string | null = null;
+  lastAuthError: number = 0;
   instrumentToSymbol: { [key: number]: string } = {};
   symbolToName: { [symbol: string]: string } = {};
   subscribedSymbols: Set<string> = new Set();
@@ -49,16 +51,23 @@ export class WsLiveFeed {
     }
   }
 
-  async getActiveCredentials(): Promise<{ apiKey: string; accessToken: string } | null> {
-    if (this.activeApiKey && this.activeAccessToken) {
+  async getActiveCredentials(forceRefresh = false): Promise<{ apiKey: string; accessToken: string } | null> {
+    const AUTH_ERROR_COOLDOWN = 5 * 60 * 1000;
+    const hasRecentAuthError = this.lastAuthError > 0 && (Date.now() - this.lastAuthError) < AUTH_ERROR_COOLDOWN;
+
+    if (!forceRefresh && !hasRecentAuthError && this.activeApiKey && this.activeAccessToken) {
       return { apiKey: this.activeApiKey, accessToken: this.activeAccessToken };
     }
+
     const envApiKey = process.env.ZERODHA_API_KEY || process.env.KITE_API_KEY;
     const envAccessToken = process.env.ZERODHA_ACCESS_TOKEN || process.env.KITE_ACCESS_TOKEN;
     if (envApiKey && envAccessToken) {
-      this.activeApiKey = envApiKey;
-      this.activeAccessToken = envAccessToken;
-      return { apiKey: envApiKey, accessToken: envAccessToken };
+      if (!hasRecentAuthError) {
+        this.activeApiKey = envApiKey;
+        this.activeAccessToken = envAccessToken;
+        return { apiKey: envApiKey, accessToken: envAccessToken };
+      }
+      console.warn('Kite Socket: Skipping env credentials due to recent auth error. Trying DB...');
     }
 
     const client = await prisma.client.findFirst({
@@ -184,26 +193,62 @@ export class WsLiveFeed {
 
     this.ws.on('error', (err: any) => {
       console.error('Kite Socket error:', err?.message || err);
+      const msg = err?.message || String(err);
+      if (msg.includes('403') || msg.includes('Unexpected server response')) {
+        this.lastAuthError = Date.now();
+        this.activeApiKey = null;
+        this.activeAccessToken = null;
+        console.log('Kite Socket: Auth error (403) detected. Cached credentials cleared.');
+      }
       try { this.ws?.close(); } catch {}
     });
 
-    this.ws.on('close', () => {
+    this.ws.on('close', async () => {
       if (WsLiveFeed.isReconnecting) {
         console.log('Kite Socket disconnected. Reconnect already scheduled. Skipping.');
         return;
       }
       WsLiveFeed.isReconnecting = true;
-      console.log('Kite Socket disconnected. Reconnecting in 30 seconds...');
-      setTimeout(() => {
+      const RECONNECT_DELAY = 30000;
+      const wasAuthError = this.lastAuthError > 0;
+
+      if (wasAuthError) {
+        console.log('Kite Socket disconnected due to auth error. Attempting token refresh before reconnect...');
+        try {
+          const client = await prisma.client.findFirst({
+            where: { accessToken: { not: null }, zerodhaApiKey: { not: null } }
+          });
+          if (client && client.zerodhaPassword && client.zerodhaTotpSecret && client.zerodhaClientId) {
+            console.log(`Kite Socket: Triggering auto-login for client ${client.zerodhaClientId}...`);
+            const loginRes = await performKiteAutoLogin(client.id);
+            if (loginRes.success) {
+              console.log('Kite Socket: Token refreshed successfully via auto-login.');
+              this.lastAuthError = 0;
+            } else {
+              console.error('Kite Socket: Auto-login failed:', loginRes.error);
+            }
+          } else {
+            console.warn('Kite Socket: No auto-login eligible client found in DB.');
+          }
+        } catch (err) {
+          console.error('Kite Socket: Auto-login attempt failed:', err);
+        }
+      }
+
+      console.log(`Kite Socket disconnected. Reconnecting in ${RECONNECT_DELAY / 1000} seconds...`);
+      setTimeout(async () => {
         WsLiveFeed.isReconnecting = false;
-        this.getActiveCredentials().then(creds => {
-          if (creds) {
-            this.connectKiteWebSocket(creds.apiKey, creds.accessToken);
+        const creds = await this.getActiveCredentials(true);
+        if (creds) {
+          this.connectKiteWebSocket(creds.apiKey, creds.accessToken);
+        } else {
+          if (wasAuthError) {
+            console.error('Kite Socket: No valid credentials available after auth error. Reconnect aborted.');
           } else {
             this.connectKiteWebSocket(apiKey, accessToken);
           }
-        });
-      }, 30000);
+        }
+      }, RECONNECT_DELAY);
     });
   }
 
