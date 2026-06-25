@@ -347,7 +347,7 @@ class AlgoEngineService {
           if (marginRes?.status === 'success' && marginRes.data?.equity?.net !== undefined) {
             this.marginCache.set(client.id, Number(marginRes.data.equity.net));
           }
-        } catch {}
+        } catch { }
       }
     }, PRE_SELECT_CONCURRENCY);
 
@@ -523,12 +523,12 @@ class AlgoEngineService {
               if (instTokenStr) {
                 try {
                   const today = new Date();
-                  const formatKiteDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                  const formatKiteDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                   const formatDateOnly = (d: Date) => formatKiteDate(d);
 
                   const from = formatDateOnly(today);
                   const to = formatDateOnly(today);
-                  
+
                   console.log(`AlgoEngine: Fetching historical data for ${candidateStock.symbol} token=${instTokenStr} from=${from} to=${to}`);
                   const res = await KiteClient.getHistoricalData(client.zerodhaApiKey, client.accessToken, instTokenStr, '5minute', from, to);
                   console.log(`AlgoEngine: Historical response for ${candidateStock.symbol}: status=${res.status}, candles=${res.data?.candles?.length ?? 0}`);
@@ -563,7 +563,7 @@ class AlgoEngineService {
                     console.log(`AlgoEngine: Using live quote price for ${candidateStock.symbol}: ${candlePrice}`);
                   }
                 }
-              } catch {}
+              } catch { }
             }
 
             if (candlePrice === 0) {
@@ -918,6 +918,7 @@ class AlgoEngineService {
           let orderId = '';
           let orderStatus = 'open';
           let orderRes: any = null;
+          let tradeId = '';
 
           if (client.zerodhaApiKey && activeAccessToken) {
             try {
@@ -937,10 +938,10 @@ class AlgoEngineService {
               orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, orderParams);
 
               if (orderRes && orderRes.status === 'error' &&
-                  (orderRes.message?.includes('After Market Order') ||
-                   orderRes.message?.includes('AMO') ||
-                   orderRes.message?.includes('closed') ||
-                   orderRes.message?.includes('variety'))) {
+                (orderRes.message?.includes('After Market Order') ||
+                  orderRes.message?.includes('AMO') ||
+                  orderRes.message?.includes('closed') ||
+                  orderRes.message?.includes('variety'))) {
                 console.log(`AlgoEngine: Retrying order as AMO (After Market Order) because market is closed.`);
                 orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, { ...orderParams, variety: 'amo' });
               }
@@ -948,6 +949,26 @@ class AlgoEngineService {
               console.log('AlgoEngine: Kite order placement response:', orderRes);
               if (orderRes && orderRes.status === 'success' && orderRes.data?.order_id) {
                 orderId = orderRes.data.order_id;
+                try {
+                  const pendingTrade = await prisma.trade.create({
+                    data: {
+                      clientId: client.id, strategyId: strategy.id,
+                      symbol: targetStock.symbol, orderType: productParam,
+                      entryPrice: finalEntryPrice, quantity: quantity,
+                      stopLoss: finalStopLoss, target: finalTarget,
+                      originalEntryPrice: rawEntryPrice,
+                      originalStopLoss: rawStopLoss,
+                      originalTarget: rawTarget,
+                      status: 'pending', entryTime: new Date(),
+                      entryOrderId: orderId,
+                      kiteResponse: orderRes
+                    }
+                  });
+                  tradeId = pendingTrade.id;
+                  console.log(`AlgoEngine: Pending trade saved for ${client.user.name} - ${targetStock.symbol} (tradeId: ${tradeId})`);
+                } catch (pendingErr) {
+                  console.error(`AlgoEngine: Failed to save pending trade for ${client.user.name}:`, pendingErr);
+                }
               } else {
                 const errMsg = orderRes?.message || 'Zerodha API returned error status';
                 console.warn(`AlgoEngine: Kite order response status was not success for ${client.user.name}. Error: ${errMsg}`);
@@ -1083,6 +1104,48 @@ class AlgoEngineService {
           }
 
           if (!orderId) {
+            if (tradeId) {
+              await prisma.trade.update({
+                where: { id: tradeId },
+                data: { status: 'FAILED', kiteResponse: { error: 'Entry order cancelled or rejected' } }
+              });
+            } else {
+              await prisma.trade.create({
+                data: {
+                  clientId: client.id, strategyId: strategy.id,
+                  symbol: targetStock.symbol, orderType: productParam,
+                  entryPrice: actualEntryPrice, quantity: quantity,
+                  stopLoss: finalStopLoss, target: finalTarget,
+                  originalEntryPrice: rawEntryPrice,
+                  originalStopLoss: rawStopLoss,
+                  originalTarget: rawTarget,
+                  status: 'FAILED', entryTime: new Date(),
+                  kiteResponse: { error: 'Entry order cancelled or rejected' }
+                }
+              });
+            }
+            return;
+          }
+
+          if (!entryFilled) {
+            console.log(`AlgoEngine: Entry order ${orderId} placed (trigger pending). SL/Target will be placed by monitoring scheduler once entry fills.`);
+          }
+
+          if (tradeId) {
+            await prisma.trade.update({
+              where: { id: tradeId },
+              data: {
+                entryPrice: actualEntryPrice, quantity: quantity,
+                stopLoss: finalStopLoss, target: finalTarget,
+                status: 'open',
+                entryTime: new Date(),
+                slOrderId: slOrderId || null,
+                targetOrderId: targetOrderId || null,
+                slTriggerPrice: finalStopLoss,
+                kiteResponse: orderRes
+              }
+            });
+          } else {
             await prisma.trade.create({
               data: {
                 clientId: client.id, strategyId: strategy.id,
@@ -1092,35 +1155,16 @@ class AlgoEngineService {
                 originalEntryPrice: rawEntryPrice,
                 originalStopLoss: rawStopLoss,
                 originalTarget: rawTarget,
-                status: 'FAILED', entryTime: new Date(),
-                kiteResponse: { error: 'Entry order cancelled or rejected' }
+                status: 'open',
+                entryTime: new Date(),
+                entryOrderId: orderId,
+                slOrderId: slOrderId || null,
+                targetOrderId: targetOrderId || null,
+                slTriggerPrice: finalStopLoss,
+                kiteResponse: orderRes
               }
             });
-            return;
           }
-
-          if (!entryFilled) {
-            console.log(`AlgoEngine: Entry order ${orderId} placed (trigger pending). SL/Target will be placed by monitoring scheduler once entry fills.`);
-          }
-
-          await prisma.trade.create({
-            data: {
-              clientId: client.id, strategyId: strategy.id,
-              symbol: targetStock.symbol, orderType: productParam,
-              entryPrice: actualEntryPrice, quantity: quantity,
-              stopLoss: finalStopLoss, target: finalTarget,
-              originalEntryPrice: rawEntryPrice,
-              originalStopLoss: rawStopLoss,
-              originalTarget: rawTarget,
-              status: 'open',
-              entryTime: new Date(),
-              entryOrderId: orderId,
-              slOrderId: slOrderId || null,
-              targetOrderId: targetOrderId || null,
-              slTriggerPrice: finalStopLoss,
-              kiteResponse: orderRes
-            }
-          });
           this.wsLive.subscribeSymbols([targetStock.symbol]);
 
           await prisma.strategyLog.create({
@@ -1139,7 +1183,7 @@ class AlgoEngineService {
                 oldValue: null,
                 newValue: `Client: ${client.user.name} | Strategy: ${strategy.name} | Stock: ${targetStock.symbol} | Qty: ${quantity} | Entry: ${actualEntryPrice.toFixed(2)}`
               }
-            }).catch(() => {});
+            }).catch(() => { });
           }
 
         } catch (clientErr: any) {

@@ -292,14 +292,21 @@ export default function LiveTradeTransactionsPage() {
                 <th>Qty</th>
                 <th>Entry Price</th>
                 <th>Exit Price</th>
+                <th>Stop Loss</th>
+                <th>Target</th>
                 <th>P&L (INR)</th>
                 <th>Status</th>
+                <th>Entry Time</th>
+                <th>Exit Time</th>
+                <th>SL Order ID</th>
+                <th>Target Order ID</th>
+                <th>Exit Reason</th>
               </tr>
             </thead>
             <tbody>
               {paginatedTrades.length === 0 ? (
                 <tr>
-                  <td colSpan={10} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
+                  <td colSpan={17} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
                     {searchQuery || clientFilter !== 'all' || strategyFilter !== 'all' || typeFilter !== 'all' || statusFilter !== 'all'
                       ? 'No trades match the selected filters.'
                       : 'No trade transactions triggered yet.'}
@@ -336,6 +343,8 @@ export default function LiveTradeTransactionsPage() {
                       <td>{trade.quantity || 0}</td>
                       <td>₹{entryPriceVal.toFixed(2)}</td>
                       <td>{exitPriceVal ? `₹${exitPriceVal.toFixed(2)}` : '--'}</td>
+                      <td>{trade.stopLoss ? `₹${Number(trade.stopLoss).toFixed(2)}` : '--'}</td>
+                      <td>{trade.target ? `₹${Number(trade.target).toFixed(2)}` : '--'}</td>
                       <td style={{ fontWeight: 700, color: pnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
                         {pnl >= 0 ? '+' : ''}₹{pnl.toFixed(2)}
                       </td>
@@ -352,6 +361,11 @@ export default function LiveTradeTransactionsPage() {
                           {(trade.status || '').toUpperCase()}
                         </span>
                       </td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{formatDateTime(trade.entryTime || trade.createdAt)}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{formatDateTime(trade.exitTime)}</td>
+                      <td style={{ fontSize: '11px', fontFamily: 'monospace' }}>{trade.slOrderId || '--'}</td>
+                      <td style={{ fontSize: '11px', fontFamily: 'monospace' }}>{trade.targetOrderId || '--'}</td>
+                      <td>{trade.exitReason || '--'}</td>
                     </tr>
                   );
                 })
@@ -472,6 +486,14 @@ export default function LiveTradeTransactionsPage() {
                 <span>{selectedTrade.exitPrice ? `₹${Number(selectedTrade.exitPrice).toFixed(2)}` : '--'}</span>
               </div>
               <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Stop Loss</span>
+                <span>{selectedTrade.stopLoss ? `₹${Number(selectedTrade.stopLoss).toFixed(2)}` : '--'}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Target</span>
+                <span>{selectedTrade.target ? `₹${Number(selectedTrade.target).toFixed(2)}` : '--'}</span>
+              </div>
+              <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>P&L</span>
                 <span style={{ fontWeight: 700, color: Number(selectedTrade.pnl || 0) >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
                   {Number(selectedTrade.pnl || 0) >= 0 ? '+' : ''}₹{Number(selectedTrade.pnl || 0).toFixed(2)}
@@ -482,6 +504,38 @@ export default function LiveTradeTransactionsPage() {
                 <span className={`badge ${selectedTrade.status ? (selectedTrade.status.toLowerCase() === 'open' ? 'badge-info' : selectedTrade.status.toLowerCase() === 'failed' ? 'badge-danger' : selectedTrade.status.toLowerCase() === 'cancelled' ? 'badge-warning' : 'badge-success') : ''}`}>
                   {(selectedTrade.status || '').toUpperCase()}
                 </span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Orig Entry Price</span>
+                <span>{selectedTrade.originalEntryPrice ? `₹${Number(selectedTrade.originalEntryPrice).toFixed(2)}` : '--'}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Orig Stop Loss</span>
+                <span>{selectedTrade.originalStopLoss ? `₹${Number(selectedTrade.originalStopLoss).toFixed(2)}` : '--'}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Orig Target</span>
+                <span>{selectedTrade.originalTarget ? `₹${Number(selectedTrade.originalTarget).toFixed(2)}` : '--'}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>SL Trigger Price</span>
+                <span>{selectedTrade.slTriggerPrice ? `₹${Number(selectedTrade.slTriggerPrice).toFixed(2)}` : '--'}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Order ID</span>
+                <span style={{ fontFamily: 'monospace' }}>{selectedTrade.entryOrderId || '--'}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>SL Order ID</span>
+                <span style={{ fontFamily: 'monospace' }}>{selectedTrade.slOrderId || '--'}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Target Order ID</span>
+                <span style={{ fontFamily: 'monospace' }}>{selectedTrade.targetOrderId || '--'}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Exit Reason</span>
+                <span>{selectedTrade.exitReason || '--'}</span>
               </div>
             </div>
 
