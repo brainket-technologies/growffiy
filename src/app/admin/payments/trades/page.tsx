@@ -284,7 +284,6 @@ export default function LiveTradeTransactionsPage() {
           <table>
             <thead>
               <tr>
-                <th>Order ID</th>
                 <th>Client</th>
                 <th>Strategy</th>
                 <th>Symbol</th>
@@ -295,11 +294,11 @@ export default function LiveTradeTransactionsPage() {
                 <th>Stop Loss</th>
                 <th>Target</th>
                 <th>P&L (INR)</th>
-                <th>Status</th>
                 <th>Entry Time</th>
                 <th>Exit Time</th>
-                <th>SL Order ID</th>
-                <th>Target Order ID</th>
+                <th>Entry Order</th>
+                <th>SL Order</th>
+                <th>Target Order</th>
                 <th>Exit Reason</th>
               </tr>
             </thead>
@@ -329,9 +328,6 @@ export default function LiveTradeTransactionsPage() {
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                       title="Click to view trade details"
                     >
-                      <td style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: '12px' }}>
-                        {trade.entryOrderId || trade.id?.slice(0, 10)}
-                      </td>
                       <td>{trade.client?.user?.name || trade.clientName || 'System Client'}</td>
                       <td>{trade.strategy?.name || trade.strategyName || 'Pre-Open Momentum'}</td>
                       <td style={{ fontWeight: 600 }}>{trade.symbol}</td>
@@ -348,23 +344,38 @@ export default function LiveTradeTransactionsPage() {
                       <td style={{ fontWeight: 700, color: pnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
                         {pnl >= 0 ? '+' : ''}₹{pnl.toFixed(2)}
                       </td>
-                      <td>
-                        <span className={`badge ${
-                          (trade.status || '').toLowerCase() === 'open'
-                            ? 'badge-info'
-                            : (trade.status || '').toLowerCase() === 'failed'
-                              ? 'badge-danger'
-                              : (trade.status || '').toLowerCase() === 'cancelled'
-                                ? 'badge-warning'
-                                : 'badge-success'
-                        }`}>
-                          {(trade.status || '').toUpperCase()}
-                        </span>
-                      </td>
                       <td style={{ whiteSpace: 'nowrap' }}>{formatDateTime(trade.entryTime || trade.createdAt)}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>{formatDateTime(trade.exitTime)}</td>
-                      <td style={{ fontSize: '11px', fontFamily: 'monospace' }}>{trade.slOrderId || '--'}</td>
-                      <td style={{ fontSize: '11px', fontFamily: 'monospace' }}>{trade.targetOrderId || '--'}</td>
+                      <td style={{ fontSize: '11px', fontFamily: 'monospace' }}>
+                        {trade.entryOrderId || '--'}
+                        {trade.entryOrderStatus && (
+                          <div style={{ marginTop: '2px' }}>
+                            <span className="badge badge-info" style={{ fontSize: '9px', padding: '2px 4px' }}>
+                              {trade.entryOrderStatus}
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ fontSize: '11px', fontFamily: 'monospace' }}>
+                        {trade.slOrderId === 'REJECTED' ? '--' : (trade.slOrderId || '--')}
+                        {trade.slOrderStatus && (
+                          <div style={{ marginTop: '2px' }}>
+                            <span className={`badge ${trade.slOrderStatus === 'REJECTED' ? 'badge-error' : 'badge-info'}`} style={{ fontSize: '9px', padding: '2px 4px' }}>
+                              {trade.slOrderStatus}
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ fontSize: '11px', fontFamily: 'monospace' }}>
+                        {trade.targetOrderId === 'REJECTED' ? '--' : (trade.targetOrderId || '--')}
+                        {trade.targetOrderStatus && (
+                          <div style={{ marginTop: '2px' }}>
+                            <span className={`badge ${trade.targetOrderStatus === 'REJECTED' ? 'badge-error' : 'badge-info'}`} style={{ fontSize: '9px', padding: '2px 4px' }}>
+                              {trade.targetOrderStatus}
+                            </span>
+                          </div>
+                        )}
+                      </td>
                       <td>{trade.exitReason || '--'}</td>
                     </tr>
                   );
@@ -500,12 +511,6 @@ export default function LiveTradeTransactionsPage() {
                 </span>
               </div>
               <div>
-                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Status</span>
-                <span className={`badge ${selectedTrade.status ? (selectedTrade.status.toLowerCase() === 'open' ? 'badge-info' : selectedTrade.status.toLowerCase() === 'failed' ? 'badge-danger' : selectedTrade.status.toLowerCase() === 'cancelled' ? 'badge-warning' : 'badge-success') : ''}`}>
-                  {(selectedTrade.status || '').toUpperCase()}
-                </span>
-              </div>
-              <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Orig Entry Price</span>
                 <span>{selectedTrade.originalEntryPrice ? `₹${Number(selectedTrade.originalEntryPrice).toFixed(2)}` : '--'}</span>
               </div>
@@ -522,16 +527,25 @@ export default function LiveTradeTransactionsPage() {
                 <span>{selectedTrade.slTriggerPrice ? `₹${Number(selectedTrade.slTriggerPrice).toFixed(2)}` : '--'}</span>
               </div>
               <div>
-                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Order ID</span>
-                <span style={{ fontFamily: 'monospace' }}>{selectedTrade.entryOrderId || '--'}</span>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Order</span>
+                <strong style={{ fontSize: '13px', fontFamily: 'monospace', display: 'block' }}>{selectedTrade.entryOrderId || '--'}</strong>
+                {selectedTrade.entryOrderStatus && (
+                  <span className={`badge ${selectedTrade.entryOrderStatus === 'REJECTED' ? 'badge-error' : 'badge-info'}`} style={{ fontSize: '10px', marginTop: '4px', display: 'inline-block' }}>{selectedTrade.entryOrderStatus}</span>
+                )}
               </div>
               <div>
-                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>SL Order ID</span>
-                <span style={{ fontFamily: 'monospace' }}>{selectedTrade.slOrderId || '--'}</span>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>SL Order</span>
+                <strong style={{ fontSize: '13px', fontFamily: 'monospace', display: 'block' }}>{selectedTrade.slOrderId === 'REJECTED' ? '--' : (selectedTrade.slOrderId || '--')}</strong>
+                {selectedTrade.slOrderStatus && (
+                  <span className={`badge ${selectedTrade.slOrderStatus === 'REJECTED' ? 'badge-error' : 'badge-info'}`} style={{ fontSize: '10px', marginTop: '4px', display: 'inline-block' }}>{selectedTrade.slOrderStatus}</span>
+                )}
               </div>
               <div>
-                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Target Order ID</span>
-                <span style={{ fontFamily: 'monospace' }}>{selectedTrade.targetOrderId || '--'}</span>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Target Order</span>
+                <strong style={{ fontSize: '13px', fontFamily: 'monospace', display: 'block' }}>{selectedTrade.targetOrderId === 'REJECTED' ? '--' : (selectedTrade.targetOrderId || '--')}</strong>
+                {selectedTrade.targetOrderStatus && (
+                  <span className={`badge ${selectedTrade.targetOrderStatus === 'REJECTED' ? 'badge-error' : 'badge-info'}`} style={{ fontSize: '10px', marginTop: '4px', display: 'inline-block' }}>{selectedTrade.targetOrderStatus}</span>
+                )}
               </div>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Exit Reason</span>

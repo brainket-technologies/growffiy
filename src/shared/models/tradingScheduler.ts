@@ -7,6 +7,7 @@ import type { WsLiveFeed } from './wsLiveFeed';
 import { getTickSizeAndRound } from '../utils/tickSizeUtil';
 import { concurrentMap } from '../../core/helpers';
 import { logSystemEvent } from '../services/auditLogger';
+import { getLatestOrderState } from '../utils/kiteHelper';
 
 export interface EngineAccess {
   todayTokenRefreshed: Set<string>;
@@ -363,8 +364,9 @@ export class TradingScheduler {
               if (trade.slOrderId) {
                 try {
                   const slStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.slOrderId);
-                  if (slStatus?.status === 'success' && slStatus?.data) {
-                    const slData = Array.isArray(slStatus.data) ? slStatus.data[0] : slStatus.data;
+                  const slData = getLatestOrderState(slStatus?.data);
+                  if (slStatus?.status === 'success' && slData) {
+                    await prisma.trade.update({ where: { id: trade.id }, data: { slOrderStatus: slData.status } });
                     if (slData?.status === 'COMPLETE') {
                       slComplete = true;
                       slAvgPrice = Number(slData?.average_price || slData?.filled_price || 0);
@@ -379,8 +381,9 @@ export class TradingScheduler {
               if (trade.targetOrderId) {
                 try {
                   const tgtStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.targetOrderId);
-                  if (tgtStatus?.status === 'success' && tgtStatus?.data) {
-                    const tgtData = Array.isArray(tgtStatus.data) ? tgtStatus.data[0] : tgtStatus.data;
+                  const tgtData = getLatestOrderState(tgtStatus?.data);
+                  if (tgtStatus?.status === 'success' && tgtData) {
+                    await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: tgtData.status } });
                     if (tgtData?.status === 'COMPLETE') {
                       targetComplete = true;
                       targetAvgPrice = Number(tgtData?.average_price || tgtData?.filled_price || 0);
@@ -477,7 +480,8 @@ export class TradingScheduler {
             if (!exitTriggered && trade.entryOrderId) {
               try {
                 const orderData = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.entryOrderId);
-                const orderStatus = orderData?.data?.status || (Array.isArray(orderData?.data) ? orderData.data[0]?.status : null);
+                const latestOrder = getLatestOrderState(orderData?.data);
+                const orderStatus = latestOrder?.status;
                 if (orderStatus === 'CANCELLED' || orderStatus === 'REJECTED') {
                   await prisma.trade.update({ where: { id: trade.id }, data: { status: 'FAILED' } });
                   console.warn(`AlgoEngine Monitor: Entry order ${trade.entryOrderId} ${orderStatus}. Trade ${trade.id} marked FAILED.`);
@@ -489,19 +493,20 @@ export class TradingScheduler {
             }
 
             // --- Priority 2: Entry placed but SL/Target not yet set ---
-            if (!exitTriggered && !trade.slOrderId && !trade.targetOrderId && trade.entryOrderId) {
+            if (!exitTriggered && (!trade.slOrderId || !trade.targetOrderId) && trade.entryOrderId) {
               try {
                 const entryStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.entryOrderId);
-                if (entryStatus?.status === 'success') {
-                  const entryOrderStatus = entryStatus?.data?.status || (Array.isArray(entryStatus?.data) ? entryStatus.data[0]?.status : null);
-                  if (entryOrderStatus === 'COMPLETE') {
-                    const filledPrice = Number(entryStatus.data?.average_price || entryStatus.data?.filled_price || (Array.isArray(entryStatus.data) ? entryStatus.data[0]?.average_price || entryStatus.data[0]?.filled_price : 0));
+                const latestEntryOrder = getLatestOrderState(entryStatus?.data);
+                if (entryStatus?.status === 'success' && latestEntryOrder) {
+                  await prisma.trade.update({ where: { id: trade.id }, data: { entryOrderStatus: latestEntryOrder.status } });
+                  if (latestEntryOrder.status === 'COMPLETE') {
+                    const filledPrice = Number(latestEntryOrder?.average_price || latestEntryOrder?.filled_price || 0);
                   if (filledPrice > 0) {
                     await prisma.trade.update({ where: { id: trade.id }, data: { entryPrice: filledPrice } });
                   }
                   // Entry fill hui — ab SL aur Target place karo
-                  let newSlOrderId = '';
-                  let newTargetOrderId = '';
+                  let newSlOrderId = trade.slOrderId || '';
+                  let newTargetOrderId = trade.targetOrderId || '';
                   const productParam = trade.orderType;
 
                   const rawSlTrigger = Number(trade.slTriggerPrice || (filledPrice > 0 ? filledPrice * (1 - slPercent / 100) : 0));
@@ -516,34 +521,62 @@ export class TradingScheduler {
                   }
 
                   if (client.zerodhaApiKey && client.accessToken) {
-                    try {
-                      const slParams = {
-                        exchange: exchangeParam, tradingsymbol: trade.symbol,
-                        transaction_type: 'SELL' as const, quantity: Number(trade.quantity),
-                        order_type: 'SL-M' as const, product: productParam as any,
-                        validity: 'DAY' as const,
-                        trigger_price: finalSlTrigger,
-                        market_protection: marketProtectionVal
-                      };
-                      const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, slParams);
-                      if (slRes?.status === 'success' && slRes.data?.order_id) {
-                        newSlOrderId = slRes.data.order_id;
-                      }
-                    } catch (slErr) { console.warn(`AlgoEngine Monitor: SL placement failed for ${trade.symbol}:`, slErr); }
-                    try {
-                      const targetParams = {
-                        exchange: exchangeParam, tradingsymbol: trade.symbol,
-                        transaction_type: 'SELL' as const, quantity: Number(trade.quantity),
-                        order_type: 'LIMIT' as const, product: productParam as any,
-                        validity: 'DAY' as const,
-                        price: finalTarget
-                      };
-                      const tgtRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, targetParams);
-                      if (tgtRes?.status === 'success' && tgtRes.data?.order_id) {
-                        newTargetOrderId = tgtRes.data.order_id;
-                      }
-                    } catch (tgtErr) { console.warn(`AlgoEngine Monitor: Target placement failed for ${trade.symbol}:`, tgtErr); }
-                  }
+                    if (!trade.slOrderId || trade.slOrderId === '') {
+                      try {
+                        const slParams = {
+                          exchange: exchangeParam, tradingsymbol: trade.symbol,
+                          transaction_type: 'SELL' as const, quantity: Number(trade.quantity),
+                          order_type: 'SL-M' as const, product: productParam as any,
+                          validity: 'DAY' as const,
+                          trigger_price: finalSlTrigger,
+                          market_protection: marketProtectionVal
+                        };
+                        const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, slParams);
+                        if (slRes?.status === 'success' && slRes.data?.order_id) {
+                          newSlOrderId = slRes.data.order_id;
+                          await prisma.trade.update({ where: { id: trade.id }, data: { slOrderStatus: 'OPEN' } });
+                        } else if (slRes?.status === 'error') {
+                          newSlOrderId = 'REJECTED';
+                          await prisma.trade.update({ where: { id: trade.id }, data: { slOrderStatus: 'REJECTED' } });
+                          const errMsg = `Kite rejected SL order for ${trade.symbol}. Reason: ${slRes.message}`;
+                          console.warn(`AlgoEngine Monitor: ${errMsg}`);
+                          await logSystemEvent({
+                            action: 'SL ORDER REJECTED',
+                            oldValue: `Trade ID: ${trade.id}`,
+                            newValue: errMsg
+                          });
+                        }
+                      } catch (slErr) { console.warn(`AlgoEngine Monitor: SL placement failed for ${trade.symbol}:`, slErr); }
+                    }
+
+                    if (!trade.targetOrderId || trade.targetOrderId === '') {
+                      try {
+                        const targetParams = {
+                          exchange: exchangeParam, tradingsymbol: trade.symbol,
+                          transaction_type: 'SELL' as const, quantity: Number(trade.quantity),
+                          order_type: 'LIMIT' as const, product: productParam as any,
+                          validity: 'DAY' as const,
+                          price: finalTarget
+                        };
+                        const tgtRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, targetParams);
+                        if (tgtRes?.status === 'success' && tgtRes.data?.order_id) {
+                          newTargetOrderId = tgtRes.data.order_id;
+                          await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: 'OPEN' } });
+                        } else if (tgtRes?.status === 'error') {
+                          newTargetOrderId = 'REJECTED';
+                          await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: 'REJECTED' } });
+                          const errMsg = `Kite rejected Target order for ${trade.symbol}. Reason: ${tgtRes.message}`;
+                          console.warn(`AlgoEngine Monitor: ${errMsg}`);
+                          await logSystemEvent({
+                            action: 'TARGET ORDER REJECTED',
+                            oldValue: `Trade ID: ${trade.id}`,
+                            newValue: errMsg
+                          });
+                        }
+                      } catch (tgtErr) { console.warn(`AlgoEngine Monitor: Target placement failed for ${trade.symbol}:`, tgtErr); }
+                    }
+                  } // Closes if (client.zerodhaApiKey && client.accessToken)
+
                   await prisma.trade.update({
                     where: { id: trade.id },
                     data: {
@@ -557,15 +590,16 @@ export class TradingScheduler {
                   });
                   console.log(`AlgoEngine Monitor: Entry ${trade.entryOrderId} filled. SL: ${newSlOrderId || 'N/A'}, Target: ${newTargetOrderId || 'N/A'} placed for ${trade.symbol}.`);
                   return; // next cycle monitor karega SL/Target
-                }
-                if (entryOrderStatus === 'CANCELLED' || entryOrderStatus === 'REJECTED') {
+                } // Closes if (latestEntryOrder.status === 'COMPLETE')
+
+                if (latestEntryOrder.status === 'CANCELLED' || latestEntryOrder.status === 'REJECTED') {
                   await prisma.trade.update({ where: { id: trade.id }, data: { status: 'FAILED' } });
-                  console.warn(`AlgoEngine Monitor: Entry order ${trade.entryOrderId} ${entryOrderStatus}. Trade ${trade.id} marked FAILED.`);
+                  console.warn(`AlgoEngine Monitor: Entry order ${trade.entryOrderId} ${latestEntryOrder.status}. Trade ${trade.id} marked FAILED.`);
                   return;
                 }
-              }
+              } // Closes if (entryStatus?.status === 'success' && latestEntryOrder)
             } catch (e) { console.warn(`AlgoEngine Monitor: Entry status check failed for ${trade.symbol}:`, e); }
-            }
+            } // Closes Priority 2 if statement
 
             // --- Priority 3: Fallback candle-based check (no SL/Target and no entry order) ---
             if (!exitTriggered && !trade.slOrderId && !trade.targetOrderId && !trade.entryOrderId) {

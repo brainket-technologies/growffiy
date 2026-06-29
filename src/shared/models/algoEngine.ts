@@ -15,6 +15,7 @@ import { TradingScheduler } from './tradingScheduler';
 import { getTickSizeAndRound } from '../utils/tickSizeUtil';
 import { batchArray, concurrentMap } from '../../core/helpers';
 import { logSystemEvent } from '../services/auditLogger';
+import { getLatestOrderState } from '../utils/kiteHelper';
 
 export interface StockQuote {
   symbol: string;
@@ -961,6 +962,7 @@ class AlgoEngineService {
                       originalTarget: rawTarget,
                       status: 'pending', entryTime: new Date(),
                       entryOrderId: orderId,
+                      entryOrderStatus: 'OPEN',
                       kiteResponse: orderRes
                     }
                   });
@@ -1028,9 +1030,10 @@ class AlgoEngineService {
               await new Promise(r => setTimeout(r, 2000));
               try {
                 const orderStatusRes = await KiteClient.getOrderById(client.zerodhaApiKey, activeAccessToken, orderId);
-                const isComplete = orderStatusRes?.data?.status === 'COMPLETE' || (Array.isArray(orderStatusRes?.data) && orderStatusRes.data[0]?.status === 'COMPLETE');
+                const latestOrder = getLatestOrderState(orderStatusRes?.data);
+                const isComplete = latestOrder?.status === 'COMPLETE';
                 if (orderStatusRes?.status === 'success' && isComplete) {
-                  const filledAvgPrice = orderStatusRes.data?.average_price || orderStatusRes.data?.filled_price || (Array.isArray(orderStatusRes.data) ? orderStatusRes.data[0]?.average_price || orderStatusRes.data[0]?.filled_price : 0);
+                  const filledAvgPrice = latestOrder?.average_price || latestOrder?.filled_price || 0;
                   if (filledAvgPrice && Number(filledAvgPrice) > 0) {
                     actualEntryPrice = Number(filledAvgPrice);
                   }
@@ -1086,15 +1089,15 @@ class AlgoEngineService {
                   }
                   break;
                 }
-                const orderCancelled = orderStatusRes?.data?.status === 'CANCELLED' || orderStatusRes?.data?.status === 'REJECTED' || (Array.isArray(orderStatusRes?.data) && (orderStatusRes.data[0]?.status === 'CANCELLED' || orderStatusRes.data[0]?.status === 'REJECTED'));
+                const orderCancelled = latestOrder?.status === 'CANCELLED' || latestOrder?.status === 'REJECTED';
                 if (orderCancelled) {
-                  const cancelStatus = orderStatusRes?.data?.status || (Array.isArray(orderStatusRes?.data) ? orderStatusRes.data[0]?.status : 'unknown');
+                  const cancelStatus = latestOrder?.status || 'unknown';
                   console.warn(`AlgoEngine: Entry order ${orderId} ${cancelStatus}. Aborting trade.`);
                   orderId = '';
                   break;
                 }
                 if (attempt === 0 || attempt === maxPolls - 1 || attempt % 5 === 4) {
-                  const pollStatus = orderStatusRes?.data?.status || (Array.isArray(orderStatusRes?.data) ? orderStatusRes.data[0]?.status : null) || 'unknown';
+                  const pollStatus = latestOrder?.status || 'unknown';
                   console.log(`AlgoEngine: Entry order status: ${pollStatus} (poll ${attempt + 1}/${maxPolls})`);
                 }
               } catch (pollErr) {
