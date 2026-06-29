@@ -17,6 +17,22 @@ import { batchArray, concurrentMap } from '../../core/helpers';
 import { logSystemEvent } from '../services/auditLogger';
 import { getLatestOrderState } from '../utils/kiteHelper';
 
+function mapTimeframeToKiteInterval(tf: string): string {
+  if (!tf) return '5minute';
+  const map: Record<string, string> = {
+    '1m': 'minute',
+    '3m': '3minute',
+    '5m': '5minute',
+    '10m': '10minute',
+    '15m': '15minute',
+    '30m': '30minute',
+    '60m': '60minute',
+    '1h': '60minute',
+    '1d': 'day'
+  };
+  return map[tf.toLowerCase()] || '5minute';
+}
+
 export interface StockQuote {
   symbol: string;
   name: string;
@@ -151,7 +167,14 @@ class AlgoEngineService {
         if (!applyOperator(stock.openInterest || 0, cond.operator, val)) return false;
       } else if (['RSI', 'EMA', 'SMA', 'VWAP', 'MACD', 'ATR', 'Bollinger Bands', 'SuperTrend', 'ADX', 'Candle Pattern'].includes(cond.indicator)) {
         if (!client) return true;
-        const candles = await this.wsLive.fetchHistoricalCandles(client, stock.symbol, '5minute', 5);
+        let kiteInterval = '5minute';
+        try {
+          if (client?.strategy?.configJson) {
+            const cfg = JSON.parse(client.strategy.configJson);
+            kiteInterval = mapTimeframeToKiteInterval(cfg.basicInfo?.timeframe || '5m');
+          }
+        } catch { }
+        const candles = await this.wsLive.fetchHistoricalCandles(client, stock.symbol, kiteInterval, 5);
         if (candles.length < 2) return true;
         const closePrices = candles.map(c => c[4]);
         if (cond.indicator === 'RSI') {
@@ -531,7 +554,8 @@ class AlgoEngineService {
                   const to = formatDateOnly(today);
 
                   console.log(`AlgoEngine: Fetching historical data for ${candidateStock.symbol} token=${instTokenStr} from=${from} to=${to}`);
-                  const res = await KiteClient.getHistoricalData(client.zerodhaApiKey, client.accessToken, instTokenStr, '5minute', from, to);
+                  const kiteInterval = mapTimeframeToKiteInterval(config.basicInfo?.timeframe || '5m');
+                  const res = await KiteClient.getHistoricalData(client.zerodhaApiKey, client.accessToken, instTokenStr, kiteInterval, from, to);
                   console.log(`AlgoEngine: Historical response for ${candidateStock.symbol}: status=${res.status}, candles=${res.data?.candles?.length ?? 0}`);
                   if (res.status === 'success' && Array.isArray(res.data?.candles) && res.data.candles.length > 0) {
                     const priceIdx: Record<string, number> = { open: 1, high: 2, low: 3, close: 4 };

@@ -290,16 +290,16 @@ export default function LiveTradeTransactionsPage() {
                 <th>Type</th>
                 <th>Qty</th>
                 <th>Entry Price</th>
-                <th>Exit Price</th>
                 <th>Stop Loss</th>
                 <th>Target</th>
-                <th>P&L (INR)</th>
                 <th>Entry Time</th>
-                <th>Exit Time</th>
                 <th>Entry Order</th>
                 <th>SL Order</th>
                 <th>Target Order</th>
                 <th>Exit Reason</th>
+                <th>Exit Price</th>
+                <th>P&L (INR)</th>
+                <th>Exit Time</th>
               </tr>
             </thead>
             <tbody>
@@ -338,14 +338,9 @@ export default function LiveTradeTransactionsPage() {
                       </td>
                       <td>{trade.quantity || 0}</td>
                       <td>₹{entryPriceVal.toFixed(2)}</td>
-                      <td>{exitPriceVal ? `₹${exitPriceVal.toFixed(2)}` : '--'}</td>
                       <td>{trade.stopLoss ? `₹${Number(trade.stopLoss).toFixed(2)}` : '--'}</td>
                       <td>{trade.target ? `₹${Number(trade.target).toFixed(2)}` : '--'}</td>
-                      <td style={{ fontWeight: 700, color: pnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                        {pnl >= 0 ? '+' : ''}₹{pnl.toFixed(2)}
-                      </td>
                       <td style={{ whiteSpace: 'nowrap' }}>{formatDateTime(trade.entryTime || trade.createdAt)}</td>
-                      <td style={{ whiteSpace: 'nowrap' }}>{formatDateTime(trade.exitTime)}</td>
                       <td style={{ fontSize: '11px', fontFamily: 'monospace' }}>
                         {trade.entryOrderId || '--'}
                         {trade.entryOrderStatus && (
@@ -377,6 +372,11 @@ export default function LiveTradeTransactionsPage() {
                         )}
                       </td>
                       <td>{trade.exitReason || '--'}</td>
+                      <td>{exitPriceVal ? `₹${exitPriceVal.toFixed(2)}` : '--'}</td>
+                      <td style={{ fontWeight: 700, color: pnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                        {pnl >= 0 ? '+' : ''}₹{pnl.toFixed(2)}
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{formatDateTime(trade.exitTime)}</td>
                     </tr>
                   );
                 })
@@ -485,46 +485,51 @@ export default function LiveTradeTransactionsPage() {
                 <span>{formatDateTime(selectedTrade.entryTime || selectedTrade.createdAt)}</span>
               </div>
               <div>
-                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Price</span>
-                <span>₹{Number(selectedTrade.entryPrice || 0).toFixed(2)}</span>
-              </div>
-              <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Exit Time</span>
                 <span>{formatDateTime(selectedTrade.exitTime)}</span>
               </div>
-              <div>
-                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Exit Price</span>
-                <span>{selectedTrade.exitPrice ? `₹${Number(selectedTrade.exitPrice).toFixed(2)}` : '--'}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Stop Loss</span>
-                <span>{selectedTrade.stopLoss ? `₹${Number(selectedTrade.stopLoss).toFixed(2)}` : '--'}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Target</span>
-                <span>{selectedTrade.target ? `₹${Number(selectedTrade.target).toFixed(2)}` : '--'}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>P&L</span>
-                <span style={{ fontWeight: 700, color: Number(selectedTrade.pnl || 0) >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                  {Number(selectedTrade.pnl || 0) >= 0 ? '+' : ''}₹{Number(selectedTrade.pnl || 0).toFixed(2)}
-                </span>
-              </div>
+
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Orig Entry Price</span>
                 <span>{selectedTrade.originalEntryPrice ? `₹${Number(selectedTrade.originalEntryPrice).toFixed(2)}` : '--'}</span>
               </div>
               <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Tick Rounded Entry Price</span>
+                <span>₹{Number(selectedTrade.entryPrice || 0).toFixed(2)}</span>
+              </div>
+
+              <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Orig Stop Loss</span>
                 <span>{selectedTrade.originalStopLoss ? `₹${Number(selectedTrade.originalStopLoss).toFixed(2)}` : '--'}</span>
               </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Tick Rounded Stop Loss</span>
+                <span>{selectedTrade.stopLoss ? `₹${Number(selectedTrade.stopLoss).toFixed(2)}` : '--'}</span>
+              </div>
+
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Orig Target</span>
                 <span>{selectedTrade.originalTarget ? `₹${Number(selectedTrade.originalTarget).toFixed(2)}` : '--'}</span>
               </div>
               <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Tick Rounded Target</span>
+                <span>{selectedTrade.target ? `₹${Number(selectedTrade.target).toFixed(2)}` : '--'}</span>
+              </div>
+
+              <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>SL Trigger Price</span>
                 <span>{selectedTrade.slTriggerPrice ? `₹${Number(selectedTrade.slTriggerPrice).toFixed(2)}` : '--'}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Exit Price</span>
+                <span>{selectedTrade.exitPrice ? `₹${Number(selectedTrade.exitPrice).toFixed(2)}` : '--'}</span>
+              </div>
+
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>P&L</span>
+                <span style={{ fontWeight: 700, color: Number(selectedTrade.pnl || 0) >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                  {Number(selectedTrade.pnl || 0) >= 0 ? '+' : ''}₹{Number(selectedTrade.pnl || 0).toFixed(2)}
+                </span>
               </div>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Order</span>
@@ -566,23 +571,46 @@ export default function LiveTradeTransactionsPage() {
             )}
 
             {selectedTrade.kiteResponse && (
-              <div>
+              <div style={{ marginTop: '16px' }}>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>
-                  Raw Zerodha API Response Logs
+                  Entry Order JSON Response
                 </span>
                 <pre style={{
-                  backgroundColor: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-color)',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  fontSize: '11px',
-                  fontFamily: 'monospace',
-                  overflowX: 'auto',
-                  maxHeight: '180px',
-                  lineHeight: '1.4',
-                  color: 'var(--text-primary)'
+                  backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', padding: '12px',
+                  borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace', overflowX: 'auto', maxHeight: '180px',
+                  lineHeight: '1.4', color: 'var(--text-primary)'
                 }}>
                   {JSON.stringify(selectedTrade.kiteResponse, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            {selectedTrade.slKiteResponse && (
+              <div style={{ marginTop: '16px' }}>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>
+                  SL Order JSON Response
+                </span>
+                <pre style={{
+                  backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', padding: '12px',
+                  borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace', overflowX: 'auto', maxHeight: '180px',
+                  lineHeight: '1.4', color: 'var(--text-primary)'
+                }}>
+                  {JSON.stringify(selectedTrade.slKiteResponse, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            {selectedTrade.targetKiteResponse && (
+              <div style={{ marginTop: '16px' }}>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>
+                  Target Order JSON Response
+                </span>
+                <pre style={{
+                  backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', padding: '12px',
+                  borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace', overflowX: 'auto', maxHeight: '180px',
+                  lineHeight: '1.4', color: 'var(--text-primary)'
+                }}>
+                  {JSON.stringify(selectedTrade.targetKiteResponse, null, 2)}
                 </pre>
               </div>
             )}

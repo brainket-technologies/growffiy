@@ -101,6 +101,8 @@ model Trade {
   slTriggerPrice Decimal?  @map("sl_trigger_price") @db.Decimal(12, 2)
   targetOrderId  String?   @map("target_order_id")
   targetOrderStatus String? @map("target_order_status")
+  slKiteResponse    Json?     @map("sl_kite_response")
+  targetKiteResponse Json?    @map("target_kite_response")
   originalEntryPrice Decimal?  @map("original_entry_price") @db.Decimal(12, 2)
   originalStopLoss   Decimal?  @map("original_stop_loss") @db.Decimal(12, 2)
   originalTarget     Decimal?  @map("original_target") @db.Decimal(12, 2)

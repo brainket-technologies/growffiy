@@ -22,6 +22,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   BarChart3,
+  Terminal,
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { useAppViewModel } from '../../viewmodels/AppContext';
@@ -87,6 +88,7 @@ const adminGroups: MenuGroup[] = [
     items: [
       { name: 'App Settings', path: '/admin/settings', icon: Settings },
       { name: 'App Logs', path: '/admin/audit-logs', icon: ShieldCheck },
+      { name: 'App Runtime Logs', path: '/admin/runtime-logs', icon: Terminal },
       { name: 'Support', path: '/admin/support', icon: LifeBuoy, badge: 3 },
     ],
   },

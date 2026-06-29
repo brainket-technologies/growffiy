@@ -96,8 +96,13 @@ export class TradingScheduler {
           let config: any;
           try { config = JSON.parse(strategy.configJson); } catch { continue; }
 
-          const preSelectTime = config.basicInfo?.preSelectTime ? config.basicInfo.preSelectTime.slice(0, 5) : null;
-          const entryTime = config.basicInfo?.entryTime ? config.basicInfo.entryTime.slice(0, 5) : null;
+          const preSelectTimeFull = config.basicInfo?.preSelectTime || null;
+          const preSelectTime = preSelectTimeFull ? preSelectTimeFull.slice(0, 5) : null;
+          const preSelectSeconds = preSelectTimeFull && preSelectTimeFull.length >= 8 ? parseInt(preSelectTimeFull.slice(6, 8)) : 0;
+
+          const entryTimeFull = config.basicInfo?.entryTime || null;
+          const entryTime = entryTimeFull ? entryTimeFull.slice(0, 5) : null;
+          const entrySeconds = entryTimeFull && entryTimeFull.length >= 8 ? parseInt(entryTimeFull.slice(6, 8)) : 0;
 
           if (preSelectTime) {
             const prevTime = knownPreSelectTime.get(strategy.id);
@@ -118,15 +123,22 @@ export class TradingScheduler {
           }
 
           if (preSelectTime && currentTimeStr === preSelectTime && lastPreSelectByStrategy.get(strategy.id) !== currentDateKey) {
-            console.log(`AlgoEngine Scheduler: Pre-select time ${preSelectTime} reached for strategy "${strategy.name}".`);
+            console.log(`AlgoEngine Scheduler: Pre-select time ${preSelectTimeFull} reached for strategy "${strategy.name}". (Waiting ${preSelectSeconds}s)`);
             lastPreSelectByStrategy.set(strategy.id, currentDateKey);
-            preSelectTasks.push(() => this.engine.preSelectAllClients(strategy.id));
+            if (preSelectSeconds > 0) {
+              preSelectTasks.push(async () => {
+                await new Promise(resolve => setTimeout(resolve, preSelectSeconds * 1000));
+                await this.engine.preSelectAllClients(strategy.id);
+              });
+            } else {
+              preSelectTasks.push(() => this.engine.preSelectAllClients(strategy.id));
+            }
           }
 
           if (entryTime) {
             const entryDebug = `[${strategy.name}] now=${currentTimeStr} entry=${entryTime} cmp=${currentTimeStr === entryTime ? 'Y' : 'N'} lastEntry=${lastEntryByStrategy.get(strategy.id) || '-'} today=${currentDateKey}`;
             if (currentTimeStr === entryTime && lastEntryByStrategy.get(strategy.id) !== currentDateKey) {
-              console.log(`AlgoEngine Scheduler: Entry time ${entryTime} reached for "${strategy.name}". Triggering. (${entryDebug})`);
+              console.log(`AlgoEngine Scheduler: Entry time ${entryTimeFull} reached for "${strategy.name}". Triggering in ${entrySeconds}s. (${entryDebug})`);
               lastEntryByStrategy.set(strategy.id, currentDateKey);
 
               if (!adminId || adminId === 'system-scheduler') {
@@ -134,7 +146,14 @@ export class TradingScheduler {
                 if (firstAdmin) adminId = firstAdmin.id;
               }
 
-              entryTasks.push(() => this.engine.executePreOpenTrades(adminId, undefined, strategy.id));
+              if (entrySeconds > 0) {
+                entryTasks.push(async () => {
+                  await new Promise(resolve => setTimeout(resolve, entrySeconds * 1000));
+                  await this.engine.executePreOpenTrades(adminId, undefined, strategy.id);
+                });
+              } else {
+                entryTasks.push(() => this.engine.executePreOpenTrades(adminId, undefined, strategy.id));
+              }
             } else {
               console.log(`AlgoEngine Scheduler: Entry skip for "${strategy.name}" (${entryDebug})`);
             }
@@ -270,7 +289,8 @@ export class TradingScheduler {
           } catch {}
         }
 
-        if (!isWithinActiveWindow) {
+        const openTradesCount = await prisma.trade.count({ where: { status: 'open' } });
+        if (!isWithinActiveWindow && openTradesCount === 0) {
           this.isMonitoringRunning = false;
           return;
         }
@@ -534,10 +554,10 @@ export class TradingScheduler {
                         const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, slParams);
                         if (slRes?.status === 'success' && slRes.data?.order_id) {
                           newSlOrderId = slRes.data.order_id;
-                          await prisma.trade.update({ where: { id: trade.id }, data: { slOrderStatus: 'OPEN' } });
+                          await prisma.trade.update({ where: { id: trade.id }, data: { slOrderStatus: 'OPEN', slKiteResponse: slRes } });
                         } else if (slRes?.status === 'error') {
                           newSlOrderId = 'REJECTED';
-                          await prisma.trade.update({ where: { id: trade.id }, data: { slOrderStatus: 'REJECTED' } });
+                          await prisma.trade.update({ where: { id: trade.id }, data: { slOrderStatus: 'REJECTED', slKiteResponse: slRes } });
                           const errMsg = `Kite rejected SL order for ${trade.symbol}. Reason: ${slRes.message}`;
                           console.warn(`AlgoEngine Monitor: ${errMsg}`);
                           await logSystemEvent({
@@ -561,10 +581,10 @@ export class TradingScheduler {
                         const tgtRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, targetParams);
                         if (tgtRes?.status === 'success' && tgtRes.data?.order_id) {
                           newTargetOrderId = tgtRes.data.order_id;
-                          await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: 'OPEN' } });
+                          await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: 'OPEN', targetKiteResponse: tgtRes } });
                         } else if (tgtRes?.status === 'error') {
                           newTargetOrderId = 'REJECTED';
-                          await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: 'REJECTED' } });
+                          await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: 'REJECTED', targetKiteResponse: tgtRes } });
                           const errMsg = `Kite rejected Target order for ${trade.symbol}. Reason: ${tgtRes.message}`;
                           console.warn(`AlgoEngine Monitor: ${errMsg}`);
                           await logSystemEvent({
@@ -660,6 +680,14 @@ export class TradingScheduler {
                 exitPrice = Number(trade.entryPrice);
                 exitReason = `Market Close (${config.basicInfo.exitTime})`;
                 console.log(`AlgoEngine Monitor: Market close time ${config.basicInfo.exitTime} reached for trade ${trade.id} (${trade.symbol}). Forcing exit.`);
+
+                // Cancel pending orders before exiting
+                if (trade.slOrderId) {
+                  try { await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.slOrderId); } catch (e) { }
+                }
+                if (trade.targetOrderId) {
+                  try { await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.targetOrderId); } catch (e) { }
+                }
               }
             }
 
