@@ -573,7 +573,7 @@ export default function LiveTradeTransactionsPage() {
             {selectedTrade.kiteResponse && (
               <div style={{ marginTop: '16px' }}>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>
-                  Entry Order JSON Response
+                  {selectedTrade.exitReason ? 'Exit Order JSON Response' : 'Entry Order JSON Response'}
                 </span>
                 <pre style={{
                   backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', padding: '12px',
