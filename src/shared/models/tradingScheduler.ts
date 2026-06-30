@@ -695,22 +695,33 @@ export class TradingScheduler {
             if (exitTriggered) {
               console.log(`AlgoEngine Monitor: EXIT TRIGGERED for trade ${trade.id} (${trade.symbol}) due to ${exitReason} at ₹${exitPrice.toFixed(2)}.`);
 
-              const sellParams = {
-                exchange: exchangeParam,
-                tradingsymbol: trade.symbol,
-                transaction_type: 'SELL' as const,
-                quantity: trade.quantity,
-                order_type: 'MARKET' as const,
-                product: trade.orderType as any,
-                validity: 'DAY' as const,
-                market_protection: marketProtectionVal
-              };
+              let sellRes: any = null;
+              let isManualExit = !slComplete && !targetComplete;
 
-              const sellRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, sellParams);
+              if (isManualExit) {
+                const validProducts = ['MIS', 'CNC', 'NRML'];
+                const productToUse = validProducts.includes(trade.orderType) ? trade.orderType : 'MIS';
+
+                const sellParams = {
+                  exchange: exchangeParam,
+                  tradingsymbol: trade.symbol,
+                  transaction_type: 'SELL' as const,
+                  quantity: trade.quantity,
+                  order_type: 'MARKET' as const,
+                  product: productToUse as any,
+                  validity: 'DAY' as const,
+                  market_protection: marketProtectionVal
+                };
+
+                sellRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, sellParams);
+              } else {
+                sellRes = { status: 'success', data: { order_id: slComplete ? trade.slOrderId : trade.targetOrderId } };
+              }
+
               if (sellRes && sellRes.status === 'success') {
                 const sellOrderId = sellRes.data?.order_id || 'manual-exit';
                 const pnlValue = (exitPrice - entryPrice) * trade.quantity;
-                const newStatus = exitReason.toLowerCase().includes('sl') ? 'sl_hit' : 'target_hit';
+                const newStatus = exitReason.toLowerCase().includes('sl') ? 'sl_hit' : (exitReason.toLowerCase().includes('target') ? 'target_hit' : 'closed');
 
                 await prisma.trade.update({
                   where: { id: trade.id },
