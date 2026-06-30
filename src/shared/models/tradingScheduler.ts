@@ -122,7 +122,7 @@ export class TradingScheduler {
             knownEntryTime.set(strategy.id, entryTime);
           }
 
-          if (preSelectTime && currentTimeStr === preSelectTime && lastPreSelectByStrategy.get(strategy.id) !== currentDateKey) {
+          if (preSelectTime && currentTimeStr >= preSelectTime && lastPreSelectByStrategy.get(strategy.id) !== currentDateKey) {
             console.log(`AlgoEngine Scheduler: Pre-select time ${preSelectTimeFull} reached for strategy "${strategy.name}". (Waiting ${preSelectSeconds}s)`);
             lastPreSelectByStrategy.set(strategy.id, currentDateKey);
             if (preSelectSeconds > 0) {
@@ -136,8 +136,8 @@ export class TradingScheduler {
           }
 
           if (entryTime) {
-            const entryDebug = `[${strategy.name}] now=${currentTimeStr} entry=${entryTime} cmp=${currentTimeStr === entryTime ? 'Y' : 'N'} lastEntry=${lastEntryByStrategy.get(strategy.id) || '-'} today=${currentDateKey}`;
-            if (currentTimeStr === entryTime && lastEntryByStrategy.get(strategy.id) !== currentDateKey) {
+            const entryDebug = `[${strategy.name}] now=${currentTimeStr} entry=${entryTime} cmp=${currentTimeStr >= entryTime ? 'Y' : 'N'} lastEntry=${lastEntryByStrategy.get(strategy.id) || '-'} today=${currentDateKey}`;
+            if (currentTimeStr >= entryTime && lastEntryByStrategy.get(strategy.id) !== currentDateKey) {
               console.log(`AlgoEngine Scheduler: Entry time ${entryTimeFull} reached for "${strategy.name}". Triggering in ${entrySeconds}s. (${entryDebug})`);
               lastEntryByStrategy.set(strategy.id, currentDateKey);
 

@@ -386,7 +386,16 @@ class AlgoEngineService {
         : await this.getPreOpenStocks();
 
       if (!preOpenStocks || preOpenStocks.length === 0) {
-        console.log('AlgoEngine: No pre-open stocks fetched. Aborting.');
+        const msg = 'AlgoEngine: No pre-open stocks fetched from NSE. Aborting execution for today.';
+        console.log(msg);
+        try {
+          await logSystemEvent({
+            action: 'PRE_OPEN_FETCH_FAILED',
+            newValue: msg
+          });
+        } catch (e) {
+          console.error('Failed to log system event:', e);
+        }
         return;
       }
 
@@ -522,6 +531,18 @@ class AlgoEngineService {
             return;
           }
           this.entryLock.add(lockKey);
+
+          const todayStr = todayStart.toISOString().split('T')[0];
+          const dbLockKey = `trade_lock_${client.id}_${strategy.id}_${todayStr}`;
+          try {
+            await prisma.appSettings.create({
+              data: { settingKey: dbLockKey, settingValue: 'locked', type: 'lock' }
+            });
+          } catch (e) {
+            console.log(`AlgoEngine DB Lock: Trade already processing for ${client.user.name}. Skipping duplicate execution.`);
+            this.entryLock.delete(lockKey);
+            return;
+          }
 
           try {
             const existingTrade = await prisma.trade.findFirst({
@@ -1217,6 +1238,9 @@ class AlgoEngineService {
           console.error(`AlgoEngine: Error executing pre-open trade for client ${client.id}:`, clientErr);
         } finally {
           this.entryLock.delete(lockKey);
+          if (typeof dbLockKey !== 'undefined' && dbLockKey) {
+            prisma.appSettings.delete({ where: { settingKey: dbLockKey } }).catch(() => {});
+          }
         }
       };
 
