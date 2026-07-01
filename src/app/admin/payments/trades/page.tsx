@@ -51,6 +51,14 @@ export default function LiveTradeTransactionsPage() {
     }
   };
 
+  const getOrderStatusBadgeClass = (status: string) => {
+    if (!status) return 'badge-blue';
+    const s = status.toUpperCase();
+    if (s === 'COMPLETE') return 'badge-green';
+    if (s === 'CANCELLED' || s === 'REJECTED') return 'badge-red';
+    return 'badge-blue';
+  };
+
   const uniqueClients = useMemo(
     () => Array.from(new Set((trades || []).map(t => t?.client?.user?.name || t?.clientName).filter(Boolean))) as string[],
     [trades]
@@ -345,7 +353,7 @@ export default function LiveTradeTransactionsPage() {
                         {trade.entryOrderId || '--'}
                         {trade.entryOrderStatus && (
                           <div style={{ marginTop: '2px' }}>
-                            <span className="badge badge-info" style={{ fontSize: '9px', padding: '2px 4px' }}>
+                            <span className={`badge ${getOrderStatusBadgeClass(trade.entryOrderStatus)}`} style={{ fontSize: '9px', padding: '2px 4px' }}>
                               {trade.entryOrderStatus}
                             </span>
                           </div>
@@ -355,7 +363,7 @@ export default function LiveTradeTransactionsPage() {
                         {trade.slOrderId === 'REJECTED' ? '--' : (trade.slOrderId || '--')}
                         {trade.slOrderStatus && (
                           <div style={{ marginTop: '2px' }}>
-                            <span className={`badge ${trade.slOrderStatus === 'REJECTED' ? 'badge-error' : 'badge-info'}`} style={{ fontSize: '9px', padding: '2px 4px' }}>
+                            <span className={`badge ${getOrderStatusBadgeClass(trade.slOrderStatus)}`} style={{ fontSize: '9px', padding: '2px 4px' }}>
                               {trade.slOrderStatus}
                             </span>
                           </div>
@@ -365,7 +373,7 @@ export default function LiveTradeTransactionsPage() {
                         {trade.targetOrderId === 'REJECTED' ? '--' : (trade.targetOrderId || '--')}
                         {trade.targetOrderStatus && (
                           <div style={{ marginTop: '2px' }}>
-                            <span className={`badge ${trade.targetOrderStatus === 'REJECTED' ? 'badge-error' : 'badge-info'}`} style={{ fontSize: '9px', padding: '2px 4px' }}>
+                            <span className={`badge ${getOrderStatusBadgeClass(trade.targetOrderStatus)}`} style={{ fontSize: '9px', padding: '2px 4px' }}>
                               {trade.targetOrderStatus}
                             </span>
                           </div>
@@ -535,21 +543,21 @@ export default function LiveTradeTransactionsPage() {
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Order</span>
                 <strong style={{ fontSize: '13px', fontFamily: 'monospace', display: 'block' }}>{selectedTrade.entryOrderId || '--'}</strong>
                 {selectedTrade.entryOrderStatus && (
-                  <span className={`badge ${selectedTrade.entryOrderStatus === 'REJECTED' ? 'badge-error' : 'badge-info'}`} style={{ fontSize: '10px', marginTop: '4px', display: 'inline-block' }}>{selectedTrade.entryOrderStatus}</span>
+                  <span className={`badge ${getOrderStatusBadgeClass(selectedTrade.entryOrderStatus)}`} style={{ fontSize: '10px', marginTop: '4px', display: 'inline-block' }}>{selectedTrade.entryOrderStatus}</span>
                 )}
               </div>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>SL Order</span>
                 <strong style={{ fontSize: '13px', fontFamily: 'monospace', display: 'block' }}>{selectedTrade.slOrderId === 'REJECTED' ? '--' : (selectedTrade.slOrderId || '--')}</strong>
                 {selectedTrade.slOrderStatus && (
-                  <span className={`badge ${selectedTrade.slOrderStatus === 'REJECTED' ? 'badge-error' : 'badge-info'}`} style={{ fontSize: '10px', marginTop: '4px', display: 'inline-block' }}>{selectedTrade.slOrderStatus}</span>
+                  <span className={`badge ${getOrderStatusBadgeClass(selectedTrade.slOrderStatus)}`} style={{ fontSize: '10px', marginTop: '4px', display: 'inline-block' }}>{selectedTrade.slOrderStatus}</span>
                 )}
               </div>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Target Order</span>
                 <strong style={{ fontSize: '13px', fontFamily: 'monospace', display: 'block' }}>{selectedTrade.targetOrderId === 'REJECTED' ? '--' : (selectedTrade.targetOrderId || '--')}</strong>
                 {selectedTrade.targetOrderStatus && (
-                  <span className={`badge ${selectedTrade.targetOrderStatus === 'REJECTED' ? 'badge-error' : 'badge-info'}`} style={{ fontSize: '10px', marginTop: '4px', display: 'inline-block' }}>{selectedTrade.targetOrderStatus}</span>
+                  <span className={`badge ${getOrderStatusBadgeClass(selectedTrade.targetOrderStatus)}`} style={{ fontSize: '10px', marginTop: '4px', display: 'inline-block' }}>{selectedTrade.targetOrderStatus}</span>
                 )}
               </div>
               <div>
