@@ -515,7 +515,9 @@ class AlgoEngineService {
 
           if (candidateStock && config.conditions?.length > 0) {
             if (!await this.matchesConditions(candidateStock, config.conditions, client)) {
-              console.log(`AlgoEngine: Preselected stock ${candidateStock.symbol} failed conditions for ${client.user.name}. Skipping.`);
+              const reason = `Preselected stock ${candidateStock.symbol} (${candidateStock.changePercent.toFixed(2)}%) failed strategy conditions`;
+              console.log(`AlgoEngine: ${reason} for ${client.user.name}. Logging FAILED trade.`);
+              await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, 0, reason);
               return;
             }
           }

@@ -340,8 +340,7 @@ export class TradingScheduler {
 
             const instrumentTokenStr = Object.entries(this.wsLive.instrumentToSymbol).find(([token, sym]) => sym === trade.symbol)?.[0];
             if (!instrumentTokenStr) {
-              console.warn(`AlgoEngine Monitor: Skipping trade ${trade.id} - could not find instrument token for symbol ${trade.symbol}.`);
-              return;
+              console.warn(`AlgoEngine Monitor: Could not find instrument token for symbol ${trade.symbol}. Fallback historical check will be disabled.`);
             }
 
             const today = new Date();
@@ -374,10 +373,11 @@ export class TradingScheduler {
             let exitPrice = 0;
             let exitReason = '';
 
+            let slComplete = false;
+            let targetComplete = false;
+
             // --- Priority 1: Check SL/Target order status via API ---
             if (trade.slOrderId || trade.targetOrderId) {
-              let slComplete = false;
-              let targetComplete = false;
               let slAvgPrice = 0;
               let targetAvgPrice = 0;
 
@@ -503,7 +503,10 @@ export class TradingScheduler {
                 const latestOrder = getLatestOrderState(orderData?.data);
                 const orderStatus = latestOrder?.status;
                 if (orderStatus === 'CANCELLED' || orderStatus === 'REJECTED') {
-                  await prisma.trade.update({ where: { id: trade.id }, data: { status: 'FAILED' } });
+                  await prisma.trade.update({
+                    where: { id: trade.id },
+                    data: { status: 'FAILED', entryOrderStatus: orderStatus }
+                  });
                   console.warn(`AlgoEngine Monitor: Entry order ${trade.entryOrderId} ${orderStatus}. Trade ${trade.id} marked FAILED.`);
                   return;
                 }
@@ -527,7 +530,15 @@ export class TradingScheduler {
                   // Entry fill hui — ab SL aur Target place karo
                   let newSlOrderId = trade.slOrderId || '';
                   let newTargetOrderId = trade.targetOrderId || '';
-                  const productParam = trade.orderType;
+                  let productParam = 'MIS';
+                  if (config?.basicInfo) {
+                    const tradeType = config.basicInfo.tradeType;
+                    const isFoSegment = config.basicInfo.segment === 'NSE F&O' || config.basicInfo.segment === 'Futures' || config.basicInfo.segment === 'Options';
+                    productParam = (tradeType === 'Delivery' && !isFoSegment) ? 'CNC' : (tradeType === 'Carry Forward' || tradeType === 'Normal' || tradeType === 'NRML' || (tradeType === 'Delivery' && isFoSegment)) ? 'NRML' : 'MIS';
+                  } else {
+                    const validProducts = ['MIS', 'CNC', 'NRML'];
+                    productParam = validProducts.includes(trade.orderType) ? trade.orderType : 'MIS';
+                  }
 
                   const rawSlTrigger = Number(trade.slTriggerPrice || (filledPrice > 0 ? filledPrice * (1 - slPercent / 100) : 0));
                   const rawTarget = Number(trade.target || (filledPrice > 0 ? filledPrice * (1 + targetPercent / 100) : 0));
@@ -669,6 +680,8 @@ export class TradingScheduler {
                     exitReason = 'Target Hit (candle)';
                   }
                 }
+              } else {
+                console.warn(`AlgoEngine Monitor: Skipping fallback historical check for trade ${trade.id} - missing instrument token.`);
               }
             }
 
@@ -699,8 +712,15 @@ export class TradingScheduler {
               let isManualExit = !slComplete && !targetComplete;
 
               if (isManualExit) {
-                const validProducts = ['MIS', 'CNC', 'NRML'];
-                const productToUse = validProducts.includes(trade.orderType) ? trade.orderType : 'MIS';
+                let productToUse = 'MIS';
+                if (config?.basicInfo) {
+                  const tradeType = config.basicInfo.tradeType;
+                  const isFoSegment = config.basicInfo.segment === 'NSE F&O' || config.basicInfo.segment === 'Futures' || config.basicInfo.segment === 'Options';
+                  productToUse = (tradeType === 'Delivery' && !isFoSegment) ? 'CNC' : (tradeType === 'Carry Forward' || tradeType === 'Normal' || tradeType === 'NRML' || (tradeType === 'Delivery' && isFoSegment)) ? 'NRML' : 'MIS';
+                } else {
+                  const validProducts = ['MIS', 'CNC', 'NRML'];
+                  productToUse = validProducts.includes(trade.orderType) ? trade.orderType : 'MIS';
+                }
 
                 const sellParams = {
                   exchange: exchangeParam,
