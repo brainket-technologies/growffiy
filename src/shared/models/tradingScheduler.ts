@@ -393,6 +393,7 @@ export class TradingScheduler {
                       console.log(`AlgoEngine Monitor: SL order ${trade.slOrderId} COMPLETE for ${trade.symbol} @ ₹${slAvgPrice}`);
                     } else if (slData?.status === 'CANCELLED' || slData?.status === 'REJECTED') {
                       console.log(`AlgoEngine Monitor: SL order ${trade.slOrderId} ${slData?.status}`);
+                      await prisma.trade.update({ where: { id: trade.id }, data: { slOrderStatus: slData.status } });
                     }
                   }
                 } catch (e) { console.warn(`AlgoEngine Monitor: SL order status check failed for ${trade.symbol}:`, e); }
@@ -410,6 +411,17 @@ export class TradingScheduler {
                       console.log(`AlgoEngine Monitor: Target order ${trade.targetOrderId} COMPLETE for ${trade.symbol} @ ₹${targetAvgPrice}`);
                     } else if (tgtData?.status === 'CANCELLED' || tgtData?.status === 'REJECTED') {
                       console.log(`AlgoEngine Monitor: Target order ${trade.targetOrderId} ${tgtData?.status}`);
+                      await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: tgtData.status } });
+                      // Agar dono orders cancel hue (Zerodha auto square-off ya manual), trade CANCELLED mark karo
+                      const slAlsoCancelled = !slComplete && (trade.slOrderId ? true : true);
+                      if (slAlsoCancelled) {
+                        await prisma.trade.update({
+                          where: { id: trade.id },
+                          data: { status: 'cancelled', exitTime: new Date(), exitReason: 'Orders Cancelled (External/Auto Square-off)' }
+                        });
+                        console.log(`AlgoEngine Monitor: Both SL & Target cancelled for trade ${trade.id} (${trade.symbol}). Marked CANCELLED.`);
+                        return;
+                      }
                     }
                   }
                 } catch (e) { console.warn(`AlgoEngine Monitor: Target order status check failed for ${trade.symbol}:`, e); }
@@ -734,6 +746,25 @@ export class TradingScheduler {
                 };
 
                 sellRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, sellParams);
+
+                // Actual fill price fetch karo (2.5 sec wait karo fill hone do)
+                if (sellRes?.status === 'success' && sellRes?.data?.order_id) {
+                  try {
+                    await new Promise(r => setTimeout(r, 2500));
+                    const fillData = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, sellRes.data.order_id);
+                    const fillOrder = getLatestOrderState(fillData?.data);
+                    const actualFillPrice = Number(fillOrder?.average_price || 0);
+                    if (actualFillPrice > 0) {
+                      exitPrice = actualFillPrice; // ← Actual market sell price
+                      console.log(`AlgoEngine Monitor: Market Close actual fill price for ${trade.symbol}: ₹${actualFillPrice}`);
+                    }
+                  } catch (e) {
+                    console.warn(`AlgoEngine Monitor: Could not fetch fill price for ${trade.symbol}, using LTP fallback.`);
+                    // Fallback: WebSocket se LTP lo
+                    const ltp = this.wsLive.getStockLtp(trade.symbol);
+                    if (ltp > 0) exitPrice = ltp;
+                  }
+                }
               } else {
                 sellRes = { status: 'success', data: { order_id: slComplete ? trade.slOrderId : trade.targetOrderId } };
               }
