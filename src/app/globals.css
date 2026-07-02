@@ -1521,13 +1521,13 @@ tr.clickable-row:hover td {
   font-family: var(--font-title);
   font-size: 18px;
   font-weight: 800;
-  color: white;
+  color: #f1f5f9;
 }
 
 .footer-brand-desc {
   font-size: 13px;
   line-height: 1.7;
-  color: #64748b;
+  color: #94a3b8;
   max-width: 280px;
 }
 
@@ -1536,19 +1536,20 @@ tr.clickable-row:hover td {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: white;
+  color: #f1f5f9;
   margin-bottom: 20px;
 }
 
 .footer-link {
   display: block;
   font-size: 13px;
-  color: #64748b;
+  color: #94a3b8;
   margin-bottom: 12px;
   transition: color 0.2s;
+  text-decoration: none;
 }
 
-.footer-link:hover { color: white; }
+.footer-link:hover { color: #e2e8f0; }
 
 .footer-bottom {
   border-top: 1px solid #1e293b;
@@ -1557,12 +1558,12 @@ tr.clickable-row:hover td {
   justify-content: space-between;
   align-items: center;
   font-size: 12px;
-  color: #475569;
+  color: #64748b;
 }
 
 .footer-disclaimer {
   font-size: 11px;
-  color: #475569;
+  color: #64748b;
   line-height: 1.6;
   border-top: 1px solid #1e293b;
   padding-top: 24px;
@@ -1684,13 +1685,22 @@ tr.clickable-row:hover td {
    RESPONSIVE HELPERS
 ======================== */
 @media (max-width: 1024px) {
-  .hero-inner { grid-template-columns: 1fr; gap: 48px; }
+  .hero-inner { grid-template-columns: 1fr; gap: 40px; padding: 20px 32px 60px; }
   .hero-h1 { font-size: 42px; }
-  .features-grid { grid-template-columns: 1fr 1fr; }
-  .strategy-grid { grid-template-columns: 1fr; }
+  .hero-right { max-width: 600px; margin: 0 auto; }
+  .hero-stats-row { gap: 20px; }
+  .features-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
+  .strategy-grid { grid-template-columns: 1fr; gap: 40px; }
   .pricing-grid { grid-template-columns: 1fr; max-width: 420px; margin-left: auto; margin-right: auto; }
   .live-grid { grid-template-columns: 1fr; }
-  .footer-grid { grid-template-columns: 1fr 1fr; }
+  .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .section { padding: 72px 0; }
+  .section-inner { padding: 0 28px; }
+
+  /* Mini cards reposition for tablet */
+  .mini-card-1 { left: -20px; bottom: 40px; }
+  .mini-card-2 { right: -20px; top: 20px; }
+  .mini-card-3 { right: -10px; }
 }
 
 @media (max-width: 768px) {
@@ -1702,28 +1712,55 @@ tr.clickable-row:hover td {
   .navbar-logo-icon { width: 30px; height: 30px; }
 
   /* Hero */
-  .hero { padding-top: 64px; padding-left: 20px; padding-right: 20px; }
-  .hero-inner { grid-template-columns: 1fr; gap: 32px; padding: 0; }
-  .hero-h1 { font-size: 36px; letter-spacing: -1px; }
-  .hero-sub { font-size: 15px; }
-  .hero-btns { flex-direction: column; gap: 12px; }
-  .hero-stats { gap: 20px; flex-wrap: wrap; }
+  .hero { padding-top: 64px; padding-left: 0; padding-right: 0; min-height: auto; }
+  .hero-inner { grid-template-columns: 1fr; gap: 28px; padding: 16px 20px 40px; }
+  .hero-h1 { font-size: 34px; letter-spacing: -0.5px; }
+  .hero-sub { font-size: 15px; max-width: 100%; }
+  .hero-btns { flex-direction: column; gap: 10px; width: 100%; }
+  .hero-btns a, .hero-btns button { width: 100%; justify-content: center; }
+  .hero-stats-row { gap: 16px; flex-wrap: wrap; }
+  .hero-right { max-width: 100%; }
+  .stat-pill-value { font-size: 18px; }
+  .stat-pill-label { font-size: 10px; }
+  .hero-tag { font-size: 11px; }
 
   /* Sections */
-  .section-title { font-size: 28px; }
-  .section-sub { font-size: 15px; }
+  .section { padding: 56px 0; }
+  .section-title { font-size: 26px; letter-spacing: -0.3px; }
+  .section-sub { font-size: 14px; max-width: 100%; }
   .section-inner { padding: 0 20px; }
 
   /* Features */
-  .features-grid { grid-template-columns: 1fr; gap: 16px; }
+  .features-grid { grid-template-columns: 1fr; gap: 16px; margin-top: 36px; }
+  .feature-card { padding: 22px; }
+  .feature-icon { width: 44px; height: 44px; margin-bottom: 16px; }
+  .feature-title { font-size: 16px; }
+  .feature-desc { font-size: 13px; }
+
+  /* Strategy */
+  .strategy-grid { gap: 32px; }
+  .strategy-steps { gap: 16px; }
+  .step-item { padding: 16px; }
+  .params-card { padding: 20px; }
 
   /* Pricing */
-  .pricing-grid { grid-template-columns: 1fr; max-width: 100%; }
+  .pricing-grid { grid-template-columns: 1fr; max-width: 100%; margin-top: 36px; }
+  .pricing-card { padding: 28px; }
+  .pricing-price { font-size: 36px; }
+
+  /* Live */
+  .live-grid { gap: 20px; }
+  .card-header { padding: 14px 18px; flex-direction: column; gap: 8px; align-items: flex-start; }
+
+  /* FAQ */
+  .faq-list { margin-top: 32px; }
+  .faq-q { padding: 16px 18px; font-size: 14px; }
+  .faq-a { padding: 0 18px 16px; font-size: 13px; }
 
   /* Footer */
-  .footer-grid { grid-template-columns: 1fr; gap: 32px; }
+  .footer-grid { grid-template-columns: 1fr; gap: 28px; }
   .footer-inner { padding: 40px 20px 24px; }
-  .footer-bottom { flex-direction: column; gap: 6px; text-align: center; font-size: 12px; }
+  .footer-bottom { flex-direction: column; gap: 8px; text-align: center; font-size: 12px; }
   .footer-disclaimer { font-size: 11px; padding: 12px 16px; }
 
   /* Hide decorative floats */
@@ -1731,10 +1768,59 @@ tr.clickable-row:hover td {
 }
 
 @media (max-width: 480px) {
-  .hero-h1 { font-size: 30px; }
-  .section-title { font-size: 24px; }
-  .hero-btns button, .hero-btns a { width: 100%; justify-content: center; }
-  .navbar-inner { padding: 12px 16px; }
+  /* Navbar */
+  .navbar-inner { padding: 12px 16px; height: 56px; }
+  .navbar-logo { font-size: 16px; }
+  .navbar-logo-icon { width: 28px; height: 28px; }
+
+  /* Hero */
+  .hero { padding-top: 56px; }
+  .hero-h1 { font-size: 28px; }
+  .hero-sub { font-size: 14px; }
+  .hero-inner { padding: 12px 16px 32px; gap: 24px; }
+
+  /* Sections */
+  .section { padding: 44px 0; }
+  .section-title { font-size: 22px; }
+  .section-sub { font-size: 13px; }
+  .section-tag { font-size: 11px; }
+
+  /* Features */
+  .features-grid { gap: 12px; margin-top: 28px; }
+  .feature-card { padding: 18px; }
+  .feature-icon { width: 40px; height: 40px; margin-bottom: 14px; }
+  .feature-title { font-size: 15px; }
+
+  /* Strategy */
+  .step-item { padding: 14px; gap: 12px; }
+  .step-num { width: 30px; height: 30px; font-size: 12px; }
+  .step-title { font-size: 14px; }
+
+  /* Pricing */
+  .pricing-card { padding: 24px 20px; }
+  .pricing-name { font-size: 18px; }
+  .pricing-price { font-size: 32px; }
+  .pricing-features { gap: 10px; }
+  .pricing-feature-item { font-size: 12px; }
+
+  /* Footer */
+  .footer-inner { padding: 32px 16px 20px; }
+  .footer-grid { gap: 24px; }
+  .footer-col-title { font-size: 11px; margin-bottom: 16px; }
+
+  /* Chart card */
+  .chart-card { padding: 16px; }
+  .chart-card-header { flex-direction: column; gap: 8px; }
+  .stock-price-block { text-align: left; width: 100%; }
+  .stock-ltp { font-size: 18px; }
+  .stock-change { justify-content: flex-start; }
+
+  /* FAQ */
+  .faq-item { border-radius: 12px; }
+
+  /* Buttons full width on small screens */
+  .hero-btns a, .hero-btns button { width: 100%; justify-content: center; }
+  .btn-primary, .btn-secondary { width: 100%; justify-content: center; padding: 13px 24px; }
 }
 
 /* ========================
@@ -1874,6 +1960,70 @@ select.kyc-status-select-pending {
   border-color: var(--border-color) !important;
 }
 
+/* ============================================================
+   LANDING PAGE — FORCED LIGHT MODE OVERRIDES
+   Jab data-theme="light" laga ho (landing page), tab ye
+   sare CSS variables ko light mode values pe force karta hai
+   Admin panel pe koi asar nahi padta.
+============================================================ */
+[data-theme="light"] {
+  --bg: #f5f7fb;
+  --bg-white: #ffffff;
+  --bg-card: #ffffff;
+  --surface: #f8fafc;
+  --text-heading: #1e293b;
+  --text-body: #334155;
+  --text-muted: #64748b;
+  --text-secondary: #64748b;
+  --text-subtle: #94a3b8;
+  --border: #e5e7eb;
+  --border-light: #f1f5f9;
+  --border-color: #d1d5db;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.05), 0 10px 15px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,0.06), 0 20px 40px rgba(0,0,0,0.08);
+  --shadow-xl: 0 25px 50px rgba(0,0,0,0.08);
+  --primary-light: #e6f0ff;
+  --accent-light: #dcfce7;
+  --danger-light: #fef2f2;
+  --warning-light: #fffbeb;
+  --purple-light: #f5f3ff;
+}
 
+[data-theme="light"] .feature-card,
+[data-theme="light"] .step-item,
+[data-theme="light"] .params-card {
+  background: #ffffff !important;
+  color: #1e293b !important;
+}
 
+[data-theme="light"] .feature-title,
+[data-theme="light"] .step-title {
+  color: #1e293b !important;
+}
 
+[data-theme="light"] .feature-desc,
+[data-theme="light"] .step-desc,
+[data-theme="light"] .params-key {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .section-title {
+  color: #1e293b !important;
+}
+
+[data-theme="light"] .section-sub {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .params-row {
+  border-bottom-color: #f1f5f9 !important;
+}
+
+[data-theme="light"] .hero-h1 {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .hero-sub {
+  color: #475569 !important;
+}

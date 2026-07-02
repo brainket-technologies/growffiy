@@ -191,7 +191,7 @@
   gap: 12px;
   margin-bottom: 24px;
   align-items: center;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   background: var(--surface);
   padding: 12px 16px;
   border-radius: 12px;
@@ -387,4 +387,106 @@
 @keyframes slideUp {
   from { transform: translateY(12px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+/* ========================
+   RESPONSIVE — ADMIN/CLIENT LAYOUT
+   ======================== */
+@media (max-width: 1024px) {
+  .contentWrapper {
+    margin-left: 0;
+    width: 100%;
+    padding: 20px;
+  }
+
+  .layoutWrapper {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 768px) {
+  .contentWrapper {
+    padding: 16px;
+  }
+
+  .statGrid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+  }
+
+  .statValue {
+    font-size: 22px;
+  }
+
+  .tableToolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tableActions {
+    flex-wrap: wrap;
+  }
+
+  .searchFilterBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filterLabel {
+    width: 100%;
+  }
+
+  .filterSelect {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .modalContent {
+    width: 95%;
+    max-width: 95%;
+  }
+
+  .card {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .contentWrapper {
+    padding: 12px;
+  }
+
+  .statGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .statCard {
+    padding: 14px;
+  }
+
+  .statLabel {
+    font-size: 10px;
+  }
+
+  .statValue {
+    font-size: 18px;
+  }
+
+  .tableToolbarTitle {
+    font-size: 14px;
+  }
+
+  .modalHeader {
+    padding: 14px 16px;
+  }
+
+  .modalBody {
+    padding: 16px;
+  }
+
+  .modalFooter {
+    padding: 12px 16px;
+    flex-direction: column;
+  }
 }

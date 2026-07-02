@@ -537,3 +537,22 @@
     display: flex;
   }
 }
+
+@media (max-width: 480px) {
+  .sidebar {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .toggleBtn {
+    width: 36px;
+    height: 36px;
+    bottom: 16px;
+    left: 16px;
+  }
+
+  .dropdown {
+    right: -60px;
+    width: 180px;
+  }
+}

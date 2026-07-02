@@ -402,3 +402,80 @@
   font-size: 11px;
   font-weight: 600;
 }
+
+/* ========================
+   RESPONSIVE — HEADER
+   ======================== */
+@media (max-width: 1024px) {
+  .header {
+    left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0 16px;
+    height: 56px;
+  }
+
+  .currentPage {
+    font-size: 14px;
+  }
+
+  .profileName {
+    display: none;
+  }
+
+  .profileRole {
+    display: none;
+  }
+
+  .profileTrigger {
+    padding: 4px;
+  }
+
+  .profileAvatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    font-size: 13px;
+  }
+
+  .themeToggle {
+    gap: 1px;
+    padding: 2px;
+  }
+
+  .themeBtn {
+    width: 26px;
+    height: 26px;
+  }
+
+  .divider {
+    display: none;
+  }
+
+  .iconBtn {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 0 12px;
+  }
+
+  .divider {
+    display: none;
+  }
+
+  .actions {
+    gap: 4px;
+  }
+
+  .dropdown {
+    right: -40px;
+    width: 180px;
+  }
+}

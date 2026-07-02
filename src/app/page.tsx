@@ -27,11 +27,14 @@ interface Stock {
 export default function GrowffiyLanding() {
   // Live stock state
   const [stocks, setStocks] = useState<Stock[]>([
-    { symbol: 'RELIANCE', name: 'Reliance Industries', ltp: 2450.40, change: -1.24, high: 2481.00, low: 2432.00, volume: '4.2M' },
-    { symbol: 'TCS', name: 'Tata Consultancy', ltp: 3215.10, change: -0.95, high: 3240.00, low: 3192.00, volume: '1.8M' },
-    { symbol: 'INFY', name: 'Infosys Ltd.', ltp: 1420.50, change: -2.15, high: 1448.00, low: 1415.00, volume: '3.1M' },
-    { symbol: 'TATAMOTORS', name: 'Tata Motors', ltp: 620.30, change: -3.12, high: 644.00, low: 618.00, volume: '9.4M' },
-    { symbol: 'HDFCBANK', name: 'HDFC Bank', ltp: 1610.15, change: +0.48, high: 1624.00, low: 1601.00, volume: '5.7M' },
+    { symbol: 'RELIANCE',   name: 'Reliance Industries', ltp: 0, change: 0, high: 0, low: 0, volume: '...' },
+    { symbol: 'TCS',        name: 'Tata Consultancy',    ltp: 0, change: 0, high: 0, low: 0, volume: '...' },
+    { symbol: 'INFY',       name: 'Infosys Ltd.',        ltp: 0, change: 0, high: 0, low: 0, volume: '...' },
+    { symbol: 'TATAMOTORS', name: 'Tata Motors',         ltp: 0, change: 0, high: 0, low: 0, volume: '...' },
+    { symbol: 'HDFCBANK',   name: 'HDFC Bank',           ltp: 0, change: 0, high: 0, low: 0, volume: '...' },
+    { symbol: 'ICICIBANK',  name: 'ICICI Bank',          ltp: 0, change: 0, high: 0, low: 0, volume: '...' },
+    { symbol: 'NIFTY50',    name: 'Nifty 50',            ltp: 0, change: 0, high: 0, low: 0, volume: '-'   },
+    { symbol: 'SENSEX',     name: 'Sensex',              ltp: 0, change: 0, high: 0, low: 0, volume: '-'   },
   ]);
 
   const [heroData, setHeroData] = useState<number[]>([
@@ -67,32 +70,35 @@ export default function GrowffiyLanding() {
     return () => window.removeEventListener('branding-updated', load);
   }, []);
 
-  // Tick simulation
-  useEffect(() => {
-    const iv = setInterval(() => {
-      let newReliance = 0;
-      setStocks(prev => {
-        const updated = prev.map(s => {
-          const d = (Math.random() - 0.50) * 0.002;
-          const ltp = parseFloat((s.ltp * (1 + d)).toFixed(2));
-          const change = parseFloat((s.change + d * 100 * 0.3).toFixed(2));
-          if (s.symbol === 'RELIANCE') newReliance = ltp;
-          return { ...s, ltp, change };
-        });
-        // slide hero chart
-        if (newReliance) {
-          setHeroData(p => [...p.slice(1), newReliance]);
+  // ─── Real stock data from Yahoo Finance (via /api/public/stocks) ─────────────
+  const fetchRealStocks = async () => {
+    try {
+      const res = await fetch('/api/public/stocks', { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && data.stocks?.length > 0) {
+        setStocks(data.stocks);
+        // Update hero chart with RELIANCE real price
+        const reliance = data.stocks.find((s: Stock) => s.symbol === 'RELIANCE');
+        if (reliance && reliance.ltp > 0) {
+          setHeroData(p => [...p.slice(1), reliance.ltp]);
           setHeroLabels(p => {
             const t = new Date();
-            const label = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
+            const label = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
             return [...p.slice(1), label];
           });
         }
-        return updated;
-      });
-      setPnl(p => p + Math.floor((Math.random() - 0.4) * 300));
-    }, 2000);
-    return () => clearInterval(iv);
+      }
+    } catch (e) {
+      // Silent fail — keep showing last known prices
+    }
+  };
+
+  useEffect(() => {
+    fetchRealStocks(); // Initial load
+    const iv = setInterval(fetchRealStocks, 30000); // Refresh every 30s
+    // P&L still animates for visual effect
+    const pnlIv = setInterval(() => setPnl(p => p + Math.floor((Math.random() - 0.4) * 300)), 3000);
+    return () => { clearInterval(iv); clearInterval(pnlIv); };
   }, []);
 
   // ─── Data ─────────────────────────────────────────────────────────────────
@@ -107,6 +113,7 @@ export default function GrowffiyLanding() {
 
   const [plans, setPlans] = useState<any[]>([]);
   const [plansLoading, setPlansLoading] = useState(true);
+  const [activePlanTab, setActivePlanTab] = useState<string>('');
 
   useEffect(() => {
     fetch(API_ENDPOINTS.PLANS, { cache: 'no-store' })
@@ -117,15 +124,24 @@ export default function GrowffiyLanding() {
           if (activePlans.length > 0) {
             // Sort by price ascending
             activePlans.sort((a: any, b: any) => Number(a.price) - Number(b.price));
-            const mapped = activePlans.map((p: any) => ({
-              tag: p.name.toLowerCase().includes('monthly') ? 'Standard Access' : p.name.toLowerCase().includes('quarterly') ? 'Most Popular' : 'Best Value',
-              name: p.name,
-              price: p.price,
-              per: `${p.durationDays} Days`,
-              popular: p.name.toLowerCase().includes('quarterly') || p.name.toLowerCase().includes('popular'),
-              features: p.features
-            }));
+            const mapped = activePlans.map((p: any) => {
+              // Extract product type: everything before Monthly/Quarterly/Yearly/Daily
+              const typeMatch = p.name.match(/^(.+?)\s*(monthly|quarterly|yearly|daily|annual|half|weekly)/i);
+              const productType = typeMatch ? typeMatch[1].trim() : p.name.split(' ')[0];
+              return {
+                tag: p.name.toLowerCase().includes('monthly') ? 'Standard Access' : p.name.toLowerCase().includes('quarterly') ? 'Most Popular' : 'Best Value',
+                name: p.name,
+                price: p.price,
+                per: `${p.durationDays} Days`,
+                popular: p.name.toLowerCase().includes('quarterly') || p.name.toLowerCase().includes('popular'),
+                features: p.features,
+                productType,
+              };
+            });
             setPlans(mapped);
+            // Set first product type as default tab
+            const firstType = mapped[0]?.productType || '';
+            setActivePlanTab(firstType);
           } else {
             setPlans([]);
           }
@@ -147,20 +163,67 @@ export default function GrowffiyLanding() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'var(--font-body)' }}>
+    <div data-theme="light" style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'var(--font-body)' }}>
+
+      {/* ════════════════════════════════════════
+          LIVE STOCK TICKER STRIP
+      ════════════════════════════════════════ */}
+      <div style={{
+        background: '#0f172a',
+        color: '#fff',
+        padding: '7px 0',
+        overflow: 'hidden',
+        whiteSpace: 'nowrap',
+        position: 'relative',
+        zIndex: 1001,
+        borderBottom: '1px solid #1e293b',
+      }}>
+        <style>{`
+          @keyframes ticker-scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+          .ticker-track {
+            display: inline-flex;
+            animation: ticker-scroll 30s linear infinite;
+          }
+          .ticker-track:hover { animation-play-state: paused; }
+        `}</style>
+        <div className="ticker-track">
+          {[...stocks, ...stocks].map((s, i) => (
+            <span key={i} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '0 28px',
+              borderRight: '1px solid rgba(255,255,255,0.08)',
+              fontSize: 12, fontWeight: 600,
+            }}>
+              <span style={{ color: '#94a3b8', fontWeight: 700, letterSpacing: '0.3px' }}>{s.symbol}</span>
+              <span style={{ color: '#f1f5f9', fontFamily: 'monospace', fontSize: 13 }}>₹{s.ltp.toFixed(2)}</span>
+              <span style={{
+                color: isUp(s.change) ? '#4ade80' : '#f87171',
+                fontSize: 11, fontWeight: 700,
+              }}>
+                {isUp(s.change) ? '▲' : '▼'} {Math.abs(s.change).toFixed(2)}%
+              </span>
+            </span>
+          ))}
+        </div>
+      </div>
 
 
       {/* ════════════════════════════════════════
           NAVBAR
       ════════════════════════════════════════ */}
       <nav style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
-        background: scrolled || mobileMenuOpen ? 'rgba(255,255,255,0.97)' : 'transparent',
+        position: 'sticky', top: 0, left: 0, right: 0, zIndex: 1000,
+        background: scrolled || mobileMenuOpen
+          ? 'rgba(255,255,255,0.97)'
+          : 'rgba(255,255,255,0)',
         backdropFilter: scrolled || mobileMenuOpen ? 'blur(20px)' : 'none',
         WebkitBackdropFilter: scrolled || mobileMenuOpen ? 'blur(20px)' : 'none',
-        borderBottom: scrolled || mobileMenuOpen ? '1px solid rgba(226,232,240,0.8)' : 'none',
+        borderBottom: scrolled || mobileMenuOpen ? '1px solid rgba(226,232,240,0.8)' : '1px solid transparent',
         boxShadow: scrolled || mobileMenuOpen ? '0 2px 20px rgba(0,0,0,0.06)' : 'none',
-        transition: 'all 0.3s ease',
+        transition: 'all 0.35s ease',
       }}>
         <div className="navbar-inner">
           {/* Logo */}
@@ -371,7 +434,7 @@ export default function GrowffiyLanding() {
       {/* ════════════════════════════════════════
           FEATURES SECTION
       ════════════════════════════════════════ */}
-      <section id="features" className="section" style={{ background: 'var(--bg-white)' }}>
+      <section id="features" className="section" style={{ background: '#ffffff' }}>
         <div className="section-inner">
           <div className="text-center">
             <div className="section-tag">
@@ -401,7 +464,7 @@ export default function GrowffiyLanding() {
       {/* ════════════════════════════════════════
           STRATEGY SECTION
       ════════════════════════════════════════ */}
-      <section id="strategy" className="section" style={{ background: 'var(--surface)' }}>
+      <section id="strategy" className="section" style={{ background: '#f8fafc' }}>
         <div className="section-inner">
           <div className="strategy-grid">
             {/* Left: Steps */}
@@ -483,7 +546,7 @@ export default function GrowffiyLanding() {
       {/* ════════════════════════════════════════
           PRICING SECTION
       ════════════════════════════════════════ */}
-      <section id="pricing" className="section" style={{ background: 'var(--surface)' }}>
+      <section id="pricing" className="section" style={{ background: '#ffffff' }}>
         <div className="section-inner">
           <div className="text-center">
             <div className="section-tag"><Sparkles size={14} /> Subscription Plans</div>
@@ -495,65 +558,104 @@ export default function GrowffiyLanding() {
             </p>
           </div>
 
-          <div className="pricing-grid" style={{
-            display: 'flex',
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            gap: '24px',
-            marginTop: '56px',
-            alignItems: 'stretch'
-          }}>
-            {plansLoading ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '48px', color: '#64748b', fontSize: '15px' }}>
-                <Activity size={20} className="spin" style={{ marginRight: '10px', animation: 'spin 1s linear infinite' }} /> Loading subscription plans...
-              </div>
-            ) : plans.length === 0 ? (
-              <div style={{ color: '#64748b', fontSize: '15px', padding: '40px', textAlign: 'center' }}>
-                No active subscription plans are currently configured.
-              </div>
-            ) : (
-              plans.map(plan => (
-                <div
-                  key={plan.name}
-                  className={`pricing-card${plan.popular ? ' popular' : ''}`}
-                  style={{
-                    flex: '1 1 360px',
-                    maxWidth: '380px',
-                    minWidth: '280px'
-                  }}
-                >
-                  {plan.popular && <div className="popular-badge">Most Popular</div>}
-                  <div className="pricing-tag">{plan.tag}</div>
-                  <div className="pricing-name">{plan.name}</div>
-                  <div className="pricing-amount">
-                    <span className="pricing-currency">₹</span>
-                    <span className="pricing-price">{plan.price.toLocaleString()}</span>
-                    <span className="pricing-per">/ {plan.per}</span>
-                  </div>
-                  <ul className="pricing-features">
-                    {plan.features.map((f: string) => (
-                      <li key={f} className="pricing-feature-item">
-                        <div className="check-icon"><Check size={11} /></div>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <Link href="/vendor/login" target="_blank" style={{ display: 'block' }}>
-                    <button style={{
-                      width: '100%', padding: '13px', borderRadius: 99, fontWeight: 700,
-                      fontSize: 14, cursor: 'pointer', transition: 'all 0.3s',
-                      background: plan.popular ? 'var(--primary)' : 'white',
-                      color: plan.popular ? 'white' : 'var(--text-body)',
-                      boxShadow: plan.popular ? '0 6px 20px rgba(14, 165, 233, 0.2)' : 'none',
-                      border: plan.popular ? 'none' : '1.5px solid var(--border)',
-                    }}>
-                      Access Portal →
+          {/* Product Type Tabs */}
+          {!plansLoading && plans.length > 0 && (() => {
+            const productTypes = [...new Set(plans.map((p: any) => p.productType))];
+            const filteredPlans = plans.filter((p: any) => p.productType === activePlanTab);
+            return (
+              <>
+                {/* Tab Buttons */}
+                <div style={{
+                  display: 'flex', justifyContent: 'center', gap: 8,
+                  marginTop: 40, flexWrap: 'wrap',
+                }}>
+                  {productTypes.map(type => (
+                    <button
+                      key={type}
+                      onClick={() => setActivePlanTab(type)}
+                      style={{
+                        padding: '10px 28px',
+                        borderRadius: 99,
+                        fontWeight: 700,
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        transition: 'all 0.25s',
+                        border: activePlanTab === type ? 'none' : '1.5px solid #e2e8f0',
+                        background: activePlanTab === type
+                          ? 'linear-gradient(135deg, #1252AB, #1E88FF)'
+                          : '#ffffff',
+                        color: activePlanTab === type ? '#ffffff' : '#64748b',
+                        boxShadow: activePlanTab === type
+                          ? '0 6px 20px rgba(18,82,171,0.25)'
+                          : '0 1px 4px rgba(0,0,0,0.06)',
+                        transform: activePlanTab === type ? 'translateY(-1px)' : 'none',
+                      }}
+                    >
+                      {type}
                     </button>
-                  </Link>
+                  ))}
                 </div>
-              ))
-            )}
-          </div>
+
+                {/* Plans for Selected Tab */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  flexWrap: 'wrap',
+                  gap: '24px',
+                  marginTop: '36px',
+                  alignItems: 'stretch'
+                }}>
+                  {filteredPlans.map(plan => (
+                    <div
+                      key={plan.name}
+                      className={`pricing-card${plan.popular ? ' popular' : ''}`}
+                      style={{ flex: '1 1 300px', maxWidth: '360px', minWidth: '260px' }}
+                    >
+                      {plan.popular && <div className="popular-badge">Most Popular</div>}
+                      <div className="pricing-tag">{plan.tag}</div>
+                      <div className="pricing-name">{plan.name}</div>
+                      <div className="pricing-amount">
+                        <span className="pricing-currency">₹</span>
+                        <span className="pricing-price">{Number(plan.price).toLocaleString()}</span>
+                        <span className="pricing-per">/ {plan.per}</span>
+                      </div>
+                      <ul className="pricing-features">
+                        {plan.features.map((f: string) => (
+                          <li key={f} className="pricing-feature-item">
+                            <div className="check-icon"><Check size={11} /></div>
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                      <Link href="/vendor/login" target="_blank" style={{ display: 'block' }}>
+                        <button style={{
+                          width: '100%', padding: '13px', borderRadius: 99, fontWeight: 700,
+                          fontSize: 14, cursor: 'pointer', transition: 'all 0.3s',
+                          background: plan.popular ? 'linear-gradient(135deg, #1252AB, #1E88FF)' : 'white',
+                          color: plan.popular ? 'white' : '#334155',
+                          boxShadow: plan.popular ? '0 6px 20px rgba(18,82,171,0.25)' : 'none',
+                          border: plan.popular ? 'none' : '1.5px solid #e2e8f0',
+                        }}>
+                          Get Started →
+                        </button>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
+
+          {plansLoading && (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '48px', color: '#64748b', fontSize: '15px' }}>
+              <Activity size={20} style={{ marginRight: '10px', animation: 'spin 1s linear infinite' }} /> Loading plans...
+            </div>
+          )}
+          {!plansLoading && plans.length === 0 && (
+            <div style={{ color: '#64748b', fontSize: '15px', padding: '40px', textAlign: 'center' }}>
+              No active subscription plans are currently configured.
+            </div>
+          )}
 
           {/* Trust badges */}
           <div style={{
