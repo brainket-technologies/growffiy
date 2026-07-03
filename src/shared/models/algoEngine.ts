@@ -91,7 +91,7 @@ class AlgoEngineService {
         getAlgoSetting: (key, defaultValue) => this.getAlgoSetting(key, defaultValue),
         getPreOpenStocks: () => this.getPreOpenStocks(),
         preSelectAllClients: (strategyId) => this.preSelectAllClients(strategyId),
-        executePreOpenTrades: (adminId, mockStocks, strategyId) => this.executePreOpenTrades(adminId, mockStocks, strategyId),
+        executePreOpenTrades: (adminId, mockStocks, strategyId, legIndex, dualLegGroupId) => this.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId),
       },
       this.wsLive
     );
@@ -378,7 +378,7 @@ class AlgoEngineService {
     console.log(`AlgoEngine preSelect: Margins cached for ${this.marginCache.size}/${clients.length} clients.`);
   }
 
-  public async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyId?: string): Promise<void> {
+  public async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyId?: string, legIndex?: number, dualLegGroupId?: string | null): Promise<void> {
     console.log('AlgoEngine: executePreOpenTrades started.');
     try {
       const preOpenStocks = mockStocks && mockStocks.length > 0
@@ -459,8 +459,26 @@ class AlgoEngineService {
             return;
           }
 
-          if (!config.basicInfo?.exchange || !config.basicInfo?.tradeType || !config.basicInfo?.preSelectTime || !config.basicInfo?.entryTime) {
-            console.log(`AlgoEngine: Strategy config missing exchange/tradeType/preSelectTime/entryTime for client ${client.user.name}. Skipping.`);
+          // --- Dual Leg: Extract current leg config ---
+          const legs = config.legs || [];
+          const currentLeg = legs[legIndex || 0];
+          if (!currentLeg || !currentLeg.enabled) {
+            console.log(`AlgoEngine: Leg ${(legIndex || 0) + 1} not found or disabled for ${client.user.name}. Skipping.`);
+            return;
+          }
+          const isShortTrade = ['Short', 'Sell'].includes(currentLeg.tradeAction?.action || '');
+          const direction = isShortTrade ? 'SHORT' : 'LONG';
+          const legTimeframe = currentLeg.timeframe || '5m';
+          const legCandleType = currentLeg.tradeAction?.candlePriceType || 'high';
+          const legBufferPct = currentLeg.tradeAction?.bufferPercent;
+          const legOrderType = currentLeg.tradeAction?.orderType || 'SL-Market';
+
+          // --- Dual Leg: Use shared group ID (from scheduler) or generate if not provided ---
+          const enabledLegs = (config.legs || []).filter((l: any) => l.enabled);
+          const finalDualLegGroupId = dualLegGroupId !== undefined ? dualLegGroupId : (enabledLegs.length > 1 ? crypto.randomUUID() : null);
+
+          if (!config.basicInfo?.exchange || !config.basicInfo?.tradeType || !config.basicInfo?.preSelectTime) {
+            console.log(`AlgoEngine: Strategy config missing exchange/tradeType/preSelectTime for client ${client.user.name}. Skipping.`);
             return;
           }
           const exchangeParam = config.basicInfo.exchange;
@@ -470,12 +488,12 @@ class AlgoEngineService {
           let candidateStock: StockQuote | null = this.preselectedStockByStrategy.get(strategy.id) || null;
 
           if (!candidateStock) {
-            if (!config.basicInfo?.segment || !config.tradeAction?.action || !config.basicInfo?.selectPosition) {
+            if (!config.basicInfo?.segment || !config.basicInfo?.selectPosition) {
               console.log(`AlgoEngine: Strategy config missing required fields (segment/action/selectPosition) for fallback filter for client ${client.user.name}. Skipping.`);
               return;
             }
             const segment = config.basicInfo.segment;
-            const action = config.tradeAction.action;
+            const action = currentLeg.tradeAction?.action || 'Long';
             const selectPosition = config.basicInfo.selectPosition;
             let matchingStocks = preOpenStocks.filter(stock => {
               if (segment === 'NSE F&O' || segment === 'Futures' || segment === 'Options') {
@@ -517,7 +535,7 @@ class AlgoEngineService {
             if (!await this.matchesConditions(candidateStock, config.conditions, client)) {
               const reason = `Preselected stock ${candidateStock.symbol} (${candidateStock.changePercent.toFixed(2)}%) failed strategy conditions`;
               console.log(`AlgoEngine: ${reason} for ${client.user.name}. Logging FAILED trade.`);
-              await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, 0, reason);
+              await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
               return;
             }
           }
@@ -560,10 +578,6 @@ class AlgoEngineService {
               return;
             }
 
-            if (!config.basicInfo?.preSelectTime || !config.basicInfo?.entryTime) {
-              console.log(`AlgoEngine: basicInfo.preSelectTime or entryTime not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
-              return;
-            }
             let candlePrice = candlePriceCache.get(candidateStock.symbol) || 0;
             if (candlePrice === 0 && client.zerodhaApiKey && client.accessToken) {
               const instTokenStr = Object.entries(this.wsLive.instrumentToSymbol).find(([, sym]) => sym === candidateStock.symbol)?.[0];
@@ -577,15 +591,14 @@ class AlgoEngineService {
                   const to = formatDateOnly(today);
 
                   console.log(`AlgoEngine: Fetching historical data for ${candidateStock.symbol} token=${instTokenStr} from=${from} to=${to}`);
-                  const kiteInterval = mapTimeframeToKiteInterval(config.basicInfo?.timeframe || '5m');
+                  const kiteInterval = mapTimeframeToKiteInterval(legTimeframe);
                   const res = await KiteClient.getHistoricalData(client.zerodhaApiKey, client.accessToken, instTokenStr, kiteInterval, from, to);
                   console.log(`AlgoEngine: Historical response for ${candidateStock.symbol}: status=${res.status}, candles=${res.data?.candles?.length ?? 0}`);
                   if (res.status === 'success' && Array.isArray(res.data?.candles) && res.data.candles.length > 0) {
                     const priceIdx: Record<string, number> = { open: 1, high: 2, low: 3, close: 4 };
-                    const candleType = config.tradeAction?.candlePriceType || 'high';
-                    candlePrice = Number(res.data.candles[0][priceIdx[candleType]]);
+                    candlePrice = Number(res.data.candles[0][priceIdx[legCandleType]]);
                     candlePriceCache.set(candidateStock.symbol, candlePrice);
-                    console.log(`AlgoEngine: Candle price for ${candidateStock.symbol} (${candleType}): ${candlePrice}`);
+                    console.log(`AlgoEngine: Candle price for ${candidateStock.symbol} (${legCandleType}): ${candlePrice}`);
                   } else {
                     console.warn(`AlgoEngine: No candle data for ${candidateStock.symbol} - status: ${res.status}, error: ${res.message ?? 'none'}`);
                   }
@@ -622,27 +635,28 @@ class AlgoEngineService {
               } else {
                 const reason = `Could not determine candle price for ${candidateStock.symbol} and no fallback available`;
                 console.log(`AlgoEngine: ${reason}. Logging FAILED trade for ${client.user.name}.`);
-                await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, 0, reason);
+                await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
                 return;
               }
             }
 
-            const bufferPct = config.tradeAction?.bufferPercent;
+            const bufferPct = legBufferPct;
             if (bufferPct === undefined || bufferPct === null || bufferPct === -1) {
               breakoutEntryPrice = candlePrice;
+            } else if (isShortTrade) {
+              breakoutEntryPrice = candlePrice * (1 - bufferPct / 100);
             } else {
               breakoutEntryPrice = candlePrice * (1 + bufferPct / 100);
             }
 
             const currentLtp = candidateStock.ltp || candidateStock.iep || breakoutEntryPrice;
             const hasPriceAction = config.conditions?.some((c: any) => c.indicator === 'Price Action');
-            const isSLMarket = config.tradeAction?.orderType === 'SL-Market';
 
-            if (isSLMarket || !hasPriceAction || currentLtp >= breakoutEntryPrice) {
+            if (legOrderType === 'SL-Market' || !hasPriceAction || (isShortTrade ? currentLtp <= breakoutEntryPrice : currentLtp >= breakoutEntryPrice)) {
               targetStock = candidateStock;
-              console.log(`AlgoEngine: Breakout confirmed for ${candidateStock.symbol} | Entry: ${breakoutEntryPrice} | LTP: ${currentLtp} | OrderType: ${config.tradeAction?.orderType} | CandlePriceType: ${config.tradeAction?.candlePriceType || 'high'}`);
+              console.log(`AlgoEngine: ${isShortTrade ? 'Breakdown' : 'Breakout'} confirmed for ${candidateStock.symbol} (${direction}) | Entry: ${breakoutEntryPrice} | LTP: ${currentLtp} | CandlePriceType: ${legCandleType}`);
             } else {
-              console.log(`AlgoEngine: Breakout not met for ${candidateStock.symbol} | Entry: ${breakoutEntryPrice} | LTP: ${currentLtp}. Skipping.`);
+              console.log(`AlgoEngine: ${isShortTrade ? 'Breakdown' : 'Breakout'} not met for ${candidateStock.symbol} (${direction}) | Entry: ${breakoutEntryPrice} | LTP: ${currentLtp}. Skipping.`);
             }
           } catch (checkErr) {
             console.error(`AlgoEngine: Error checking breakout for ${candidateStock.symbol}:`, checkErr);
@@ -651,7 +665,7 @@ class AlgoEngineService {
           if (!targetStock) {
             const reason = `Breakout not met: LTP ${candidateStock.ltp || candidateStock.iep} < breakout entry ${breakoutEntryPrice}`;
             console.log(`AlgoEngine: ${reason} for ${client.user.name}. Logging FAILED trade.`);
-            await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, breakoutEntryPrice, reason);
+            await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, breakoutEntryPrice, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
             return;
           }
 
@@ -660,13 +674,13 @@ class AlgoEngineService {
           if (!config?.stoploss?.fixedPercent) {
             const reason = `stoploss.fixedPercent not configured for strategy "${strategy.name}"`;
             console.log(`AlgoEngine: ${reason}. Logging FAILED trade for ${client.user.name}.`);
-            await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, entryPrice, reason);
+            await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, entryPrice, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
             return;
           }
           if (!config?.target?.profitPercent) {
             const reason = `target.profitPercent not configured for strategy "${strategy.name}"`;
             console.log(`AlgoEngine: ${reason}. Logging FAILED trade for ${client.user.name}.`);
-            await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, entryPrice, reason);
+            await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, entryPrice, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
             return;
           }
           const slPercent = config.stoploss.fixedPercent;
@@ -685,7 +699,8 @@ class AlgoEngineService {
                 symbol: targetStock.symbol, orderType: productParam,
                 entryPrice: entryPrice, quantity: 0,
                 status: 'FAILED', entryTime: new Date(),
-                kiteResponse: { message: errMsg }
+                kiteResponse: { message: errMsg },
+                direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId
               }
             });
 
@@ -729,7 +744,8 @@ class AlgoEngineService {
                 symbol: targetStock.symbol, orderType: productParam,
                 entryPrice: entryPrice, quantity: 0,
                 status: 'FAILED', entryTime: new Date(),
-                kiteResponse: { message: errMsg }
+                kiteResponse: { message: errMsg },
+                direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId
               }
             });
 
@@ -889,11 +905,11 @@ class AlgoEngineService {
             return;
           }
 
-          const marketProtectionVal = config?.tradeAction?.marketProtection !== undefined
-            ? Number(config.tradeAction.marketProtection)
+          const marketProtectionVal = currentLeg.tradeAction?.marketProtection !== undefined
+            ? Number(currentLeg.tradeAction.marketProtection)
             : -1;
 
-          const stopLoss = entryPrice - slPoints;
+          const stopLoss = isShortTrade ? entryPrice + slPoints : entryPrice - slPoints;
 
           if (!config?.target?.type) {
             console.log(`AlgoEngine: target.type not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
@@ -907,9 +923,9 @@ class AlgoEngineService {
               return;
             }
             const rr = config.target.riskRewardRatio;
-            target = entryPrice + (slPoints * rr);
+            target = isShortTrade ? entryPrice - (slPoints * rr) : entryPrice + (slPoints * rr);
           } else {
-            target = entryPrice * (1 + targetPercent / 100);
+            target = isShortTrade ? entryPrice * (1 - targetPercent / 100) : entryPrice * (1 + targetPercent / 100);
           }
 
           // Keep original calculated values
@@ -931,11 +947,7 @@ class AlgoEngineService {
           let orderTypeParam: 'MARKET' | 'LIMIT' | 'SL' | 'SL-M' = 'MARKET';
           let priceParam: number | undefined = undefined;
           let triggerPriceParam: number | undefined = undefined;
-          if (!config?.tradeAction?.orderType) {
-            console.log(`AlgoEngine: tradeAction.orderType not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
-            return;
-          }
-          const configOrderType = config.tradeAction.orderType;
+          const configOrderType = legOrderType;
 
           if (configOrderType === 'Limit') {
             orderTypeParam = 'LIMIT';
@@ -943,12 +955,13 @@ class AlgoEngineService {
           } else if (configOrderType === 'SL-Limit') {
             orderTypeParam = 'SL';
             triggerPriceParam = finalEntryPrice;
-            if (!config?.tradeAction?.bufferPercent) {
-              console.log(`AlgoEngine: tradeAction.bufferPercent not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
+            if (legBufferPct === undefined || legBufferPct === null || legBufferPct === -1) {
+              console.log(`AlgoEngine: legBufferPct not configured for leg "${currentLeg.name}". Skipping trade for ${client.user.name}.`);
               return;
             }
-            const bufferPercent = config.tradeAction.bufferPercent;
-            const rawLimitPrice = entryPrice * (1 + bufferPercent / 100);
+            const rawLimitPrice = isShortTrade
+              ? entryPrice * (1 - legBufferPct / 100)
+              : entryPrice * (1 + legBufferPct / 100);
             if (client.zerodhaApiKey && activeAccessToken) {
               priceParam = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, exchangeParam, targetStock.symbol, rawLimitPrice);
             } else {
@@ -961,7 +974,7 @@ class AlgoEngineService {
             orderTypeParam = 'MARKET';
           }
 
-          console.log(`AlgoEngine: Placing trade for ${client.user.name} under database strategy "${strategy.name}" - Buy ${quantity} qty of ${targetStock.symbol} @ ${finalEntryPrice} using ${orderTypeParam} order`);
+          console.log(`AlgoEngine: Placing trade for ${client.user.name} (${direction}) under database strategy "${strategy.name}" - ${quantity} qty of ${targetStock.symbol} @ ${finalEntryPrice} using ${orderTypeParam} order`);
 
           let orderId = '';
           let orderStatus = 'open';
@@ -973,7 +986,7 @@ class AlgoEngineService {
               const orderParams = {
                 exchange: exchangeParam,
                 tradingsymbol: targetStock.symbol,
-                transaction_type: 'BUY' as const,
+                transaction_type: isShortTrade ? 'SELL' as const : 'BUY' as const,
                 quantity: quantity,
                 order_type: orderTypeParam as any,
                 product: productParam as any,
@@ -1010,7 +1023,8 @@ class AlgoEngineService {
                       status: 'pending', entryTime: new Date(),
                       entryOrderId: orderId,
                       entryOrderStatus: 'OPEN',
-                      kiteResponse: orderRes
+                      kiteResponse: orderRes,
+                      direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId
                     }
                   });
                   tradeId = pendingTrade.id;
@@ -1031,7 +1045,8 @@ class AlgoEngineService {
                     originalStopLoss: rawStopLoss,
                     originalTarget: rawTarget,
                     status: 'FAILED', entryTime: new Date(),
-                    kiteResponse: orderRes || { error: errMsg }
+                    kiteResponse: orderRes || { error: errMsg },
+                    direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId
                   }
                 });
                 await prisma.strategyLog.create({
@@ -1051,7 +1066,8 @@ class AlgoEngineService {
                   originalStopLoss: rawStopLoss,
                   originalTarget: rawTarget,
                   status: 'FAILED', entryTime: new Date(),
-                  kiteResponse: { error: kiteErr.message || String(kiteErr) }
+                  kiteResponse: { error: kiteErr.message || String(kiteErr) },
+                  direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId
                 }
               });
               await prisma.strategyLog.create({
@@ -1093,7 +1109,7 @@ class AlgoEngineService {
                       const slParams = {
                         exchange: exchangeParam,
                         tradingsymbol: targetStock.symbol,
-                        transaction_type: 'SELL' as const,
+                        transaction_type: isShortTrade ? 'BUY' as const : 'SELL' as const,
                         quantity: quantity,
                         order_type: 'SL-M' as const,
                         product: productParam as any,
@@ -1116,7 +1132,7 @@ class AlgoEngineService {
                       const targetParams = {
                         exchange: exchangeParam,
                         tradingsymbol: targetStock.symbol,
-                        transaction_type: 'SELL' as const,
+                        transaction_type: isShortTrade ? 'BUY' as const : 'SELL' as const,
                         quantity: quantity,
                         order_type: 'LIMIT' as const,
                         product: productParam as any,
@@ -1170,7 +1186,8 @@ class AlgoEngineService {
                   originalStopLoss: rawStopLoss,
                   originalTarget: rawTarget,
                   status: 'FAILED', entryTime: new Date(),
-                  kiteResponse: { error: 'Entry order cancelled or rejected' }
+                  kiteResponse: { error: 'Entry order cancelled or rejected' },
+                  direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId
                 }
               });
             }
@@ -1192,7 +1209,8 @@ class AlgoEngineService {
                 slOrderId: slOrderId || null,
                 targetOrderId: targetOrderId || null,
                 slTriggerPrice: finalStopLoss,
-                kiteResponse: orderRes
+                kiteResponse: orderRes,
+                direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId
               }
             });
           } else {
@@ -1211,16 +1229,18 @@ class AlgoEngineService {
                 slOrderId: slOrderId || null,
                 targetOrderId: targetOrderId || null,
                 slTriggerPrice: finalStopLoss,
-                kiteResponse: orderRes
+                kiteResponse: orderRes,
+                direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId
               }
             });
           }
           this.wsLive.subscribeSymbols([targetStock.symbol]);
 
+          const tradeActionLabel = isShortTrade ? 'Sold (Short)' : 'Bought (Long)';
           await prisma.strategyLog.create({
             data: {
               strategyId: strategy.id,
-              message: `Intraday Trade Initiated for ${client.user.name}: Bought ${quantity} shares of ${targetStock.symbol} at entry price ₹${actualEntryPrice.toFixed(2)} using config from DB strategy "${strategy.name}". Capital at risk: ₹${capitalAtRisk.toFixed(2)}. Target: ₹${target.toFixed(2)} (${targetPercent}%), Stop Loss: ₹${stopLoss.toFixed(2)} (${slPercent}%). Entry Order: ${orderId}, SL Order: ${slOrderId || 'N/A'}, Target Order: ${targetOrderId || 'N/A'}`,
+              message: `Intraday Trade Initiated for ${client.user.name}: ${tradeActionLabel} ${quantity} shares of ${targetStock.symbol} at entry price ₹${actualEntryPrice.toFixed(2)} using config from DB strategy "${strategy.name}". Capital at risk: ₹${capitalAtRisk.toFixed(2)}. Target: ₹${target.toFixed(2)} (${targetPercent}%), Stop Loss: ₹${stopLoss.toFixed(2)} (${slPercent}%). Entry Order: ${orderId}, SL Order: ${slOrderId || 'N/A'}, Target Order: ${targetOrderId || 'N/A'}`,
               logType: 'trade'
             }
           });
@@ -1231,7 +1251,7 @@ class AlgoEngineService {
                 adminId: finalAdminId,
                 action: 'AUTO TRADE INITIATED',
                 oldValue: null,
-                newValue: `Client: ${client.user.name} | Strategy: ${strategy.name} | Stock: ${targetStock.symbol} | Qty: ${quantity} | Entry: ${actualEntryPrice.toFixed(2)}`
+                newValue: `Client: ${client.user.name} | Strategy: ${strategy.name} | Stock: ${targetStock.symbol} | Qty: ${quantity} | Entry: ${actualEntryPrice.toFixed(2)} | Dir: ${direction}`
               }
             }).catch(() => { });
           }
@@ -1509,7 +1529,8 @@ class AlgoEngineService {
     symbol: string,
     orderType: string,
     entryPrice: number,
-    reason: string
+    reason: string,
+    legFields?: { direction: string; legName: string; legTimeframe: string; dualLegGroupId: string | null }
   ): Promise<void> {
     try {
       await prisma.trade.create({
@@ -1522,7 +1543,8 @@ class AlgoEngineService {
           quantity: 0,
           status: 'FAILED',
           entryTime: new Date(),
-          kiteResponse: { message: reason }
+          kiteResponse: { message: reason },
+          ...(legFields ? { direction: legFields.direction, legName: legFields.legName, legTimeframe: legFields.legTimeframe, dualLegGroupId: legFields.dualLegGroupId } : {})
         }
       });
       await prisma.strategyLog.create({

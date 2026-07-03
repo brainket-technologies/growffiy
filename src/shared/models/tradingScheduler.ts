@@ -14,7 +14,7 @@ export interface EngineAccess {
   getAlgoSetting(key: string, defaultValue: string): Promise<string>;
   getPreOpenStocks(): Promise<StockQuote[]>;
   preSelectAllClients(strategyId?: string): Promise<void>;
-  executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyId?: string): Promise<void>;
+  executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyId?: string, legIndex?: number, dualLegGroupId?: string | null): Promise<void>;
 }
 
 export class TradingScheduler {
@@ -39,6 +39,7 @@ export class TradingScheduler {
     const lastEntryByStrategy: Map<string, string> = new Map();
     const knownPreSelectTime: Map<string, string> = new Map();
     const knownEntryTime: Map<string, string> = new Map();
+    const dailyDualLegGroupId: Map<string, string> = new Map();
     let cachedFetchTime = '09:08';
 
     const checkAndExecute = async () => {
@@ -58,6 +59,7 @@ export class TradingScheduler {
         if (currentTimeStr === cachedFetchTime && lastFetchedDate !== currentDateKey) {
           console.log(`AlgoEngine Scheduler: Pre-open fetch time ${cachedFetchTime} reached. Fetching NSE pre-open data...`);
           lastFetchedDate = currentDateKey;
+          dailyDualLegGroupId.clear();
           await this.engine.getPreOpenStocks();
         }
 
@@ -156,6 +158,56 @@ export class TradingScheduler {
               }
             } else {
               console.log(`AlgoEngine Scheduler: Entry skip for "${strategy.name}" (${entryDebug})`);
+            }
+          }
+
+          // --- Dual Leg: Check per-leg entry times ---
+          const legs = config.legs || [];
+          if (legs.length > 0) {
+            const enabledLegs = legs.filter((l: any) => l.enabled);
+            let strategyGroupId = dailyDualLegGroupId.get(strategy.id);
+            if (enabledLegs.length > 1 && !strategyGroupId) {
+              strategyGroupId = crypto.randomUUID();
+              dailyDualLegGroupId.set(strategy.id, strategyGroupId);
+            }
+            for (let li = 0; li < legs.length; li++) {
+              const leg = legs[li];
+              if (!leg.enabled) continue;
+              const legEntryTimeFull = leg.entryTime || null;
+              if (!legEntryTimeFull) continue;
+              const legEntryTime = legEntryTimeFull.slice(0, 5);
+              const legEntrySeconds = legEntryTimeFull.length >= 8 ? parseInt(legEntryTimeFull.slice(6, 8)) : 0;
+              const legKey = `leg_${li}_${strategy.id}`;
+
+              const prevTime = knownEntryTime.get(legKey);
+              if (prevTime !== undefined && prevTime !== legEntryTime) {
+                console.log(`AlgoEngine Scheduler: Entry time changed for "${strategy.name}" Leg ${li + 1} ${prevTime} -> ${legEntryTime}. Resetting trigger.`);
+                lastEntryByStrategy.delete(legKey);
+              }
+              knownEntryTime.set(legKey, legEntryTime);
+
+              if (currentTimeStr >= legEntryTime && lastEntryByStrategy.get(legKey) !== currentDateKey) {
+                console.log(`AlgoEngine Scheduler: Leg ${li + 1} entry time ${legEntryTimeFull} reached for "${strategy.name}". Triggering in ${legEntrySeconds}s.`);
+                lastEntryByStrategy.set(legKey, currentDateKey);
+
+                if (!adminId || adminId === 'system-scheduler') {
+                  const firstAdmin = await prisma.user.findFirst({ where: { role: 'admin' } });
+                  if (firstAdmin) adminId = firstAdmin.id;
+                }
+
+                if (legEntrySeconds > 0) {
+                  entryTasks.push(async () => {
+                    await new Promise(resolve => setTimeout(resolve, legEntrySeconds * 1000));
+                    await this.engine.executePreOpenTrades(adminId, undefined, strategy.id, li, strategyGroupId || null);
+                  });
+                } else {
+                  const liCaptured = li;
+                  const gId = strategyGroupId || null;
+                  entryTasks.push(() => this.engine.executePreOpenTrades(adminId, undefined, strategy.id, liCaptured, gId));
+                }
+              } else {
+                console.log(`AlgoEngine Scheduler: Leg ${li + 1} skip for "${strategy.name}" (now=${currentTimeStr}, legEntry=${legEntryTime}, lastEntry=${lastEntryByStrategy.get(legKey) || '-'})`);
+              }
             }
           }
         }
@@ -366,9 +418,11 @@ export class TradingScheduler {
             const trailingTgtStep = config?.target?.trailingTarget;
             const marketProtectionVal = config?.tradeAction?.marketProtection !== undefined
               ? Number(config.tradeAction.marketProtection) : -1;
+            // marketProtectionVal is set during entry creation; this is a fallback
 
             const entryPrice = Number(trade.entryPrice);
             const exchangeParam = config.basicInfo.exchange;
+            const isShortTrade = (trade.direction === 'SHORT');
             let exitTriggered = false;
             let exitPrice = 0;
             let exitReason = '';
@@ -429,7 +483,7 @@ export class TradingScheduler {
 
               if (slComplete) {
                 exitTriggered = true;
-                exitPrice = slAvgPrice > 0 ? slAvgPrice : Number(trade.stopLoss || entryPrice * (1 - slPercent / 100));
+                exitPrice = slAvgPrice > 0 ? slAvgPrice : Number(trade.stopLoss || (isShortTrade ? entryPrice * (1 + slPercent / 100) : entryPrice * (1 - slPercent / 100)));
                 exitReason = 'SL Hit';
                 if (trade.targetOrderId) {
                   try {
@@ -439,7 +493,7 @@ export class TradingScheduler {
                 }
               } else if (targetComplete) {
                 exitTriggered = true;
-                exitPrice = targetAvgPrice > 0 ? targetAvgPrice : Number(trade.target || entryPrice * (1 + targetPercent / 100));
+                exitPrice = targetAvgPrice > 0 ? targetAvgPrice : Number(trade.target || (isShortTrade ? entryPrice * (1 - targetPercent / 100) : entryPrice * (1 + targetPercent / 100)));
                 exitReason = 'Target Hit';
                 if (trade.slOrderId) {
                   try {
@@ -452,14 +506,20 @@ export class TradingScheduler {
               // --- Trailing SL ---
               if (!exitTriggered && trade.slOrderId && trade.slTriggerPrice && trailingSlStep > 0) {
                 const price = this.wsLive.getStockLtp(trade.symbol);
-                if (price > 0 && price > entryPrice) {
+                const priceFavourable = isShortTrade ? (price > 0 && price < entryPrice) : (price > 0 && price > entryPrice);
+                if (priceFavourable) {
                   const currentSlTrigger = Number(trade.slTriggerPrice);
                   const trailStepValue = entryPrice * (trailingSlStep / 100);
-                  const priceMovePct = ((price - entryPrice) / entryPrice) * 100;
+                  const priceMovePct = isShortTrade
+                    ? ((entryPrice - price) / entryPrice) * 100
+                    : ((price - entryPrice) / entryPrice) * 100;
                   const trailsToApply = Math.floor(priceMovePct / trailingSlStep);
                   if (trailsToApply > 0) {
-                    const newSlTrigger = entryPrice + (trailsToApply * trailStepValue);
-                    if (newSlTrigger > currentSlTrigger) {
+                    const newSlTrigger = isShortTrade
+                      ? entryPrice - (trailsToApply * trailStepValue)
+                      : entryPrice + (trailsToApply * trailStepValue);
+                    const shouldUpdate = isShortTrade ? (newSlTrigger < currentSlTrigger) : (newSlTrigger > currentSlTrigger);
+                    if (shouldUpdate) {
                       try {
                         const finalSlTrigger = await getTickSizeAndRound(client.zerodhaApiKey, client.accessToken, exchangeParam, trade.symbol, newSlTrigger);
                         const modRes = await KiteClient.modifyOrder(client.zerodhaApiKey, client.accessToken, trade.slOrderId, {
@@ -481,14 +541,20 @@ export class TradingScheduler {
               // --- Trailing Target ---
               if (!exitTriggered && trade.targetOrderId && trade.target && trailingTgtStep > 0) {
                 const price = this.wsLive.getStockLtp(trade.symbol);
-                if (price > 0 && price > entryPrice) {
+                const priceFavourable = isShortTrade ? (price > 0 && price < entryPrice) : (price > 0 && price > entryPrice);
+                if (priceFavourable) {
                   const currentTarget = Number(trade.target);
                   const trailStepValue = entryPrice * (trailingTgtStep / 100);
-                  const priceMovePct = ((price - entryPrice) / entryPrice) * 100;
+                  const priceMovePct = isShortTrade
+                    ? ((entryPrice - price) / entryPrice) * 100
+                    : ((price - entryPrice) / entryPrice) * 100;
                   const trailsToApply = Math.floor(priceMovePct / trailingTgtStep);
                   if (trailsToApply > 0) {
-                    const newTarget = entryPrice + (trailsToApply * trailStepValue);
-                    if (newTarget > currentTarget) {
+                    const newTarget = isShortTrade
+                      ? entryPrice - (trailsToApply * trailStepValue)
+                      : entryPrice + (trailsToApply * trailStepValue);
+                    const shouldUpdate = isShortTrade ? (newTarget < currentTarget) : (newTarget > currentTarget);
+                    if (shouldUpdate) {
                       try {
                         const finalTarget = await getTickSizeAndRound(client.zerodhaApiKey, client.accessToken, exchangeParam, trade.symbol, newTarget);
                         const modRes = await KiteClient.modifyOrder(client.zerodhaApiKey, client.accessToken, trade.targetOrderId, {
@@ -552,8 +618,8 @@ export class TradingScheduler {
                     productParam = validProducts.includes(trade.orderType) ? trade.orderType : 'MIS';
                   }
 
-                  const rawSlTrigger = Number(trade.slTriggerPrice || (filledPrice > 0 ? filledPrice * (1 - slPercent / 100) : 0));
-                  const rawTarget = Number(trade.target || (filledPrice > 0 ? filledPrice * (1 + targetPercent / 100) : 0));
+                  const rawSlTrigger = Number(trade.slTriggerPrice || (filledPrice > 0 ? (isShortTrade ? filledPrice * (1 + slPercent / 100) : filledPrice * (1 - slPercent / 100)) : 0));
+                  const rawTarget = Number(trade.target || (filledPrice > 0 ? (isShortTrade ? filledPrice * (1 - targetPercent / 100) : filledPrice * (1 + targetPercent / 100)) : 0));
 
                   let finalSlTrigger = rawSlTrigger;
                   let finalTarget = rawTarget;
@@ -568,7 +634,7 @@ export class TradingScheduler {
                       try {
                         const slParams = {
                           exchange: exchangeParam, tradingsymbol: trade.symbol,
-                          transaction_type: 'SELL' as const, quantity: Number(trade.quantity),
+                          transaction_type: isShortTrade ? 'BUY' as const : 'SELL' as const, quantity: Number(trade.quantity),
                           order_type: 'SL-M' as const, product: productParam as any,
                           validity: 'DAY' as const,
                           trigger_price: finalSlTrigger,
@@ -596,7 +662,7 @@ export class TradingScheduler {
                       try {
                         const targetParams = {
                           exchange: exchangeParam, tradingsymbol: trade.symbol,
-                          transaction_type: 'SELL' as const, quantity: Number(trade.quantity),
+                          transaction_type: isShortTrade ? 'BUY' as const : 'SELL' as const, quantity: Number(trade.quantity),
                           order_type: 'LIMIT' as const, product: productParam as any,
                           validity: 'DAY' as const,
                           price: finalTarget
@@ -670,23 +736,25 @@ export class TradingScheduler {
                     fallbackSlPoints = entryPrice * (slPercent / 100);
                   }
                   if (fallbackSlPoints <= 0) fallbackSlPoints = 1;
-                  const stopLossLevel = entryPrice - fallbackSlPoints;
+                  const stopLossLevel = isShortTrade ? entryPrice + fallbackSlPoints : entryPrice - fallbackSlPoints;
                   let targetLevel: number;
                   if (targetType === 'Risk Reward Ratio') {
                     if (!config?.target?.riskRewardRatio) return;
                     const rr = config.target.riskRewardRatio;
-                    targetLevel = entryPrice + (fallbackSlPoints * rr);
+                    targetLevel = isShortTrade ? entryPrice - (fallbackSlPoints * rr) : entryPrice + (fallbackSlPoints * rr);
                   } else {
-                    targetLevel = entryPrice * (1 + targetPercent / 100);
+                    targetLevel = isShortTrade ? entryPrice * (1 - targetPercent / 100) : entryPrice * (1 + targetPercent / 100);
                   }
 
                   console.log(`AlgoEngine Monitor: Trade ${trade.id} (${trade.symbol}) | Entry: ₹${entryPrice.toFixed(2)} | Current: ₹${currentClosePrice.toFixed(2)} | SL: ₹${stopLossLevel.toFixed(2)} | Target: ₹${targetLevel.toFixed(2)}`);
 
-                  if (currentClosePrice <= stopLossLevel) {
+                  const slHit = isShortTrade ? (currentClosePrice >= stopLossLevel) : (currentClosePrice <= stopLossLevel);
+                  const targetHit = isShortTrade ? (currentClosePrice <= targetLevel) : (currentClosePrice >= targetLevel);
+                  if (slHit) {
                     exitTriggered = true;
                     exitPrice = currentClosePrice;
                     exitReason = 'SL Hit (candle)';
-                  } else if (currentClosePrice >= targetLevel) {
+                  } else if (targetHit) {
                     exitTriggered = true;
                     exitPrice = currentClosePrice;
                     exitReason = 'Target Hit (candle)';
@@ -737,7 +805,7 @@ export class TradingScheduler {
                 const sellParams = {
                   exchange: exchangeParam,
                   tradingsymbol: trade.symbol,
-                  transaction_type: 'SELL' as const,
+                  transaction_type: isShortTrade ? 'BUY' as const : 'SELL' as const,
                   quantity: trade.quantity,
                   order_type: 'MARKET' as const,
                   product: productToUse as any,
@@ -771,7 +839,7 @@ export class TradingScheduler {
 
               if (sellRes && sellRes.status === 'success') {
                 const sellOrderId = sellRes.data?.order_id || 'manual-exit';
-                const pnlValue = (exitPrice - entryPrice) * trade.quantity;
+                const pnlValue = isShortTrade ? (entryPrice - exitPrice) * trade.quantity : (exitPrice - entryPrice) * trade.quantity;
                 const newStatus = exitReason.toLowerCase().includes('sl') ? 'sl_hit' : (exitReason.toLowerCase().includes('target') ? 'target_hit' : 'closed');
 
                 await prisma.trade.update({
@@ -785,7 +853,7 @@ export class TradingScheduler {
                 await prisma.strategyLog.create({
                   data: {
                     strategyId: strategy.id,
-                    message: `Trade Closed for ${client.user.name}: Sold ${trade.quantity} ${trade.symbol} @ ₹${exitPrice.toFixed(2)} (${exitReason}). P&L: ₹${pnlValue.toFixed(2)}`,
+                    message: `Trade Closed for ${client.user.name}: ${isShortTrade ? 'Covered (Short)' : 'Sold (Long)'} ${trade.quantity} ${trade.symbol} @ ₹${exitPrice.toFixed(2)} (${exitReason}). P&L: ₹${pnlValue.toFixed(2)}`,
                     logType: 'trade'
                   }
                 });
@@ -793,7 +861,7 @@ export class TradingScheduler {
                 await logSystemEvent({
                   action: 'AUTO TRADE CLOSED',
                   oldValue: `Trade ID: ${trade.id}`,
-                  newValue: `Sold ${trade.quantity} ${trade.symbol} @ ₹${exitPrice.toFixed(2)} | ${exitReason} | P&L: ₹${pnlValue.toFixed(2)}`
+                  newValue: `${isShortTrade ? 'Covered (Short)' : 'Sold (Long)'} ${trade.quantity} ${trade.symbol} @ ₹${exitPrice.toFixed(2)} | ${exitReason} | P&L: ₹${pnlValue.toFixed(2)}`
                 });
               } else {
                 console.error(`AlgoEngine Monitor: Failed to place exit order for ${trade.symbol}:`, sellRes?.message);
@@ -823,6 +891,66 @@ export class TradingScheduler {
         for (let i = 0; i < openTrades.length; i += TradingScheduler.TRADE_MONITOR_CONCURRENCY) {
           const batch = openTrades.slice(i, i + TradingScheduler.TRADE_MONITOR_CONCURRENCY);
           await Promise.allSettled(batch.map(trade => processTrade(trade)));
+        }
+
+        // --- OCO Monitoring: Cancel loser leg's orders if one leg filled ---
+        try {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const dualLegTrades = await prisma.trade.findMany({
+            where: {
+              dualLegGroupId: { not: null },
+              createdAt: { gte: today },
+              status: { in: ['pending', 'open'] }
+            },
+            include: { client: { include: { user: true } } }
+          });
+
+          const groups = new Map<string, typeof dualLegTrades>();
+          for (const t of dualLegTrades) {
+            const gId = t.dualLegGroupId!;
+            if (!groups.has(gId)) groups.set(gId, []);
+            groups.get(gId)!.push(t);
+          }
+
+          for (const [gId, trades] of groups) {
+            const filled = trades.filter(t => t.status === 'open');
+            const filledIds = new Set(filled.map(t => t.id));
+            const losers = trades.filter(t => !filledIds.has(t.id));
+
+            if (filled.length > 0 && losers.length > 0) {
+              for (const loser of losers) {
+                console.log(`AlgoEngine Monitor: OCO — Leg "${loser.legName}" lost to "${filled[0].legName}" for group ${gId}. Cancelling all orders.`);
+                const clientCred = loser.client;
+                if (clientCred?.zerodhaApiKey && clientCred?.accessToken) {
+                  // Cancel entry order
+                  if (loser.entryOrderId) {
+                    try {
+                      await KiteClient.cancelOrder(clientCred.zerodhaApiKey, clientCred.accessToken, loser.entryOrderId);
+                    } catch (e) { console.warn(`OCO: Failed to cancel entry ${loser.entryOrderId}:`, e); }
+                  }
+                  // Cancel SL order
+                  if (loser.slOrderId) {
+                    try {
+                      await KiteClient.cancelOrder(clientCred.zerodhaApiKey, clientCred.accessToken, loser.slOrderId);
+                    } catch (e) { console.warn(`OCO: Failed to cancel SL ${loser.slOrderId}:`, e); }
+                  }
+                  // Cancel Target order
+                  if (loser.targetOrderId) {
+                    try {
+                      await KiteClient.cancelOrder(clientCred.zerodhaApiKey, clientCred.accessToken, loser.targetOrderId);
+                    } catch (e) { console.warn(`OCO: Failed to cancel Target ${loser.targetOrderId}:`, e); }
+                  }
+                }
+                await prisma.trade.update({
+                  where: { id: loser.id },
+                  data: { status: 'cancelled', entryOrderStatus: 'CANCELLED', exitReason: `OCO: Leg "${filled[0]?.legName || 'other'}" filled first` }
+                });
+              }
+            }
+          }
+        } catch (ocoErr) {
+          console.error('AlgoEngine Monitor: OCO monitoring error:', ocoErr);
         }
       } catch (err) {
         console.error('AlgoEngine Monitor: Error in open trades monitoring cron loop:', err);

@@ -158,6 +158,7 @@ export default function ClientTradesPage() {
             <thead>
               <tr>
                 <th>Symbol</th>
+                <th>Leg</th>
                 <th>Type</th>
                 <th>Qty</th>
                 <th>Entry</th>
@@ -170,7 +171,7 @@ export default function ClientTradesPage() {
             <tbody>
               {currentTrades.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                     No trades match the search or filter criteria.
                   </td>
                 </tr>
@@ -180,6 +181,7 @@ export default function ClientTradesPage() {
                   return (
                     <tr key={t.id}>
                       <td style={{ fontWeight: 600 }}>{t.symbol}</td>
+                      <td style={{ fontSize: '12px' }}>{t.legName ? `${t.legName} (${t.direction || ''})` : '--'}</td>
                       <td>{t.orderType || '--'}</td>
                       <td>{t.quantity || '--'}</td>
                       <td>₹{Number(t.entryPrice || 0).toFixed(2)}</td>

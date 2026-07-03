@@ -8,6 +8,7 @@ import { CheckCircle2, XCircle, Info, Calculator, FlaskConical, Loader2, GitBran
 interface StrategyConfig {
   basicInfo?: any;
   tradeAction?: any;
+  legs?: any[];
   stoploss?: any;
   target?: any;
   riskManagement?: any;
@@ -141,7 +142,9 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
   const [error, setError] = useState('');
 
   const bi = config.basicInfo || {};
-  const ta = config.tradeAction || {};
+  const legs = config.legs && config.legs.length > 0 ? config.legs : [];
+  const leg0 = legs[0] || {};
+  const ta = leg0.tradeAction || config.tradeAction || {};
   const sl = config.stoploss || {};
   const tg = config.target || {};
   const rm = config.riskManagement || {};
@@ -156,6 +159,9 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
   const slPct = sl.fixedPercent || 1;
   const targetPct = tg.profitPercent || 2;
   const bp = ta.bufferPercent !== undefined && ta.bufferPercent > 0 ? ta.bufferPercent : 0;
+  const dirLabel = isLong ? 'LONG' : 'SHORT';
+  const entryTime = leg0.entryTime || bi.entryTime || '09:20';
+  const legName = leg0.legName || 'Leg 1';
 
   const runTest = async () => {
     setLoading(true);
@@ -192,6 +198,13 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
       {/* Mock Inputs */}
       <div style={cardSx}>
         <SectionHeader icon={<Info size={14} color="var(--primary)" />} title="Mock Inputs" subtitle="Test ke liye values" />
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
+          <PassBadge label={`Leg: ${legName}`} passed={true} />
+          <PassBadge label={`Direction: ${dirLabel}`} passed={true} />
+          <PassBadge label={`Entry: ${entryTime}`} passed={true} />
+          <PassBadge label={`Candle: ${candleType.toUpperCase()}`} passed={true} />
+          {bp > 0 && <PassBadge label={`Buffer: ${isLong ? '+' : '−'}${bp}%`} passed={true} />}
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
           <InputField label="Symbol" value={symbol} onChange={setSymbol} placeholder="TATASTEEL" />
           <InputField label={`LTP (₹)`} value={ltp} onChange={setLtp} placeholder="200.00" />
@@ -228,7 +241,7 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
             detail={`floor(${(cap * riskPct / 100).toFixed(0)} / ${((sl.type === 'Fixed Points' ? (sl.fixedPoints || 10) : mockCandlePrice * (slPct/100))).toFixed(2)})`}
             color="var(--text-heading)"
           />
-          <FormulaLine label="Breakout" value={isSLMarket ? 'auto PASS' : !hasPriceAction ? 'auto PASS' : `${mockLtp} ≥ ${(bp > 0 ? mockCandlePrice * (1 + bp/100) : mockCandlePrice).toFixed(2)} ?`}
+          <FormulaLine label="Breakout" value={isSLMarket ? 'auto PASS' : !hasPriceAction ? 'auto PASS' : `${mockLtp} ${isLong ? '≥' : '≤'} ${(bp > 0 ? (isLong ? mockCandlePrice * (1 + bp/100) : mockCandlePrice * (1 - bp/100)) : mockCandlePrice).toFixed(2)} ?`}
             detail={isSLMarket ? 'SL-Market → auto pass' : !hasPriceAction ? 'No Price Action condition → auto pass' : ''}
             color="var(--text-heading)"
           />
@@ -266,7 +279,7 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
               </div>
             </div>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '12px' }}>
-              <PassBadge label={`Breakout: ${results.breakoutPassed ? 'PASS' : 'FAIL'}`} passed={results.breakoutPassed} />
+              <PassBadge label={`${dirLabel}: ${results.breakoutPassed ? 'PASS' : 'FAIL'}`} passed={results.breakoutPassed} />
               <PassBadge label={`Qty: ${results.quantity || 0}`} passed={(results.quantity || 0) > 0} />
               <PassBadge label={`MaxPos: ${results.openPositions || 0}/${rm.maxOpenPositions || 3}`} passed={(results.openPositions || 0) < (rm.maxOpenPositions || 3)} />
               {results.reasons?.slice(0, 2).map((r: string, i: number) => (
@@ -282,7 +295,7 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
               <ChainNode label="Auto-Trade Enabled?" detail="AppSettings → auto_trade_enabled = true check" passed={true} isLast={false} />
               <ChainNode label="Trading Day?" detail="Weekday (Mon-Fri) + holidays + special days check" passed={true} isLast={false} />
               <ChainNode
-                label={isSLMarket ? 'SL-Market → Breakout Auto-PASS' : hasPriceAction ? `LTP (${results.currentLtp}) ≥ Entry (${results.breakoutEntryPrice})?` : 'No Price Action → Breakout Auto-PASS'}
+                label={isSLMarket ? 'SL-Market → Breakout Auto-PASS' : hasPriceAction ? `LTP (${results.currentLtp}) ${isLong ? '≥' : '≤'} Entry (${results.breakoutEntryPrice})?` : 'No Price Action → Breakout Auto-PASS'}
                 detail={results.breakoutPassed ? 'Breakout confirmed ✅' : 'Breakout not met ❌'}
                 passed={results.breakoutPassed}
                 isLast={!results.breakoutPassed}
@@ -304,7 +317,7 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
                   {(results.quantity || 0) > 0 && <>
                     {results.isSLMarket && <ChainNode label="SL-Market: trigger price set" detail={`SL @ ₹${results.stopLoss?.toFixed(2)}, entry @ ₹${results.entryPrice?.toFixed(2)}`} passed={true} isLast={false} />}
                     <ChainNode label="OCO Orders → Market"
-                      detail={`BUY ${results.orderType} + SELL SL-M @ ₹${results.stopLoss?.toFixed(2)} + SELL LIMIT @ ₹${results.target?.toFixed(2)}`}
+                      detail={`${dirLabel}: ${results.orderType} + SL-Market ${isLong ? 'SELL' : 'BUY'} @ ₹${results.stopLoss?.toFixed(2)} + LIMIT ${isLong ? 'SELL' : 'BUY'} @ ₹${results.target?.toFixed(2)}`}
                       passed={true} isLast={true}
                     />
                   </>}
@@ -318,9 +331,10 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
             <SectionHeader icon={<Calculator size={14} color="var(--primary)" />} title="Detailed Calculations" subtitle="Engine ke exact formulas" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {[
-                { l: 'Candle Price', v: `₹${results.candlePrice || '—'}`, f: `${results.candleType || 'high'}.toUpperCase() → first 5m candle (${bi.preSelectTime || '09:15'} → ${bi.entryTime || '09:20'})`, c: 'var(--text-heading)', p: null },
-                { l: 'Breakout Entry Price', v: `₹${results.breakoutEntryPrice || '—'}`, f: bp > 0 ? `Candle ${results.candleType} (${results.candlePrice}) × (1 + ${bp}/100)` : `Candle ${results.candleType} (${results.candlePrice}) — no buffer`, c: 'var(--text-heading)', p: results.breakoutPassed ?? false },
-                { l: 'Breakout Check', v: results.breakoutPassed ? 'PASS ✅' : 'FAIL ❌', f: results.isSLMarket ? 'SL-Market → auto-pass' : !results.hasPriceAction ? 'No Price Action condition → auto-pass' : `LTP (${results.currentLtp}) >= Entry (${results.breakoutEntryPrice})`, c: results.breakoutPassed ? 'var(--accent-dark)' : 'var(--danger)', p: results.breakoutPassed },
+                { l: 'Active Leg', v: `${legName} (${dirLabel})`, f: `Entry: ${entryTime}, Timeframe: ${leg0.timeframe || '5m'}`, c: 'var(--text-heading)', p: null },
+                { l: 'Candle Price', v: `₹${results.candlePrice || '—'}`, f: `${results.candleType || 'high'}.toUpperCase() → first 5m candle (${bi.preSelectTime || '09:15'} → ${entryTime})`, c: 'var(--text-heading)', p: null },
+                { l: 'Breakout Entry Price', v: `₹${results.breakoutEntryPrice || '—'}`, f: bp > 0 ? `Candle ${results.candleType} (${results.candlePrice}) × (1 ${isLong ? '+' : '−'} ${bp}/100)` : `Candle ${results.candleType} (${results.candlePrice}) — no buffer`, c: 'var(--text-heading)', p: results.breakoutPassed ?? false },
+                { l: 'Breakout Check', v: results.breakoutPassed ? 'PASS ✅' : 'FAIL ❌', f: results.isSLMarket ? 'SL-Market → auto-pass' : !results.hasPriceAction ? 'No Price Action condition → auto-pass' : `LTP (${results.currentLtp}) ${isLong ? '>=' : '<='} Entry (${results.breakoutEntryPrice})`, c: results.breakoutPassed ? 'var(--accent-dark)' : 'var(--danger)', p: results.breakoutPassed },
                 { l: 'SL Points', v: `₹${results.slPoints?.toFixed(2) || '—'}`, f: `${sl.type || 'Fixed %'}: entry (₹${results.entryPrice?.toFixed(2)}) × ${slPct}% = ₹${results.slPoints?.toFixed(2)}`, c: 'var(--text-heading)', p: results.slPoints > 0 },
                 { l: 'Capital at Risk', v: `₹${(results.capitalAtRisk || 0).toFixed(0)}`, f: `Available (${cap.toLocaleString('en-IN')}) × riskPerTrade (${riskPct}%) = ₹${(cap * riskPct/100).toFixed(0)}, capped at ₹${dbCap.toLocaleString('en-IN')}`, c: 'var(--text-heading)', p: results.capitalAtRisk > 0 },
                 { l: 'Quantity', v: results.quantity?.toString() || '0', f: `floor(₹${(results.capitalAtRisk || 0).toFixed(0)} / ₹${(results.slPoints || 0).toFixed(2)}) = ${results.quantity || 0}`, c: 'var(--text-heading)', p: (results.quantity || 0) > 0 },
@@ -334,11 +348,11 @@ export default function StrategyTestPanel({ config }: { config: StrategyConfig }
                 />
               )}
               <CalcRow label="Stop Loss" value={`₹${results.stopLoss?.toFixed(2) || '—'}`}
-                formula={`Entry (₹${results.entryPrice?.toFixed(2)}) − SL Points (₹${results.slPoints?.toFixed(2)}) = ₹${results.stopLoss?.toFixed(2)}`}
+                formula={`${isLong ? 'Entry −' : 'Entry +'} SL Points = ₹${results.stopLoss?.toFixed(2)} → SL-Market ${isLong ? 'SELL' : 'BUY'}`}
                 color="var(--text-heading)" passed={true}
               />
               <CalcRow label="Target" value={`₹${results.target?.toFixed(2) || '—'}`}
-                formula={tg.type === 'Risk Reward Ratio' ? `Entry + SL × ${tg.riskRewardRatio||2} RR` : `Entry × (1 + ${targetPct}%)`}
+                formula={tg.type === 'Risk Reward Ratio' ? `Entry + SL × ${tg.riskRewardRatio||2} RR → LIMIT ${isLong ? 'SELL' : 'BUY'}` : `Entry × (1 + ${targetPct}%) → LIMIT ${isLong ? 'SELL' : 'BUY'}`}
                 color="var(--text-heading)" passed={true}
               />
             </div>

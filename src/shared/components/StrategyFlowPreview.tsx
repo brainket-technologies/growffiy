@@ -5,6 +5,7 @@ import { Clock, TrendingUp, Shield, Target, Activity, Eye, ArrowDown, Zap, Alert
 interface StrategyConfig {
   basicInfo?: any;
   tradeAction?: any;
+  legs?: any[];
   stoploss?: any;
   target?: any;
   riskManagement?: any;
@@ -100,9 +101,27 @@ function StageCircle({ children }: { children: React.ReactNode }) {
   );
 }
 
+function LegBadge({ leg, idx }: { leg: any; idx: number }) {
+  const dir = leg.tradeAction?.action || 'Long';
+  const isEnabled = leg.enabled !== false;
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      padding: '2px 10px', borderRadius: '999px', fontSize: '10px', fontWeight: 600, lineHeight: '20px',
+      background: isEnabled ? (dir === 'Long' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)') : 'var(--surface)',
+      color: isEnabled ? (dir === 'Long' ? '#059669' : '#dc2626') : 'var(--text-muted)',
+      border: '1px solid var(--border-light)',
+    }}>
+      {leg.legName || `Leg ${idx + 1}`}: {isEnabled ? dir : 'Disabled'}
+    </div>
+  );
+}
+
 export default function StrategyFlowPreview({ config }: { config: StrategyConfig }) {
   const bi = config.basicInfo || {};
-  const ta = config.tradeAction || {};
+  const legs = config.legs && config.legs.length > 0 ? config.legs : [];
+  const leg0 = legs[0] || {};
+  const ta = leg0.tradeAction || config.tradeAction || {};
   const sl = config.stoploss || {};
   const tg = config.target || {};
   const rm = config.riskManagement || {};
@@ -118,7 +137,7 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
   const isSLMarket = ta.orderType === 'SL-Market';
   const hasBuyingPower = rm.misMarginRate > 0;
 
-  const entryTime = bi.entryTime || '09:20';
+  const entryTime = leg0.entryTime || bi.entryTime || '09:20';
   const exitTime = bi.exitTime || '15:15';
   const preSelectTime = bi.preSelectTime || '09:15';
   const segment = bi.segment || 'NSE';
@@ -126,6 +145,10 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
   const checkInterval = bi.checkIntervalSec || 60;
   const candleType = ta.candlePriceType || 'high';
   const bufferPct = ta.bufferPercent !== undefined && ta.bufferPercent > 0 ? ta.bufferPercent : 0;
+  const dirLabel = isLong ? 'LONG' : 'SHORT';
+  const dirIcon = isLong ? '↑' : '↓';
+
+  const multiLeg = legs.length > 1;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
@@ -151,6 +174,7 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
                 : <PassBadge label="No Conditions (all pass)" passed={true} />
               }
               {hasPriceAction && <PassBadge label="Price Action active" passed={true} />}
+              {multiLeg && <PassBadge label={`${legs.length} Legs OCO`} passed={true} />}
             </div>
           </StageCard>
         </div>
@@ -158,7 +182,7 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
 
       <Connector />
 
-      {/* Stage 2 */}
+      {/* Stage 2: Legs + Breakout */}
       <div style={{ position: 'relative', paddingLeft: '54px' }}>
         <div style={{ position: 'absolute', left: '20px', top: '0', bottom: '0', width: '2px', background: 'var(--border-light)' }} />
         <div style={{ position: 'relative' }}>
@@ -166,22 +190,33 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
           <StageCard>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
               <StageTag label="Stage 2" />
-              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)' }}>Breakout Entry Check</span>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)' }}>Legs & Breakout Entry</span>
               <div style={{ marginLeft: 'auto' }}><TimingTag time={entryTime} /></div>
             </div>
 
+            {/* Legs summary */}
+            {multiLeg && (
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px', padding: '8px 12px', borderRadius: '8px', background: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-subtle)', marginRight: '4px' }}>Active Legs:</span>
+                {legs.map((leg: any, i: number) => (
+                  <LegBadge key={i} leg={leg} idx={i} />
+                ))}
+              </div>
+            )}
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
+              {/* Primary leg info */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', background: 'var(--surface)', border: '1px solid var(--border-light)' }}>
-                <span style={{ fontWeight: 600, fontSize: '12px', color: 'var(--text-body)', minWidth: '80px' }}>① Candle:</span>
+                <span style={{ fontWeight: 600, fontSize: '12px', color: 'var(--text-body)', minWidth: '80px' }}>① {leg0.legName || 'Leg 1'}:</span>
                 <span style={{ fontSize: '12px', color: 'var(--text-body)' }}>
-                  Get <strong style={{color:'var(--text-heading)'}}>{candleType.toUpperCase()}</strong> of first 5m candle{' '}
+                  {dirLabel} <strong style={{color:'var(--text-heading)'}}>{dirIcon}</strong> — Get <strong style={{color:'var(--text-heading)'}}>{candleType.toUpperCase()}</strong> of first 5m candle{' '}
                   <span style={{color:'var(--text-subtle)'}}>({preSelectTime} → {entryTime})</span>
                 </span>
               </div>
               {bufferPct > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', background: 'var(--surface)', border: '1px solid var(--border-light)' }}>
                   <span style={{ fontWeight: 600, fontSize: '12px', color: 'var(--text-body)', minWidth: '80px' }}>② Buffer:</span>
-                  <span style={{ fontSize: '12px', color: 'var(--text-body)' }}>Entry price + <strong>{bufferPct}%</strong></span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-body)' }}>Entry {isLong ? '+' : '−'} <strong>{bufferPct}%</strong></span>
                 </div>
               )}
               <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'var(--surface)', border: '1px solid var(--border)' }}>
@@ -203,13 +238,34 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
             </div>
 
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              <PassBadge label={`Candle: ${candleType.toUpperCase()}`} passed={true} />
+              <PassBadge label={`${dirLabel}: ${candleType.toUpperCase()}`} passed={true} />
               <PassBadge label={`Order: ${ta.orderType || 'Market'}`} passed={true} />
               {bufferPct > 0
-                ? <PassBadge label={`Buffer: +${bufferPct}%`} passed={true} />
+                ? <PassBadge label={`Buffer: ${isLong ? '+' : '−'}${bufferPct}%`} passed={true} />
                 : <PassBadge label="No buffer" passed={false} />
               }
             </div>
+
+            {/* Additional legs */}
+            {multiLeg && legs.slice(1).map((leg: any, i: number) => {
+              if (leg.enabled === false) return null;
+              const lTa = leg.tradeAction || {};
+              const lDir = lTa.action === 'Long' || lTa.action === 'Buy' ? 'LONG' : 'SHORT';
+              const lCandle = lTa.candlePriceType || candleType;
+              const lBuffer = lTa.bufferPercent !== undefined && lTa.bufferPercent > 0 ? lTa.bufferPercent : 0;
+              return (
+                <div key={i + 1} style={{ marginTop: '8px', padding: '8px 12px', borderRadius: '8px', background: 'var(--surface)', border: '1px dashed var(--border)' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-heading)', marginBottom: '4px' }}>
+                    {leg.legName || `Leg ${i + 2}`} — {lDir} @ {leg.entryTime} ({leg.timeframe})
+                  </div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)', display: 'flex', gap: '8px' }}>
+                    <span>Candle: {lCandle.toUpperCase()}</span>
+                    <span>Order: {lTa.orderType || 'Market'}</span>
+                    {lBuffer > 0 && <span>Buffer: {lBuffer}%</span>}
+                  </div>
+                </div>
+              );
+            })}
           </StageCard>
         </div>
       </div>
@@ -285,7 +341,7 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
                   {sl.type || 'Fixed %'}: {sl.fixedPercent || 1}%
                 </div>
                 <div style={{ fontSize: '10px', color: 'var(--text-subtle)', marginBottom: '6px' }}>
-                  {isLong ? 'Entry −' : 'Entry +'} SL pts → SL-Market SELL
+                  {isLong ? 'Entry −' : 'Entry +'} SL pts → SL-Market {isLong ? 'SELL' : 'BUY'}
                 </div>
                 {hasTrailingSL
                   ? <PassBadge label={`Trail: ${sl.trailingSL}%`} passed={true} />
@@ -298,7 +354,7 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
                   {tg.type || 'Profit %'}: {tg.profitPercent || 2}%
                 </div>
                 <div style={{ fontSize: '10px', color: 'var(--text-subtle)', marginBottom: '6px' }}>
-                  {isLong ? 'Entry × ' : 'Entry × '}(1 + {tg.profitPercent || 2}%) → LIMIT SELL
+                  {isLong ? 'Entry × ' : 'Entry × '}(1 + {tg.profitPercent || 2}%) → LIMIT {isLong ? 'SELL' : 'BUY'}
                 </div>
                 {hasTrailingTarget
                   ? <PassBadge label={`Trail: ${tg.trailingTarget}%`} passed={true} />
@@ -309,7 +365,7 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
 
             <div style={{ padding: '8px 12px', borderRadius: '8px', background: 'var(--surface)', border: '1px solid var(--border-light)', fontSize: '11px', color: 'var(--text-secondary)' }}>
               <strong style={{color:'var(--text-heading)'}}>Order Setup:</strong>{' '}
-              Entry {ta.orderType || 'Market'} | SL-Market SELL | LIMIT SELL | Product: MIS
+              Entry {ta.orderType || 'Market'} | SL-Market {isLong ? 'SELL' : 'BUY'} | LIMIT {isLong ? 'SELL' : 'BUY'} | Product: MIS
             </div>
           </StageCard>
         </div>
@@ -380,7 +436,7 @@ export default function StrategyFlowPreview({ config }: { config: StrategyConfig
               <div style={{ marginLeft: 'auto' }}><TimingTag time={exitTime} /></div>
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-body)', lineHeight: '1.7' }}>
-              SELL MARKET at {exitTime}. Pehle bhi exit ho sakta hai agar SL trigger ho, Target hit ho,
+              {isLong ? 'SELL' : 'BUY'} MARKET at {exitTime}. Pehle bhi exit ho sakta hai agar SL trigger ho, Target hit ho,
               ya daily loss/profit limit cross ho jaye.
             </div>
           </StageCard>

@@ -22,19 +22,26 @@ export async function POST(request: Request) {
       dbCapital: Number(mockData?.dbCapital) || Number(mockData?.availableCapital) || 50000,
     };
 
-    const candleType = config.tradeAction?.candlePriceType || 'high';
+    const legs = config.legs && config.legs.length > 0 ? config.legs : [];
+    const leg0 = legs[0] || {};
+    const ta = leg0.tradeAction || config.tradeAction || {};
+
+    const candleType = ta.candlePriceType || 'high';
     const candlePrice = mock.candlePrice;
 
-    const bufferPct = config.tradeAction?.bufferPercent;
+    const isLong = ta.action === 'Long' || ta.action === 'Buy';
+
+    const bufferPct = ta.bufferPercent;
     const breakoutEntryPrice = (bufferPct === undefined || bufferPct === null || bufferPct === -1)
       ? candlePrice
-      : candlePrice * (1 + bufferPct / 100);
+      : isLong
+        ? candlePrice * (1 + bufferPct / 100)
+        : candlePrice * (1 - bufferPct / 100);
 
     const currentLtp = mock.ltp;
     const hasPriceAction = config.conditions?.some((c: any) => c.indicator === 'Price Action');
-    const isSLMarket = config.tradeAction?.orderType === 'SL-Market';
-    // Engine logic: isSLMarket → always pass | !hasPriceAction → always pass | else check LTP >= breakoutEntryPrice
-    const breakoutPassed = isSLMarket || !hasPriceAction || currentLtp >= breakoutEntryPrice;
+    const isSLMarket = ta.orderType === 'SL-Market';
+    const breakoutPassed = isSLMarket || !hasPriceAction || (isLong ? currentLtp >= breakoutEntryPrice : currentLtp <= breakoutEntryPrice);
 
     const entryPrice = breakoutEntryPrice;
 
@@ -52,7 +59,6 @@ export async function POST(request: Request) {
     }
     if (slPoints <= 0) slPoints = 1;
 
-    // Engine: capitalAtRisk = clientCapital * (riskPercent / 100), capped at dbCapital
     let capitalAtRisk = mock.availableCapital * (riskPercent / 100);
     const dbCapitalLimit = mock.dbCapital;
     if (capitalAtRisk > dbCapitalLimit) {
@@ -70,32 +76,34 @@ export async function POST(request: Request) {
       quantity = Math.min(quantity, qtyByBuyingPower);
     }
 
-    const stopLoss = entryPrice - slPoints;
+    const stopLoss = isLong ? entryPrice - slPoints : entryPrice + slPoints;
     let target: number;
     const targetType = config.target?.type;
     const targetPercent = config.target?.profitPercent || 2;
     if (targetType === 'Risk Reward Ratio') {
       const rr = config.target?.riskRewardRatio || 2;
-      target = entryPrice + (slPoints * rr);
+      target = isLong ? entryPrice + (slPoints * rr) : entryPrice - (slPoints * rr);
     } else {
-      target = entryPrice * (1 + targetPercent / 100);
+      target = isLong ? entryPrice * (1 + targetPercent / 100) : entryPrice * (1 - targetPercent / 100);
     }
 
     const maxOpen = config.riskManagement?.maxOpenPositions || 3;
     const wouldTrade = breakoutPassed && quantity > 0 && mock.openPositions < maxOpen;
 
+    const dirLabel = isLong ? 'LONG' : 'SHORT';
+
     const reasons: string[] = [];
-    if (isSLMarket) reasons.push('SL-Market order — breakout check auto-pass');
-    else if (!hasPriceAction) reasons.push('No Price Action condition — breakout check auto-pass');
-    else if (breakoutPassed) reasons.push(`Breakout PASS: LTP (${currentLtp}) ≥ Entry (${Number(breakoutEntryPrice.toFixed(2))})`);
-    else reasons.push(`Breakout FAIL: LTP (${currentLtp}) < Entry (${Number(breakoutEntryPrice.toFixed(2))})`);
-    if (quantity > 0) reasons.push(`Quantity computed: ${quantity} (₹${capitalAtRisk.toFixed(0)} / ₹${slPoints.toFixed(2)})`);
-    else reasons.push('Quantity is 0 (capital at risk too low)');
-    if (mock.openPositions < maxOpen) reasons.push(`Open positions (${mock.openPositions}) < max (${maxOpen})`);
-    else reasons.push(`Max open positions reached (${mock.openPositions}/${maxOpen})`);
+    if (isSLMarket) reasons.push(`[${dirLabel}] SL-Market order — breakout check auto-pass`);
+    else if (!hasPriceAction) reasons.push(`[${dirLabel}] No Price Action condition — breakout check auto-pass`);
+    else if (breakoutPassed) reasons.push(`[${dirLabel}] Breakout PASS: LTP (${currentLtp}) ${isLong ? '≥' : '≤'} Entry (${Number(breakoutEntryPrice.toFixed(2))})`);
+    else reasons.push(`[${dirLabel}] Breakout FAIL: LTP (${currentLtp}) ${isLong ? '<' : '>'} Entry (${Number(breakoutEntryPrice.toFixed(2))})`);
+    if (quantity > 0) reasons.push(`[${dirLabel}] Quantity computed: ${quantity} (₹${capitalAtRisk.toFixed(0)} / ₹${slPoints.toFixed(2)})`);
+    else reasons.push(`[${dirLabel}] Quantity is 0 (capital at risk too low)`);
+    if (mock.openPositions < maxOpen) reasons.push(`[${dirLabel}] Open positions (${mock.openPositions}) < max (${maxOpen})`);
+    else reasons.push(`[${dirLabel}] Max open positions reached (${mock.openPositions}/${maxOpen})`);
     if (misMarginRate && misMarginRate > 0) {
       const bpQty = Math.floor(mock.availableCapital / (entryPrice * misMarginRate));
-      reasons.push(`Buying power check (misMarginRate=${misMarginRate}): max ${bpQty} qty`);
+      reasons.push(`[${dirLabel}] Buying power check (misMarginRate=${misMarginRate}): max ${bpQty} qty`);
     }
 
     return NextResponse.json({
@@ -115,7 +123,7 @@ export async function POST(request: Request) {
         stopLoss: Number(stopLoss.toFixed(2)),
         target: Number(target.toFixed(2)),
         productType: 'MIS',
-        orderType: config.tradeAction?.orderType || 'Market',
+        orderType: ta.orderType || 'Market',
         wouldTrade,
         reasons,
       }

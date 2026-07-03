@@ -287,14 +287,17 @@ export default function ClientPerformancePage() {
     const query = searchQuery.toLowerCase();
 
     // Dynamically calculate transaction type from strategy config action
-    let txType = 'BUY';
-    try {
-      const config = JSON.parse(t.strategy?.configJson || '{}');
-      const action = config?.tradeAction?.action || 'Long';
-      if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
-        txType = 'SELL';
-      }
-    } catch (e) {}
+    let txType = t.direction === 'SHORT' ? 'SELL' : 'BUY';
+    if (txType !== 'SELL') {
+      try {
+        const config = JSON.parse(t.strategy?.configJson || '{}');
+        const leg = config?.legs?.[0]?.tradeAction;
+        const action = leg?.action || config?.tradeAction?.action || 'Long';
+        if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
+          txType = 'SELL';
+        }
+      } catch (e) {}
+    }
 
     const matchesSearch = strategyName.includes(query) || symbolStr.includes(query);
     const matchesStrategy = strategyFilter === 'all' || strategyName.includes(strategyFilter.toLowerCase());
@@ -330,14 +333,17 @@ export default function ClientPerformancePage() {
       const exitPriceVal = Number(t.exitPrice || 0);
       const pnlVal = Number(t.pnl || 0);
       
-      let txType = 'BUY';
-      try {
-        const config = JSON.parse(t.strategy?.configJson || '{}');
-        const action = config?.tradeAction?.action || 'Long';
-        if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
-          txType = 'SELL';
-        }
-      } catch (e) {}
+      let txType = t.direction === 'SHORT' ? 'SELL' : 'BUY';
+      if (txType !== 'SELL') {
+        try {
+          const config = JSON.parse(t.strategy?.configJson || '{}');
+          const leg = config?.legs?.[0]?.tradeAction;
+          const action = leg?.action || config?.tradeAction?.action || 'Long';
+          if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
+            txType = 'SELL';
+          }
+        } catch (e) {}
+      }
 
       return [
         formatDateTime(t.createdAt),
@@ -377,14 +383,17 @@ export default function ClientPerformancePage() {
       const exitPriceVal = Number(t.exitPrice || 0);
       const pnlVal = Number(t.pnl || 0);
       
-      let txType = 'BUY';
-      try {
-        const config = JSON.parse(t.strategy?.configJson || '{}');
-        const action = config?.tradeAction?.action || 'Long';
-        if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
-          txType = 'SELL';
-        }
-      } catch (e) {}
+      let txType = t.direction === 'SHORT' ? 'SELL' : 'BUY';
+      if (txType !== 'SELL') {
+        try {
+          const config = JSON.parse(t.strategy?.configJson || '{}');
+          const leg = config?.legs?.[0]?.tradeAction;
+          const action = leg?.action || config?.tradeAction?.action || 'Long';
+          if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
+            txType = 'SELL';
+          }
+        } catch (e) {}
+      }
 
       const pnlColor = pnlVal >= 0 ? '#16a34a' : '#ef4444';
 
@@ -1167,6 +1176,7 @@ export default function ClientPerformancePage() {
               <tr>
                 <th>Date & Time</th>
                 <th>Strategy</th>
+                <th>Leg</th>
                 <th>Type</th>
                 <th>Symbol</th>
                 <th>Qty</th>
@@ -1180,7 +1190,7 @@ export default function ClientPerformancePage() {
             <tbody>
               {paginatedTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={10} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                  <td colSpan={11} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                     No transactions executed during this period.
                   </td>
                 </tr>
@@ -1198,13 +1208,18 @@ export default function ClientPerformancePage() {
                   
                   // Dynamically calculate transaction type from strategy config action
                   let transactionType = 'BUY';
-                  try {
-                    const config = JSON.parse(trade.strategy?.configJson || '{}');
-                    const action = config?.tradeAction?.action || 'Long';
-                    if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
-                      transactionType = 'SELL';
-                    }
-                  } catch (e) {}
+                  const tDir = (trade.direction || '').toLowerCase();
+                  if (tDir === 'short' || tDir === 'sell') transactionType = 'SELL';
+                  if (transactionType !== 'SELL') {
+                    try {
+                      const config = JSON.parse(trade.strategy?.configJson || '{}');
+                      const leg = config?.legs?.[0]?.tradeAction;
+                      const action = leg?.action || config?.tradeAction?.action || 'Long';
+                      if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
+                        transactionType = 'SELL';
+                      }
+                    } catch (e) {}
+                  }
                   const isBuy = transactionType === 'BUY';
                   const strategyName = trade.strategy?.name || trade.strategyName || 'Pre-Open Momentum';
 
@@ -1222,6 +1237,7 @@ export default function ClientPerformancePage() {
                         {formatDateTime(trade.entryTime || trade.createdAt)}
                       </td>
                       <td style={{ fontWeight: 500 }}>{strategyName}</td>
+                      <td style={{ fontSize: '12px' }}>{trade.legName ? `${trade.legName} (${trade.direction || ''})` : '--'}</td>
                       <td>
                         <span className={`badge ${isBuy ? 'badge-blue' : 'badge-red'}`} style={{ padding: '3px 8px', fontSize: '10px' }}>
                           {transactionType}
@@ -1346,6 +1362,10 @@ export default function ClientPerformancePage() {
                 <span>{selectedTrade.orderType} / MIS</span>
               </div>
               <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Leg</span>
+                <span>{selectedTrade.legName ? `${selectedTrade.legName} (${selectedTrade.direction || ''} / ${selectedTrade.legTimeframe || ''})` : '--'}</span>
+              </div>
+              <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Quantity</span>
                 <span>{selectedTrade.quantity} shares</span>
               </div>
@@ -1358,8 +1378,32 @@ export default function ClientPerformancePage() {
                 <span>{formatDateTime(selectedTrade.entryTime || selectedTrade.createdAt)}</span>
               </div>
               <div>
-                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Price</span>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Orig Entry Price</span>
+                <span>₹{selectedTrade.originalEntryPrice ? Number(selectedTrade.originalEntryPrice).toFixed(2) : '--'}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Tick Rounded Entry Price</span>
                 <span>₹{Number(selectedTrade.entryPrice || 0).toFixed(2)}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Orig Stop Loss</span>
+                <span>₹{selectedTrade.originalStopLoss ? Number(selectedTrade.originalStopLoss).toFixed(2) : '--'}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Tick Rounded Stop Loss</span>
+                <span>₹{selectedTrade.stopLoss ? Number(selectedTrade.stopLoss).toFixed(2) : '--'}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Orig Target</span>
+                <span>₹{selectedTrade.originalTarget ? Number(selectedTrade.originalTarget).toFixed(2) : '--'}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Tick Rounded Target</span>
+                <span>₹{selectedTrade.target ? Number(selectedTrade.target).toFixed(2) : '--'}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>SL Trigger Price</span>
+                <span>{selectedTrade.slTriggerPrice ? `₹${Number(selectedTrade.slTriggerPrice).toFixed(2)}` : '--'}</span>
               </div>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Exit Time</span>
@@ -1409,6 +1453,30 @@ export default function ClientPerformancePage() {
                   color: 'var(--text-primary)'
                 }}>
                   {JSON.stringify(selectedTrade.kiteResponse, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            {/* SL Kite Response */}
+            {selectedTrade.slKiteResponse && (
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>
+                  SL Order Kite Response Logs
+                </span>
+                <pre style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', padding: '12px', borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace', overflowX: 'auto', maxHeight: '180px', lineHeight: '1.4', color: 'var(--text-primary)' }}>
+                  {JSON.stringify(selectedTrade.slKiteResponse, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            {/* Target Kite Response */}
+            {selectedTrade.targetKiteResponse && (
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>
+                  Target Order Kite Response Logs
+                </span>
+                <pre style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', padding: '12px', borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace', overflowX: 'auto', maxHeight: '180px', lineHeight: '1.4', color: 'var(--text-primary)' }}>
+                  {JSON.stringify(selectedTrade.targetKiteResponse, null, 2)}
                 </pre>
               </div>
             )}

@@ -1,200 +1,1244 @@
-# 📊 Trading Flow — Har Line Ka Calculation
+# Trading Flow — Complete System Document
 
-## Real Data
-| Item | Value | Source |
-|------|-------|--------|
-| Client | Vikash Sharma | DB |
-| Zerodha Wallet (equity.net) | ₹11,791.70 | Live Kite API (25 June 2026) |
-| DB Capital (client.capital) | ₹5,00,000 | DB |
-| Strategy | Pre-Open Momentum Breakout | DB |
-| Config Conditions | `riskPerTrade: 1` | DB configJson (Updated to 1%) |
-| Selected Stock | CANBK | Pre-select sort |
-| 5-min Candle High | ₹488 | Kite historical |
-| Entry Trigger Price | ₹488.50 | breakoutEntryPrice (after 0.05 tick round) |
+> **Purpose:** Har condition, har scenario, har logic — code ke bina, real numbers ke saath.
+> **Data Source:** Neon DB (production), Kite Live API, real client "Vikash Sharma"
 
 ---
 
-## Code Execution — Line by Line (Updated with latest DB and logic fixes)
+## 1. System Overview
 
-### 1. marginCache Check (Pre-select 09:15:30 se)
+### Components
+| Component | Role | Real Data Example |
+|-----------|------|-------------------|
+| **Neon DB (PostgreSQL)** | Stores strategies, clients, trades, configs | `client.capital = ₹5,00,000` |
+| **Kite API (Zerodha)** | Real-time market data, order placement | `equity.net = ₹11,791.70` |
+| **Scheduler (Cron)** | 60-sec loop, checks entry times, monitors positions | Runs 09:15–15:30 IST |
+| **Algo Engine** | Calculates entry/SL/target/prices, places orders | Per-leg direction-aware |
+| **OCO Monitor** | Part of scheduler, cancels losing leg's ALL orders | Runs every cycle |
+
+### Data Flow
 ```
-marginRes = await KiteClient.getMargins(client.zerodhaApiKey, client.accessToken)
-this.marginCache.set(client.id, Number(marginRes.data.equity.net))
-         = Number(11791.7)
-         = 11791.70
-```
-marginCache["b364d72f-..."] = **₹11,791.70** ✅
-
----
-
-### 2. Candle Price Fetch (Entry 09:20:30)
-```
-KiteClient.getHistoricalData(apiKey, token, instToken, '5minute', from, to)
-candleType = config.tradeAction?.candlePriceType || 'high'
-candlePrice = Number(res.data.candles[0][2])   // index 2 = high
-            = 488
-```
-candlePrice = **₹488** ✅
-
----
-
-### 3. Breakout Entry Price
-```
-bufferPct = config.tradeAction?.bufferPercent = 0.1
-breakoutEntryPrice = candlePrice * (1 + bufferPct / 100)
-            = 488 * (1 + 0.1/100)
-            = 488 * 1.001
-            = 488.488
-
-finalEntryPrice = getTickSizeAndRound('NSE', 'CANBK', 488.488) 
-                = Math.round(488.488 / 0.05) * 0.05 
-                = 488.50
-```
-breakoutEntryPrice = **₹488.50** (tick size applied successfully)
-
----
-
-### 4. Breakout Check
-```
-isSLMarket = config.tradeAction?.orderType === 'SL-Market'
-           = 'SL-Market' === 'SL-Market'
-           = true
-if (isSLMarket || !hasPriceAction || currentLtp >= breakoutEntryPrice)
-           if (true) → targetStock = candidateStock (CANBK) ✅
-```
-SL-Market hai → price check skip, order khud trigger handle karega.
-
----
-
-### 5. Client Capital — EXACT
-
-#### Step 5a: marginOrApi & DB Capital
-```
-cachedMargin = this.marginCache.get(client.id) = 11791.70
-dbCapital = Number(client.capital) = 500000
-```
-
-#### Step 5b: clientCapital
-```
-dbDisabled = (dbCapital === -1) = false
-clientCapital = dbDisabled ? marginOrApi : Math.min(marginOrApi, dbCapital)
-            = Math.min(11791.70, 500000)
-            = 11791.70
-```
-clientCapital = **₹11,791.70** ✅ (wallet or DB dono me minimum)
-
----
-
-### 6. Capital At Risk (Now 1% from DB)
-```
-riskPercent = config.riskManagement.riskPerTrade = 1  // DB se uthaya (previously 3)
-capitalAtRisk = clientCapital * (riskPercent / 100)
-            = 11791.70 * (1 / 100)
-            = 11791.70 * 0.01
-            = 117.917
-```
-capitalAtRisk = **₹117.917**
-
----
-
-### 7. Stop Loss Points
-```
-slPercent = config.stoploss.fixedPercent = 1
-slPoints = entryPrice * (slPercent / 100)
-         = 488.50 * (1 / 100)
-         = 4.885
-```
-slPoints = **₹4.885** ✅
-
----
-
-### 8. Quantity Calculation
-```
-quantity = Math.floor(capitalAtRisk / slPoints)
-         = Math.floor(117.917 / 4.885)
-         = Math.floor(24.138)
-         = 24
-```
-quantity = **24 shares** ✅
-
----
-
-### 9. Stop Loss Price (Target & SL Order Prep)
-```
-stopLoss = entryPrice - slPoints
-         = 488.50 - 4.885
-         = 483.615
-
-finalStopLoss = getTickSizeAndRound('NSE', 'CANBK', 483.615) 
-              = 483.60
-```
-stopLoss = **₹483.60** (Perfectly tick size rounded)
-
----
-
-### 10. Target Price
-```
-targetPercent = config.target.profitPercent = 2
-target = entryPrice * (1 + targetPercent / 100)
-       = 488.50 * (1 + 2/100)
-       = 488.50 * 1.02
-       = 498.27
-
-finalTarget = getTickSizeAndRound('NSE', 'CANBK', 498.27) 
-            = Math.round(498.27 / 0.05) * 0.05 
-            = 498.25
-```
-target = **₹498.25** (Perfectly tick size rounded)
-
----
-
-### 11. Initial Entry Order Placed
-```
-KiteClient.placeOrder(apiKey, token, {
-    exchange: 'NSE',
-    tradingsymbol: 'CANBK',
-    transaction_type: 'BUY',
-    quantity: 24,
-    order_type: 'SL-M',
-    product: 'MIS',
-    trigger_price: 488.50
-})
+Neon DB Config → Scheduler → Algo Engine → Kite API (place orders)
+                                          → Kite response → save to Neon DB trades[]
+                    ↑                                    ↓
+                    └── OCO Monitor ← checks every cycle ─┘
 ```
 
 ---
 
-### 12. Trade Fill & Placement of Secondary Orders (Runtime Logic)
-Jab 1st order **COMPLETE** hota hai:
-1. `SL-M SELL 24 CANBK @ trigger 483.60` place hota hai.
-2. Uska Kite Response DB mein `slKiteResponse` column mein save hota hai.
-3. `LIMIT SELL 24 CANBK @ limit 498.25` place hota hai.
-4. Uska Kite Response DB mein `targetKiteResponse` column mein save hota hai.
+## 2. Strategy Config — DB Structure
 
-**Error Handling / Logging:** Agar Kite ye Secondary order reject karta hai (jaise tick size mismatch 0.05 ka tha pehle, ab fixed hai), toh `slOrderStatus: 'REJECTED'` mark hoga aur system log ban jayega + Runtime Log mein display hoga.
+### Full Strategy Config (from DB `Strategy.configJson`)
+```json
+{
+  "basicInfo": {
+    "name": "Pre-Open Momentum Breakout",
+    "status": "active",
+    "segment": "NSE F&O",
+    "exchange": "NSE",
+    "preSelectTime": "09:15:30",
+    "selectPosition": 1,
+    "tradeType": "Intraday",
+    "checkIntervalSec": 60,
+    "description": "Pre-Open Momentum Breakout Strategy",
+    "exitTime": "15:15:00"
+  },
+  "stoploss": {
+    "type": "Fixed %",
+    "orderType": "Market",
+    "fixedPercent": 1,
+    "fixedPoints": 10,
+    "trailingSL": -1,
+    "riskPercent": 1
+  },
+  "target": {
+    "type": "Trailing Target",
+    "profitPercent": 2,
+    "riskRewardRatio": 2,
+    "partialExit": 100,
+    "trailingTarget": -1
+  },
+  "riskManagement": {
+    "riskPerTrade": 1,
+    "killSwitch": false,
+    "maxOpenPositions": 3,
+    "maxDailyLoss": -1,
+    "maxDailyProfit": -1,
+    "capitalAllocation": -1,
+    "misMarginRate": -1
+  },
+  "conditions": [
+    {
+      "value": "-10",
+      "logical": "AND",
+      "operator": ">",
+      "indicator": "Pre Open Change %"
+    }
+  ],
+  "legs": [
+    {
+      "name": "Leg 1",
+      "enabled": true,
+      "entryTime": "09:20:30",
+      "timeframe": "5m",
+      "tradeAction": {
+        "action": "Long",
+        "orderType": "SL-Market",
+        "bufferPercent": 0.1,
+        "candlePriceType": "high"
+      }
+    },
+    {
+      "name": "Leg 2",
+      "enabled": true,
+      "entryTime": "09:30:00",
+      "timeframe": "15m",
+      "tradeAction": {
+        "action": "Short",
+        "orderType": "SL-Market",
+        "bufferPercent": 0.1,
+        "candlePriceType": "low"
+      }
+    }
+  ]
+}
+```
+
+### Config Rules
+| Key | Value | Rule |
+|-----|-------|------|
+| `riskPerTrade` | 1% | **COMMON** across all legs |
+| `stoploss.fixedPercent` | 1% | **COMMON** %, but ₹ value **PER LEG** (entry alag → ₹ alag) |
+| `stoploss.trailingSL` | -1 | **DISABLED** — no trailing SL |
+| `target.type` | Trailing Target | Name only; `trailingTarget: -1` → actually disabled |
+| `target.profitPercent` | 2% | **COMMON** %, but ₹ value **PER LEG** |
+| `target.trailingTarget` | -1 | **DISABLED** — no trailing target |
+| `maxOpenPositions` | 3 | Max 3 simultaneous trades per client |
+| `misMarginRate` | -1 | **DISABLED** — no MIS margin cap on quantity |
+| `conditions` | `Pre Open Change % > -10` | Sirf 1 condition — stocks below -10% skip |
+| `legs[].entryTime` | Per leg | Leg 1: 09:20:30, Leg 2: 09:30:00 |
+| `legs[].tradeAction.action` | Per leg | Leg 1: Long/BUY, Leg 2: Short/SELL |
+| `legs[].tradeAction.candlePriceType` | Per leg | Leg 1: high, Leg 2: low |
 
 ---
 
-### 13. Market Close (Force Exit at 15:24)
-Agar market window 15:24 pe band hota hai:
-1. Algo check karega agar koi `openTradesCount > 0` bacha hai.
-2. Agar bacha hai toh woh continue monitoring rakhega (loop band nahi hoga).
-3. `isPastForceExitTime` trigger hoga.
-4. **Important Fix:** Existing pending Target and Stop Loss orders Kite API mein explicitly **CANCEL** kiye jayenge.
-5. Fir ek market `SELL` order mara jayega.
-6. Jab ye order **COMPLETE** hoga tab Trade status `CLOSED` mark hoga Admin panel mein.
+## 3. Client & Wallet — Real Numbers
+
+### Client Data (from DB)
+| Field | Value | Source |
+|-------|-------|--------|
+| Client Name | Vikash Sharma | `Client.user.name` |
+| Client ID | `b364d72f-e2e2-4dbc-bbef-3286c75e1875` | DB |
+| Capital (DB) | ₹5,00,000 | `Client.capital` |
+| Strategy | Pre-Open Momentum Breakout | `Client.strategyId` |
+| Strategy ID | `c7bafa89-3403-44c3-bcd0-199602c878e1` | DB |
+
+### Wallet Data (from Kite API)
+| Field | Value | Source |
+|-------|-------|--------|
+| Zerodha equity.net | ₹11,791.70 | `Kite.getMargins().equity.net` (25 June 2026) |
+| Zerodha equity.available | ₹11,791.70 | Live API |
+| Zerodha equity.used | ₹0.00 | Live API |
+
+### Capital Calculation (Step by Step)
+```
+Inputs:
+  marginOrApi = wallet (equity.net) = ₹11,791.70
+  dbCapital  = DB capital         = ₹5,00,000
+  dbDisabled = (dbCapital === -1) = false
+
+Decision:
+  dbDisabled? → No → use Math.min(wallet, DB)
+  clientCapital = Math.min(11,791.70, 5,00,000)
+               = ₹11,791.70
+```
+**Result:** System uses wallet value (₹11,791.70) because it's lower than DB capital.
 
 ---
 
-## 📌 Summary — All Calculated Values (Final Live Flow)
+## 4. Pre-Market Phase (08:00 — 09:15:30)
 
-| Variable | Source / Line | Expression | Result |
-|----------|-----------|-----------|--------|
-| clientCapital | marginCache | Math.min(11791.70, 500000) | **₹11,791.70** |
-| riskPercent | DB (Updated) | `config.riskManagement.riskPerTrade` | **1** |
-| capitalAtRisk | Line 729 | 11791.70 × 1/100 | **₹117.91** |
-| quantity | Line 783 | Math.floor(117.91 / 4.885) | **24 shares** |
-| triggerPrice | Tick Rounded | 488.488 → Nearest 0.05 | **₹488.50** |
-| stopLoss | Tick Rounded | 483.615 → Nearest 0.05 | **₹483.60** |
-| target | Tick Rounded | 498.270 → Nearest 0.05 | **₹498.25** |
+### What Happens
+| Time | Action | Detail |
+|------|--------|--------|
+| 08:00 | Token refresh | Kite access token refreshed for all clients |
+| 08:00 — 09:15:30 | Wait for pre-open | Scheduler idle until `preSelectTime` |
+| 09:15:30 | Pre-open fetch | NSE F&O pre-open data fetched via Kite API |
 
-*(Runtime Logs feature ab live hai. Kisi bhi background process ko monitor karne ke liye 'App Runtime Logs' dashboard use karein.)*
+### Condition Check
+```
+Condition #1: Pre Open Change % > -10
+  → Stocks with change% <= -10 are FILTERED OUT (extreme losers skipped)
+  → Only stocks with change% > -10 pass
+```
+
+### Stock Selection Logic
+**Since Leg 1 = LONG:** Stocks sorted ascending by change% (most loser first).
+
+| Leg 1 Direction | Sort Order | Picks |
+|----------------|-----------|-------|
+| **LONG** | Ascending (most negative first) | **Top LOSER** among remaining |
+| **SHORT** | Descending (most positive first) | **Top GAINER** among remaining |
+
+### Pre-Open Data (NSE F&O — Example)
+Step-by-step selection:
+
+```
+Step 1: All pre-open stocks
+  COAL INDIA:   change% = -12.0%, volume = 8,00,000
+  JSW STEEL:    change% = -8.0%,  volume = 9,50,000
+  HINDALCO:     change% = -4.8%,  volume = 8,20,000
+  CANBK:        change% = +3.2%,  volume = 5,20,000
+
+Step 2: Apply condition — Pre Open Change % > -10
+  COAL INDIA:   -12.0 > -10? → NO  → SKIP (filtered out)
+  JSW STEEL:    -8.0  > -10? → YES → PASS
+  HINDALCO:     -4.8  > -10? → YES → PASS
+  CANBK:        +3.2  > -10? → YES → PASS
+
+Step 3: Sort ascending (LONG direction = most loser first)
+  JSW STEEL:    -8.0%  → Rank #1 (biggest loser above -10%)
+  HINDALCO:     -4.8%  → Rank #2
+  CANBK:        +3.2%  → Rank #3
+
+Step 4: selectPosition = 1 → JSW STEEL selected (change% = -8.0%)
+```
+
+---
+
+## 5. Leg 1 Execution — LONG (09:20:30)
+
+### Before Entry — Scheduler Check
+```
+Current IST Time: 09:20:30
+
+Scheduler Logic:
+  Has Leg 1 already been executed today?
+    → Check lastEntryByStrategy map for key "leg_0_<strategyId>"
+    → Not found → First execution today → Proceed
+
+  Generate dualLegGroupId (UUID): "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  This ID is shared with Leg 2 later.
+```
+
+### Step 1: Fetch Candle Data
+```
+Symbol: JSW STEEL
+Timeframe: 5m (from config.legs[0].timeframe)
+Candle Window: preSelectTime(09:15:30) → entryTime(09:20:30)
+Candle Price Type: "high" (from config.legs[0].tradeAction.candlePriceType)
+
+Kite API Response (historical data):
+  5-min candle (09:15:30 — 09:20:30):
+    Open: ₹895.00
+    High: ₹897.50  ← THIS IS THE CANDLE PRICE WE USE
+    Low:  ₹893.00
+    Close: ₹896.00
+
+candlePrice = ₹897.50 (the HIGH of the 5-min candle)
+```
+
+### Step 2: Apply Buffer
+```
+Direction: LONG
+Buffer %: 0.1% (from config.legs[0].tradeAction.bufferPercent)
+
+Formula (LONG): candlePrice × (1 + bufferPercent / 100)
+             = 897.50 × (1 + 0.1/100)
+             = 897.50 × 1.001
+             = 898.398
+
+Tick Rounding (JSW STEEL tick size = ₹0.05):
+  Round to nearest 0.05: Math.round(898.398 / 0.05) × 0.05
+                       = Math.round(17967.96) × 0.05
+                       = 17968 × 0.05
+                       = 898.40
+
+breakoutEntryPrice = ₹898.40
+```
+
+### Step 3: Breakout Check
+```
+Order Type: SL-Market (from config.legs[0].tradeAction.orderType)
+Price Action Condition: false (no Price Action condition in config)
+
+3-Tier Logic:
+  Tier 1: Is it SL-Market? → YES → Auto PASS (skip price check)
+
+System does NOT check LTP vs entry for SL-Market orders.
+```
+
+### Step 4: Calculate SL Points
+```
+SL Type: Fixed % (from config.stoploss.type)
+SL Percent: 1% (from config.stoploss.fixedPercent) — COMMON value
+
+Formula: slPoints = entryPrice × (slPercent / 100)
+                 = 898.40 × (1 / 100)
+                 = 898.40 × 0.01
+                 = 8.984
+
+Result: slPoints = ₹8.984 (Leg 1 specific, based on its entry price)
+```
+
+### Step 5: Calculate Quantity
+```
+Capital At Risk (COMMON — same for all legs):
+  riskPercent = 1 (from config.riskManagement.riskPerTrade)
+  capitalAtRisk = clientCapital × (riskPercent / 100)
+               = 11,791.70 × (1 / 100)
+               = ₹117.917
+
+Formula (PER LEG — depends on leg's slPoints):
+  quantity = Math.floor(capitalAtRisk / slPoints)
+           = Math.floor(117.917 / 8.984)
+           = Math.floor(13.124)
+           = 13 shares
+
+MIS Margin Check:
+  misMarginRate = -1 → DISABLED
+  No cap on quantity from MIS margin.
+
+  finalQuantity = 13 shares
+```
+
+### Step 6: Calculate Stop Loss Price
+```
+Direction: LONG
+Formula: stopLoss = entryPrice − slPoints
+                  = 898.40 − 8.984
+                  = 889.416
+
+Tick Rounding (₹0.05):
+  finalStopLoss = Math.round(889.416 / 0.05) × 0.05
+                = Math.round(17788.32) × 0.05
+                = 17788 × 0.05
+                = 889.40
+
+Result: SL at ₹889.40 (SELL order)
+```
+
+### Step 7: Calculate Target Price
+```
+Target Type: Trailing Target (from config.target.type)
+  Note: Type name is "Trailing Target" but trailingTarget = -1 → DISABLED
+  Falls back to profitPercent = 2%
+
+Direction: LONG
+Formula: target = entryPrice × (1 + profitPercent / 100)
+               = 898.40 × (1 + 2/100)
+               = 898.40 × 1.02
+               = 916.368
+
+Tick Rounding (₹0.05):
+  finalTarget = Math.round(916.368 / 0.05) × 0.05
+              = Math.round(18327.36) × 0.05
+              = 18327 × 0.05
+              = 916.35
+
+Result: Target at ₹916.35 (SELL order)
+```
+
+### Step 8: Place Orders on Kite
+```
+Client: Vikash Sharma
+Symbol: JSW STEEL (NSE)
+Product: MIS
+
+Order 1 — Entry:
+  Type: BUY
+  Order Type: SL-Market
+  Trigger: ₹898.40
+  Quantity: 13
+  → Kite Response: { order_id: "kite_entry_l1_001", status: "pending" }
+
+Order 2 — Stop Loss:
+  Type: SELL
+  Order Type: SL-Market
+  Trigger: ₹889.40
+  Quantity: 13
+  → Kite Response: { order_id: "kite_sl_l1_001", status: "pending" }
+
+Order 3 — Target:
+  Type: SELL
+  Order Type: LIMIT
+  Price: ₹916.35
+  Quantity: 13
+  → Kite Response: { order_id: "kite_tgt_l1_001", status: "pending" }
+```
+
+### Step 9: Save Trade to DB
+```
+Trade Record:
+  id: auto-generated UUID
+  clientId: "b364d72f-..."
+  strategyId: "c7bafa89-..."
+  symbol: "JSWSTEEL"
+  direction: "LONG"
+  legName: "Leg 1"
+  legTimeframe: "5m"
+  dualLegGroupId: "a1b2c3d4-..." (shared with Leg 2)
+  
+  entryPrice: 898.40
+  stopLoss: 889.40
+  target: 916.35
+  quantity: 13
+  entryOrderId: "kite_entry_l1_001"
+  entryOrderStatus: "pending"
+  slOrderId: "kite_sl_l1_001"
+  slOrderStatus: "pending"
+  targetOrderId: "kite_tgt_l1_001"
+  targetOrderStatus: "pending"
+  
+  status: "pending"
+  entryTime: 2026-06-25T09:20:30.000Z
+```
+
+---
+
+## 6. Leg 2 Execution — SHORT (09:30:00)
+
+### Before Entry — Scheduler Check
+```
+Current IST Time: 09:30:00
+
+Scheduler Logic:
+  Has Leg 2 already been executed today?
+    → Check lastEntryByStrategy map for key "leg_1_<strategyId>"
+    → Not found → First execution today → Proceed
+
+  Use same dualLegGroupId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+```
+
+### Step 1: Fetch Candle Data
+```
+Symbol: JSW STEEL
+Timeframe: 15m (from config.legs[1].timeframe)
+Candle Window: preSelectTime(09:15:30) → entryTime(09:30:00)
+Candle Price Type: "low" (from config.legs[1].tradeAction.candlePriceType)
+
+Kite API Response (historical data):
+  15-min candle (09:15:30 — 09:30:00):
+    Open: ₹895.00
+    High: ₹898.50
+    Low:  ₹892.00  ← THIS IS THE CANDLE PRICE WE USE
+    Close: ₹896.50
+
+candlePrice = ₹892.00 (the LOW of the 15-min candle)
+```
+
+### Step 2: Apply Buffer
+```
+Direction: SHORT
+Buffer %: 0.1% (from config.legs[1].tradeAction.bufferPercent)
+
+Formula (SHORT): candlePrice × (1 − bufferPercent / 100)
+              = 892.00 × (1 − 0.1/100)
+              = 892.00 × 0.999
+              = 891.108
+
+Tick Rounding (₹0.05):
+  breakoutEntryPrice = Math.round(891.108 / 0.05) × 0.05
+                     = Math.round(17822.16) × 0.05
+                     = 17822 × 0.05
+                     = 891.10
+
+breakoutEntryPrice = ₹891.10
+```
+
+### Step 3: Breakdown Check
+```
+Order Type: SL-Market → Auto PASS (skip price check)
+```
+
+### Step 4: Calculate SL Points
+```
+SL Percent: 1% — COMMON value (same as Leg 1)
+
+Formula: slPoints = entryPrice × (slPercent / 100)
+                 = 891.10 × (1 / 100)
+                 = 891.10 × 0.01
+                 = 8.911
+
+Result: slPoints = ₹8.911 (different from Leg 1's ₹8.984 because entry is different)
+```
+
+### Step 5: Calculate Quantity
+```
+Capital At Risk: ₹117.917 — COMMON (same as Leg 1)
+
+Formula (PER LEG):
+  quantity = Math.floor(capitalAtRisk / slPoints)
+           = Math.floor(117.917 / 8.911)
+           = Math.floor(13.233)
+           = 13 shares
+
+MIS Margin Check: DISABLED (misMarginRate = -1)
+finalQuantity = 13 shares
+```
+
+### Step 6: Calculate Stop Loss Price
+```
+Direction: SHORT
+Formula: stopLoss = entryPrice + slPoints
+                  = 891.10 + 8.911
+                  = 900.011
+
+Tick Rounding (₹0.05):
+  finalStopLoss = Math.round(900.011 / 0.05) × 0.05
+                = Math.round(18000.22) × 0.05
+                = 18000 × 0.05
+                = 900.00
+
+Result: SL at ₹900.00 (BUY order — cover short)
+```
+
+### Step 7: Calculate Target Price
+```
+Direction: SHORT
+Formula: target = entryPrice × (1 − profitPercent / 100)
+               = 891.10 × (1 − 2/100)
+               = 891.10 × 0.98
+               = 873.278
+
+Tick Rounding (₹0.05):
+  finalTarget = Math.round(873.278 / 0.05) × 0.05
+              = Math.round(17465.56) × 0.05
+              = 17466 × 0.05
+              = 873.30
+
+Result: Target at ₹873.30 (BUY order — cover short)
+```
+
+### Step 8: Place Orders on Kite
+```
+Order 1 — Entry:
+  Type: SELL (short entry)
+  Order Type: SL-Market
+  Trigger: ₹891.10
+  Quantity: 13
+  → Kite Response: { order_id: "kite_entry_l2_001", status: "pending" }
+
+Order 2 — Stop Loss:
+  Type: BUY (cover short)
+  Order Type: SL-Market
+  Trigger: ₹900.00
+  Quantity: 13
+  → Kite Response: { order_id: "kite_sl_l2_001", status: "pending" }
+
+Order 3 — Target:
+  Type: BUY (cover short)
+  Order Type: LIMIT
+  Price: ₹873.30
+  Quantity: 13
+  → Kite Response: { order_id: "kite_tgt_l2_001", status: "pending" }
+```
+
+### Step 9: Save Trade to DB
+```
+Trade Record:
+  id: auto-generated UUID
+  clientId: "b364d72f-..."
+  strategyId: "c7bafa89-..."
+  symbol: "JSWSTEEL"
+  direction: "SHORT"
+  legName: "Leg 2"
+  legTimeframe: "15m"
+  dualLegGroupId: "a1b2c3d4-..." (SAME as Leg 1)
+  
+  entryPrice: 891.10
+  stopLoss: 900.00
+  target: 873.30
+  quantity: 13
+  entryOrderId: "kite_entry_l2_001"
+  entryOrderStatus: "pending"
+  slOrderId: "kite_sl_l2_001"
+  slOrderStatus: "pending"
+  targetOrderId: "kite_tgt_l2_001"
+  targetOrderStatus: "pending"
+  
+  status: "pending"
+  entryTime: 2026-06-25T09:30:00.000Z
+```
+
+---
+
+## 7. TRUE OCO — First Fill Wins
+
+### How OCO Works
+```
+Both Legs have orders pending on Kite:
+  Leg 1 (LONG):  Entry @ ₹898.40 | SL @ ₹889.40 | Target @ ₹916.35
+  Leg 2 (SHORT): Entry @ ₹891.10 | SL @ ₹900.00 | Target @ ₹873.30
+
+OCO = One Cancels Other
+Whichever entry fills FIRST on Kite → the OTHER leg's ALL orders get cancelled.
+```
+
+### Scenario A: Leg 1 Fills First (LONG wins)
+
+**Market Moves UP:**
+```
+Time: 09:32:00
+JSW STEEL Price: ₹899.00 (above Leg 1 trigger of ₹898.40)
+→ Kite fills Leg 1 BUY entry order
+→ Leg 1 entryOrderStatus = "filled"
+→ Leg 1 trade status = "open" (now active)
+
+OCO Monitor detects:
+  Leg 1 entry = filled
+  Leg 2 entry = still pending (not yet filled)
+
+Action:
+  1. Call Kite API → CANCEL Leg 2 entry order (kite_entry_l2_001)
+  2. Call Kite API → CANCEL Leg 2 SL order (kite_sl_l2_001)
+  3. Call Kite API → CANCEL Leg 2 target order (kite_tgt_l2_001)
+  4. Update DB:
+     Leg 2: status = "cancelled"
+            entryOrderStatus = "cancelled"
+            slOrderStatus = "cancelled"
+            targetOrderStatus = "cancelled"
+            exitReason = "OCO_CANCELLED — Leg 1 filled first"
+
+DB After OCO — Scenario A:
+  Leg 1 (LONG):  entryOrderStatus = "filled", status = "open"  ← ACTIVE
+  Leg 2 (SHORT): ALL cancelled                                 ← LOSER
+```
+
+### Scenario B: Leg 2 Fills First (SHORT wins)
+
+**Market Moves DOWN:**
+```
+Time: 09:35:00
+JSW STEEL Price: ₹890.50 (below Leg 2 trigger of ₹891.10)
+→ Kite fills Leg 2 SELL entry order
+→ Leg 2 entryOrderStatus = "filled"
+→ Leg 2 trade status = "open" (now active)
+
+OCO Monitor detects:
+  Leg 2 entry = filled
+  Leg 1 entry = still pending
+
+Action:
+  1. Call Kite API → CANCEL Leg 1 entry order (kite_entry_l1_001)
+  2. Call Kite API → CANCEL Leg 1 SL order (kite_sl_l1_001)
+  3. Call Kite API → CANCEL Leg 1 target order (kite_tgt_l1_001)
+  4. Update DB:
+     Leg 1: ALL cancelled
+
+DB After OCO — Scenario B:
+  Leg 1 (LONG):  ALL cancelled                                 ← LOSER
+  Leg 2 (SHORT): entryOrderStatus = "filled", status = "open"  ← ACTIVE
+```
+
+### Scenario C: Both Still Pending
+
+**Market hasn't hit either trigger:**
+```
+Time: 09:45:00
+JSW STEEL Price: ₹895.00 (between both triggers)
+→ Neither Leg 1 trigger (₹898.40) nor Leg 2 trigger (₹891.10) reached
+→ Both legs still "pending"
+
+OCO Monitor: No action — keep waiting
+Scheduler: Keeps checking every 60 seconds
+```
+
+### Scenario D: Both Fill (Rare — Race Condition)
+```
+Theoretically possible if Kite fills both simultaneously.
+In practice, Kite processes orders sequentially.
+
+If both fill:
+  OCO Monitor detects:
+    → Both legs have entryOrderStatus = "filled"
+    → Both legs are "open"
+
+  Action (edge case handling):
+    → Cancel both legs' SL & Target orders
+    → Place market exit orders for BOTH legs
+    → Mark both as "closed" with exitReason = "OCO_RACE_CONDITION"
+```
+
+---
+
+## 8. Position Monitoring (After Entry Fills)
+
+### 8A: Trailing Stop Loss
+
+**DISABLED** — `trailingSL = -1`
+
+SL stays fixed at initial level throughout the trade. No movement.
+
+### 8B: Trailing Target
+
+**DISABLED** — `trailingTarget = -1`
+
+Target stays fixed at initial level throughout the trade. No movement.
+
+### 8C: Fallback Candle Checks
+
+System checks every 60 seconds. Uses candle close price for fallback:
+
+**For LONG (Leg 1):**
+```
+SL Hit:  current candle close <= stopLossLevel (₹889.40)
+Target Hit: current candle close >= targetLevel (₹916.35)
+
+Example — SL hit via fallback:
+  15-min candle close = ₹889.00 (14:30)
+  889.00 < 889.40 → SL HIT
+  → Place MARKET SELL to exit
+  → PnL = (889.00 − 898.40) × 13 = −₹122.20
+```
+
+**For SHORT (Leg 2):**
+```
+SL Hit:  current candle close >= stopLossLevel (₹900.00)
+Target Hit: current candle close <= targetLevel (₹873.30)
+
+Example — Target hit via fallback:
+  15-min candle close = ₹873.00 (14:45)
+  873.00 < 873.30 → TARGET HIT
+  → Place MARKET BUY to cover
+  → PnL = (891.10 − 873.00) × 13 = +₹235.30
+```
+
+### 8D: Kite Order Status Checks
+
+Every cycle, scheduler checks each order's status on Kite:
+
+| Kite Status | System Action |
+|-------------|---------------|
+| `COMPLETE` | Mark as "filled" in DB |
+| `CANCELLED` | Mark as "cancelled" in DB, log reason |
+| `REJECTED` | Mark as "failed" in DB, save kiteResponse.message |
+| `PENDING` | Keep waiting |
+| `OPEN` | Keep waiting |
+| `TRIGGER PENDING` | Keep waiting |
+
+### 8E: Circuit Breakers
+
+**Max Daily Loss (disabled):**
+```
+maxDailyLoss = -1 → DISABLED
+No loss limit in place.
+```
+
+**Max Daily Profit (disabled):**
+```
+maxDailyProfit = -1 → DISABLED
+No profit limit in place.
+```
+
+**Max Open Positions:**
+```
+maxOpenPositions = 3
+Client can have up to 3 simultaneous open trades.
+```
+
+---
+
+## 9. Square Off (15:15 — 15:24)
+
+### Force Exit Logic
+```
+exitTime = 15:15:00 (from config.basicInfo.exitTime)
+forceExitDeadline = 15:24 (9-minute grace period)
+
+Scheduler checks every 60 seconds after 15:15:
+  Is there an open trade?
+  → Yes → Check if past forceExitTime (15:24)
+  → Not yet → Continue monitoring
+  → Past 15:24 → Force exit
+```
+
+### Force Exit — LONG (Leg 1)
+```
+Step 1: Cancel remaining SL + Target orders on Kite
+  → CANCEL slOrderId (kite_sl_l1_001)
+  → CANCEL targetOrderId (kite_tgt_l1_001)
+
+Step 2: Place MARKET SELL at current price
+  Current LTP = ₹894.00
+  → SELL 13 JSWSTEEL @ MARKET
+
+Step 3: On Kite COMPLETE response:
+  exitPrice = ₹894.00
+  exitTime = 2026-06-25T15:24:30.000Z
+  PnL = (894.00 − 898.40) × 13 = −₹57.20
+  status = "closed"
+  exitReason = "FORCE_EXIT"
+```
+
+### Force Exit — SHORT (Leg 2)
+```
+Step 1: Cancel remaining SL + Target orders on Kite
+  → CANCEL slOrderId (kite_sl_l2_001)
+  → CANCEL targetOrderId (kite_tgt_l2_001)
+
+Step 2: Place MARKET BUY to cover
+  Current LTP = ₹894.00
+  → BUY 13 JSWSTEEL @ MARKET
+
+Step 3: On Kite COMPLETE response:
+  exitPrice = ₹894.00
+  exitTime = 2026-06-25T15:24:30.000Z
+  PnL = (891.10 − 894.00) × 13 = −₹37.70
+  status = "closed"
+  exitReason = "FORCE_EXIT"
+```
+
+---
+
+## 10. Complete Scenario Walkthrough — Leg 1 Wins
+
+### Timeline
+| Time | Event | Price | Action |
+|------|-------|-------|--------|
+| 09:15:30 | Pre-open data fetch | — | JSW STEEL selected (-8.0%) |
+| 09:20:30 | Leg 1 entry time | 5-min High = ₹897.50 | Place BUY SL-M @ ₹898.40 |
+| 09:30:00 | Leg 2 entry time | 15-min Low = ₹892.00 | Place SELL SL-M @ ₹891.10 |
+| 09:32:00 | Leg 1 fills! | ₹899 | Entry filled → Leg 2 CANCELLED |
+| 09:32:01 | OCO triggers | — | Cancel ALL Leg 2 orders on Kite |
+| 11:00:00 | Monitoring | ₹905 | Price up ₹6.60 from entry |
+| 13:00:00 | Monitoring | ₹912 | Price up ₹13.60 |
+| 14:30:00 | Monitoring | ₹915 | Price up ₹16.60 |
+| 14:45:00 | Target hit! | ₹917 | Target order fills → SELL @ ₹916.35 |
+| 14:45:01 | Trade closed | ₹916.35 | PnL = (916.35 − 898.40) × 13 = **+₹233.35** |
+
+### PnL Summary
+```
+Entry Price: ₹898.40
+Exit Price: ₹916.35 (Target hit)
+Quantity: 13
+PnL = (916.35 − 898.40) × 13 = +₹233.35
+
+Return on Capital:
+  Capital Used = 898.40 × 13 = ₹11,679.20
+  Gross Return % = (233.35 / 11,679.20) × 100 = +2.0%
+```
+
+---
+
+## 11. Complete Scenario Walkthrough — Leg 2 Wins
+
+### Timeline
+| Time | Event | Price | Action |
+|------|-------|-------|--------|
+| 09:15:30 | Pre-open data fetch | — | JSW STEEL selected (-8.0%) |
+| 09:20:30 | Leg 1 entry | 5-min High = ₹897.50 | Place BUY SL-M @ ₹898.40 |
+| 09:30:00 | Leg 2 entry | 15-min Low = ₹892.00 | Place SELL SL-M @ ₹891.10 |
+| 09:35:00 | Leg 2 fills! | ₹890 | Entry filled → Leg 1 CANCELLED |
+| 11:00:00 | Monitoring | ₹885 | Price down ₹6.10 from entry |
+| 13:00:00 | Monitoring | ₹880 | Price down ₹11.10 |
+| 14:00:00 | Monitoring | ₹875 | Price down ₹16.10 |
+| 14:30:00 | Target hit! | ₹873 | Target order fills → BUY @ ₹873.30 |
+| 14:30:01 | Trade closed | ₹873.30 | PnL = (891.10 − 873.30) × 13 = **+₹231.40** |
+
+### PnL Summary
+```
+Entry Price: ₹891.10
+Exit Price: ₹873.30 (Target hit)
+Quantity: 13
+PnL = (891.10 − 873.30) × 13 = +₹231.40
+
+Return on Capital:
+  Capital Used = 891.10 × 13 = ₹11,584.30
+  Gross Return % = (231.40 / 11,584.30) × 100 = +2.0%
+```
+
+---
+
+## 12. PnL by Exit Scenario
+
+### LONG (Leg 1)
+| Exit Scenario | Exit Price | Formula | PnL |
+|--------------|------------|---------|-----|
+| Target Hit | ₹916.35 | (916.35 − 898.40) × 13 | **+₹233.35** |
+| SL Hit | ₹889.40 | (889.40 − 898.40) × 13 | **−₹117.00** |
+| Force Exit @ 15:24 | ₹894.00 | (894.00 − 898.40) × 13 | **−₹57.20** |
+
+### SHORT (Leg 2)
+| Exit Scenario | Exit Price | Formula | PnL |
+|--------------|------------|---------|-----|
+| Target Hit | ₹873.30 | (891.10 − 873.30) × 13 | **+₹231.40** |
+| SL Hit | ₹900.00 | (891.10 − 900.00) × 13 | **−₹115.70** |
+| Force Exit @ 15:24 | ₹894.00 | (891.10 − 894.00) × 13 | **−₹37.70** |
+
+---
+
+## 13. Direction Differences — Complete Reference
+
+### Calculation Table
+| Calculation | LONG (Leg 1) | SHORT (Leg 2) |
+|-------------|-------------|---------------|
+| **Candle Price Used** | HIGH of 5-min candle | LOW of 15-min candle |
+| **Buffer Formula** | price × (1 + buffer%) | price × (1 − buffer%) |
+| **Breakout Check** | LTP >= entryPrice | LTP <= entryPrice |
+| **Entry Transaction** | BUY | SELL |
+| **SL Formula** | entryPrice − slPoints | entryPrice + slPoints |
+| **SL Transaction** | SELL | BUY |
+| **Target Formula (Profit %)** | entryPrice × (1 + %) | entryPrice × (1 − %) |
+| **Target Formula (RR)** | entryPrice + (slPoints × RR) | entryPrice − (slPoints × RR) |
+| **Target Transaction** | SELL | BUY |
+| **Trailing SL** | DISABLED (trailingSL = -1) | DISABLED (trailingSL = -1) |
+| **Trailing Target** | DISABLED (trailingTarget = -1) | DISABLED (trailingTarget = -1) |
+| **Fallback SL Hit** | close <= stopLossLevel | close >= stopLossLevel |
+| **Fallback Target Hit** | close >= targetLevel | close <= targetLevel |
+| **Force Exit Transaction** | MARKET SELL | MARKET BUY |
+| **PnL Formula** | (exit − entry) × qty | (entry − exit) × qty |
+
+### COMMON vs PER-LEG
+| Value | COMMON or PER-LEG | Reason |
+|-------|------------------|--------|
+| slPercent (1%) | **COMMON** | Config level — same for all legs |
+| slPoints (₹) | **PER-LEG** | entryPrice differs → ₹ differs |
+| capitalAtRisk (₹117.91) | **COMMON** | Same wallet, same risk % |
+| quantity (shares) | **PER-LEG** | slPoints differs → qty differs |
+| stopLoss (₹) | **PER-LEG** | entry ± slPoints per leg |
+| target (₹) | **PER-LEG** | entry ± sl/percentage per leg |
+
+---
+
+## 14. Multiple Legs (N > 2) — Future
+
+### What Changes
+```
+config.legs[] array can have 3, 4, or more entries:
+
+legs[0]: Leg 1 (LONG, 5m, 09:20:30)
+legs[1]: Leg 2 (SHORT, 15m, 09:30:00)
+legs[2]: Leg 3 (LONG, 30m, 09:45:00)  ← future
+```
+
+### OCO with N Legs
+```
+Same rule: FIRST fill wins, ALL others cancelled.
+
+Scheduler:
+  Calls executePreOpenTrades for legIndex = 0, 1, 2, ...
+  Each leg gets the same dualLegGroupId
+
+OCO Monitor:
+  Groups trades by dualLegGroupId
+  Finds ANY leg with entryOrderStatus = "filled"
+  Cancels ALL other legs' ALL orders (entry + SL + Target)
+
+Table Display:
+  Merged OCO row shows N leg columns dynamically
+  Modal shows N leg detail cards
+```
+
+---
+
+## 15. Error Scenarios & Edge Cases
+
+### Scenario: Kite API Down at Entry Time
+```
+What happens:
+  → KiteClient.placeOrder() throws error
+  → Algo Engine catches error
+  → Saves trade with status = "FAILED"
+  → kiteResponse saves the error message
+  → Logs to StrategyLog for debugging
+  → Leg skipped this cycle, retries next cycle
+
+Example error from Kite:
+  { status: "error", message: "Connection refused: No route to host" }
+
+DB Entry:
+  status: "FAILED"
+  kiteResponse: { error: "Connection refused: No route to host" }
+```
+
+### Scenario: Insufficient Capital
+```
+What happens:
+  → capitalAtRisk calculated = ₹117.91
+  → If slPoints = ₹8.984 → quantity = floor(117.91 / 8.984) = 13
+  → If quantity = 0 → trade skipped
+
+Example where qty = 0:
+  If entryPrice = ₹10,000 and slPercent = 1%
+  slPoints = 10,000 × 0.01 = 100
+  qty = floor(117.91 / 100) = 1 (just barely qualifies)
+
+  If entryPrice = ₹12,000:
+  slPoints = 12,000 × 0.01 = 120
+  qty = floor(117.91 / 120) = 0 → SKIP (can't afford even 1 share)
+```
+
+### Scenario: No Candle Data at Entry Time
+```
+What happens:
+  → KiteClient.getHistoricalData() returns empty
+  → Algo Engine checks: candles.length === 0?
+  → If no candles → skip this leg, retry next cycle
+  → Logs warning to StrategyLog
+```
+
+### Scenario: Order Placed But Kite Returns Error
+```
+What happens:
+  → KiteClient.placeOrder() partially succeeds
+  → Entry order placed → order_id returned
+  → SL/Target orders fail → error returned
+
+DB State:
+  entryOrderId: "kite_entry_001" (success)
+  entryOrderStatus: "pending"
+  slOrderStatus: "REJECTED"
+  targetOrderStatus: "REJECTED"
+
+Scheduler Action:
+  → Retry placing SL/Target in next cycle
+  → If still failing → log to StrategyLog
+```
+
+### Scenario: Client Disabled Mid-Day
+```
+What happens:
+  → Admin sets client.tradingStatus = "inactive"
+  → Scheduler checks before each action
+  → If inactive → skip all trading for this client
+  → Existing open trades continue to be monitored
+  → No new entry orders placed
+```
+
+### Scenario: Strategy Config Changed Mid-Day
+```
+What happens:
+  → Admin updates strategy in DB
+  → Scheduler reads fresh config each cycle
+  → If legs changed mid-day:
+    → Already placed entries continue (existing orders)
+    → Retry logic uses NEW config
+  → Recommendation: Don't change config mid-day
+```
+
+---
+
+## 16. DB Trade Records — Complete Example
+
+### Active Trade (Leg 1 Won, Open Position)
+```sql
+Trade #1 — Leg 1 (LONG) — Active:
+  id: "abc-123"
+  clientId: "b364d72f-..."
+  strategyId: "c7bafa89-..."
+  symbol: "JSWSTEEL"
+  direction: "LONG"
+  legName: "Leg 1"
+  legTimeframe: "5m"
+  dualLegGroupId: "a1b2c3d4-..."
+  
+  entryPrice: 898.40
+  stopLoss: 889.40
+  target: 916.35
+  quantity: 13
+  status: "open"
+  
+  entryOrderId: "kite_entry_l1_001"
+  entryOrderStatus: "filled"
+  slOrderId: "kite_sl_l1_001"
+  slOrderStatus: "pending"
+  targetOrderId: "kite_tgt_l1_001"
+  targetOrderStatus: "pending"
+  
+  entryTime: "2026-06-25T09:20:30.000Z"
+```
+
+### Cancelled Trade (Leg 2 Lost — OCO Cancelled)
+```sql
+Trade #2 — Leg 2 (SHORT) — Cancelled by OCO:
+  id: "def-456"
+  clientId: "b364d72f-..."
+  strategyId: "c7bafa89-..."
+  symbol: "JSWSTEEL"
+  direction: "SHORT"
+  legName: "Leg 2"
+  legTimeframe: "15m"
+  dualLegGroupId: "a1b2c3d4-..." -- SAME as Leg 1
+  
+  entryPrice: 891.10
+  stopLoss: 900.00
+  target: 873.30
+  quantity: 13
+  status: "cancelled"
+  
+  entryOrderId: "kite_entry_l2_001"
+  entryOrderStatus: "cancelled"
+  slOrderId: "kite_sl_l2_001"
+  slOrderStatus: "cancelled"
+  targetOrderId: "kite_tgt_l2_001"
+  targetOrderStatus: "cancelled"
+  exitReason: "OCO_CANCELLED — Leg 1 filled first"
+  
+  entryTime: "2026-06-25T09:30:00.000Z"
+```
+
+### Closed Trade (Target Hit)
+```sql
+Trade #1 — Leg 1 (LONG) — Closed (Target Hit):
+  status: "closed"
+  exitPrice: 916.35
+  pnl: 233.35
+  
+  slOrderStatus: "cancelled"  -- cancelled when target hit
+  targetOrderId: "kite_tgt_l1_001"
+  targetOrderStatus: "filled"
+  
+  exitTime: "2026-06-25T14:45:00.000Z"
+  exitReason: "TARGET_HIT"
+```
+
+### Failed Trade (Kite Rejected)
+```sql
+Trade #3 — Leg 1 (LONG) — Failed:
+  status: "FAILED"
+  entryOrderStatus: "REJECTED"
+  kiteResponse: {
+    "status": "error",
+    "message": "RMS: Margin insufficient | Exposure > Exposure limit"
+  }
+```
+
+---
+
+## 17. OCO Monitor — Detailed Logic
+
+### Every Cycle (60 seconds)
+```
+Step 1: Query DB for today's trades
+  SELECT * FROM trades
+  WHERE dualLegGroupId IS NOT NULL
+    AND DATE(entry_time) = CURRENT_DATE
+
+Step 2: Group by dualLegGroupId
+  Group "a1b2c3d4-...":
+    → Trade 1: Leg 1, status = "open", entryOrderStatus = "filled"
+    → Trade 2: Leg 2, status = "pending", entryOrderStatus = "pending"
+
+Step 3: For each group, check OCO condition
+  Is there EXACTLY 1 leg with entryOrderStatus = "filled"?
+  → YES → This is the WINNER
+  → Find LOSER(s): all other legs in same group
+  → Cancel LOSER leg's ALL orders:
+
+    For each loser leg:
+      1. Kite.cancelOrder(loser.entryOrderId)
+         → If success: DB update entryOrderStatus = "cancelled"
+         → If error: log and continue
+
+      2. Kite.cancelOrder(loser.slOrderId)
+         → If success: DB update slOrderStatus = "cancelled"
+         → If error: log and continue
+
+      3. Kite.cancelOrder(loser.targetOrderId)
+         → If success: DB update targetOrderStatus = "cancelled"
+         → If error: log and continue
+
+      4. DB update:
+         loser.status = "cancelled"
+         loser.exitReason = "OCO_CANCELLED"
+
+Step 4: Edge cases
+  All legs still "pending" → Do nothing, keep waiting
+  All legs "cancelled" → Already processed, skip
+  Multiple legs "filled" → Rare race condition → handle separately
+```
+
+### OCO States & DB Status
+| OCO State | Leg 1 Status | Leg 2 Status | UI Badge |
+|-----------|-------------|-------------|----------|
+| Both Pending | pending | pending | BOTH PENDING |
+| Leg 1 Won | open/filled | cancelled | LEG 1 ACTIVE |
+| Leg 2 Won | cancelled | open/filled | LEG 2 ACTIVE |
+| Both Cancelled | cancelled | cancelled | ALL CANCELLED |
+| Both Filled (race) | open/filled | open/filled | BOTH FILLED |
+
+---
+
+## 18. ALL Conditions — Complete List
+
+### Pre-Select Conditions (from config.conditions[])
+| Condition | Operator | Value | Purpose |
+|-----------|----------|-------|---------|
+| Pre Open Change % | > | -10 | Stocks with change% **below -10%** are filtered out (extreme losers skipped) |
+
+**Config Source:**
+```json
+{
+  "conditions": [
+    {
+      "value": "-10",
+      "logical": "AND",
+      "operator": ">",
+      "indicator": "Pre Open Change %"
+    }
+  ]
+}
+```
+
+**How it works:**
+1. All pre-open NSE F&O stocks are fetched
+2. Condition applied: `changePercent > -10`
+3. Stocks with -10% or below → skipped
+4. Remaining stocks sorted ascending (LONG direction)
+5. `selectPosition = 1` → top loser selected
+
+**Example:**
+```
+Stock          Change%    > -10?    Result
+COAL INDIA     -12.0%    NO        ✗ SKIP (extreme loser)
+JSW STEEL      -8.0%     YES       ✓ PASS, Rank #1 → SELECTED
+HINDALCO       -4.8%     YES       ✓ PASS, Rank #2
+CANBK          +3.2%     YES       ✓ PASS, Rank #3
+```
+
+---
+
+## 19. UI — How Data Displays
+
+### Merged OCO Row in Table
+```
+| Date/Time    | Client       | Strategy | Symbol   | Type   | Leg 1 (LONG)                 | Leg 2 (SHORT)                | Exit Reason | Exit Price | Exit Time    | OCO Status     | P&L       |
+|--------------|-------------|----------|----------|--------|------------------------------|------------------------------|-------------|------------|--------------|----------------|-----------|
+| 25 Jun, 9:20 | Vikash      | Pre-Open | JSWSTEEL | BUY    | LONG | Qty:13                      | SHORT | Qty:13                     | --          | --         | --           | LEG 1 ACTIVE   | +₹233.35  |
+|              | Sharma      | Momentum |          | SELL   | Entry:₹898.40                | Entry:₹891.10                |             |            |              |                |           |
+|              |             |          |          |        | SL:₹889.40 | Tgt:₹916.35    | SL:₹900.00 | Tgt:₹873.30    |             |            |              |                |           |
+|              |             |          |          |        | E:FILL SL:PDNG T:PDNG       | E:CNCL SL:CNCL T:CNCL      |             |            |              |                |           |
+```
+
+### Modal (Click Row) — Shows ALL Leg Details
+```
+┌─────────────────────────────────────────────────────┐
+│  OCO Trade Details — All Legs                       │
+│                                                     │
+│  Symbol: JSWSTEEL  │  Strategy: Pre-Open Momentum    │
+│  Client: Vikash    │  OCO Group: a1b2c3d4-...        │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  ┌── Leg 1 (LONG/BUY) ──────────────────────┐       │
+│  │ Direction: LONG    Timeframe: 5m          │       │
+│  │ Entry: ₹898.40     Qty: 13                │       │
+│  │ SL: ₹889.40        Target: ₹916.35        │       │
+│  │ Entry Order: kite_entry_l1_001 → FILLED   │       │
+│  │ SL Order: kite_sl_l1_001 → PENDING        │       │
+│  │ Target Order: kite_tgt_l1_001 → PENDING   │       │
+│  │ Kite Response: {...}                       │       │
+│  └──────────────────────────────────────────┘       │
+│                                                     │
+│  ┌── Leg 2 (SHORT/SELL) ────────────────────┐       │
+│  │ Direction: SHORT   Timeframe: 15m         │       │
+│  │ Entry: ₹891.10     Qty: 13                │       │
+│  │ SL: ₹900.00        Target: ₹873.30        │       │
+│  │ Entry Order: kite_entry_l2_001 → CANCELLED│       │
+│  │ SL Order: kite_sl_l2_001 → CANCELLED      │       │
+│  │ Target Order: kite_tgt_l2_001 → CANCELLED │       │
+│  └──────────────────────────────────────────┘       │
+│                                                     │
+│  [Close]                                            │
+└─────────────────────────────────────────────────────┘
+```

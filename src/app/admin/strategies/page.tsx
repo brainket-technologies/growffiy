@@ -38,6 +38,22 @@ interface StrategyCondition {
   value: string;
 }
 
+interface LegTradeAction {
+  action: 'Long' | 'Short' | 'Buy' | 'Sell';
+  orderType: 'Market' | 'Limit' | 'SL-Limit' | 'SL-Market';
+  bufferPercent: number;
+  marketProtection?: number;
+  candlePriceType: 'open' | 'high' | 'low' | 'close';
+}
+
+interface LegConfig {
+  name: string;
+  enabled: boolean;
+  entryTime: string;
+  timeframe: string;
+  tradeAction: LegTradeAction;
+}
+
 interface StrategyConfig {
   basicInfo: {
     name: string;
@@ -45,8 +61,6 @@ interface StrategyConfig {
     tradeType: 'Intraday' | 'Swing' | 'Positional';
     exchange: 'NSE' | 'BSE';
     segment: 'Cash' | 'Equity' | 'Futures' | 'Options' | 'NSE F&O' | 'Nifty 50' | 'Bank Nifty';
-    timeframe: string;
-    entryTime: string;
     preSelectTime: string;
     exitTime: string;
     maxTradesPerDay: number;
@@ -54,13 +68,7 @@ interface StrategyConfig {
     checkIntervalSec: number;
     status: 'active' | 'inactive';
   };
-  tradeAction: {
-    action: 'Buy' | 'Sell' | 'Long' | 'Short';
-    orderType: 'Market' | 'Limit' | 'SL-Limit' | 'SL-Market';
-    bufferPercent: number;
-    marketProtection?: number;
-    candlePriceType: 'open' | 'high' | 'low' | 'close';
-  };
+  legs: LegConfig[];
   stoploss: {
     type: 'Fixed %' | 'Fixed Points' | 'Trailing SL' | 'Risk %';
     orderType: 'Market' | 'Limit';
@@ -88,6 +96,23 @@ interface StrategyConfig {
   conditions: StrategyCondition[];
 }
 
+const migrateLegacyConfig = (config: any): StrategyConfig => {
+  // Convert old tradeAction + basicInfo timeframe/entryTime → legs[0]
+  if (!config.legs && config.tradeAction) {
+    config.legs = [{
+      name: 'Leg 1',
+      enabled: true,
+      entryTime: config.basicInfo?.entryTime || '09:20:30',
+      timeframe: config.basicInfo?.timeframe || '5m',
+      tradeAction: { ...config.tradeAction }
+    }];
+    delete config.tradeAction;
+    delete config.basicInfo?.entryTime;
+    delete config.basicInfo?.timeframe;
+  }
+  return config as StrategyConfig;
+};
+
 const INDICATORS = [
   'RSI', 'EMA', 'SMA', 'VWAP', 'MACD', 'SuperTrend', 'ADX', 'Volume', 'Open Interest',
   'Previous High', 'Previous Low', 'Previous Close', 'Gap Up', 'Gap Down',
@@ -102,8 +127,6 @@ const INITIAL_CONFIG: StrategyConfig = {
     tradeType: 'Intraday',
     exchange: 'NSE',
     segment: 'NSE F&O',
-    timeframe: '5m',
-    entryTime: '09:20',
     preSelectTime: '09:15',
     exitTime: '15:15',
     maxTradesPerDay: 3,
@@ -111,13 +134,19 @@ const INITIAL_CONFIG: StrategyConfig = {
     checkIntervalSec: 60,
     status: 'inactive'
   },
-  tradeAction: {
-    action: 'Long',
-    orderType: 'Limit',
-    bufferPercent: 0.1,
-    marketProtection: -1,
-    candlePriceType: 'high'
-  },
+  legs: [{
+    name: 'Leg 1',
+    enabled: true,
+    entryTime: '09:20:30',
+    timeframe: '5m',
+    tradeAction: {
+      action: 'Long',
+      orderType: 'SL-Market',
+      bufferPercent: 0.1,
+      marketProtection: -1,
+      candlePriceType: 'high'
+    }
+  }],
   stoploss: {
     type: 'Fixed %',
     orderType: 'Market',
@@ -714,6 +743,7 @@ export default function StrategiesPage() {
   const handleEdit = (strategy: any) => {
     try {
       const config = JSON.parse(strategy.configJson);
+      migrateLegacyConfig(config);
       setFormData(config);
     } catch (e) {
       setFormData({
@@ -865,6 +895,46 @@ export default function StrategiesPage() {
   const removeCondition = (index: number) => {
     const updated = formData.conditions.filter((_, i) => i !== index);
     setFormData({ ...formData, conditions: updated });
+  };
+
+  const handleLegChange = (index: number, field: string, value: any) => {
+    const updated = [...formData.legs];
+    if (field.startsWith('tradeAction.')) {
+      const taField = field.replace('tradeAction.', '');
+      updated[index] = {
+        ...updated[index],
+        tradeAction: { ...updated[index].tradeAction, [taField]: value }
+      };
+    } else {
+      (updated[index] as any)[field] = value;
+    }
+    setFormData({ ...formData, legs: updated });
+  };
+
+  const addLeg = () => {
+    const legNum = formData.legs.length + 1;
+    setFormData({
+      ...formData,
+      legs: [...formData.legs, {
+        name: `Leg ${legNum}`,
+        enabled: false,
+        entryTime: '09:30:00',
+        timeframe: '15m',
+        tradeAction: {
+          action: 'Short',
+          orderType: 'SL-Market',
+          bufferPercent: 0.1,
+          marketProtection: -1,
+          candlePriceType: 'low'
+        }
+      }]
+    });
+  };
+
+  const removeLeg = (index: number) => {
+    if (formData.legs.length <= 1) return;
+    const updated = formData.legs.filter((_, i) => i !== index);
+    setFormData({ ...formData, legs: updated });
   };
 
   // Assign client logic
@@ -1345,7 +1415,7 @@ export default function StrategiesPage() {
                 </Card>
               )}
   
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '28px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '28px', alignItems: 'start' }}>
                 {/* LEFT: BASIC INFO & TRADE ACTIONS */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
                   
@@ -1437,31 +1507,12 @@ export default function StrategiesPage() {
                         </select>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '12px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Timeframe</label>
-                      <select
-                        value={formData.basicInfo.timeframe}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          basicInfo: { ...formData.basicInfo, timeframe: e.target.value }
-                        })}
-                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', outline: 'none' }}
-                      >
-                        <option value="1m">1m</option>
-                        <option value="3m">3m</option>
-                        <option value="5m">5m</option>
-                        <option value="15m">15m</option>
-                        <option value="30m">30m</option>
-                        <option value="1h">1h</option>
-                        <option value="1d">1d</option>
-                      </select>
-                    </div>
                   </div>
 
                   {/* TIMING */}
                   <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '16px' }}>
                     <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>TIMING</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <label style={{ fontSize: '11px', fontWeight: 600 }}>Pre-Select Time</label>
                         <input
@@ -1471,19 +1522,6 @@ export default function StrategiesPage() {
                           onChange={(e) => setFormData({
                             ...formData,
                             basicInfo: { ...formData.basicInfo, preSelectTime: e.target.value }
-                          })}
-                          style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                        />
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <label style={{ fontSize: '11px', fontWeight: 600 }}>Entry Time</label>
-                        <input
-                          type="time"
-                          step="1"
-                          value={formData.basicInfo.entryTime}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            basicInfo: { ...formData.basicInfo, entryTime: e.target.value }
                           })}
                           style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                         />
@@ -1642,98 +1680,108 @@ export default function StrategiesPage() {
             {/* RIGHT: DYNAMIC CONDITION BUILDER & STOPLOSS/TARGET/RISK */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               
-              {/* Trade Action config */}
+              {/* Legs config */}
               <Card hoverable>
                 <div style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.06) 0%, rgba(5,150,105,0.04) 100%)', margin: '-24px -24px 16px -24px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', borderRadius: '16px 16px 0 0' }}>
                   <h3 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                    <Play size={16} color="var(--color-success)" /> Trade Action
+                    <Play size={16} color="var(--color-success)" /> Legs
                   </h3>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Action Direction</label>
-                    <select
-                      value={formData.tradeAction.action}
-                      onChange={(e: any) => setFormData({
-                        ...formData,
-                        tradeAction: { ...formData.tradeAction, action: e.target.value }
-                      })}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    >
-                      <option value="Long">Long</option>
-                      <option value="Short">Short</option>
-                      <option value="Buy">Buy Only</option>
-                      <option value="Sell">Sell Only</option>
-                    </select>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Order Type</label>
-                    <select
-                      value={formData.tradeAction.orderType}
-                      onChange={(e: any) => setFormData({
-                        ...formData,
-                        tradeAction: { ...formData.tradeAction, orderType: e.target.value }
-                      })}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    >
-                      <option value="Market">Market Order</option>
-                      <option value="Limit">Limit Order</option>
-                      <option value="SL-Limit">SL Limit</option>
-                      <option value="SL-Market">SL Market</option>
-                    </select>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Candle Price Type</label>
-                    <select
-                      value={formData.tradeAction.candlePriceType}
-                      onChange={(e: any) => setFormData({
-                        ...formData,
-                        tradeAction: { ...formData.tradeAction, candlePriceType: e.target.value }
-                      })}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    >
-                      <option value="open">Open</option>
-                      <option value="high">High</option>
-                      <option value="low">Low</option>
-                      <option value="close">Close</option>
-                    </select>
-                  </div>
-                  {(formData.tradeAction.orderType === 'Market' || formData.tradeAction.orderType === 'SL-Market') && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Market Protection</label>
-                      <select
-                        value={formData.tradeAction.marketProtection ?? -1}
-                        onChange={(e: any) => setFormData({
-                          ...formData,
-                          tradeAction: { ...formData.tradeAction, marketProtection: Number(e.target.value) }
-                        })}
-                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      >
-                        <option value={-1}>Auto Protection (-1)</option>
-                        <option value={0}>Disable Protection (0)</option>
-                        <option value={1}>1% Protection</option>
-                        <option value={2}>2% Protection</option>
-                        <option value={3}>3% Protection</option>
-                        <option value={4}>4% Protection</option>
-                        <option value={5}>5% Protection</option>
-                      </select>
+                {formData.legs.map((leg, legIdx) => (
+                  <div key={legIdx} style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', marginBottom: '12px', background: 'rgba(16,185,129,0.02)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <input
+                          type="text"
+                          value={leg.name}
+                          onChange={(e) => handleLegChange(legIdx, 'name', e.target.value)}
+                          style={{ fontWeight: 700, fontSize: '14px', border: 'none', background: 'transparent', color: 'var(--text-primary)', outline: 'none', width: '120px' }}
+                          placeholder="Leg name"
+                        />
+                        <label style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={leg.enabled}
+                            onChange={(e) => handleLegChange(legIdx, 'enabled', e.target.checked)}
+                          />
+                          Enabled
+                        </label>
+                      </div>
+                      {formData.legs.length > 1 && (
+                        <button type="button" onClick={() => removeLeg(legIdx)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '12px' }}>
+                          Remove
+                        </button>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '16px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 600 }}>Buffer Price %</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.tradeAction.bufferPercent}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      tradeAction: { ...formData.tradeAction, bufferPercent: Number(e.target.value) }
-                    })}
-                    style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    placeholder="e.g. 0.05%"
-                  />
-                </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: 600 }}>Entry Time</label>
+                        <input type="time" step="1" value={leg.entryTime} onChange={(e) => handleLegChange(legIdx, 'entryTime', e.target.value)}
+                          style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none', fontSize: '12px' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: 600 }}>Timeframe</label>
+                        <select value={leg.timeframe} onChange={(e) => handleLegChange(legIdx, 'timeframe', e.target.value)}
+                          style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none', fontSize: '12px' }}>
+                          <option value="1m">1m</option>
+                          <option value="3m">3m</option>
+                          <option value="5m">5m</option>
+                          <option value="15m">15m</option>
+                          <option value="30m">30m</option>
+                          <option value="1h">1h</option>
+                          <option value="1d">1d</option>
+                        </select>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: 600 }}>Action</label>
+                        <select value={leg.tradeAction.action} onChange={(e) => handleLegChange(legIdx, 'tradeAction.action', e.target.value)}
+                          style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none', fontSize: '12px' }}>
+                          <option value="Long">Long</option>
+                          <option value="Short">Short</option>
+                        </select>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: 600 }}>Order Type</label>
+                        <select value={leg.tradeAction.orderType} onChange={(e) => handleLegChange(legIdx, 'tradeAction.orderType', e.target.value)}
+                          style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none', fontSize: '12px' }}>
+                          <option value="Market">Market</option>
+                          <option value="Limit">Limit</option>
+                          <option value="SL-Limit">SL-Limit</option>
+                          <option value="SL-Market">SL-Market</option>
+                        </select>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: 600 }}>Candle Price</label>
+                        <select value={leg.tradeAction.candlePriceType} onChange={(e) => handleLegChange(legIdx, 'tradeAction.candlePriceType', e.target.value)}
+                          style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none', fontSize: '12px' }}>
+                          <option value="open">Open</option>
+                          <option value="high">High</option>
+                          <option value="low">Low</option>
+                          <option value="close">Close</option>
+                        </select>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: 600 }}>Buffer %</label>
+                        <input type="number" step="0.01" value={leg.tradeAction.bufferPercent} onChange={(e) => handleLegChange(legIdx, 'tradeAction.bufferPercent', Number(e.target.value))}
+                          style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none', fontSize: '12px' }} />
+                      </div>
+                      {(leg.tradeAction.orderType === 'Market' || leg.tradeAction.orderType === 'SL-Market') && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <label style={{ fontSize: '11px', fontWeight: 600 }}>Market Protection</label>
+                          <select value={leg.tradeAction.marketProtection ?? -1} onChange={(e) => handleLegChange(legIdx, 'tradeAction.marketProtection', Number(e.target.value))}
+                            style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none', fontSize: '12px' }}>
+                            <option value={-1}>Auto (-1)</option>
+                            <option value={0}>Disable (0)</option>
+                            {[1,2,3,4,5].map(v => <option key={v} value={v}>{v}%</option>)}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <Button type="button" variant="secondary" onClick={addLeg} style={{ padding: '6px 14px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  + Add Leg
+                </Button>
               </Card>
 
               {/* Stoploss & Target Module */}
@@ -1781,10 +1829,10 @@ export default function StrategiesPage() {
                             setFormData({ ...formData, stoploss: { ...formData.stoploss, fixedPercent: val } });
                           }
                         }}
-                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: formData.stoploss.type === 'Trailing SL' && formData.stoploss.trailingSL <= 0 ? '1px solid rgba(239,68,68,0.3)' : '1px solid var(--border-color)', background: 'transparent', color: formData.stoploss.type === 'Trailing SL' && formData.stoploss.trailingSL <= 0 ? '#ef4444' : 'var(--text-primary)', outline: 'none' }}
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                       />
                       {formData.stoploss.type === 'Trailing SL' && formData.stoploss.trailingSL <= 0 && (
-                        <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>🛑 Disabled</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>Disabled</span>
                       )}
                     </div>
                     {formData.stoploss.type === 'Trailing SL' && formData.stoploss.trailingSL > 0 && (
@@ -1860,10 +1908,10 @@ export default function StrategiesPage() {
                             if (val < -1) val = -1;
                             setFormData({ ...formData, target: { ...formData.target, trailingTarget: val } });
                           }}
-                          style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: formData.target.trailingTarget <= 0 ? '1px solid rgba(239,68,68,0.3)' : '1px solid var(--border-color)', background: 'transparent', color: formData.target.trailingTarget <= 0 ? '#ef4444' : 'var(--text-primary)', outline: 'none' }}
+                          style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                         />
                         {formData.target.trailingTarget <= 0 && (
-                          <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>🛑 Disabled</span>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>Disabled</span>
                         )}
                       </div>
                       {formData.target.trailingTarget > 0 && (
@@ -1894,10 +1942,10 @@ export default function StrategiesPage() {
                           if (val < -1) val = -1;
                           setFormData({ ...formData, riskManagement: { ...formData.riskManagement, capitalAllocation: val } });
                         }}
-                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: formData.riskManagement.capitalAllocation <= 0 ? '1px solid rgba(239,68,68,0.3)' : '1px solid var(--border-color)', background: 'transparent', color: formData.riskManagement.capitalAllocation <= 0 ? '#ef4444' : 'var(--text-primary)', outline: 'none' }}
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                       />
                       {formData.riskManagement.capitalAllocation <= 0 && (
-                        <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>🛑 Disabled</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>Disabled</span>
                       )}
                     </div>
                   </div>
@@ -1929,10 +1977,10 @@ export default function StrategiesPage() {
                           if (val < -1) val = -1;
                           setFormData({ ...formData, riskManagement: { ...formData.riskManagement, misMarginRate: val } });
                         }}
-                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: formData.riskManagement.misMarginRate <= 0 ? '1px solid rgba(239,68,68,0.3)' : '1px solid var(--border-color)', background: 'transparent', color: formData.riskManagement.misMarginRate <= 0 ? '#ef4444' : 'var(--text-primary)', outline: 'none' }}
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                       />
                       {formData.riskManagement.misMarginRate <= 0 && (
-                        <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>🛑 Disabled</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>Disabled</span>
                       )}
                     </div>
                   </div>
@@ -1950,10 +1998,10 @@ export default function StrategiesPage() {
                           if (val < -1) val = -1;
                           setFormData({ ...formData, riskManagement: { ...formData.riskManagement, maxDailyLoss: val } });
                         }}
-                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: formData.riskManagement.maxDailyLoss === -1 ? '1px solid rgba(239,68,68,0.3)' : '1px solid var(--border-color)', background: 'transparent', color: formData.riskManagement.maxDailyLoss === -1 ? '#ef4444' : 'var(--text-primary)', outline: 'none' }}
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                       />
                       {formData.riskManagement.maxDailyLoss === -1 && (
-                        <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>🛑 Disabled</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>Disabled</span>
                       )}
                     </div>
                   </div>
@@ -1969,10 +2017,10 @@ export default function StrategiesPage() {
                           if (val < -1) val = -1;
                           setFormData({ ...formData, riskManagement: { ...formData.riskManagement, maxDailyProfit: val } });
                         }}
-                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: formData.riskManagement.maxDailyProfit === -1 ? '1px solid rgba(239,68,68,0.3)' : '1px solid var(--border-color)', background: 'transparent', color: formData.riskManagement.maxDailyProfit === -1 ? '#ef4444' : 'var(--text-primary)', outline: 'none' }}
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                       />
                       {formData.riskManagement.maxDailyProfit === -1 && (
-                        <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>🛑 Disabled</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>Disabled</span>
                       )}
                     </div>
                   </div>

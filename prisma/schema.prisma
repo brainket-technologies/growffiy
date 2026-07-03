@@ -106,6 +106,10 @@ model Trade {
   originalEntryPrice Decimal?  @map("original_entry_price") @db.Decimal(12, 2)
   originalStopLoss   Decimal?  @map("original_stop_loss") @db.Decimal(12, 2)
   originalTarget     Decimal?  @map("original_target") @db.Decimal(12, 2)
+  direction          String?   @map("direction")
+  legName            String?   @map("leg_name")
+  legTimeframe       String?   @map("leg_timeframe")
+  dualLegGroupId     String?   @map("dual_leg_group_id")
   client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   strategy       Strategy  @relation(fields: [strategyId], references: [id])
 
