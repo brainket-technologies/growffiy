@@ -25,71 +25,7 @@ const dev = process.env.NODE_ENV === 'development';
 
 let app = null;
 let handle = null;
-let isBuilding = false;
 let buildError = null;
-
-function runBuildCheck() {
-  const nextDir = path.join(__dirname, '.next');
-  const hasExistingBuild = fs.existsSync(nextDir);
-  
-  // Serve existing build immediately (no 503 if .next exists)
-  if (hasExistingBuild) {
-    prepareNextApp();
-  }
-  
-  if (dev) return;
-  
-  // Check if rebuild needed
-  const gitIndex = path.join(__dirname, '.git', 'index');
-  const prismaClientDir = path.join(__dirname, 'node_modules', '.prisma', 'client');
-  
-  let shouldBuild = !hasExistingBuild || !fs.existsSync(prismaClientDir);
-  
-  if (!shouldBuild && fs.existsSync(gitIndex)) {
-    try {
-      const nextMtime = fs.statSync(nextDir).mtimeMs;
-      const gitMtime = fs.statSync(gitIndex).mtimeMs;
-      if (gitMtime > nextMtime) {
-        console.log('AlgoEngine Deployer: Detected fresh Git pull. Rebuilding Next.js in background...');
-        shouldBuild = true;
-      }
-    } catch (err) {
-      console.error('Error checking mtimes:', err);
-    }
-  }
-  
-  if (shouldBuild) {
-    // Only block requests if there's ZERO existing build (first deploy)
-    isBuilding = !hasExistingBuild;
-    console.log('--- STARTING REMOTE PRISMA GENERATION & NEXT.JS BUILD ---');
-    const buildProcess = exec('npx prisma generate && npx next build', (err, stdout, stderr) => {
-      isBuilding = false;
-      if (err) {
-        console.error('AlgoEngine Deployer Error during auto-build:', err);
-        buildError = err;
-      } else {
-        console.log('--- REMOTE NEXT.JS BUILD COMPLETED SUCCESSFULLY ---');
-        try {
-          const now = new Date();
-          fs.utimesSync(nextDir, now, now);
-        } catch (e) {}
-        if (!hasExistingBuild) {
-          prepareNextApp();
-        }
-      }
-    });
-    // Timeout: kill build if it takes > 5 minutes
-    const buildTimeout = setTimeout(() => {
-      console.error('AlgoEngine Deployer: Build timed out after 5 minutes. Killing process.');
-      buildProcess.kill();
-      isBuilding = false;
-      buildError = new Error('Build timed out after 5 minutes');
-    }, 300000);
-    buildProcess.on('exit', () => clearTimeout(buildTimeout));
-  } else if (!hasExistingBuild) {
-    prepareNextApp();
-  }
-}
 
 function prepareNextApp() {
   app = next({ dev });
@@ -109,37 +45,6 @@ const isNumeric = !isNaN(port) && !isNaN(parseFloat(port));
 const parsedPort = isNumeric ? parseInt(port, 10) : port;
 
 const server = createServer(async (req, res) => {
-  if (isBuilding) {
-    res.statusCode = 503;
-    res.setHeader('Content-Type', 'text/html');
-    res.end(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Updating Application...</title>
-        <meta http-equiv="refresh" content="5">
-        <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 80px 20px; background: #f8fafc; color: #1e293b; }
-          .card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); display: inline-block; max-width: 450px; border: 1px solid #e2e8f0; }
-          .spinner { border: 3px solid #f1f5f9; width: 40px; height: 40px; border-radius: 50%; border-left-color: #3b82f6; animation: spin 1s linear infinite; display: inline-block; margin-bottom: 24px; }
-          h2 { margin: 0 0 10px 0; font-size: 20px; font-weight: 600; }
-          p { margin: 0; color: #64748b; font-size: 14px; line-height: 1.5; }
-          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        </style>
-      </head>
-      <body>
-        <div class="card">
-          <div class="spinner"></div>
-          <h2>Updating Platform</h2>
-          <p>We are compiling the latest updates and preparing the trading engine. This will take about 15-30 seconds.</p>
-          <p style="color: #94a3b8; font-size: 12px; margin-top: 15px;">Page will auto-refresh automatically.</p>
-        </div>
-      </body>
-      </html>
-    `);
-    return;
-  }
-  
   if (buildError) {
     res.statusCode = 500;
     res.setHeader('Content-Type', 'text/plain');
@@ -170,6 +75,5 @@ server.once('error', (err) => {
 
 server.listen(parsedPort, () => {
   console.log(`> Ready on ${isNumeric ? `http://localhost:${parsedPort}` : `socket/pipe ${parsedPort}`}`);
-  // Run the build check asynchronously after server listens to prevent Passenger startup timeout
-  runBuildCheck();
+  prepareNextApp();
 });
