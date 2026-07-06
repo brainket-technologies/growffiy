@@ -565,6 +565,49 @@ Trade Record:
 
 ## 7. TRUE OCO — First Fill Wins
 
+### OCO Execution Flow
+```
+Step 1: Dono legs ke entry orders Kite pe pending hain
+        Leg 1 (LONG)  → entry trigger @ ₹898.40 (SL-Market)
+        Leg 2 (SHORT) → entry trigger @ ₹891.10 (SL-Market)
+
+Step 2: Market move hota hai — koi ek trigger hit hota hai
+        ┌─────────────────────────────────────────────────────┐
+        │ CASE A: Leg 1 fills FIRST (LONG wins)               │
+        │   → Leg 1 entry BUY fill @ ₹899                     │
+        │   → OCO triggers:                                   │
+        │       • Leg 2 ke TINON orders CANCEL karo:          │
+        │         - entry order cancel                         │
+        │         - SL order cancel                            │
+        │         - target order cancel                        │
+        │       • Leg 2 status → "cancelled"                   │
+        │   → Leg 1 ke SL + Target PLACE karo:                 │
+        │       • SL-Market SELL @ ₹889.40                     │
+        │       • LIMIT SELL @ ₹916.35 (target)                │
+        │   → Tab tak monitor until SL/Target hit or exit:    │
+        │       - SL hit → exit, PnL calculate                 │
+        │       - Target hit → exit, PnL calculate             │
+        │       - Market close → force exit                    │
+        └─────────────────────────────────────────────────────┘
+        ┌─────────────────────────────────────────────────────┐
+        │ CASE B: Leg 2 fills FIRST (SHORT wins)              │
+        │   → Leg 2 entry SELL fill @ ₹890                    │
+        │   → OCO triggers:                                   │
+        │       • Leg 1 ke TINON orders CANCEL karo:          │
+        │         - entry order cancel                         │
+        │         - SL order cancel                            │
+        │         - target order cancel                        │
+        │       • Leg 1 status → "cancelled"                   │
+        │   → Leg 2 ke SL + Target PLACE karo:                 │
+        │       • SL-Market BUY @ ₹900.00                      │
+        │       • LIMIT BUY @ ₹873.30 (target)                 │
+        │   → Tab tak monitor until SL/Target hit or exit:    │
+        │       - SL hit → exit, PnL calculate                 │
+        │       - Target hit → exit, PnL calculate             │
+        │       - Market close → force exit                    │
+        └─────────────────────────────────────────────────────┘
+```
+
 ### How OCO Works
 ```
 Both Legs have orders pending on Kite:

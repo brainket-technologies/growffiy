@@ -301,13 +301,12 @@ class AlgoEngineService {
       if (config.stoploss?.trailingSL < -1) config.stoploss.trailingSL = -1;
       if (config.target?.trailingTarget < -1) config.target.trailingTarget = -1;
 
-      if (!config.basicInfo?.segment || !config.tradeAction?.action || !config.basicInfo?.selectPosition) {
-        console.log(`AlgoEngine preSelect: Strategy config missing required fields (segment/action/selectPosition) for strategy ${strategy.name}. Skipping.`);
+      if (!config.basicInfo?.segment || !config.basicInfo?.selectPosition) {
+        console.log(`AlgoEngine preSelect: Strategy config missing required fields (segment/selectPosition) for strategy ${strategy.name}. Skipping.`);
         continue;
       }
 
       const segment = config.basicInfo.segment;
-      const action = config.tradeAction.action;
       const selectPosition = config.basicInfo.selectPosition;
 
       let matchingStocks = preOpenStocks.filter(stock => {
@@ -339,9 +338,7 @@ class AlgoEngineService {
         continue;
       }
 
-      const sortedStocks = [...matchingStocks].sort((a, b) =>
-        action === 'Long' ? a.changePercent - b.changePercent : b.changePercent - a.changePercent
-      );
+      const sortedStocks = [...matchingStocks].sort((a, b) => a.changePercent - b.changePercent);
 
       if (sortedStocks.length < selectPosition) {
         console.log(`AlgoEngine preSelect: Only ${sortedStocks.length} stocks, cannot pick #${selectPosition} for strategy ${strategy.name}.`);
@@ -489,7 +486,7 @@ class AlgoEngineService {
 
           if (!candidateStock) {
             if (!config.basicInfo?.segment || !config.basicInfo?.selectPosition) {
-              console.log(`AlgoEngine: Strategy config missing required fields (segment/action/selectPosition) for fallback filter for client ${client.user.name}. Skipping.`);
+              console.log(`AlgoEngine: Strategy config missing required fields (segment/selectPosition) for fallback filter for client ${client.user.name}. Skipping.`);
               return;
             }
             const segment = config.basicInfo.segment;
