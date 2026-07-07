@@ -123,12 +123,13 @@ export default function RichTextEditor({ value, onChange, minHeight = '400px' }:
         onInput={handleInput}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
+        className="legal-rich-text"
         style={{
           minHeight,
           padding: '16px 20px',
           fontSize: '14px',
           lineHeight: 1.75,
-          color: 'var(--text-primary)',
+          color: 'var(--text-body)',
           outline: 'none',
           overflowY: 'auto',
           fontFamily: "'SF Mono', 'Fira Code', 'Segoe UI', sans-serif",

@@ -2027,3 +2027,18 @@ select.kyc-status-select-pending {
 [data-theme="light"] .hero-sub {
   color: #475569 !important;
 }
+
+/* Legal Rich Text Editor & Preview Dark Mode Color Overrides */
+[data-theme="dark"] .legal-rich-text,
+[data-theme="dark"] .legal-rich-text * {
+  color: var(--text-body) !important;
+}
+[data-theme="dark"] .legal-rich-text h1,
+[data-theme="dark"] .legal-rich-text h2,
+[data-theme="dark"] .legal-rich-text h3,
+[data-theme="dark"] .legal-rich-text h4,
+[data-theme="dark"] .legal-rich-text h5,
+[data-theme="dark"] .legal-rich-text h6 {
+  color: var(--text-heading) !important;
+}
+

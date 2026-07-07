@@ -1747,20 +1747,20 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                 boxShadow: '0 4px 24px rgba(0,0,0,0.04)',
                 fontSize: '14px',
                 lineHeight: '1.75',
-                color: '#475569',
+                color: 'var(--text-body)',
               }}>
                 {legalActivePage === 'faq' ? (
                   <div>
                     {faqItems.length === 0 && <p style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '13px' }}>No FAQ items to preview.</p>}
                     {faqItems.map((item, i) => (
                       <div key={i} style={{ marginBottom: '24px' }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px', color: '#1e293b' }}>{item.q || `Question ${i + 1}`}</h3>
-                        <div style={{ fontSize: '14px', lineHeight: '1.75', color: '#475569' }} dangerouslySetInnerHTML={{ __html: item.a || '<em style="color:#94a3b8">No answer yet.</em>' }} />
+                        <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px', color: 'var(--text-heading)' }}>{item.q || `Question ${i + 1}`}</h3>
+                        <div className="legal-rich-text" style={{ fontSize: '14px', lineHeight: '1.75', color: 'var(--text-body)' }} dangerouslySetInnerHTML={{ __html: item.a || '<em style="color:#94a3b8">No answer yet.</em>' }} />
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div dangerouslySetInnerHTML={{
+                  <div className="legal-rich-text" dangerouslySetInnerHTML={{
                     __html: legalActivePage === 'privacy' ? legalPrivacyContent :
                             legalActivePage === 'terms' ? legalTermsContent :
                             legalActivePage === 'refund' ? legalRefundContent :
