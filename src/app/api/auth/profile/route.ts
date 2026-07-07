@@ -229,9 +229,10 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
+  let userId: string | null = null;
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    userId = searchParams.get('userId');
 
     if (!userId) {
       return NextResponse.json({ success: false, error: 'User identifier is required' }, { status: 400 });

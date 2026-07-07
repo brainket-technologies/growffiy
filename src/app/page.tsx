@@ -51,6 +51,8 @@ export default function GrowffiyLanding() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [brandLogo, setBrandLogo] = useState('');
   const [brandName, setBrandName] = useState('Growffiy');
+  const [heroTitle, setHeroTitle] = useState('Automate Your<br /><span class="text-gradient">Stock Market</span><br />Trades Smarter');
+  const [heroSubtitle, setHeroSubtitle] = useState('Growffiy connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.');
 
   // Scroll detection for transparent navbar
   useEffect(() => {
@@ -61,13 +63,42 @@ export default function GrowffiyLanding() {
 
   // Branding
   useEffect(() => {
-    const load = () => {
+    const fetchPublicSettings = () => {
+      // First load from localStorage for instant display
       setBrandLogo(localStorage.getItem('growffiy_brand_logo') || '');
       setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffiy');
+      setHeroTitle(localStorage.getItem('growffiy_hero_title') || 'Automate Your<br /><span class="text-gradient">Stock Market</span><br />Trades Smarter');
+      setHeroSubtitle(localStorage.getItem('growffiy_hero_subtitle') || 'Growffiy connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.');
+
+      // Then fetch from server to get latest changes
+      fetch('/api/settings/public', { cache: 'no-store' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            if (data.appName) {
+              setBrandName(data.appName);
+              localStorage.setItem('growffiy_brand_name', data.appName);
+            }
+            if (data.appLogo !== undefined) {
+              setBrandLogo(data.appLogo);
+              localStorage.setItem('growffiy_brand_logo', data.appLogo);
+            }
+            if (data.heroTitle) {
+              setHeroTitle(data.heroTitle);
+              localStorage.setItem('growffiy_hero_title', data.heroTitle);
+            }
+            if (data.heroSubtitle) {
+              setHeroSubtitle(data.heroSubtitle);
+              localStorage.setItem('growffiy_hero_subtitle', data.heroSubtitle);
+            }
+          }
+        })
+        .catch(err => console.error('Failed to fetch public settings on landing page:', err));
     };
-    load();
-    window.addEventListener('branding-updated', load);
-    return () => window.removeEventListener('branding-updated', load);
+
+    fetchPublicSettings();
+    window.addEventListener('branding-updated', fetchPublicSettings);
+    return () => window.removeEventListener('branding-updated', fetchPublicSettings);
   }, []);
 
   // ─── Real stock data from Yahoo Finance (via /api/public/stocks) ─────────────
@@ -151,13 +182,29 @@ export default function GrowffiyLanding() {
       .finally(() => setPlansLoading(false));
   }, []);
 
-  const faqs = [
+  const [faqs, setFaqs] = useState<{ q: string, a: string }[]>([
     { q: 'How does the Pre-Open Momentum Breakout strategy work?', a: 'At 09:08 AM, the engine scans the Nifty 200 for stocks showing the largest gap-down opening. Once the first 5-minute candle closes (09:15–09:20 AM), it marks the candle high and places a Buy SLM order at High + 0.1% buffer, stop-loss at Entry − 0.5%, and target at Entry + 1.5%.' },
     { q: 'How is position sizing calculated?', a: 'The system uses the 1% Risk Rule: Quantity = (Capital × 1%) ÷ (Entry − Stop Loss). This caps maximum loss per trade at exactly 1% of your allocated capital regardless of stock price.' },
     { q: 'Do I need a Zerodha Kite Connect subscription?', a: 'Yes. You need an active Zerodha account with Kite Connect API access. You enter your API key and secret in your secure portal dashboard. Kite Connect charges (₹2,000/month) are billed separately by Zerodha.' },
     { q: 'Can I pause the bot at any time?', a: 'Absolutely. The Kill Switch in your dashboard immediately stops the trading loop, cancels all pending orders, and places no new trades until you re-enable it.' },
     { q: 'What happens if my internet goes down during a trade?', a: 'All orders (including target and stop-loss) are placed as GTT bracket orders at Zerodha\'s servers. Your trade is protected even if your connection drops.' },
-  ];
+  ]);
+
+  useEffect(() => {
+    fetch('/api/settings/legal', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.settings?.legal_faq_content) {
+          try {
+            const parsed = JSON.parse(data.settings.legal_faq_content);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setFaqs(parsed);
+            }
+          } catch {}
+        }
+      })
+      .catch((err) => console.error('Failed to fetch legal settings on landing page:', err));
+  }, []);
 
   const isUp = (change: number) => change >= 0;
 
@@ -279,15 +326,9 @@ export default function GrowffiyLanding() {
           {/* LEFT */}
           <div className="hero-left">
 
-            <h1 className="hero-h1">
-              Automate Your<br />
-              <span className="text-gradient">Stock Market</span><br />
-              Trades Smarter
-            </h1>
+            <h1 className="hero-h1" dangerouslySetInnerHTML={{ __html: heroTitle }} />
 
-            <p className="hero-sub">
-              Growffiy connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.
-            </p>
+            <p className="hero-sub" dangerouslySetInnerHTML={{ __html: heroSubtitle }} />
 
             <div className="hero-btns">
               <Link href="/vendor/login" target="_blank" className="btn-primary">
@@ -690,7 +731,7 @@ export default function GrowffiyLanding() {
                   {activeFaq === i ? <ChevronUp size={18} color="#64748b" /> : <ChevronDown size={18} color="#64748b" />}
                 </button>
                 {activeFaq === i && (
-                  <div className="faq-a">{faq.a}</div>
+                  <div className="faq-a" dangerouslySetInnerHTML={{ __html: faq.a }} />
                 )}
               </div>
             ))}

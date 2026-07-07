@@ -101,9 +101,27 @@ class AlgoEngineService {
     if (this.initialized) return;
     this.initialized = true;
     await this.wsLive.initialize();
+    await this.restorePreselectedStocks();
     this.tradingScheduler.startDailyTokenRefreshScheduler();
     this.tradingScheduler.startDailyPreOpenStrategyScheduler();
     this.tradingScheduler.startActiveTradesMonitoringScheduler();
+  }
+
+  private async restorePreselectedStocks(): Promise<void> {
+    try {
+      const records = await prisma.strategyPreselect.findMany();
+      for (const rec of records) {
+        try {
+          const stock: StockQuote = JSON.parse(rec.stockData);
+          this.preselectedStockByStrategy.set(rec.strategyId, stock);
+          console.log(`AlgoEngine init: Restored preselected stock ${stock.symbol} for strategy ${rec.strategyId}.`);
+        } catch (e) {
+          console.error(`AlgoEngine init: Failed to parse preselected stock for strategy ${rec.strategyId}:`, e);
+        }
+      }
+    } catch (e) {
+      console.error('AlgoEngine init: Failed to restore preselected stocks:', e);
+    }
   }
 
   async getAlgoSetting(key: string, defaultValue: string): Promise<string> {
@@ -243,6 +261,11 @@ class AlgoEngineService {
   async preSelectAllClients(strategyId?: string): Promise<void> {
     this.preselectedStockByStrategy.clear();
     this.marginCache.clear();
+    try {
+      await prisma.strategyPreselect.deleteMany();
+    } catch (e) {
+      console.error('AlgoEngine preSelect: Failed to clear old preselections from DB:', e);
+    }
 
     const preOpenStocks = this.preOpenCache.length > 0
       ? this.preOpenCache
@@ -347,6 +370,15 @@ class AlgoEngineService {
 
       const selected = sortedStocks[selectPosition - 1];
       this.preselectedStockByStrategy.set(strategy.id, selected);
+      try {
+        await prisma.strategyPreselect.upsert({
+          where: { strategyId: strategy.id },
+          update: { symbol: selected.symbol, stockData: JSON.stringify(selected) },
+          create: { strategyId: strategy.id, symbol: selected.symbol, stockData: JSON.stringify(selected) }
+        });
+      } catch (e) {
+        console.error(`AlgoEngine preSelect: Failed to persist preselected stock for strategy ${strategy.id}:`, e);
+      }
       this.wsLive.subscribeSymbols([selected.symbol]);
       console.log(`AlgoEngine preSelect: Strategy "${strategy.name}" → #${selectPosition} ${selected.symbol}(${selected.changePercent}%)`);
     }
@@ -442,6 +474,7 @@ class AlgoEngineService {
 
       const processClientEntry = async (client: any): Promise<void> => {
         let lockKey = '';
+        let dbLockKey = '';
         try {
           const strategy = client.strategy;
           if (!strategy || strategy.status !== 'active') {
@@ -483,6 +516,20 @@ class AlgoEngineService {
           const productParam = tradeType === 'Delivery' ? 'CNC' : (tradeType === 'Carry Forward' || tradeType === 'Normal' || tradeType === 'NRML') ? 'NRML' : 'MIS';
 
           let candidateStock: StockQuote | null = this.preselectedStockByStrategy.get(strategy.id) || null;
+
+          if (!candidateStock) {
+            try {
+              const dbRecord = await prisma.strategyPreselect.findUnique({ where: { strategyId: strategy.id } });
+              if (dbRecord) {
+                const parsed = JSON.parse(dbRecord.stockData);
+                candidateStock = parsed;
+                this.preselectedStockByStrategy.set(strategy.id, parsed);
+                console.log(`AlgoEngine: Restored preselected stock ${parsed.symbol} for strategy "${strategy.name}" from DB.`);
+              }
+            } catch (e) {
+              console.error(`AlgoEngine: Failed to restore preselected stock from DB for strategy ${strategy.id}:`, e);
+            }
+          }
 
           if (!candidateStock) {
             if (!config.basicInfo?.segment || !config.basicInfo?.selectPosition) {
@@ -550,7 +597,7 @@ class AlgoEngineService {
           this.entryLock.add(lockKey);
 
           const todayStr = todayStart.toISOString().split('T')[0];
-          const dbLockKey = `trade_lock_${client.id}_${strategy.id}_${todayStr}`;
+          dbLockKey = `trade_lock_${client.id}_${strategy.id}_${todayStr}`;
           try {
             await prisma.appSettings.create({
               data: { settingKey: dbLockKey, settingValue: 'locked', type: 'lock' }
@@ -863,7 +910,7 @@ class AlgoEngineService {
             });
 
             await prisma.strategyLog.create({
-              data: { strategyId: strategy.id, message: errMsg, logType: 'info' }
+              data: { strategyId: strategy.id, message: errMsg, logType: 'error' }
             });
             return;
           }
@@ -1301,11 +1348,25 @@ class AlgoEngineService {
         return [];
       };
 
-      const [dataRes, niftySymbols, bankNiftySymbols, foSymbols, smeSymbols] = await Promise.all([
+      const fetchWithRetry = async (key: string, retries = 3): Promise<string[]> => {
+        for (let i = 0; i < retries; i++) {
+          const result = await fetchIndexSymbols(key);
+          if (result.length > 0) return result;
+          if (i < retries - 1) {
+            const delay = 1000 * (i + 1);
+            console.log(`Retry ${i + 1}/${retries - 1} for key=${key} in ${delay}ms`);
+            await new Promise(r => setTimeout(r, delay));
+          }
+        }
+        return [];
+      };
+
+      const foSymbols = await fetchWithRetry('FO');
+
+      const [dataRes, niftySymbols, bankNiftySymbols, smeSymbols] = await Promise.all([
         fetch(API_ENDPOINTS.NSE_PRE_OPEN, { headers: { ...headers, 'Cookie': cookies } }),
         fetchIndexSymbols('NIFTY'),
         fetchIndexSymbols('BANKNIFTY'),
-        fetchIndexSymbols('FO'),
         fetchIndexSymbols('SME')
       ]);
 

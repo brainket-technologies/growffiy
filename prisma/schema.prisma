@@ -69,6 +69,7 @@ model Strategy {
   assignments StrategyAssignment[]
   backtests   StrategyBacktest[]
   conditions  StrategyCondition[]
+  preselections StrategyPreselect[]
   logs        StrategyLog[]
   trades      Trade[]
 
@@ -238,6 +239,18 @@ model StrategyAssignment {
   strategy   Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
 
   @@map("strategy_assignments")
+}
+
+model StrategyPreselect {
+  id         String   @id @default(uuid())
+  strategyId String   @unique @map("strategy_id")
+  symbol     String
+  stockData  String   @map("stock_data")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  strategy   Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+
+  @@map("strategy_preselections")
 }
 
 model StrategyTemplate {

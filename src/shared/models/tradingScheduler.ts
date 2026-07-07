@@ -157,7 +157,15 @@ export class TradingScheduler {
                 entryTasks.push(() => this.engine.executePreOpenTrades(adminId, undefined, strategy.id));
               }
             } else {
-              console.log(`AlgoEngine Scheduler: Entry skip for "${strategy.name}" (${entryDebug})`);
+              // Only log skip when within 5 minutes of entry time to reduce log noise
+              if (entryTime) {
+                const [eH, eM] = entryTime.split(':').map(Number);
+                const entryMinutes = eH * 60 + eM;
+                const currentMinutes = hours * 60 + minutes;
+                if (entryMinutes - currentMinutes <= 5) {
+                  console.log(`AlgoEngine Scheduler: Entry skip for "${strategy.name}" (${entryDebug})`);
+                }
+              }
             }
           }
 
@@ -206,7 +214,14 @@ export class TradingScheduler {
                   entryTasks.push(() => this.engine.executePreOpenTrades(adminId, undefined, strategy.id, liCaptured, gId));
                 }
               } else {
-                console.log(`AlgoEngine Scheduler: Leg ${li + 1} skip for "${strategy.name}" (now=${currentTimeStr}, legEntry=${legEntryTime}, lastEntry=${lastEntryByStrategy.get(legKey) || '-'})`);
+                // Only log skip when within 5 minutes of entry time to reduce log noise
+                const [legH, legM] = legEntryTime.split(':').map(Number);
+                const legEntryMinutes = legH * 60 + legM;
+                const currentMinutes = hours * 60 + minutes;
+                const minutesToEntry = legEntryMinutes - currentMinutes;
+                if (minutesToEntry <= 5) {
+                  console.log(`AlgoEngine Scheduler: Leg ${li + 1} skip for "${strategy.name}" (now=${currentTimeStr}, legEntry=${legEntryTime}, lastEntry=${lastEntryByStrategy.get(legKey) || '-'})`);
+                }
               }
             }
           }

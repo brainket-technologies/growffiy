@@ -505,7 +505,7 @@ export default function ClientDashboardOverview() {
 
                       {/* Animated Circular Progress for TOTP Countdown */}
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', position: 'relative' }}>
-                        <div style={{ position: 'relative', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContents: 'center' }}>
+                        <div style={{ position: 'relative', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <svg width="48" height="48" style={{ transform: 'rotate(-90deg)', position: 'absolute', top: 0, left: 0 }}>
                             {/* Background Circle */}
                             <circle cx="24" cy="24" r="18" fill="transparent" stroke="var(--border-light)" strokeWidth="3" />

@@ -65,207 +65,37 @@ const defaultFaqContent = JSON.stringify([
 
 export async function GET() {
   try {
-    const dbSettings = await prisma.appSettings.findMany();
-    const settings: Record<string, string> = {};
-    
-    // Set defaults
-    settings['razorpay_test_key_id'] = '';
-    settings['razorpay_test_key_secret'] = '';
-    settings['razorpay_live_key_id'] = '';
-    settings['razorpay_live_key_secret'] = '';
-    settings['razorpay_mode'] = 'test';
-    settings['smtp_host'] = '';
-    settings['smtp_port'] = '587';
-    settings['smtp_user'] = '';
-    settings['smtp_password'] = '';
-    settings['smtp_sender_name'] = 'Growffiy';
-    settings['smtp_encryption'] = 'tls'; // ssl, tls, none
-    settings['smtp_status'] = 'false'; // 'true' (on) or 'false' (off)
-    settings['support_email'] = 'support@growffiy.com';
-    settings['support_phone'] = '+91 98765 43210';
-    settings['support_timings'] = 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)';
-    settings['support_address'] = 'Mumbai, India';
-    settings['algo_preopen_fetch_time'] = '09:08';
-    settings['algo_token_refresh_time'] = '08:00';
-    settings['auto_trade_enabled'] = 'true';
-    settings['trading_days'] = '["Mon","Tue","Wed","Thu","Fri"]';
-    settings['special_market_days'] = '[]';
-    settings['market_holidays'] = '[]';
-    settings['app_name'] = 'Growffiy';
-    settings['app_title'] = 'Growffiy — Algo Trading Terminal';
-    settings['app_favicon'] = '';
-    settings['app_logo'] = '';
-    settings['meta_description'] = '';
-    settings['meta_keywords'] = '';
-    settings['footer_text'] = '';
-    settings['footer_tagline'] = 'Advanced algorithmic trading middleware connecting directly with Zerodha Kite API. Built for mathematical discipline and speed.';
-    settings['footer_disclaimer'] = 'Algorithmic trading involves substantial financial risk. Growffiy is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.';
-    settings['footer_bottom_tagline'] = 'Designed for NSE/BSE Intraday Algo Traders';
-    settings['google_analytics_id'] = '';
+    const dbSettings = await prisma.appSettings.findMany({
+      where: {
+        settingKey: {
+          in: ['legal_privacy_content', 'legal_terms_content', 'legal_refund_content', 'legal_disclaimer_content', 'legal_faq_content'],
+        },
+      },
+    });
 
-    settings['legal_privacy_content'] = defaultPrivacyContent;
-    settings['legal_terms_content'] = defaultTermsContent;
-    settings['legal_refund_content'] = defaultRefundContent;
-    settings['legal_disclaimer_content'] = defaultDisclaimerContent;
-    settings['legal_faq_content'] = defaultFaqContent;
-    settings['hero_title'] = 'Automate Your<br /><span class="text-gradient">Stock Market</span><br />Trades Smarter';
-    settings['hero_subtitle'] = 'Growffiy connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.';
+    const settings: Record<string, string> = {
+      legal_privacy_content: defaultPrivacyContent,
+      legal_terms_content: defaultTermsContent,
+      legal_refund_content: defaultRefundContent,
+      legal_disclaimer_content: defaultDisclaimerContent,
+      legal_faq_content: defaultFaqContent,
+    };
 
     dbSettings.forEach((s) => {
       settings[s.settingKey] = s.settingValue;
     });
 
-    return NextResponse.json({ success: true, settings });
+    return NextResponse.json({ success: true, settings }, { headers: { 'Cache-Control': 'no-store, must-revalidate' } });
   } catch (error) {
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       settings: {
-        razorpay_test_key_id: '',
-        razorpay_test_key_secret: '',
-        razorpay_live_key_id: '',
-        razorpay_live_key_secret: '',
-        razorpay_mode: 'test',
-        smtp_host: '',
-        smtp_port: '587',
-        smtp_user: '',
-        smtp_password: '',
-        smtp_sender_name: 'Growffiy',
-        smtp_encryption: 'tls',
-        smtp_status: 'false',
-        support_email: 'support@growffiy.com',
-        support_phone: '+91 98765 43210',
-        support_timings: 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)',
-        support_address: 'Mumbai, India',
-        algo_preopen_fetch_time: '09:08',
-        algo_token_refresh_time: '08:00',
-        auto_trade_enabled: 'true',
-        trading_days: '["Mon","Tue","Wed","Thu","Fri"]',
-        special_market_days: '[]',
-        market_holidays: '[]',
-        app_name: 'Growffiy',
-        app_title: 'Growffiy — Algo Trading Terminal',
-        app_favicon: '',
-        app_logo: '',
-        meta_description: '',
-        meta_keywords: '',
-        footer_text: '',
-        footer_tagline: 'Advanced algorithmic trading middleware connecting directly with Zerodha Kite API. Built for mathematical discipline and speed.',
-        footer_disclaimer: 'Algorithmic trading involves substantial financial risk. Growffiy is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.',
-        footer_bottom_tagline: 'Designed for NSE/BSE Intraday Algo Traders',
-        google_analytics_id: '',
         legal_privacy_content: defaultPrivacyContent,
         legal_terms_content: defaultTermsContent,
         legal_refund_content: defaultRefundContent,
         legal_disclaimer_content: defaultDisclaimerContent,
         legal_faq_content: defaultFaqContent,
-        hero_title: 'Automate Your<br /><span class="text-gradient">Stock Market</span><br />Trades Smarter',
-        hero_subtitle: 'Growffiy connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.',
-      } 
-    });
-  }
-}
-
-export async function PUT(request: Request) {
-  try {
-    const body = await request.json();
-    const { 
-      razorpay_test_key_id, 
-      razorpay_test_key_secret, 
-      razorpay_live_key_id, 
-      razorpay_live_key_secret, 
-      razorpay_mode,
-      smtp_host,
-      smtp_port,
-      smtp_user,
-      smtp_password,
-      smtp_sender_name,
-      smtp_encryption,
-      smtp_status,
-      support_email,
-      support_phone,
-      support_timings,
-      support_address,
-      algo_preopen_fetch_time,
-      algo_token_refresh_time,
-      app_name,
-      app_title,
-      app_favicon,
-      app_logo,
-      meta_description,
-      meta_keywords,
-      footer_text,
-      footer_tagline,
-      footer_disclaimer,
-      footer_bottom_tagline,
-      google_analytics_id,
-      legal_privacy_content,
-      legal_terms_content,
-      legal_refund_content,
-      legal_disclaimer_content,
-      legal_faq_content,
-      hero_title,
-      hero_subtitle
-    } = body;
-
-    const updates = {
-      razorpay_test_key_id,
-      razorpay_test_key_secret,
-      razorpay_live_key_id,
-      razorpay_live_key_secret,
-      razorpay_mode,
-      smtp_host,
-      smtp_port,
-      smtp_user,
-      smtp_password,
-      smtp_sender_name,
-      smtp_encryption,
-      smtp_status,
-      support_email,
-      support_phone,
-      support_timings,
-      support_address,
-      algo_preopen_fetch_time,
-      algo_token_refresh_time,
-      auto_trade_enabled: body.auto_trade_enabled,
-      trading_days: body.trading_days,
-      special_market_days: body.special_market_days,
-      market_holidays: body.market_holidays,
-      app_name,
-      app_title,
-      app_favicon,
-      app_logo,
-      meta_description,
-      meta_keywords,
-      footer_text,
-      footer_tagline,
-      footer_disclaimer,
-      footer_bottom_tagline,
-      google_analytics_id,
-      legal_privacy_content,
-      legal_terms_content,
-      legal_refund_content,
-      legal_disclaimer_content,
-      legal_faq_content,
-      hero_title,
-      hero_subtitle
-    };
-
-
-    for (const [key, value] of Object.entries(updates)) {
-      if (value !== undefined) {
-        await prisma.appSettings.upsert({
-          where: { settingKey: key },
-          update: { settingValue: String(value) },
-          create: {
-            settingKey: key,
-            settingValue: String(value),
-          },
-        });
-      }
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+      },
+    }, { headers: { 'Cache-Control': 'no-store, must-revalidate' } });
   }
 }

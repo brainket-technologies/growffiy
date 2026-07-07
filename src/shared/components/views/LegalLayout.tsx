@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Activity, ArrowLeft } from 'lucide-react';
 import Footer from './Footer';
 
 interface LegalLayoutProps {
@@ -14,6 +13,7 @@ interface LegalLayoutProps {
 export default function LegalLayout({ title, lastUpdated, children }: LegalLayoutProps) {
   const [brandLogo, setBrandLogo] = useState('');
   const [brandName, setBrandName] = useState('Growffiy');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const load = () => {
@@ -26,54 +26,63 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
   }, []);
 
   return (
-    <div style={{
+    <div data-theme="light" style={{
       minHeight: '100vh',
-      background: 'var(--surface)',
-      fontFamily: 'var(--font-body)',
+      background: '#f8fafc',
+      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
     }}>
-      {/* Header bar */}
-      <div style={{
-        background: 'var(--bg-white)',
-        borderBottom: '1px solid var(--border)',
-        padding: '16px 0',
-        position: 'sticky', top: 0, zIndex: 100,
+      {/* Navbar - matches home page exactly */}
+      <nav style={{
+        position: 'sticky', top: 0, left: 0, right: 0, zIndex: 1000,
+        background: 'rgba(255,255,255,0.97)',
         backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(226,232,240,0.8)',
+        boxShadow: '0 2px 20px rgba(0,0,0,0.06)',
+        transition: 'all 0.35s ease',
       }}>
-        <div style={{
-          maxWidth: 800, margin: '0 auto', padding: '0 20px',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        }}>
-          <Link href="/" style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            textDecoration: 'none',
-          }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 8,
-              background: 'linear-gradient(135deg, #1E88FF, #1252AB)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <img src={brandLogo || '/logo.png'} alt={brandName} style={{ width: 18, height: 18, objectFit: 'contain' }} />
+        <div className="navbar-inner">
+          <Link href="/" className="navbar-logo" onClick={() => setMobileMenuOpen(false)}>
+            <div className="navbar-logo-icon">
+              <img src={brandLogo || '/logo.png'} alt={brandName} style={{ width: 20, height: 20, objectFit: 'contain' }} />
             </div>
-            <span style={{
-              fontSize: 16, fontWeight: 800, color: 'var(--text-heading)',
-              fontFamily: 'var(--font-title)',
-            }}>
-              {brandName.toUpperCase()}
-            </span>
+            {brandName.toUpperCase()}
           </Link>
 
-          <Link href="/" style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '8px 18px', borderRadius: 99,
-            background: 'var(--surface)', border: '1px solid var(--border)',
-            fontSize: 13, fontWeight: 600, color: 'var(--text-body)',
-            textDecoration: 'none', transition: 'all 0.2s',
-          }}>
-            <ArrowLeft size={14} />
-            Back to Home
-          </Link>
+          <div className="navbar-nav">
+            <Link href="/" className="nav-link nav-link-dark">Home</Link>
+            <Link href="/vendor/privacy" className="nav-link nav-link-dark">Privacy</Link>
+            <Link href="/vendor/terms" className="nav-link nav-link-dark">Terms</Link>
+            <Link href="/vendor/refund" className="nav-link nav-link-dark">Refund</Link>
+            <Link href="/vendor/disclaimer" className="nav-link nav-link-dark">Disclaimer</Link>
+            <Link href="/vendor/login" target="_blank" className="btn-nav">Get Started →</Link>
+          </div>
+
+          <button
+            className="hamburger-btn"
+            onClick={() => setMobileMenuOpen(o => !o)}
+            aria-label="Toggle menu"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {mobileMenuOpen
+                ? <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>
+                : <><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></>
+              }
+            </svg>
+          </button>
         </div>
-      </div>
+
+        {mobileMenuOpen && (
+          <div className="mobile-nav">
+            <Link href="/" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Home</Link>
+            <Link href="/vendor/privacy" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Privacy Policy</Link>
+            <Link href="/vendor/terms" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Terms & Conditions</Link>
+            <Link href="/vendor/refund" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Refund Policy</Link>
+            <Link href="/vendor/disclaimer" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Risk Disclaimer</Link>
+            <Link href="/vendor/login" target="_blank" className="mobile-nav-cta" onClick={() => setMobileMenuOpen(false)}>Get Started →</Link>
+          </div>
+        )}
+      </nav>
 
       {/* Content */}
       <div style={{
@@ -82,20 +91,20 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
         {/* Title */}
         <div style={{ marginBottom: 40 }}>
           <h1 style={{
-            fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 800, color: 'var(--text-heading)',
-            fontFamily: 'var(--font-title)', letterSpacing: '-0.5px',
+            fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 800, color: '#1e293b',
+            fontFamily: "'Inter', sans-serif", letterSpacing: '-0.5px',
             marginBottom: 8,
           }}>
             {title}
           </h1>
-          <p style={{ fontSize: 13, color: 'var(--text-subtle)', fontWeight: 500 }}>
+          <p style={{ fontSize: 13, color: '#94a3b8', fontWeight: 500 }}>
             Last Updated: {lastUpdated}
           </p>
         </div>
 
         {/* Card body */}
         <div style={{
-          background: 'var(--bg-white)',
+          background: '#ffffff',
           borderRadius: 20,
           padding: 'clamp(20px, 5vw, 40px) clamp(16px, 5vw, 44px)',
           border: '1px solid #e8edf5',

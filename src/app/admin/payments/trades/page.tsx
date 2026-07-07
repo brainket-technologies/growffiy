@@ -141,9 +141,16 @@ function formatDateTime(timeStr: string | Date | null) {
   if (!timeStr) return '--';
   try {
     const date = new Date(timeStr);
-    return date.toLocaleString('en-US', {
-      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isToday = date.toDateString() === today.toDateString();
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+    const prefix = isToday ? 'Today' : isYesterday ? 'Yesterday' : '';
+    const formatted = date.toLocaleString('en-US', {
+      day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true
     });
+    return prefix ? `${prefix} ${formatted}` : formatted;
   } catch { return '--'; }
 }
 
@@ -246,7 +253,14 @@ export default function LiveTradeTransactionsPage() {
     () => Array.from(new Set((trades || []).map(t => t?.strategy?.name || t?.strategyName).filter(Boolean))) as string[],
     [trades]
   );
-  const mergedRows = useMemo(() => mergeOcoTrades(trades || []), [trades]);
+  const mergedRows = useMemo(() => {
+    const merged = mergeOcoTrades(trades || []);
+    return merged.sort((a, b) => {
+      const dateA = new Date(a.entryTime || a.createdAt || 0).getTime();
+      const dateB = new Date(b.entryTime || b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+  }, [trades]);
 
   const maxLegCount = useMemo(() => {
     let max = 0;

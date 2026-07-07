@@ -8,12 +8,24 @@ export default function Footer() {
   const [brandLogo, setBrandLogo] = useState('');
   const [brandName, setBrandName] = useState('Growffiy');
   const [footerText, setFooterText] = useState('');
+  const [footerTagline, setFooterTagline] = useState('');
+  const [footerDisclaimer, setFooterDisclaimer] = useState('');
+  const [footerBottomTagline, setFooterBottomTagline] = useState('');
+  const [supportEmail, setSupportEmail] = useState('');
+  const [supportPhone, setSupportPhone] = useState('');
+  const [supportAddress, setSupportAddress] = useState('');
 
   useEffect(() => {
     const load = () => {
       setBrandLogo(localStorage.getItem('growffiy_brand_logo') || '');
       setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffiy');
       setFooterText(localStorage.getItem('growffiy_footer_text') || '');
+      setFooterTagline(localStorage.getItem('growffiy_footer_tagline') || '');
+      setFooterDisclaimer(localStorage.getItem('growffiy_footer_disclaimer') || '');
+      setFooterBottomTagline(localStorage.getItem('growffiy_footer_bottom_tagline') || '');
+      setSupportEmail(localStorage.getItem('growffiy_support_email') || '');
+      setSupportPhone(localStorage.getItem('growffiy_support_phone') || '');
+      setSupportAddress(localStorage.getItem('growffiy_support_address') || '');
     };
     load();
     window.addEventListener('branding-updated', load);
@@ -33,19 +45,9 @@ export default function Footer() {
               <span className="footer-brand-name">{brandName.toUpperCase()}</span>
             </div>
             <p className="footer-brand-desc">
-              Advanced algorithmic trading middleware connecting directly with Zerodha Kite API.
-              Built for mathematical discipline and speed.
+              {footerTagline || 'Advanced algorithmic trading middleware connecting directly with Zerodha Kite API. Built for mathematical discipline and speed.'}
             </p>
-            <div style={{ marginTop: 20, display: 'flex', gap: 12 }}>
-              {['TW', 'TG', 'IN', 'YT'].map(s => (
-                <div key={s} style={{
-                  width: 32, height: 32, borderRadius: 8, background: '#1e293b',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}>{s}</div>
-              ))}
-            </div>
+
           </div>
 
           {/* Platform */}
@@ -70,28 +72,25 @@ export default function Footer() {
           <div>
             <div className="footer-col-title">Contact</div>
             <div className="footer-link" style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-              <Mail size={13} style={{ marginTop: 2, flexShrink: 0 }} /> support@growffiy.in
+              <Mail size={13} style={{ marginTop: 2, flexShrink: 0 }} /> {supportEmail || 'support@growffiy.in'}
             </div>
             <div className="footer-link" style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-              <Phone size={13} style={{ marginTop: 2, flexShrink: 0 }} /> +91-XXXX-XXXXXX
+              <Phone size={13} style={{ marginTop: 2, flexShrink: 0 }} /> {supportPhone || '+91-XXXX-XXXXXX'}
             </div>
             <div className="footer-link" style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-              <MapPin size={13} style={{ marginTop: 2, flexShrink: 0 }} /> Mumbai, India
+              <MapPin size={13} style={{ marginTop: 2, flexShrink: 0 }} /> {supportAddress || 'Mumbai, India'}
             </div>
           </div>
         </div>
 
         <div className="footer-disclaimer">
           <strong style={{ color: 'var(--text-subtle)' }}>REGULATORY RISK DISCLAIMER:</strong>{' '}
-          Algorithmic trading involves substantial financial risk. Growffiy is a software utility and is NOT a
-          SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown
-          does not represent guaranteed future results. Past performance is not indicative of future returns.
-          Trade responsibly.
+          {footerDisclaimer || 'Algorithmic trading involves substantial financial risk. Growffiy is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.'}
         </div>
 
         <div className="footer-bottom">
           <span>{footerText || '© 2026 Growffiy Inc. All rights reserved.'}</span>
-          <span>Designed for NSE/BSE Intraday Algo Traders</span>
+          <span>{footerBottomTagline || 'Designed for NSE/BSE Intraday Algo Traders'}</span>
         </div>
       </div>
     </footer>

@@ -312,6 +312,7 @@ export default function LiveTradingPage() {
             <option value="active">Active</option>
             <option value="closed">Closed</option>
             <option value="cancelled">Cancelled</option>
+            <option value="failed">Failed</option>
           </select>
           <Button variant="secondary" onClick={handleExportCSV} style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '34px', fontSize: '12px', padding: '0 12px' }}>
             <Download size={14} /> Export
