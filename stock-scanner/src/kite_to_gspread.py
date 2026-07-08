@@ -120,6 +120,27 @@ def load_google_settings_from_db():
         logger.error(f"Failed to fetch Google Sheets settings from Neon database: {e}")
         return {}
 
+def load_kite_credentials_from_db():
+    db_url = load_db_url()
+    try:
+        conn = psycopg2.connect(db_url)
+        cur = conn.cursor()
+        cur.execute("SELECT zerodha_api_key, zerodha_api_secret, zerodha_client_id, zerodha_password, zerodha_totp_secret FROM clients LIMIT 1")
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if row:
+            return {
+                "kite_api_key": row[0],
+                "kite_api_secret": row[1],
+                "kite_client_id": row[2],
+                "kite_password": row[3],
+                "kite_totp_secret": row[4]
+            }
+    except Exception as e:
+        logger.error(f"Failed to fetch Kite credentials from DB: {e}")
+    return {}
+
 def load_stream_status_from_db():
     db_url = load_db_url()
     try:
@@ -209,9 +230,10 @@ price_lock = threading.Lock()
 
 def run_streamer():
     config = load_config()
+    db_kite_creds = load_kite_credentials_from_db()
     
-    api_key = get_config_value(config, "kite_api_key")
-    api_secret = get_config_value(config, "kite_api_secret")
+    api_key = db_kite_creds.get("kite_api_key") or get_config_value(config, "kite_api_key")
+    api_secret = db_kite_creds.get("kite_api_secret") or get_config_value(config, "kite_api_secret")
     spreadsheet_id = get_config_value(config, "spreadsheet_id")
     
     nse_instruments = fetch_nse_instruments()
@@ -390,9 +412,9 @@ def run_streamer():
         import requests
         import urllib.parse
 
-        client_id = get_config_value(config, "kite_client_id")
-        password = get_config_value(config, "kite_password")
-        totp_secret = get_config_value(config, "kite_totp_secret")
+        client_id = db_kite_creds.get("kite_client_id") or get_config_value(config, "kite_client_id")
+        password = db_kite_creds.get("kite_password") or get_config_value(config, "kite_password")
+        totp_secret = db_kite_creds.get("kite_totp_secret") or get_config_value(config, "kite_totp_secret")
 
         session = requests.Session()
         r_login = session.post("https://kite.zerodha.com/api/login", data={
