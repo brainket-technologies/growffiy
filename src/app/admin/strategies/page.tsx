@@ -25,7 +25,9 @@ import {
   AlertCircle,
   Calendar,
   ChevronDown,
-  Save
+  Save,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
 import { Modal } from '../../../shared/components/views/Modal';
 import StrategyFlowPreview from '../../../shared/components/StrategyFlowPreview';
@@ -1698,14 +1700,27 @@ export default function StrategiesPage() {
                           style={{ fontWeight: 700, fontSize: '14px', border: 'none', background: 'transparent', color: 'var(--text-primary)', outline: 'none', width: '120px' }}
                           placeholder="Leg name"
                         />
-                        <label style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
-                          <input
-                            type="checkbox"
-                            checked={leg.enabled}
-                            onChange={(e) => handleLegChange(legIdx, 'enabled', e.target.checked)}
-                          />
-                          Enabled
-                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleLegChange(legIdx, 'enabled', !leg.enabled)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: 0,
+                              display: 'flex',
+                              alignItems: 'center',
+                              color: leg.enabled ? '#22c55e' : '#94a3b8',
+                              transition: 'color 0.2s'
+                            }}
+                          >
+                            {leg.enabled ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
+                          </button>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: leg.enabled ? '#22c55e' : '#94a3b8' }}>
+                            {leg.enabled ? 'ON' : 'OFF'}
+                          </span>
+                        </div>
                       </div>
                       {formData.legs.length > 1 && (
                         <button type="button" onClick={() => removeLeg(legIdx)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '12px' }}>
