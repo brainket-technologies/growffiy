@@ -1,0 +1,9 @@
+kiteconnect
+gspread
+oauth2client
+pyotp
+requests
+yfinance
+streamlit
+flask
+

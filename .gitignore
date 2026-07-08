@@ -46,3 +46,10 @@ HOSTINGER_DEPLOY.md
 /growffiy.zip
 /backups/db_backup.json
 logs/
+
+# stock-scanner local config, credentials and cache
+stock-scanner/config.json
+stock-scanner/credentials.json
+stock-scanner/indicators_cache.json
+stock-scanner/.env
+

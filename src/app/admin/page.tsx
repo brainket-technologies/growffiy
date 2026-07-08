@@ -65,6 +65,8 @@ export default function AdminDashboard() {
   const [tradingDays, setTradingDays] = useState<string[]>([]);
   const [holidays, setHolidays] = useState<string[]>([]);
   const [specialDays, setSpecialDays] = useState<string[]>([]);
+  const [isSheetStreaming, setIsSheetStreaming] = useState(false);
+  const [sheetLoading, setSheetLoading] = useState(false);
 
   useEffect(() => {
     api.get(API_ENDPOINTS.SETTINGS).then((res: any) => {
@@ -75,7 +77,36 @@ export default function AdminDashboard() {
         try { setSpecialDays(JSON.parse(res.settings.special_market_days || '[]')); } catch {}
       }
     }).catch(() => {});
+
+    // Fetch initial sheets sync status
+    fetch('/api/admin/sheet-stream/toggle')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setIsSheetStreaming(data.active);
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  const toggleSheetStreaming = async () => {
+    setSheetLoading(true);
+    try {
+      const res = await fetch('/api/admin/sheet-stream/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: !isSheetStreaming })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsSheetStreaming(data.active);
+      }
+    } catch (err) {
+      console.error("Failed to toggle sheet streaming", err);
+    } finally {
+      setSheetLoading(false);
+    }
+  };
 
   // Filter local states - default to current month
   const now = new Date();
@@ -373,6 +404,9 @@ export default function AdminDashboard() {
             <>
               <Button variant={isTradingActive ? 'danger' : 'success'} onClick={() => toggleTrading(!isTradingActive)} style={{ fontSize: '13px', padding: '8px 16px', fontWeight: 600 }}>
                 {isTradingActive ? 'Stop Trading' : 'Start Auto Trading'}
+              </Button>
+              <Button variant={isSheetStreaming ? 'danger' : 'success'} onClick={toggleSheetStreaming} disabled={sheetLoading} style={{ fontSize: '13px', padding: '8px 16px', fontWeight: 600 }}>
+                {isSheetStreaming ? 'Stop Sheet Sync' : 'Start Sheet Sync'}
               </Button>
             </>
           )}
