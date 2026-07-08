@@ -1014,6 +1014,9 @@ def run_streamer():
         
         # Check if the Web UI requested a stop (either via file flag or Neon DB status)
         db_status = load_stream_status_from_db()
+        if db_status == "active":
+            is_market_hours = True
+            
         if os.path.exists("force_stop.flag") or db_status == "inactive":
             if os.path.exists("force_stop.flag"):
                 try:
