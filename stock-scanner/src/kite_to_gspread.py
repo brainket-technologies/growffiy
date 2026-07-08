@@ -43,13 +43,40 @@ CACHE_FILE = "indicators_cache.json"
 import psycopg2
 
 def load_config():
-    if not os.path.exists(CONFIG_FILE):
-        return {}
-    try:
-        with open(CONFIG_FILE, "r") as f:
-            return json.load(f)
-    except Exception:
-        return {}
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Try local stock-scanner/.env first
+    env_path = os.path.abspath(os.path.join(script_dir, "../.env"))
+    if not os.path.exists(env_path):
+        # Fallback to root .env
+        env_path = os.path.abspath(os.path.join(script_dir, "../../.env"))
+        
+    config = {}
+    if os.path.exists(env_path):
+        try:
+            with open(env_path, "r") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        key, val = line.split("=", 1)
+                        key = key.strip()
+                        val = val.strip()
+                        if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+                            val = val[1:-1]
+                        os.environ[key] = val
+                        os.environ[key.upper()] = val
+                        config[key] = val
+        except Exception as e:
+            logger.error(f"Error loading env file: {e}")
+            
+    # Try loading local config.json as fallback if present
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r") as f:
+                config.update(json.load(f))
+        except Exception:
+            pass
+            
+    return config
 
 def load_db_url():
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -70,6 +97,9 @@ def load_db_url():
                         return val
         except Exception:
             pass
+    # Try reading from environment variable directly
+    if "DATABASE_URL" in os.environ:
+        return os.environ["DATABASE_URL"]
     return "postgresql://neondb_owner:npg_Qtok2RmWK4uT@ep-purple-frost-aimotyfv-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
 def load_google_settings_from_db():
