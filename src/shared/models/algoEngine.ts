@@ -614,11 +614,12 @@ class AlgoEngineService {
                 clientId: client.id,
                 strategyId: strategy.id,
                 symbol: candidateStock.symbol,
+                legName: currentLeg.name,
                 createdAt: { gte: todayStart }
               }
             });
             if (existingTrade) {
-              console.log(`AlgoEngine: Trade already exists today for ${candidateStock.symbol} (${client.user.name}). Skipping.`);
+              console.log(`AlgoEngine: Trade already exists today for ${candidateStock.symbol} ${currentLeg.name} (${client.user.name}). Skipping.`);
               return;
             }
 
