@@ -179,19 +179,51 @@ function ModalLegSection({ leg, title, color }: { leg: any; title: string; color
 function LegCell({ leg, color }: { leg: any; color: string }) {
   if (!leg) return <td style={{ color: 'var(--text-muted)', fontSize: '11px' }}>N/A</td>;
   const eStat = (leg.entryOrderStatus || '').toLowerCase();
+  
+  const isCircuitAdjusted = 
+    (leg.originalEntryPrice && Number(leg.originalEntryPrice) !== Number(leg.entryPrice)) ||
+    (leg.originalStopLoss && Number(leg.originalStopLoss) !== Number(leg.stopLoss)) ||
+    (leg.originalTarget && Number(leg.originalTarget) !== Number(leg.target));
+
   return (
     <td style={{ fontSize: '11px', lineHeight: '1.7', verticalAlign: 'top' }}>
       <div style={{ fontWeight: 600, color, fontSize: '12px' }}>
         {color === 'var(--color-success)' ? <ArrowUpRight size={11} style={{ display: 'inline', marginRight: 2 }} /> : <ArrowDownRight size={11} style={{ display: 'inline', marginRight: 2 }} />}
         {leg.direction || ''}
       </div>
-      <div>Entry: ₹{Number(leg.entryPrice || 0).toFixed(2)}</div>
-      <div>SL: ₹{Number(leg.stopLoss || 0).toFixed(2)}</div>
-      <div>Tgt: ₹{Number(leg.target || 0).toFixed(2)}</div>
       <div>
+        Entry: ₹{Number(leg.entryPrice || 0).toFixed(2)}
+        {leg.originalEntryPrice && Number(leg.originalEntryPrice) !== Number(leg.entryPrice) && (
+          <span style={{ color: 'var(--text-muted)', textDecoration: 'line-through', marginLeft: '4px', fontSize: '10px' }}>
+            ₹{Number(leg.originalEntryPrice).toFixed(2)}
+          </span>
+        )}
+      </div>
+      <div>
+        SL: ₹{Number(leg.stopLoss || 0).toFixed(2)}
+        {leg.originalStopLoss && Number(leg.originalStopLoss) !== Number(leg.stopLoss) && (
+          <span style={{ color: 'var(--text-muted)', textDecoration: 'line-through', marginLeft: '4px', fontSize: '10px' }}>
+            ₹{Number(leg.originalStopLoss).toFixed(2)}
+          </span>
+        )}
+      </div>
+      <div>
+        Tgt: ₹{Number(leg.target || 0).toFixed(2)}
+        {leg.originalTarget && Number(leg.originalTarget) !== Number(leg.target) && (
+          <span style={{ color: 'var(--text-muted)', textDecoration: 'line-through', marginLeft: '4px', fontSize: '10px' }}>
+            ₹{Number(leg.originalTarget).toFixed(2)}
+          </span>
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
         <span className={`badge ${eStat === 'filled' ? 'badge-success' : eStat === 'cancelled' ? 'badge-danger' : 'badge-warning'}`} style={{ fontSize: '9px', marginTop: '2px' }}>
           {eStat.toUpperCase()}
         </span>
+        {isCircuitAdjusted && (
+          <span className="badge badge-warning" style={{ fontSize: '9px', marginTop: '2px' }}>
+            CIRCUIT
+          </span>
+        )}
       </div>
     </td>
   );

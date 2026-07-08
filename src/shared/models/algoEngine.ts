@@ -133,6 +133,25 @@ class AlgoEngineService {
     }
   }
 
+  private async getFreshCircuitLimits(client: any, exchange: string, symbol: string): Promise<{ upper: number; lower: number } | null> {
+    if (!client.zerodhaApiKey || !client.accessToken) return null;
+    try {
+      const quoteRes = await KiteClient.getQuotes(client.zerodhaApiKey, client.accessToken, [`${exchange}:${symbol}`]);
+      if (quoteRes?.status === 'success' && quoteRes.data?.[`${exchange}:${symbol}`]) {
+        const q = quoteRes.data[`${exchange}:${symbol}`];
+        if (q.upper_circuit_limit !== undefined && q.lower_circuit_limit !== undefined) {
+          return {
+            upper: Number(q.upper_circuit_limit),
+            lower: Number(q.lower_circuit_limit)
+          };
+        }
+      }
+    } catch (e) {
+      console.error(`AlgoEngine: Failed to fetch fresh circuit limits for ${symbol}:`, e);
+    }
+    return null;
+  }
+
   private async matchesConditions(stock: any, conditions: any[], client?: any): Promise<boolean> {
     if (!conditions || !Array.isArray(conditions) || conditions.length === 0) return true;
 
@@ -954,7 +973,37 @@ class AlgoEngineService {
             ? Number(currentLeg.tradeAction.marketProtection)
             : -1;
 
-          const stopLoss = isShortTrade ? entryPrice + slPoints : entryPrice - slPoints;
+           // Fetch fresh circuit limits first to adjust entry price
+          let adjustedEntryPrice = entryPrice;
+          const freshLimits = await this.getFreshCircuitLimits(client, exchangeParam, targetStock.symbol);
+          if (freshLimits) {
+            const { upper, lower } = freshLimits;
+            if (upper > 0 && lower > 0) {
+              if (direction === 'LONG') {
+                if (adjustedEntryPrice > upper) {
+                  adjustedEntryPrice = upper;
+                  console.log(`AlgoEngine: Capped entry price to Upper Circuit for ${targetStock.symbol} LONG: ₹${adjustedEntryPrice}`);
+                } else if (adjustedEntryPrice < lower) {
+                  adjustedEntryPrice = lower;
+                  console.log(`AlgoEngine: Raised entry price to Lower Circuit for ${targetStock.symbol} LONG: ₹${adjustedEntryPrice}`);
+                }
+              } else {
+                if (adjustedEntryPrice < lower) {
+                  adjustedEntryPrice = lower;
+                  console.log(`AlgoEngine: Raised entry price to Lower Circuit for ${targetStock.symbol} SHORT: ₹${adjustedEntryPrice}`);
+                } else if (adjustedEntryPrice > upper) {
+                  adjustedEntryPrice = upper;
+                  console.log(`AlgoEngine: Capped entry price to Upper Circuit for ${targetStock.symbol} SHORT: ₹${adjustedEntryPrice}`);
+                }
+              }
+            }
+          }
+
+          if (client.zerodhaApiKey && activeAccessToken) {
+            adjustedEntryPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, exchangeParam, targetStock.symbol, adjustedEntryPrice);
+          }
+
+          const stopLoss = isShortTrade ? adjustedEntryPrice + slPoints : adjustedEntryPrice - slPoints;
 
           if (!config?.target?.type) {
             console.log(`AlgoEngine: target.type not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
@@ -968,23 +1017,24 @@ class AlgoEngineService {
               return;
             }
             const rr = config.target.riskRewardRatio;
-            target = isShortTrade ? entryPrice - (slPoints * rr) : entryPrice + (slPoints * rr);
+            target = isShortTrade ? adjustedEntryPrice - (slPoints * rr) : adjustedEntryPrice + (slPoints * rr);
           } else {
-            target = isShortTrade ? entryPrice * (1 - targetPercent / 100) : entryPrice * (1 + targetPercent / 100);
+            target = isShortTrade ? adjustedEntryPrice * (1 - targetPercent / 100) : adjustedEntryPrice * (1 + targetPercent / 100);
           }
 
           // Keep original calculated values
           const rawEntryPrice = entryPrice;
-          const rawStopLoss = stopLoss;
-          const rawTarget = target;
+          const rawStopLoss = isShortTrade ? rawEntryPrice + slPoints : rawEntryPrice - slPoints;
+          const rawTarget = targetType === 'Risk Reward Ratio'
+            ? (isShortTrade ? rawEntryPrice - (slPoints * config.target.riskRewardRatio) : rawEntryPrice + (slPoints * config.target.riskRewardRatio))
+            : (isShortTrade ? rawEntryPrice * (1 - targetPercent / 100) : rawEntryPrice * (1 + targetPercent / 100));
 
           // Round values to tick size dynamically using Zerodha Quote API
-          let finalEntryPrice = entryPrice;
+          let finalEntryPrice = adjustedEntryPrice;
           let finalStopLoss = stopLoss;
           let finalTarget = target;
 
           if (client.zerodhaApiKey && activeAccessToken) {
-            finalEntryPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, exchangeParam, targetStock.symbol, entryPrice);
             finalStopLoss = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, exchangeParam, targetStock.symbol, stopLoss);
             finalTarget = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, exchangeParam, targetStock.symbol, target);
           }
@@ -1154,6 +1204,36 @@ class AlgoEngineService {
 
                   // Entry fill hote hi SL + Target place karo
                   if (client.zerodhaApiKey && activeAccessToken) {
+                    // Fetch fresh circuit limits right before placing SL/Target
+                    const freshLimitsSLT = await this.getFreshCircuitLimits(client, exchangeParam, targetStock.symbol);
+                    if (freshLimitsSLT) {
+                      const { upper, lower } = freshLimitsSLT;
+                      if (upper > 0 && lower > 0) {
+                        if (direction === 'LONG') {
+                          if (finalStopLoss < lower) {
+                            finalStopLoss = lower + 0.05;
+                            console.log(`AlgoEngine: Adjusted SL to Lower Circuit + 0.05 for ${targetStock.symbol} LONG: ₹${finalStopLoss}`);
+                          }
+                          if (finalTarget > upper) {
+                            finalTarget = upper;
+                            console.log(`AlgoEngine: Adjusted Target to Upper Circuit for ${targetStock.symbol} LONG: ₹${finalTarget}`);
+                          }
+                        } else { // SHORT
+                          if (finalStopLoss > upper) {
+                            finalStopLoss = upper - 0.05;
+                            console.log(`AlgoEngine: Adjusted SL to Upper Circuit - 0.05 for ${targetStock.symbol} SHORT: ₹${finalStopLoss}`);
+                          }
+                          if (finalTarget < lower) {
+                            finalTarget = lower;
+                            console.log(`AlgoEngine: Adjusted Target to Lower Circuit for ${targetStock.symbol} SHORT: ₹${finalTarget}`);
+                          }
+                        }
+                        // Round again
+                        finalStopLoss = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, exchangeParam, targetStock.symbol, finalStopLoss);
+                        finalTarget = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, exchangeParam, targetStock.symbol, finalTarget);
+                      }
+                    }
+
                     try {
                       const slParams = {
                         exchange: exchangeParam,

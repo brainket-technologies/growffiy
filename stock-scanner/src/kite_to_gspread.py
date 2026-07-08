@@ -38,7 +38,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("kite_gspread_streamer")
 
 CONFIG_FILE = "config.json"
-CACHE_FILE = "indicators_cache.json"
+script_dir = os.path.dirname(os.path.abspath(__file__))
+CACHE_FILE = os.path.abspath(os.path.join(script_dir, "../indicators_cache.json"))
 
 import psycopg2
 

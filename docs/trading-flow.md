@@ -268,7 +268,56 @@ Price Action Condition: false (no Price Action condition in config)
 System does NOT check LTP vs entry for SL-Market orders.
 ```
 
-### Step 4: Calculate SL Points
+### Step 4: Circuit Limit Check & Entry Price Adjustment
+
+**Key Concept:** Entry price ko circuit limits ke andar laane ke liye adjust kiya jaata hai. Agar breakout price circuit ke bahar hai to usse cap/raise kiya jaata hai.
+
+```
+Step 4a: Fetch fresh circuit limits from Kite Quote API
+  Symbol: JSW STEEL (NSE)
+  Kite API Response:
+    upper_circuit_limit: ₹920.00
+    lower_circuit_limit: ₹870.00
+
+Step 4b: Compare entry price with circuit limits
+  Direction: LONG (BUY)
+  breakoutEntryPrice (pre-circuit): ₹898.40
+
+  Check:
+    Is ₹898.40 > upperCircuit (₹920.00)? → NO
+    Is ₹898.40 < lowerCircuit (₹870.00)? → NO
+    → No adjustment needed. adjustedEntryPrice = ₹898.40
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ CASE A (LONG): entryPrice > upperCircuit                            │
+  │   adjustedEntryPrice = upperCircuit (CAP)                           │
+  │   Example: ₹930.00 → capped to ₹920.00                              │
+  ├─────────────────────────────────────────────────────────────────────┤
+  │ CASE B (LONG): entryPrice < lowerCircuit                            │
+  │   adjustedEntryPrice = lowerCircuit (RAISE)                         │
+  │   Example: ₹860.00 → raised to ₹870.00                              │
+  ├─────────────────────────────────────────────────────────────────────┤
+  │ CASE C (SHORT): entryPrice < lowerCircuit                           │
+  │   adjustedEntryPrice = lowerCircuit (RAISE)                         │
+  │   Example: ₹860.00 → raised to ₹870.00                              │
+  ├─────────────────────────────────────────────────────────────────────┤
+  │ CASE D (SHORT): entryPrice > upperCircuit                           │
+  │   adjustedEntryPrice = upperCircuit (CAP)                           │
+  │   Example: ₹930.00 → capped to ₹920.00                              │
+  └─────────────────────────────────────────────────────────────────────┘
+
+Step 4c: Round to tick size
+  adjustedEntryPrice = ₹898.40 (no change needed in this example)
+```
+
+**Result:** `adjustedEntryPrice = ₹898.40` (iss case mein same raha kyunki ₹898.40 circuit ke andar hai)
+
+**NEXT:** Ab SL, Target aur Quantity sab `adjustedEntryPrice` se calculate hote hain.
+Original `entryPrice` (₹898.40) ko `rawEntryPrice` ke tor pe display ke liye save kiya jaata hai.
+
+---
+
+### Step 5: Calculate SL Points
 ```
 SL Type: Fixed % (from config.stoploss.type)
 SL Percent: 1% (from config.stoploss.fixedPercent) — COMMON value
@@ -281,7 +330,7 @@ Formula: slPoints = entryPrice × (slPercent / 100)
 Result: slPoints = ₹8.984 (Leg 1 specific, based on its entry price)
 ```
 
-### Step 5: Calculate Quantity
+### Step 6: Calculate Quantity
 ```
 Capital At Risk (COMMON — same for all legs):
   riskPercent = 1 (from config.riskManagement.riskPerTrade)
@@ -302,10 +351,10 @@ MIS Margin Check:
   finalQuantity = 13 shares
 ```
 
-### Step 6: Calculate Stop Loss Price
+### Step 7: Calculate Stop Loss Price
 ```
 Direction: LONG
-Formula: stopLoss = entryPrice − slPoints
+Formula: stopLoss = adjustedEntryPrice − slPoints
                   = 898.40 − 8.984
                   = 889.416
 
@@ -318,17 +367,17 @@ Tick Rounding (₹0.05):
 Result: SL at ₹889.40 (SELL order)
 ```
 
-### Step 7: Calculate Target Price
+### Step 8: Calculate Target Price
 ```
 Target Type: Trailing Target (from config.target.type)
   Note: Type name is "Trailing Target" but trailingTarget = -1 → DISABLED
   Falls back to profitPercent = 2%
 
 Direction: LONG
-Formula: target = entryPrice × (1 + profitPercent / 100)
-               = 898.40 × (1 + 2/100)
-               = 898.40 × 1.02
-               = 916.368
+Formula: target = adjustedEntryPrice × (1 + profitPercent / 100)
+                = 898.40 × (1 + 2/100)
+                = 898.40 × 1.02
+                = 916.368
 
 Tick Rounding (₹0.05):
   finalTarget = Math.round(916.368 / 0.05) × 0.05
@@ -339,7 +388,7 @@ Tick Rounding (₹0.05):
 Result: Target at ₹916.35 (SELL order)
 ```
 
-### Step 8: Place Orders on Kite
+### Step 9: Place Orders on Kite
 ```
 Client: Vikash Sharma
 Symbol: JSW STEEL (NSE)
@@ -348,7 +397,7 @@ Product: MIS
 Order 1 — Entry:
   Type: BUY
   Order Type: SL-Market
-  Trigger: ₹898.40
+  Trigger: ₹898.40 (adjustedEntryPrice)
   Quantity: 13
   → Kite Response: { order_id: "kite_entry_l1_001", status: "pending" }
 
@@ -367,7 +416,7 @@ Order 3 — Target:
   → Kite Response: { order_id: "kite_tgt_l1_001", status: "pending" }
 ```
 
-### Step 9: Save Trade to DB
+### Step 10: Save Trade to DB
 ```
 Trade Record:
   id: auto-generated UUID
@@ -379,10 +428,15 @@ Trade Record:
   legTimeframe: "5m"
   dualLegGroupId: "a1b2c3d4-..." (shared with Leg 2)
   
-  entryPrice: 898.40
+  entryPrice: 898.40        (adjustedEntryPrice — circuit-adjusted)
   stopLoss: 889.40
   target: 916.35
   quantity: 13
+  
+  originalEntryPrice: 898.40 (rawEntryPrice — pre-circuit, same in this case)
+  originalStopLoss: 889.416  (rawStopLoss — pre-circuit tick rounding)
+  originalTarget: 916.368    (rawTarget — pre-circuit tick rounding)
+  
   entryOrderId: "kite_entry_l1_001"
   entryOrderStatus: "pending"
   slOrderId: "kite_sl_l1_001"
@@ -451,7 +505,39 @@ breakoutEntryPrice = ₹891.10
 Order Type: SL-Market → Auto PASS (skip price check)
 ```
 
-### Step 4: Calculate SL Points
+### Step 4: Circuit Limit Check & Entry Price Adjustment
+
+**Key Concept:** SHORT direction mein bhi entry price circuit limits ke andar laaya jaata hai.
+
+```
+Step 4a: Fetch fresh circuit limits from Kite Quote API
+  Symbol: JSW STEEL (NSE)
+  Kite API Response:
+    upper_circuit_limit: ₹920.00
+    lower_circuit_limit: ₹870.00
+
+Step 4b: Compare entry price with circuit limits
+  Direction: SHORT (SELL)
+  breakoutEntryPrice (pre-circuit): ₹891.10
+
+  Check:
+    Is ₹891.10 < lowerCircuit (₹870.00)? → NO
+    Is ₹891.10 > upperCircuit (₹920.00)? → NO
+    → No adjustment needed. adjustedEntryPrice = ₹891.10
+
+  For SHORT:
+    CASE C: entryPrice < lowerCircuit → adjustedEntryPrice = lowerCircuit (RAISE)
+    CASE D: entryPrice > upperCircuit → adjustedEntryPrice = upperCircuit (CAP)
+
+Step 4c: Round to tick size
+  adjustedEntryPrice = ₹891.10 (no change needed in this example)
+```
+
+**Result:** `adjustedEntryPrice = ₹891.10`
+
+---
+
+### Step 5: Calculate SL Points
 ```
 SL Percent: 1% — COMMON value (same as Leg 1)
 
@@ -463,7 +549,7 @@ Formula: slPoints = entryPrice × (slPercent / 100)
 Result: slPoints = ₹8.911 (different from Leg 1's ₹8.984 because entry is different)
 ```
 
-### Step 5: Calculate Quantity
+### Step 6: Calculate Quantity
 ```
 Capital At Risk: ₹117.917 — COMMON (same as Leg 1)
 
@@ -477,10 +563,10 @@ MIS Margin Check: DISABLED (misMarginRate = -1)
 finalQuantity = 13 shares
 ```
 
-### Step 6: Calculate Stop Loss Price
+### Step 7: Calculate Stop Loss Price
 ```
 Direction: SHORT
-Formula: stopLoss = entryPrice + slPoints
+Formula: stopLoss = adjustedEntryPrice + slPoints
                   = 891.10 + 8.911
                   = 900.011
 
@@ -493,13 +579,13 @@ Tick Rounding (₹0.05):
 Result: SL at ₹900.00 (BUY order — cover short)
 ```
 
-### Step 7: Calculate Target Price
+### Step 8: Calculate Target Price
 ```
 Direction: SHORT
-Formula: target = entryPrice × (1 − profitPercent / 100)
-               = 891.10 × (1 − 2/100)
-               = 891.10 × 0.98
-               = 873.278
+Formula: target = adjustedEntryPrice × (1 − profitPercent / 100)
+                = 891.10 × (1 − 2/100)
+                = 891.10 × 0.98
+                = 873.278
 
 Tick Rounding (₹0.05):
   finalTarget = Math.round(873.278 / 0.05) × 0.05
@@ -510,12 +596,12 @@ Tick Rounding (₹0.05):
 Result: Target at ₹873.30 (BUY order — cover short)
 ```
 
-### Step 8: Place Orders on Kite
+### Step 9: Place Orders on Kite
 ```
 Order 1 — Entry:
   Type: SELL (short entry)
   Order Type: SL-Market
-  Trigger: ₹891.10
+  Trigger: ₹891.10 (adjustedEntryPrice)
   Quantity: 13
   → Kite Response: { order_id: "kite_entry_l2_001", status: "pending" }
 
@@ -534,7 +620,7 @@ Order 3 — Target:
   → Kite Response: { order_id: "kite_tgt_l2_001", status: "pending" }
 ```
 
-### Step 9: Save Trade to DB
+### Step 10: Save Trade to DB
 ```
 Trade Record:
   id: auto-generated UUID
@@ -546,10 +632,14 @@ Trade Record:
   legTimeframe: "15m"
   dualLegGroupId: "a1b2c3d4-..." (SAME as Leg 1)
   
-  entryPrice: 891.10
+  entryPrice: 891.10        (adjustedEntryPrice — circuit-adjusted)
   stopLoss: 900.00
   target: 873.30
   quantity: 13
+  
+  originalEntryPrice: 891.10 (rawEntryPrice — pre-circuit, same in this case)
+  originalStopLoss: 900.011  (rawStopLoss — pre-circuit tick rounding)
+  originalTarget: 873.278    (rawTarget — pre-circuit tick rounding)
   entryOrderId: "kite_entry_l2_001"
   entryOrderStatus: "pending"
   slOrderId: "kite_sl_l2_001"
@@ -581,6 +671,11 @@ Step 2: Market move hota hai — koi ek trigger hit hota hai
         │         - SL order cancel                            │
         │         - target order cancel                        │
         │       • Leg 2 status → "cancelled"                   │
+        │   → Circuit Limit Check (LONG):                      │
+        │       • Fresh circuit limits fetch karo              │
+        │       • Agar SL < lowerCircuit → SL = lower+0.05    │
+        │       • Agar Target > upperCircuit → Target = upper  │
+        │       • Dubara tick size round                      │
         │   → Leg 1 ke SL + Target PLACE karo:                 │
         │       • SL-Market SELL @ ₹889.40                     │
         │       • LIMIT SELL @ ₹916.35 (target)                │
@@ -598,6 +693,11 @@ Step 2: Market move hota hai — koi ek trigger hit hota hai
         │         - SL order cancel                            │
         │         - target order cancel                        │
         │       • Leg 1 status → "cancelled"                   │
+        │   → Circuit Limit Check (SHORT):                     │
+        │       • Fresh circuit limits fetch karo              │
+        │       • Agar SL > upperCircuit → SL = upper-0.05    │
+        │       • Agar Target < lowerCircuit → Target = lower  │
+        │       • Dubara tick size round                      │
         │   → Leg 2 ke SL + Target PLACE karo:                 │
         │       • SL-Market BUY @ ₹900.00                      │
         │       • LIMIT BUY @ ₹873.30 (target)                 │
@@ -633,15 +733,32 @@ OCO Monitor detects:
   Leg 2 entry = still pending (not yet filled)
 
 Action:
-  1. Call Kite API → CANCEL Leg 2 entry order (kite_entry_l2_001)
-  2. Call Kite API → CANCEL Leg 2 SL order (kite_sl_l2_001)
-  3. Call Kite API → CANCEL Leg 2 target order (kite_tgt_l2_001)
-  4. Update DB:
+   1. Call Kite API → CANCEL Leg 2 entry order (kite_entry_l2_001)
+   2. Call Kite API → CANCEL Leg 2 SL order (kite_sl_l2_001)
+   3. Call Kite API → CANCEL Leg 2 target order (kite_tgt_l2_001)
+   4. Update DB:
      Leg 2: status = "cancelled"
             entryOrderStatus = "cancelled"
             slOrderStatus = "cancelled"
             targetOrderStatus = "cancelled"
             exitReason = "OCO_CANCELLED — Leg 1 filled first"
+
+   5. Circuit Limit Check (LONG) — right before placing SL/Target:
+      Fresh circuit limits fetch karo using Kite Quote API
+      
+      Check Leg 1 SL (₹889.40) vs lowerCircuit (₹870.00):
+        Is 889.40 < 870.00? → NO → SL unchanged at ₹889.40
+        IF YES (SL below lowerCircuit): SL = lowerCircuit + 0.05
+      
+      Check Leg 1 Target (₹916.35) vs upperCircuit (₹920.00):
+        Is 916.35 > 920.00? → NO → Target unchanged at ₹916.35
+        IF YES (Target above upperCircuit): Target = upperCircuit
+      
+      Round both to tick size again
+
+   6. Place Leg 1 SL + Target orders on Kite:
+      → SL-Market SELL trigger @ ₹889.40
+      → LIMIT SELL @ ₹916.35
 
 DB After OCO — Scenario A:
   Leg 1 (LONG):  entryOrderStatus = "filled", status = "open"  ← ACTIVE
@@ -663,11 +780,28 @@ OCO Monitor detects:
   Leg 1 entry = still pending
 
 Action:
-  1. Call Kite API → CANCEL Leg 1 entry order (kite_entry_l1_001)
-  2. Call Kite API → CANCEL Leg 1 SL order (kite_sl_l1_001)
-  3. Call Kite API → CANCEL Leg 1 target order (kite_tgt_l1_001)
-  4. Update DB:
+   1. Call Kite API → CANCEL Leg 1 entry order (kite_entry_l1_001)
+   2. Call Kite API → CANCEL Leg 1 SL order (kite_sl_l1_001)
+   3. Call Kite API → CANCEL Leg 1 target order (kite_tgt_l1_001)
+   4. Update DB:
      Leg 1: ALL cancelled
+
+   5. Circuit Limit Check (SHORT) — right before placing SL/Target:
+      Fresh circuit limits fetch karo using Kite Quote API
+      
+      Check Leg 2 SL (₹900.00) vs upperCircuit (₹920.00):
+        Is 900.00 > 920.00? → NO → SL unchanged at ₹900.00
+        IF YES (SL above upperCircuit): SL = upperCircuit - 0.05
+      
+      Check Leg 2 Target (₹873.30) vs lowerCircuit (₹870.00):
+        Is 873.30 < 870.00? → NO → Target unchanged at ₹873.30
+        IF YES (Target below lowerCircuit): Target = lowerCircuit
+      
+      Round both to tick size again
+
+   6. Place Leg 2 SL + Target orders on Kite:
+      → SL-Market BUY trigger @ ₹900.00
+      → LIMIT BUY @ ₹873.30
 
 DB After OCO — Scenario B:
   Leg 1 (LONG):  ALL cancelled                                 ← LOSER
@@ -778,6 +912,25 @@ No profit limit in place.
 ```
 maxOpenPositions = 3
 Client can have up to 3 simultaneous open trades.
+```
+
+**Circuit Limit Adjustments (Kite Live Quotes):**
+```
+System fetches fresh upper/lower circuit limits from Kite Quote API at two points:
+
+Point 1: Before entry (Step 4 of Leg Execution)
+  → Entry price ko circuit ke andar laaya jaata hai (cap/raise)
+  → Adjusted entry price se SL, Target, Quantity calculate hote hain
+
+Point 2: After entry fill (OCO Monitor)
+  → Entry fill hone ke baad, SL+Target place karne se PEHLE
+  → Agar SL circuit ke bahar → adjust: LONG: lower+0.05, SHORT: upper-0.05
+  → Agar Target circuit ke bahar → adjust: LONG: upper, SHORT: lower
+
+DB Fields:
+  originalEntryPrice: pre-circuit entry price
+  originalStopLoss: pre-circuit SL (before post-fill adjustment)
+  originalTarget: pre-circuit target (before post-fill adjustment)
 ```
 
 ---
@@ -920,11 +1073,14 @@ Return on Capital:
 | **Buffer Formula** | price × (1 + buffer%) | price × (1 − buffer%) |
 | **Breakout Check** | LTP >= entryPrice | LTP <= entryPrice |
 | **Entry Transaction** | BUY | SELL |
-| **SL Formula** | entryPrice − slPoints | entryPrice + slPoints |
+| **Circuit Adjustment (Entry)** | entryPrice > upper → cap to upper<br>entryPrice < lower → raise to lower | entryPrice < lower → raise to lower<br>entryPrice > upper → cap to upper |
+| **SL Formula** | adjustedEntryPrice − slPoints | adjustedEntryPrice + slPoints |
 | **SL Transaction** | SELL | BUY |
-| **Target Formula (Profit %)** | entryPrice × (1 + %) | entryPrice × (1 − %) |
-| **Target Formula (RR)** | entryPrice + (slPoints × RR) | entryPrice − (slPoints × RR) |
+| **Target Formula (Profit %)** | adjustedEntryPrice × (1 + %) | adjustedEntryPrice × (1 − %) |
+| **Target Formula (RR)** | adjustedEntryPrice + (slPoints × RR) | adjustedEntryPrice − (slPoints × RR) |
 | **Target Transaction** | SELL | BUY |
+| **Circuit Adjustment (SL)** | SL < lower → lower + 0.05 | SL > upper → upper − 0.05 |
+| **Circuit Adjustment (Target)** | Target > upper → upper | Target < lower → lower |
 | **Trailing SL** | DISABLED (trailingSL = -1) | DISABLED (trailingSL = -1) |
 | **Trailing Target** | DISABLED (trailingTarget = -1) | DISABLED (trailingTarget = -1) |
 | **Fallback SL Hit** | close <= stopLossLevel | close >= stopLossLevel |
@@ -939,8 +1095,11 @@ Return on Capital:
 | slPoints (₹) | **PER-LEG** | entryPrice differs → ₹ differs |
 | capitalAtRisk (₹117.91) | **COMMON** | Same wallet, same risk % |
 | quantity (shares) | **PER-LEG** | slPoints differs → qty differs |
-| stopLoss (₹) | **PER-LEG** | entry ± slPoints per leg |
-| target (₹) | **PER-LEG** | entry ± sl/percentage per leg |
+| stopLoss (₹) | **PER-LEG** | adjustedEntry ± slPoints per leg |
+| target (₹) | **PER-LEG** | adjustedEntry ± sl/percentage per leg |
+| originalEntryPrice | **RAW** (pre-circuit) | As-calculated entry before circuit cap/raise |
+| originalStopLoss | **RAW** (pre-circuit) | SL before post-fill circuit adjustment |
+| originalTarget | **RAW** (pre-circuit) | Target before post-fill circuit adjustment |
 
 ---
 
@@ -1252,7 +1411,19 @@ CANBK          +3.2%     YES       ✓ PASS, Rank #3
 |              | Sharma      | Momentum |          | SELL   | Entry:₹898.40                | Entry:₹891.10                |             |            |              |                |           |
 |              |             |          |          |        | SL:₹889.40 | Tgt:₹916.35    | SL:₹900.00 | Tgt:₹873.30    |             |            |              |                |           |
 |              |             |          |          |        | E:FILL SL:PDNG T:PDNG       | E:CNCL SL:CNCL T:CNCL      |             |            |              |                |           |
+|              |             |          |          |        | [CIRCUIT] (if adjusted)      |                             |             |            |              |                |           |
 ```
+
+**Circuit Adjustment Display Rules:**
+- Agar `originalEntryPrice ≠ entryPrice` ya `originalStopLoss ≠ stopLoss` ya `originalTarget ≠ target` → **CIRCUIT** badge dikhao
+- Original values ko strikethrough (`~~₹898.40~~`) ke saath actual value ke aage dikhao
+- Example (circuit-adjusted case):
+  ```
+  Entry: ₹920.00 (~~₹930.00~~)    ← original capped
+  SL: ₹870.05 (~~₹865.00~~)       ← original raised
+  Tgt: ₹920.00 (~~₹940.00~~)      ← original capped
+  [CIRCUIT]
+  ```
 
 ### Modal (Click Row) — Shows ALL Leg Details
 ```
@@ -1267,6 +1438,9 @@ CANBK          +3.2%     YES       ✓ PASS, Rank #3
 │  │ Direction: LONG    Timeframe: 5m          │       │
 │  │ Entry: ₹898.40     Qty: 13                │       │
 │  │ SL: ₹889.40        Target: ₹916.35        │       │
+│  │ Orig Entry: ₹898.40 (pre-circuit)         │       │
+│  │ Orig SL: ₹889.416 (pre-circuit)           │       │
+│  │ Orig Target: ₹916.368 (pre-circuit)       │       │
 │  │ Entry Order: kite_entry_l1_001 → FILLED   │       │
 │  │ SL Order: kite_sl_l1_001 → PENDING        │       │
 │  │ Target Order: kite_tgt_l1_001 → PENDING   │       │
@@ -1277,6 +1451,9 @@ CANBK          +3.2%     YES       ✓ PASS, Rank #3
 │  │ Direction: SHORT   Timeframe: 15m         │       │
 │  │ Entry: ₹891.10     Qty: 13                │       │
 │  │ SL: ₹900.00        Target: ₹873.30        │       │
+│  │ Orig Entry: ₹891.10 (pre-circuit)         │       │
+│  │ Orig SL: ₹900.011 (pre-circuit)           │       │
+│  │ Orig Target: ₹873.278 (pre-circuit)       │       │
 │  │ Entry Order: kite_entry_l2_001 → CANCELLED│       │
 │  │ SL Order: kite_sl_l2_001 → CANCELLED      │       │
 │  │ Target Order: kite_tgt_l2_001 → CANCELLED │       │

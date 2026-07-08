@@ -6,7 +6,9 @@ import { Card } from '../../../shared/components/views/Card';
 import { Button } from '../../../shared/components/views/Button';
 import { Modal } from '../../../shared/components/views/Modal';
 import Link from 'next/link';
-import { Plus, Eye, Trash2, Search, Filter, Download, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Eye, Trash2, Search, Filter, Download, TrendingUp, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { api } from '../../../shared/services/api';
+import { API_ENDPOINTS } from '../../../core/constants';
 
 export default function ClientsPage() {
   const { clients, addClient, deleteClient, updateClient } = useAppViewModel();
@@ -14,6 +16,69 @@ export default function ClientsPage() {
   const [generatedCreds, setGeneratedCreds] = useState<{ userId: string; password: string } | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; id: string; nextStatus: string } | null>(null);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ isOpen: boolean; id: string; name: string } | null>(null);
+  const [credentialsModal, setCredentialsModal] = useState<{
+    isOpen: boolean;
+    client: any;
+    totpCode?: string;
+    totpRemaining?: number;
+  } | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleCopy = (text: string, fieldName: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldName);
+    setTimeout(() => setCopiedField(null), 1500);
+  };
+
+  const fetchTotp = async (clientId: string) => {
+    try {
+      const res = await api.get(`/api/clients/${clientId}/totp`);
+      if (res.success) {
+        setCredentialsModal(prev => {
+          if (prev && prev.client.id === clientId) {
+            return {
+              ...prev,
+              totpCode: res.code,
+              totpRemaining: res.secondsRemaining
+            };
+          }
+          return prev;
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching TOTP:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (!credentialsModal?.isOpen || !credentialsModal?.client?.id) return;
+
+    const timer = setInterval(() => {
+      setCredentialsModal(prev => {
+        if (prev && prev.totpRemaining !== undefined) {
+          if (prev.totpRemaining <= 1) {
+            fetchTotp(prev.client.id);
+            return { ...prev, totpRemaining: 30 };
+          }
+          return { ...prev, totpRemaining: prev.totpRemaining - 1 };
+        }
+        return prev;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [credentialsModal?.isOpen, credentialsModal?.client?.id]);
+
+  const handleKiteLoginClick = (client: any) => {
+    setCredentialsModal({
+      isOpen: true,
+      client
+    });
+    if (client.zerodhaTotpSecret) {
+      fetchTotp(client.id);
+    }
+  };
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -463,8 +528,42 @@ export default function ClientsPage() {
                           {client.tradingStatus}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'right', minWidth: '120px' }}>
+                      <td style={{ textAlign: 'right', minWidth: '150px' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                          {client.zerodhaApiKey ? (
+                            <button
+                              onClick={() => handleKiteLoginClick(client)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#ff5722',
+                                cursor: 'pointer',
+                                padding: '6px',
+                                borderRadius: '6px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                flexShrink: 0,
+                              }}
+                              title="Login to Zerodha Kite"
+                            >
+                              <ExternalLink size={17} style={{ width: '17px', height: '17px', flexShrink: 0 }} />
+                            </button>
+                          ) : (
+                            <div
+                              style={{
+                                color: 'var(--text-muted)',
+                                padding: '6px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                opacity: 0.4,
+                                cursor: 'not-allowed',
+                                flexShrink: 0,
+                              }}
+                              title="Zerodha API Key not configured"
+                            >
+                              <ExternalLink size={17} style={{ width: '17px', height: '17px', flexShrink: 0 }} />
+                            </div>
+                          )}
                           <Link
                             href={`/admin/clients/${client.id}/performance`}
                             style={{
@@ -474,10 +573,11 @@ export default function ClientsPage() {
                               borderRadius: '6px',
                               display: 'inline-flex',
                               alignItems: 'center',
+                              flexShrink: 0,
                             }}
                             title="View Client Performance Curve"
                           >
-                            <TrendingUp size={18} />
+                            <TrendingUp size={17} style={{ width: '17px', height: '17px', flexShrink: 0 }} />
                           </Link>
                           <Link
                             href={`/admin/clients/${client.id}`}
@@ -488,10 +588,11 @@ export default function ClientsPage() {
                               borderRadius: '6px',
                               display: 'inline-flex',
                               alignItems: 'center',
+                              flexShrink: 0,
                             }}
                             title="View / Edit Client Details"
                           >
-                            <Eye size={18} />
+                            <Eye size={17} style={{ width: '17px', height: '17px', flexShrink: 0 }} />
                           </Link>
                            <button
                             onClick={() => setDeleteConfirmModal({ isOpen: true, id: client.id, name: client.user?.name || client.name })}
@@ -503,10 +604,13 @@ export default function ClientsPage() {
                               padding: '6px',
                               borderRadius: '6px',
                               transition: 'background-color 0.2s',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              flexShrink: 0,
                             }}
                             title="Delete Client"
                           >
-                            <Trash2 size={18} />
+                            <Trash2 size={17} style={{ width: '17px', height: '17px', flexShrink: 0 }} />
                           </button>
                         </div>
                       </td>
@@ -869,6 +973,154 @@ export default function ClientsPage() {
             >
               Yes, Delete Client
             </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Credentials Copy & Login Modal */}
+      <Modal 
+        isOpen={!!credentialsModal?.isOpen} 
+        onClose={() => {
+          setCredentialsModal(null);
+          setShowPassword(false);
+          setCopiedField(null);
+        }} 
+        title="Zerodha Account Credentials"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '10px 0' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+            Copy the credentials below to log into Zerodha Kite for <strong style={{ color: 'var(--text-heading)' }}>{credentialsModal?.client?.user?.name || credentialsModal?.client?.name}</strong>:
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* User ID Field */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                  Zerodha Client ID
+                </span>
+                {copiedField === 'userId' && (
+                  <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 500 }}>Copied!</span>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <code style={{ flex: 1, display: 'block', backgroundColor: 'var(--surface)', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', fontWeight: 600, color: 'var(--text-heading)', border: '1px solid var(--border)', fontFamily: 'monospace' }}>
+                  {credentialsModal?.client?.zerodhaClientId || '--'}
+                </code>
+                <Button 
+                  onClick={() => handleCopy(credentialsModal?.client?.zerodhaClientId || '', 'userId')}
+                  style={{ padding: '0 16px', fontSize: '12px' }}
+                >
+                  Copy
+                </Button>
+              </div>
+            </div>
+
+            {/* Password Field */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                  Zerodha Password
+                </span>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button 
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '11px', fontWeight: 500 }}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                  {copiedField === 'password' && (
+                    <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 500 }}>Copied!</span>
+                  )}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  type={showPassword ? 'text' : 'password'}
+                  readOnly
+                  value={credentialsModal?.client?.zerodhaPassword || ''}
+                  style={{ flex: 1, display: 'block', backgroundColor: 'var(--surface)', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', fontWeight: 600, color: 'var(--text-heading)', border: '1px solid var(--border)', fontFamily: 'monospace', outline: 'none' }}
+                />
+                <Button 
+                  onClick={() => handleCopy(credentialsModal?.client?.zerodhaPassword || '', 'password')}
+                  style={{ padding: '0 16px', fontSize: '12px' }}
+                >
+                  Copy
+                </Button>
+              </div>
+            </div>
+
+            {/* TOTP Field */}
+            {credentialsModal?.client?.zerodhaTotpSecret && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                    Real-time TOTP Code
+                  </span>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {credentialsModal.totpRemaining !== undefined && (
+                      <span style={{ fontSize: '11px', color: credentialsModal.totpRemaining <= 5 ? 'var(--danger)' : 'var(--text-muted)' }}>
+                        Expires in {credentialsModal.totpRemaining}s
+                      </span>
+                    )}
+                    {copiedField === 'totp' && (
+                      <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 500 }}>Copied!</span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <code style={{ flex: 1, display: 'block', backgroundColor: 'var(--surface)', padding: '10px 14px', borderRadius: '8px', fontSize: '18px', fontWeight: 700, color: '#ff5722', border: '1px solid var(--border)', fontFamily: 'monospace', letterSpacing: '2px', textAlign: 'center' }}>
+                    {credentialsModal.totpCode || 'Loading...'}
+                  </code>
+                  <Button 
+                    onClick={() => handleCopy(credentialsModal.totpCode || '', 'totp')}
+                    disabled={!credentialsModal.totpCode}
+                    style={{ padding: '0 16px', fontSize: '12px' }}
+                  >
+                    Copy
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+            <Button 
+              variant="secondary" 
+              onClick={() => {
+                setCredentialsModal(null);
+                setShowPassword(false);
+                setCopiedField(null);
+              }}
+            >
+              Close
+            </Button>
+            <a
+              href={`https://kite.zerodha.com/connect/login?api_key=${credentialsModal?.client?.zerodhaApiKey}&v=3&redirect_params=state%3D${credentialsModal?.client?.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                setCredentialsModal(null);
+                setShowPassword(false);
+                setCopiedField(null);
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#ff5722',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '10px 20px',
+                fontWeight: 600,
+                fontSize: '14px',
+                cursor: 'pointer',
+                textDecoration: 'none'
+              }}
+            >
+              Open Zerodha Login
+            </a>
           </div>
         </div>
       </Modal>
