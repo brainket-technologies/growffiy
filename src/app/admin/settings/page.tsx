@@ -40,6 +40,8 @@ export default function SettingsPage() {
   // Algo Timings (global infrastructure only)
   const [algoPreopenFetchTime, setAlgoPreopenFetchTime] = useState('09:08');
   const [algoTokenRefreshTime, setAlgoTokenRefreshTime] = useState('08:00');
+  const [googleSheetUrl, setGoogleSheetUrl] = useState('');
+  const [googleCredentialsJson, setGoogleCredentialsJson] = useState('');
 
   // Auto Trade Calendar
   const [autoTradeEnabled, setAutoTradeEnabled] = useState(true);
@@ -135,6 +137,8 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
           setAlgoPreopenFetchTime(res.settings.algo_preopen_fetch_time || '09:08');
           setAlgoTokenRefreshTime(res.settings.algo_token_refresh_time || '08:00');
+          setGoogleSheetUrl(res.settings.google_sheet_url || '');
+          setGoogleCredentialsJson(res.settings.google_credentials_json || '');
 
           setAutoTradeEnabled(res.settings.auto_trade_enabled !== 'false');
           try { setTradingDays(JSON.parse(res.settings.trading_days || '["Mon","Tue","Wed","Thu","Fri"]')); } catch {}
@@ -203,6 +207,8 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
         support_address: supportAddress,
         algo_preopen_fetch_time: algoPreopenFetchTime,
         algo_token_refresh_time: algoTokenRefreshTime,
+        google_sheet_url: googleSheetUrl,
+        google_credentials_json: googleCredentialsJson,
         auto_trade_enabled: autoTradeEnabled ? 'true' : 'false',
         trading_days: JSON.stringify(tradingDays),
         special_market_days: JSON.stringify(specialDays),
@@ -1187,6 +1193,38 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                     <strong style={{ color: 'var(--primary)' }}>Strategies → Edit → Basic Strategy Info</strong>.
                     This allows different strategies to run on different schedules.
                   </p>
+                </div>
+            </div>
+          </div>
+ 
+            <div style={{ marginTop: '32px', borderTop: '1px solid var(--border-light)', paddingTop: '24px' }}>
+              <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '16px', fontFamily: 'var(--font-title)' }}>
+                Google Sheets Synchronization
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', marginBottom: '6px' }}>
+                    Target Spreadsheet ID or Google Sheet URL
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://docs.google.com/spreadsheets/d/... or ID"
+                    value={googleSheetUrl}
+                    onChange={(e) => setGoogleSheetUrl(e.target.value)}
+                    style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', marginBottom: '6px' }}>
+                    Google Service Account Credentials (JSON)
+                  </label>
+                  <textarea
+                    placeholder='{"type": "service_account", ...}'
+                    value={googleCredentialsJson}
+                    onChange={(e) => setGoogleCredentialsJson(e.target.value)}
+                    rows={6}
+                    style={{ width: '100%', fontSize: '14px', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none', fontFamily: 'monospace' }}
+                  />
                 </div>
               </div>
             </div>

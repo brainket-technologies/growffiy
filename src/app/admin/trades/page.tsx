@@ -34,6 +34,7 @@ function mergeOcoTrades(trades: any[]): any[] {
     const leg1 = group.find((t: any) => (t.legName === 'Leg 1') || (t.direction || '').toLowerCase() === 'long');
     const leg2 = group.find((t: any) => (t.legName === 'Leg 2') || (t.direction || '').toLowerCase() === 'short');
     const hasActive = group.some((t: any) => t.status === 'open');
+    const filledLeg = (leg1 && (leg1.entryOrderStatus || '').toLowerCase() === 'filled') ? leg1 : ((leg2 && (leg2.entryOrderStatus || '').toLowerCase() === 'filled') ? leg2 : null);
     merged.push({
       _isOcoMerged: true,
       dualLegGroupId: group[0].dualLegGroupId,
@@ -43,7 +44,7 @@ function mergeOcoTrades(trades: any[]): any[] {
       strategyName: group[0].strategy?.name || group[0].strategyName || 'Pre-Open Momentum',
       entryTime: leg1?.entryTime || leg2?.entryTime || group[0].entryTime,
       createdAt: group[0].createdAt,
-      status: hasActive ? 'active' : 'cancelled',
+      status: hasActive ? 'active' : (filledLeg ? filledLeg.status : 'cancelled'),
       strategy: group[0].strategy,
       client: group[0].client,
     });
@@ -56,8 +57,20 @@ function getOcoStatus(merged: any): { label: string; color: string } {
   const l2e = (merged.leg2?.entryOrderStatus || '').toLowerCase();
   const l1s = (merged.leg1?.status || '').toLowerCase();
   const l2s = (merged.leg2?.status || '').toLowerCase();
-  if (l1e === 'filled' && l2e === 'cancelled') return { label: 'LEG 1 ACTIVE', color: 'var(--color-success)' };
-  if (l2e === 'filled' && l1e === 'cancelled') return { label: 'LEG 2 ACTIVE', color: 'var(--color-success)' };
+  if (l1e === 'filled' && l2e === 'cancelled') {
+    if (l1s === 'open') {
+      return { label: 'LEG 1 ACTIVE', color: 'var(--color-success)' };
+    } else {
+      return { label: `LEG 1 ${l1s.toUpperCase()}`, color: l1s.includes('hit') ? 'var(--color-danger)' : 'var(--text-secondary)' };
+    }
+  }
+  if (l2e === 'filled' && l1e === 'cancelled') {
+    if (l2s === 'open') {
+      return { label: 'LEG 2 ACTIVE', color: 'var(--color-success)' };
+    } else {
+      return { label: `LEG 2 ${l2s.toUpperCase()}`, color: l2s.includes('hit') ? 'var(--color-danger)' : 'var(--text-secondary)' };
+    }
+  }
   if (l1e === 'pending' && l2e === 'pending') return { label: 'BOTH PENDING', color: 'var(--warning)' };
   if (l1e === 'filled' && l2e === 'filled') return { label: 'BOTH FILLED', color: 'var(--color-success)' };
   if (l1s === 'cancelled' && l2s === 'cancelled') return { label: 'ALL CANCELLED', color: 'var(--text-muted)' };

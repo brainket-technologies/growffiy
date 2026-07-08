@@ -1130,6 +1130,7 @@ class AlgoEngineService {
           let targetOrderId = '';
 
           let entryFilled = false;
+          let latestOrderStatus = 'OPEN';
 
           // Entry order place hone ke baad — poll karo fill hone tak
           if (orderId && client.zerodhaApiKey && activeAccessToken) {
@@ -1139,6 +1140,9 @@ class AlgoEngineService {
               try {
                 const orderStatusRes = await KiteClient.getOrderById(client.zerodhaApiKey, activeAccessToken, orderId);
                 const latestOrder = getLatestOrderState(orderStatusRes?.data);
+                if (latestOrder?.status) {
+                  latestOrderStatus = latestOrder.status;
+                }
                 const isComplete = latestOrder?.status === 'COMPLETE';
                 if (orderStatusRes?.status === 'success' && isComplete) {
                   const filledAvgPrice = latestOrder?.average_price || latestOrder?.filled_price || 0;
@@ -1251,6 +1255,7 @@ class AlgoEngineService {
                 stopLoss: finalStopLoss, target: finalTarget,
                 status: 'open',
                 entryTime: new Date(),
+                entryOrderStatus: entryFilled ? 'filled' : (latestOrderStatus === 'COMPLETE' ? 'filled' : latestOrderStatus),
                 slOrderId: slOrderId || null,
                 targetOrderId: targetOrderId || null,
                 slTriggerPrice: finalStopLoss,
@@ -1271,6 +1276,7 @@ class AlgoEngineService {
                 status: 'open',
                 entryTime: new Date(),
                 entryOrderId: orderId,
+                entryOrderStatus: entryFilled ? 'filled' : (latestOrderStatus === 'COMPLETE' ? 'filled' : latestOrderStatus),
                 slOrderId: slOrderId || null,
                 targetOrderId: targetOrderId || null,
                 slTriggerPrice: finalStopLoss,

@@ -455,7 +455,7 @@ export class TradingScheduler {
                   const slStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.slOrderId);
                   const slData = getLatestOrderState(slStatus?.data);
                   if (slStatus?.status === 'success' && slData) {
-                    await prisma.trade.update({ where: { id: trade.id }, data: { slOrderStatus: slData.status } });
+                    await prisma.trade.update({ where: { id: trade.id }, data: { slOrderStatus: slData.status === 'COMPLETE' ? 'filled' : slData.status } });
                     if (slData?.status === 'COMPLETE') {
                       slComplete = true;
                       slAvgPrice = Number(slData?.average_price || slData?.filled_price || 0);
@@ -473,7 +473,7 @@ export class TradingScheduler {
                   const tgtStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.targetOrderId);
                   const tgtData = getLatestOrderState(tgtStatus?.data);
                   if (tgtStatus?.status === 'success' && tgtData) {
-                    await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: tgtData.status } });
+                    await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: tgtData.status === 'COMPLETE' ? 'filled' : tgtData.status } });
                     if (tgtData?.status === 'COMPLETE') {
                       targetComplete = true;
                       targetAvgPrice = Number(tgtData?.average_price || tgtData?.filled_price || 0);
@@ -614,7 +614,7 @@ export class TradingScheduler {
                 const entryStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.entryOrderId);
                 const latestEntryOrder = getLatestOrderState(entryStatus?.data);
                 if (entryStatus?.status === 'success' && latestEntryOrder) {
-                  await prisma.trade.update({ where: { id: trade.id }, data: { entryOrderStatus: latestEntryOrder.status } });
+                  await prisma.trade.update({ where: { id: trade.id }, data: { entryOrderStatus: latestEntryOrder.status === 'COMPLETE' ? 'filled' : latestEntryOrder.status } });
                   if (latestEntryOrder.status === 'COMPLETE') {
                     const filledPrice = Number(latestEntryOrder?.average_price || latestEntryOrder?.filled_price || 0);
                   if (filledPrice > 0) {
@@ -857,12 +857,28 @@ export class TradingScheduler {
                 const pnlValue = isShortTrade ? (entryPrice - exitPrice) * trade.quantity : (exitPrice - entryPrice) * trade.quantity;
                 const newStatus = exitReason.toLowerCase().includes('sl') ? 'sl_hit' : (exitReason.toLowerCase().includes('target') ? 'target_hit' : 'closed');
 
+                const updateData: any = {
+                  status: newStatus,
+                  exitPrice: exitPrice,
+                  exitTime: new Date(),
+                  exitReason: exitReason,
+                  pnl: pnlValue,
+                  kiteResponse: sellRes
+                };
+
+                if (slComplete) {
+                  updateData.targetOrderStatus = 'CANCELLED';
+                } else if (targetComplete) {
+                  updateData.slOrderStatus = 'CANCELLED';
+                } else {
+                  // This is market close or manual exit
+                  if (trade.slOrderId) updateData.slOrderStatus = 'CANCELLED';
+                  if (trade.targetOrderId) updateData.targetOrderStatus = 'CANCELLED';
+                }
+
                 await prisma.trade.update({
                   where: { id: trade.id },
-                  data: {
-                    status: newStatus, exitPrice: exitPrice, exitTime: new Date(),
-                    exitReason: exitReason, pnl: pnlValue, kiteResponse: sellRes
-                  }
+                  data: updateData
                 });
 
                 await prisma.strategyLog.create({
@@ -929,7 +945,7 @@ export class TradingScheduler {
           }
 
           for (const [gId, trades] of groups) {
-            const filled = trades.filter(t => t.status === 'open');
+            const filled = trades.filter(t => t.status === 'open' && (t.entryOrderStatus === 'filled' || t.entryOrderStatus === 'COMPLETE'));
             const filledIds = new Set(filled.map(t => t.id));
             const losers = trades.filter(t => !filledIds.has(t.id));
 

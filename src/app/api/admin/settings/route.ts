@@ -102,6 +102,8 @@ export async function GET() {
     settings['footer_disclaimer'] = 'Algorithmic trading involves substantial financial risk. Growffiy is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.';
     settings['footer_bottom_tagline'] = 'Designed for NSE/BSE Intraday Algo Traders';
     settings['google_analytics_id'] = '';
+    settings['google_sheet_url'] = '';
+    settings['google_credentials_json'] = '';
 
     settings['legal_privacy_content'] = defaultPrivacyContent;
     settings['legal_terms_content'] = defaultTermsContent;
@@ -187,6 +189,8 @@ export async function PUT(request: Request) {
       support_address,
       algo_preopen_fetch_time,
       algo_token_refresh_time,
+      google_sheet_url,
+      google_credentials_json,
       app_name,
       app_title,
       app_favicon,
@@ -226,6 +230,8 @@ export async function PUT(request: Request) {
       support_address,
       algo_preopen_fetch_time,
       algo_token_refresh_time,
+      google_sheet_url,
+      google_credentials_json,
       auto_trade_enabled: body.auto_trade_enabled,
       trading_days: body.trading_days,
       special_market_days: body.special_market_days,

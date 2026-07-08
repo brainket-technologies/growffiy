@@ -199,6 +199,7 @@ export default function LiveTradeTransactionsPage() {
         return aIdx - bIdx;
       });
       const hasActive = group.some((t: any) => t.status === 'open');
+      const filledLeg = sorted.find((l: any) => (l.entryOrderStatus || '').toLowerCase() === 'filled');
       merged.push({
         _isOcoMerged: true,
         dualLegGroupId: group[0].dualLegGroupId,
@@ -208,7 +209,7 @@ export default function LiveTradeTransactionsPage() {
         strategyName: group[0].strategy?.name || group[0].strategyName || 'Pre-Open Momentum',
         entryTime: sorted[0]?.entryTime || group[0].entryTime,
         createdAt: group[0].createdAt,
-        status: hasActive ? 'active' : 'cancelled',
+        status: hasActive ? 'active' : (filledLeg ? filledLeg.status : 'cancelled'),
         strategy: group[0].strategy,
         client: group[0].client,
       });
@@ -222,7 +223,13 @@ export default function LiveTradeTransactionsPage() {
     const pending = legs.filter((l: any) => (l.entryOrderStatus || '').toLowerCase() === 'pending');
     const cancelled = legs.filter((l: any) => (l.status || '').toLowerCase() === 'cancelled');
     if (filled.length === 1 && cancelled.length === legs.length - 1) {
-      return { label: `${filled[0].legName || 'LEG'} ACTIVE`, color: 'var(--color-success)' };
+      const activeLeg = filled[0];
+      if ((activeLeg.status || '').toLowerCase() === 'open') {
+        return { label: `${activeLeg.legName || 'LEG'} ACTIVE`, color: 'var(--color-success)' };
+      } else {
+        const s = (activeLeg.status || '').toUpperCase();
+        return { label: `${activeLeg.legName || 'LEG'} ${s}`, color: s.includes('HIT') ? 'var(--color-danger)' : 'var(--text-secondary)' };
+      }
     }
     if (filled.length > 0) {
       const names = filled.map((l: any) => l.legName || 'LEG').join('+');
