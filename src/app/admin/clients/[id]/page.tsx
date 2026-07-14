@@ -47,6 +47,7 @@ export default function ClientDetailsPage() {
   const [zerodhaClientId, setZerodhaClientId] = useState('');
   const [zerodhaApiKey, setZerodhaApiKey] = useState('');
   const [zerodhaApiSecret, setZerodhaApiSecret] = useState('');
+  const [masterZerodhaApiKey, setMasterZerodhaApiKey] = useState('');
   const [zerodhaPassword, setZerodhaPassword] = useState('');
   const [zerodhaTotpSecret, setZerodhaTotpSecret] = useState('');
   const [capital, setCapital] = useState('');
@@ -89,6 +90,7 @@ export default function ClientDetailsPage() {
           setZerodhaClientId(c.zerodhaClientId || '');
           setZerodhaApiKey(c.zerodhaApiKey || '');
           setZerodhaApiSecret(c.zerodhaApiSecret || '');
+          setMasterZerodhaApiKey(res.masterZerodhaApiKey || '');
           setZerodhaPassword(c.zerodhaPassword || '');
           setZerodhaTotpSecret(c.zerodhaTotpSecret || '');
           setCapital(String(c.capital));
@@ -318,11 +320,12 @@ export default function ClientDetailsPage() {
       </div>
     );
 
+    const apiToUse = masterZerodhaApiKey || zerodhaApiKey;
     if (shouldConnect) {
-      if (!zerodhaApiKey || !zerodhaApiSecret) {
+      if (!apiToUse) {
         setAlertModal({
           title: 'Missing Credentials',
-          message: 'Please enter and save the Zerodha API Key and API Secret first before connecting.'
+          message: 'Master Zerodha API Key is not configured. Please configure it in Settings first.'
         });
         return;
       }
@@ -330,7 +333,7 @@ export default function ClientDetailsPage() {
         title: 'How to Connect Zerodha Kite API (Setup Guide)',
         message: guideContent,
         onConfirm: () => {
-          window.location.href = KiteClient.getLoginUrl(zerodhaApiKey, id);
+          window.location.href = KiteClient.getLoginUrl(apiToUse, id);
         }
       });
     } else {
@@ -431,11 +434,12 @@ export default function ClientDetailsPage() {
       return;
     }
 
+    const apiToUse = masterZerodhaApiKey || zerodhaApiKey;
     if (connect) {
-      if (!zerodhaApiKey || !zerodhaApiSecret) {
+      if (!apiToUse) {
         setAlertModal({
           title: 'Missing Credentials',
-          message: 'Please enter and save the Zerodha API Key and API Secret first before connecting.'
+          message: 'Master Zerodha API Key is not configured. Please configure it in Settings first.'
         });
         return;
       }
@@ -467,7 +471,7 @@ export default function ClientDetailsPage() {
                 </div>
               ),
               onConfirm: () => {
-                window.location.href = KiteClient.getLoginUrl(zerodhaApiKey, id);
+                window.location.href = KiteClient.getLoginUrl(apiToUse, id);
               }
             });
           }
@@ -483,7 +487,7 @@ export default function ClientDetailsPage() {
               </div>
             ),
             onConfirm: () => {
-              window.location.href = KiteClient.getLoginUrl(zerodhaApiKey, id);
+              window.location.href = KiteClient.getLoginUrl(apiToUse, id);
             }
           });
         }
@@ -492,7 +496,7 @@ export default function ClientDetailsPage() {
           title: 'Manual Login',
           message: 'You have not configured a Zerodha TOTP Secret for Auto-Login. Do you want to connect manually via the standard Zerodha login page?',
           onConfirm: () => {
-            window.location.href = KiteClient.getLoginUrl(zerodhaApiKey, id);
+            window.location.href = KiteClient.getLoginUrl(apiToUse, id);
           }
         });
       }
@@ -1017,7 +1021,7 @@ export default function ClientDetailsPage() {
                 <div className="form-grid-2">
                   <div className="form-group">
                     <label className="form-label">
-                      Zerodha Client ID
+                      Zerodha Client ID *
                       <button 
                         type="button" 
                         onClick={() => showFieldInfo('clientId')}
@@ -1041,7 +1045,7 @@ export default function ClientDetailsPage() {
 
                   <div className="form-group">
                     <label className="form-label">
-                      Kite API Key
+                      Kite API Key (Optional)
                       <button 
                         type="button" 
                         onClick={() => showFieldInfo('apiKey')}
@@ -1055,7 +1059,6 @@ export default function ClientDetailsPage() {
                       <Key size={15} className="premium-input-icon" />
                       <input 
                         type="text" 
-                        required 
                         value={zerodhaApiKey} 
                         onChange={(e) => setZerodhaApiKey(e.target.value)} 
                         className="premium-input"
@@ -1065,7 +1068,7 @@ export default function ClientDetailsPage() {
 
                   <div className="form-group">
                     <label className="form-label">
-                      Kite API Secret
+                      Kite API Secret (Optional)
                       <button 
                         type="button" 
                         onClick={() => showFieldInfo('apiSecret')}
@@ -1079,7 +1082,6 @@ export default function ClientDetailsPage() {
                       <Lock size={15} className="premium-input-icon" />
                       <input 
                         type={showApiSecret ? 'text' : 'password'} 
-                        required 
                         value={zerodhaApiSecret} 
                         onChange={(e) => setZerodhaApiSecret(e.target.value)} 
                         className="premium-input"
@@ -1109,7 +1111,7 @@ export default function ClientDetailsPage() {
 
                   <div className="form-group">
                     <label className="form-label">
-                      Zerodha Password (for Auto-Login)
+                      Zerodha Password (for Auto-Login) *
                       <button 
                         type="button" 
                         onClick={() => showFieldInfo('password')}
@@ -1154,7 +1156,7 @@ export default function ClientDetailsPage() {
 
                 <div className="form-group">
                   <label className="form-label">
-                    Zerodha TOTP Secret (for Auto-Login)
+                    Zerodha TOTP Secret (for Auto-Login) *
                     <button 
                       type="button" 
                       onClick={() => showFieldInfo('totp')}

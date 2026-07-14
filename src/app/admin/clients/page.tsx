@@ -762,10 +762,9 @@ export default function ClientsPage() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Kite API Key</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Kite API Key (Optional)</label>
               <input
                 type="text"
-                required
                 value={zerodhaApiKey}
                 onChange={(e) => setZerodhaApiKey(e.target.value)}
                 placeholder="Enter API Key"
@@ -776,10 +775,9 @@ export default function ClientsPage() {
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Kite API Secret</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Kite API Secret (Optional)</label>
               <input
                 type="text"
-                required
                 value={zerodhaApiSecret}
                 onChange={(e) => setZerodhaApiSecret(e.target.value)}
                 placeholder="Enter API Secret"

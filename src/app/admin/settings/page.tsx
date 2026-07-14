@@ -40,6 +40,8 @@ export default function SettingsPage() {
   // Algo Timings (global infrastructure only)
   const [algoPreopenFetchTime, setAlgoPreopenFetchTime] = useState('09:08');
   const [algoTokenRefreshTime, setAlgoTokenRefreshTime] = useState('08:00');
+  const [masterZerodhaApiKey, setMasterZerodhaApiKey] = useState('');
+  const [masterZerodhaApiSecret, setMasterZerodhaApiSecret] = useState('');
   const [googleSheetUrl, setGoogleSheetUrl] = useState('');
   const [googleCredentialsJson, setGoogleCredentialsJson] = useState('');
 
@@ -104,6 +106,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showTestSecret, setShowTestSecret] = useState(false);
   const [showLiveSecret, setShowLiveSecret] = useState(false);
   const [showSmtpPassword, setShowSmtpPassword] = useState(false);
+  const [showMasterSecret, setShowMasterSecret] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [infoModal, setInfoModal] = useState<{ title: string; content: React.ReactNode } | null>(null);
 
@@ -137,6 +140,8 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
           setAlgoPreopenFetchTime(res.settings.algo_preopen_fetch_time || '09:08');
           setAlgoTokenRefreshTime(res.settings.algo_token_refresh_time || '08:00');
+          setMasterZerodhaApiKey(res.settings.master_zerodha_api_key || '');
+          setMasterZerodhaApiSecret(res.settings.master_zerodha_api_secret || '');
           setGoogleSheetUrl(res.settings.google_sheet_url || '');
           setGoogleCredentialsJson(res.settings.google_credentials_json || '');
 
@@ -207,6 +212,8 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
         support_address: supportAddress,
         algo_preopen_fetch_time: algoPreopenFetchTime,
         algo_token_refresh_time: algoTokenRefreshTime,
+        master_zerodha_api_key: masterZerodhaApiKey,
+        master_zerodha_api_secret: masterZerodhaApiSecret,
         google_sheet_url: googleSheetUrl,
         google_credentials_json: googleCredentialsJson,
         auto_trade_enabled: autoTradeEnabled ? 'true' : 'false',
@@ -1194,8 +1201,62 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                     This allows different strategies to run on different schedules.
                   </p>
                 </div>
+              </div>
+
+              <div style={{ padding: '16px 20px', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', gridColumn: 'span 3', marginTop: '12px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '12px' }}>
+                  Master Zerodha API Credentials (For Multi-Client Scaling)
+                </h4>
+                <div style={{ display: 'flex', gap: '16px', flexDirection: 'column' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-heading)', marginBottom: '6px' }}>
+                      Master Kite API Key
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 4y7j026qyv9lkacw"
+                      value={masterZerodhaApiKey}
+                      onChange={(e) => setMasterZerodhaApiKey(e.target.value)}
+                      style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-heading)', marginBottom: '6px' }}>
+                      Master Kite API Secret
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showMasterSecret ? 'text' : 'password'}
+                        placeholder="Enter Master API Secret Key"
+                        value={masterZerodhaApiSecret}
+                        onChange={(e) => setMasterZerodhaApiSecret(e.target.value)}
+                        style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 14px', paddingRight: '40px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowMasterSecret(!showMasterSecret)}
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--text-muted)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: 0
+                        }}
+                      >
+                        {showMasterSecret ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
  
             <div style={{ marginTop: '32px', borderTop: '1px solid var(--border-light)', paddingTop: '24px' }}>
               <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '16px', fontFamily: 'var(--font-title)' }}>

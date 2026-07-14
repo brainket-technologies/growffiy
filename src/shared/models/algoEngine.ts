@@ -333,15 +333,22 @@ class AlgoEngineService {
       subscriptionStatus: 'active',
       productTypeId: algoType.id,
       strategyId: { not: null },
-      accessToken: { not: null },
-      zerodhaApiKey: { not: null }
+      accessToken: { not: null }
     };
     if (strategyId) where.strategyId = strategyId;
+
+    const masterApiKey = await this.getAlgoSetting('master_zerodha_api_key', '');
+    const masterApiSecret = await this.getAlgoSetting('master_zerodha_api_secret', '');
 
     const clients = await prisma.client.findMany({
       where,
       include: { user: true, strategy: true }
     });
+
+    for (const client of clients) {
+      client.zerodhaApiKey = masterApiKey;
+      client.zerodhaApiSecret = masterApiSecret;
+    }
 
     if (clients.length === 0) {
       console.log('AlgoEngine preSelect: No active clients with connected Kite session.');
@@ -484,18 +491,25 @@ class AlgoEngineService {
         tradingStatus: 'active',
         subscriptionStatus: 'active',
         productTypeId: algoType.id,
-        strategyId: { not: null },
-        zerodhaApiKey: { not: null }
+        strategyId: { not: null }
       };
       if (strategyId) where.strategyId = strategyId;
+
+      const masterApiKey = await this.getAlgoSetting('master_zerodha_api_key', '');
+      const masterApiSecret = await this.getAlgoSetting('master_zerodha_api_secret', '');
 
       const clients = await prisma.client.findMany({
         where,
         include: { user: true, strategy: true }
       });
 
+      for (const client of clients) {
+        client.zerodhaApiKey = masterApiKey;
+        client.zerodhaApiSecret = masterApiSecret;
+      }
+
       if (clients.length === 0) {
-        console.log('AlgoEngine: No active clients with valid Kite API key found. Auto-login will be attempted per client.');
+        console.log('AlgoEngine: No active clients found.');
         return;
       }
 

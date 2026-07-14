@@ -45,10 +45,19 @@ export async function performKiteAutoLogin(clientId: string): Promise<{ success:
 
     if (!client) return { success: false, error: 'Client not found in database' };
 
-    const { zerodhaClientId: userId, zerodhaPassword: password, zerodhaTotpSecret: totpSecret, zerodhaApiKey: apiKey, zerodhaApiSecret: apiSecret } = client;
+    const { zerodhaClientId: userId, zerodhaPassword: password, zerodhaTotpSecret: totpSecret } = client;
 
-    if (!userId || !password || !totpSecret || !apiKey || !apiSecret) {
-      return { success: false, error: 'Missing required credentials' };
+    if (!userId || !password || !totpSecret) {
+      return { success: false, error: 'Missing client credentials (User ID, Password, or TOTP Secret)' };
+    }
+
+    const masterApiKeySetting = await prisma.appSettings.findUnique({ where: { settingKey: 'master_zerodha_api_key' } });
+    const masterApiSecretSetting = await prisma.appSettings.findUnique({ where: { settingKey: 'master_zerodha_api_secret' } });
+    const apiKey = masterApiKeySetting?.settingValue || '';
+    const apiSecret = masterApiSecretSetting?.settingValue || '';
+
+    if (!apiKey || !apiSecret) {
+      return { success: false, error: 'Master Zerodha API credentials not configured in settings' };
     }
 
     let requestToken: string | null = null;

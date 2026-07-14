@@ -104,6 +104,8 @@ export async function GET() {
     settings['google_analytics_id'] = '';
     settings['google_sheet_url'] = '';
     settings['google_credentials_json'] = '';
+    settings['master_zerodha_api_key'] = '';
+    settings['master_zerodha_api_secret'] = '';
 
     settings['legal_privacy_content'] = defaultPrivacyContent;
     settings['legal_terms_content'] = defaultTermsContent;
@@ -208,7 +210,9 @@ export async function PUT(request: Request) {
       legal_disclaimer_content,
       legal_faq_content,
       hero_title,
-      hero_subtitle
+      hero_subtitle,
+      master_zerodha_api_key,
+      master_zerodha_api_secret
     } = body;
 
     const updates = {
@@ -216,6 +220,8 @@ export async function PUT(request: Request) {
       razorpay_test_key_secret,
       razorpay_live_key_id,
       razorpay_live_key_secret,
+      master_zerodha_api_key,
+      master_zerodha_api_secret,
       razorpay_mode,
       smtp_host,
       smtp_port,

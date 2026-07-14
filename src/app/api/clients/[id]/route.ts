@@ -38,15 +38,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         return { isValid: false, profile: null, margins: null };
       };
 
-      // 1. If we have a token, check it
-      if (client.accessToken && client.tradingStatus === 'active' && client.zerodhaApiKey) {
+      const masterApiKeySetting = await prisma.appSettings.findUnique({ where: { settingKey: 'master_zerodha_api_key' } });
+      const masterApiKey = masterApiKeySetting?.settingValue || '';
+
+      // 1. If we have a token, check it using the Master API Key
+      if (client.accessToken && client.tradingStatus === 'active' && masterApiKey) {
         try {
-          const check = await checkAndFetchData(client.zerodhaApiKey, client.accessToken);
+          const check = await checkAndFetchData(masterApiKey, client.accessToken);
           if (check.isValid) {
             profileData = check.profile;
             marginData = check.margins;
           } else {
-            console.warn(`Kite token verification failed for client ${client.id}. Clearing token.`);
+            console.warn(`Kite token verification failed for client ${client.id} using Master Key. Clearing token.`);
             await prisma.client.update({
               where: { id },
               data: { accessToken: null }
@@ -58,7 +61,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         }
       }
 
-      return NextResponse.json({ success: true, client, profile: profileData, margin: marginData, marginError });
+      return NextResponse.json({ success: true, client, profile: profileData, margin: marginData, marginError, masterZerodhaApiKey: masterApiKey });
     } catch {
       let client = inMemoryClients.find((c) => c.id === id);
       if (client) {
