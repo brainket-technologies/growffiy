@@ -21,6 +21,7 @@ export class TradingScheduler {
   static readonly BATCH_CONCURRENCY = 5;
   static readonly TRADE_MONITOR_CONCURRENCY = 10;
   private isMonitoringRunning = false;
+  private lastOhlcSnapshot: Map<string, string> = new Map();
 
   constructor(
     private engine: EngineAccess,
@@ -53,6 +54,15 @@ export class TradingScheduler {
 
         // Market hours guard: 07:00-16:00 IST ke bahar zero DB/logs
         if (hours < 7 || hours >= 16) return;
+
+        // Check for OHLC snapshots at specific times
+        const targetOhlcTimes = ['09:20', '09:30', '09:45', '12:00'];
+        if (targetOhlcTimes.includes(currentTimeStr) && this.lastOhlcSnapshot.get(currentTimeStr) !== currentDateKey) {
+          this.lastOhlcSnapshot.set(currentTimeStr, currentDateKey);
+          this.recordOhlcSnapshot(currentTimeStr, currentDateKey).catch(err => {
+            console.error('Error recording OHLC snapshot in scheduler thread:', err);
+          });
+        }
 
         cachedFetchTime = await this.engine.getAlgoSetting('algo_preopen_fetch_time', '09:08');
 
@@ -138,8 +148,21 @@ export class TradingScheduler {
           }
 
           if (entryTime) {
+            const [eH, eM] = entryTime.split(':').map(Number);
+            const entryMin = eH * 60 + eM;
+            const curMin = hours * 60 + minutes;
             const entryDebug = `[${strategy.name}] now=${currentTimeStr} entry=${entryTime} cmp=${currentTimeStr >= entryTime ? 'Y' : 'N'} lastEntry=${lastEntryByStrategy.get(strategy.id) || '-'} today=${currentDateKey}`;
-            if (currentTimeStr >= entryTime && lastEntryByStrategy.get(strategy.id) !== currentDateKey) {
+            if (curMin >= entryMin && curMin <= entryMin + 5 && lastEntryByStrategy.get(strategy.id) !== currentDateKey) {
+              const todayStart = new Date();
+              todayStart.setHours(0, 0, 0, 0);
+              const existingTrade = await prisma.trade.findFirst({
+                where: { strategyId: strategy.id, createdAt: { gte: todayStart } }
+              });
+              if (existingTrade) {
+                lastEntryByStrategy.set(strategy.id, currentDateKey);
+                console.log(`AlgoEngine Scheduler: Trades exist today for "${strategy.name}". Skipping re-entry.`);
+                continue;
+              }
               console.log(`AlgoEngine Scheduler: Entry time ${entryTimeFull} reached for "${strategy.name}". Triggering in ${entrySeconds}s. (${entryDebug})`);
               lastEntryByStrategy.set(strategy.id, currentDateKey);
 
@@ -194,7 +217,20 @@ export class TradingScheduler {
               }
               knownEntryTime.set(legKey, legEntryTime);
 
-              if (currentTimeStr >= legEntryTime && lastEntryByStrategy.get(legKey) !== currentDateKey) {
+              const [legH, legM] = legEntryTime.split(':').map(Number);
+              const legMin = legH * 60 + legM;
+              const curMinLeg = hours * 60 + minutes;
+              if (curMinLeg >= legMin && curMinLeg <= legMin + 5 && lastEntryByStrategy.get(legKey) !== currentDateKey) {
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+                const existingLegTrade = await prisma.trade.findFirst({
+                  where: { strategyId: strategy.id, legName: leg.name, createdAt: { gte: todayStart } }
+                });
+                if (existingLegTrade) {
+                  lastEntryByStrategy.set(legKey, currentDateKey);
+                  console.log(`AlgoEngine Scheduler: Trades exist today for "${strategy.name}" Leg ${li + 1}. Skipping re-entry.`);
+                  continue;
+                }
                 console.log(`AlgoEngine Scheduler: Leg ${li + 1} entry time ${legEntryTimeFull} reached for "${strategy.name}". Triggering in ${legEntrySeconds}s.`);
                 lastEntryByStrategy.set(legKey, currentDateKey);
 
@@ -991,5 +1027,64 @@ export class TradingScheduler {
     };
 
     (global as any).activeTradesMonitoringInterval = setInterval(checkOpenTradesExits, SCHEDULER_INTERVALS.TRADE_MONITOR);
+  }
+
+  private async recordOhlcSnapshot(timeStr: string, dateStr: string) {
+    try {
+      console.log(`AlgoEngine Scheduler: Recording OHLC snapshot for ${dateStr} ${timeStr}...`);
+      const stocks = this.wsLive.getStocks();
+      if (!stocks || stocks.length === 0) {
+        console.warn('AlgoEngine Scheduler: No stocks in WebSocket state to record OHLC.');
+        return;
+      }
+
+      // Format dateStr to YYYY-MM-DD
+      const dateObj = new Date();
+      const yyyy = dateObj.getFullYear();
+      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const dd = String(dateObj.getDate()).padStart(2, '0');
+      const formattedDate = `${yyyy}-${mm}-${dd}`;
+
+      // Perform upsert for each stock
+      let count = 0;
+      for (const stock of stocks) {
+        if (!stock.symbol) continue;
+        const open = stock.open || stock.ltp || 0;
+        const high = stock.high || stock.ltp || 0;
+        const low = stock.low || stock.ltp || 0;
+        const close = stock.ltp || 0;
+
+        if (close <= 0) continue;
+
+        await prisma.historicalOhlc.upsert({
+          where: {
+            date_time_symbol: {
+              date: formattedDate,
+              time: timeStr,
+              symbol: stock.symbol
+            }
+          },
+          update: {
+            open,
+            high,
+            low,
+            close
+          },
+          create: {
+            date: formattedDate,
+            time: timeStr,
+            symbol: stock.symbol,
+            open,
+            high,
+            low,
+            close
+          }
+        });
+        count++;
+      }
+      console.log(`AlgoEngine Scheduler: Successfully saved ${count} OHLC stock snapshots for ${formattedDate} at ${timeStr}.`);
+    } catch (err) {
+      console.error('AlgoEngine Scheduler: Failed to record OHLC snapshot:', err);
+    }
   }
 }

@@ -91,14 +91,18 @@ To give the script permission to write values into your Google Sheet:
 ## 4. How to Run the Script
 
 1. Open your terminal, command prompt, or terminal inside your code editor.
-2. Navigate to the project root folder.
-3. Install all required Python packages using this command:
+2. Navigate to the `stock-scanner` project folder:
    ```bash
-   pip install -r requirements.txt
+   cd /Users/firozmohammad/Work/growffiy/stock-scanner
+   ```
+3. Install all required Python packages and the database driver:
+   ```bash
+   pip3 install -r requirements.txt
+   pip3 install psycopg2-binary
    ```
 4. Run the streaming script:
    ```bash
-   python src/kite_to_gspread.py
+   python3 src/kite_to_gspread.py
    ```
 
 ### What Happens on Startup?

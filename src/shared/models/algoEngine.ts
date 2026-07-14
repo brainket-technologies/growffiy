@@ -52,6 +52,7 @@ export interface StockQuote {
   nm52wH: number;
   nm52wL: number;
   isNifty50?: boolean;
+  isNifty500?: boolean;
   isBankNifty?: boolean;
   isFo?: boolean;
   isSme?: boolean;
@@ -100,6 +101,32 @@ class AlgoEngineService {
   async init() {
     if (this.initialized) return;
     this.initialized = true;
+    
+    // Cleanup stale trade locks from previous days at startup
+    // Also cleanup today's OLD-format locks (without 'leg' in key) from before the legIndex fix
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      console.log(`AlgoEngine init: Cleaning up stale trade locks (${todayStr})...`);
+      const deletedLocks = await prisma.appSettings.deleteMany({
+        where: {
+          type: 'lock',
+          settingKey: { startsWith: 'trade_lock_' },
+          OR: [
+            // Delete all locks from previous days
+            { NOT: { settingKey: { endsWith: todayStr } } },
+            // Delete today's old-format locks (don't contain '_leg')
+            { AND: [
+              { settingKey: { endsWith: todayStr } },
+              { NOT: { settingKey: { contains: '_leg' } } }
+            ]}
+          ]
+        }
+      });
+      console.log(`AlgoEngine init: Cleaned up ${deletedLocks.count} stale/old-format trade locks.`);
+    } catch (e) {
+      console.error('AlgoEngine init: Failed to cleanup stale trade locks:', e);
+    }
+
     await this.wsLive.initialize();
     await this.restorePreselectedStocks();
     this.tradingScheduler.startDailyTokenRefreshScheduler();
@@ -522,9 +549,8 @@ class AlgoEngineService {
           const legBufferPct = currentLeg.tradeAction?.bufferPercent;
           const legOrderType = currentLeg.tradeAction?.orderType || 'SL-Market';
 
-          // --- Dual Leg: Use shared group ID (from scheduler) or generate if not provided ---
           const enabledLegs = (config.legs || []).filter((l: any) => l.enabled);
-          const finalDualLegGroupId = dualLegGroupId !== undefined ? dualLegGroupId : (enabledLegs.length > 1 ? crypto.randomUUID() : null);
+          const finalDualLegGroupId = enabledLegs.length > 1 ? `oco_${client.id}_${strategy.id}_${todayStart.toISOString().split('T')[0]}` : null;
 
           if (!config.basicInfo?.exchange || !config.basicInfo?.tradeType || !config.basicInfo?.preSelectTime) {
             console.log(`AlgoEngine: Strategy config missing exchange/tradeType/preSelectTime for client ${client.user.name}. Skipping.`);
@@ -534,20 +560,18 @@ class AlgoEngineService {
           const tradeType = config.basicInfo.tradeType;
           const productParam = tradeType === 'Delivery' ? 'CNC' : (tradeType === 'Carry Forward' || tradeType === 'Normal' || tradeType === 'NRML') ? 'NRML' : 'MIS';
 
-          let candidateStock: StockQuote | null = this.preselectedStockByStrategy.get(strategy.id) || null;
+          let candidateStock: StockQuote | null = null;
+          try {
+            const dbRecord = await prisma.strategyPreselect.findUnique({ where: { strategyId: strategy.id } });
+            if (dbRecord) {
+              candidateStock = JSON.parse(dbRecord.stockData);
+            }
+          } catch (e) {
+            console.error(`AlgoEngine: Failed to fetch preselected stock from DB for strategy ${strategy.id}:`, e);
+          }
 
           if (!candidateStock) {
-            try {
-              const dbRecord = await prisma.strategyPreselect.findUnique({ where: { strategyId: strategy.id } });
-              if (dbRecord) {
-                const parsed = JSON.parse(dbRecord.stockData);
-                candidateStock = parsed;
-                this.preselectedStockByStrategy.set(strategy.id, parsed);
-                console.log(`AlgoEngine: Restored preselected stock ${parsed.symbol} for strategy "${strategy.name}" from DB.`);
-              }
-            } catch (e) {
-              console.error(`AlgoEngine: Failed to restore preselected stock from DB for strategy ${strategy.id}:`, e);
-            }
+            candidateStock = this.preselectedStockByStrategy.get(strategy.id) || null;
           }
 
           if (!candidateStock) {
@@ -594,52 +618,58 @@ class AlgoEngineService {
             candidateStock = sortedStocks[selectPosition - 1];
           }
 
-          if (candidateStock && config.conditions?.length > 0) {
-            if (!await this.matchesConditions(candidateStock, config.conditions, client)) {
-              const reason = `Preselected stock ${candidateStock.symbol} (${candidateStock.changePercent.toFixed(2)}%) failed strategy conditions`;
-              console.log(`AlgoEngine: ${reason} for ${client.user.name}. Logging FAILED trade.`);
-              await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
-              return;
-            }
-          }
+          // NOTE: conditions check moved AFTER lock acquisition below to prevent duplicate FAILED trades
 
           console.log(`AlgoEngine: Client ${client.user.name} | Stock ${candidateStock.symbol}(${candidateStock.changePercent}%)`);
 
           let targetStock: StockQuote | null = null;
           let breakoutEntryPrice = 0;
 
-          lockKey = `${client.id}:${candidateStock.symbol}`;
+          const currentLegIdx = legIndex || 0;
+          lockKey = `${client.id}:${candidateStock.symbol}:leg${currentLegIdx}`;
           if (this.entryLock.has(lockKey)) {
-            console.log(`AlgoEngine: Entry already in progress for ${candidateStock.symbol} (${client.user.name}). Skipping.`);
+            console.log(`AlgoEngine: Entry already in progress for ${candidateStock.symbol} Leg ${currentLegIdx + 1} (${client.user.name}). Skipping.`);
             return;
           }
           this.entryLock.add(lockKey);
 
           const todayStr = todayStart.toISOString().split('T')[0];
-          dbLockKey = `trade_lock_${client.id}_${strategy.id}_${todayStr}`;
+          // Include legIndex in lock key so each OCO leg has its own independent lock
+          dbLockKey = `trade_lock_${client.id}_${strategy.id}_leg${currentLegIdx}_${todayStr}`;
           try {
             await prisma.appSettings.create({
               data: { settingKey: dbLockKey, settingValue: 'locked', type: 'lock' }
             });
           } catch (e) {
-            console.log(`AlgoEngine DB Lock: Trade already processing for ${client.user.name}. Skipping duplicate execution.`);
+            console.log(`AlgoEngine DB Lock: Trade already processing for ${client.user.name} Leg ${currentLegIdx + 1}. Skipping duplicate execution.`);
             this.entryLock.delete(lockKey);
             return;
           }
 
           try {
+            // Check if ANY trade was placed today for this client+strategy+leg (regardless of symbol)
+            // This prevents re-trade after server restart where in-memory lastEntryByStrategy is cleared
             const existingTrade = await prisma.trade.findFirst({
               where: {
                 clientId: client.id,
                 strategyId: strategy.id,
-                symbol: candidateStock.symbol,
                 legName: currentLeg.name,
                 createdAt: { gte: todayStart }
               }
             });
             if (existingTrade) {
-              console.log(`AlgoEngine: Trade already exists today for ${candidateStock.symbol} ${currentLeg.name} (${client.user.name}). Skipping.`);
+              console.log(`AlgoEngine: Trade already exists today for strategy leg "${currentLeg.name}" (${client.user.name}) — symbol: ${existingTrade.symbol}. Skipping duplicate.`);
               return;
+            }
+
+            // MOVED HERE from before lock: conditions check (prevents duplicate FAILED trades)
+            if (candidateStock && config.conditions?.length > 0) {
+              if (!await this.matchesConditions(candidateStock, config.conditions, client)) {
+                const reason = `Preselected stock ${candidateStock.symbol} (${candidateStock.changePercent.toFixed(2)}%) failed strategy conditions`;
+                console.log(`AlgoEngine: ${reason} for ${client.user.name}. Logging FAILED trade.`);
+                await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
+                return;
+              }
             }
 
             let candlePrice = candlePriceCache.get(candidateStock.symbol) || 0;
@@ -1391,9 +1421,9 @@ class AlgoEngineService {
           console.error(`AlgoEngine: Error executing pre-open trade for client ${client.id}:`, clientErr);
         } finally {
           this.entryLock.delete(lockKey);
-          if (typeof dbLockKey !== 'undefined' && dbLockKey) {
-            prisma.appSettings.delete({ where: { settingKey: dbLockKey } }).catch(() => {});
-          }
+          // NOTE: DB lock is intentionally NOT deleted here.
+          // It stays for the entire trading day to prevent re-entry after server restart.
+          // Stale locks from previous days are cleaned up at startup (see cleanupStaleTradeLocks).
         }
       };
 
@@ -1450,11 +1480,35 @@ class AlgoEngineService {
 
       const foSymbols = await fetchWithRetry('FO');
 
-      const [dataRes, niftySymbols, bankNiftySymbols, smeSymbols] = await Promise.all([
+      // Fetch Nifty 500 list from public NSE archives CSV (bulletproof way, bypasses Cloudflare/404 blocks)
+      const fetchNifty500Symbols = async (): Promise<string[]> => {
+        try {
+          const csvRes = await fetch('https://archives.nseindia.com/content/indices/ind_nifty500list.csv');
+          if (csvRes.ok) {
+            const csvText = await csvRes.text();
+            const lines = csvText.split('\n');
+            const symbols: string[] = [];
+            for (let i = 1; i < lines.length; i++) {
+              const cols = lines[i].split(',');
+              if (cols.length >= 3) {
+                const sym = cols[cols.length - 3];
+                if (sym) symbols.push(sym.trim());
+              }
+            }
+            return symbols;
+          }
+        } catch (e) {
+          console.error('Failed to fetch Nifty 500 symbols from archives:', e);
+        }
+        return [];
+      };
+
+      const [dataRes, niftySymbols, bankNiftySymbols, smeSymbols, nifty500Symbols] = await Promise.all([
         fetch(API_ENDPOINTS.NSE_PRE_OPEN, { headers: { ...headers, 'Cookie': cookies } }),
         fetchIndexSymbols('NIFTY'),
         fetchIndexSymbols('BANKNIFTY'),
-        fetchIndexSymbols('SME')
+        fetchIndexSymbols('SME'),
+        fetchNifty500Symbols()
       ]);
 
       if (!dataRes.ok) {
@@ -1491,6 +1545,7 @@ class AlgoEngineService {
             nm52wH: nseItem.metadata.yearHigh || parseFloat((prevClose * 1.25).toFixed(2)),
             nm52wL: nseItem.metadata.yearLow || parseFloat((prevClose * 0.75).toFixed(2)),
             isNifty50: niftySymbols.includes(symbol),
+            isNifty500: nifty500Symbols.includes(symbol),
             isBankNifty: bankNiftySymbols.includes(symbol),
             isFo: foSymbols.includes(symbol),
             isSme: smeSymbols.includes(symbol)
@@ -1517,10 +1572,49 @@ class AlgoEngineService {
 
       this.wsLive.resubscribeTopMovers(freshStocks);
 
+      // Async save to database without blocking the returned result
+      Promise.resolve().then(async () => {
+        for (const stock of freshStocks) {
+          try {
+            await prisma.historicalPreOpen.upsert({
+              where: {
+                date_symbol: {
+                  date: dateStr,
+                  symbol: stock.symbol
+                }
+              },
+              create: {
+                date: dateStr,
+                symbol: stock.symbol,
+                data: stock as any
+              },
+              update: {
+                data: stock as any
+              }
+            });
+          } catch (dbErr) {
+            console.error(`Failed to save historical pre-open for ${stock.symbol} on ${dateStr}:`, dbErr);
+          }
+        }
+        console.log(`Saved ${freshStocks.length} historical pre-open quotes for ${dateStr} to DB.`);
+      }).catch(err => console.error('Error in historical pre-open async saving:', err));
+
       return freshStocks;
     } catch (err) {
       console.error('NSE API pre-open fetch failed:', err);
       return this.preOpenCache;
+    }
+  }
+
+  public async getPreOpenStocksByDate(dateStr: string): Promise<StockQuote[]> {
+    try {
+      const records = await prisma.historicalPreOpen.findMany({
+        where: { date: dateStr }
+      });
+      return records.map(r => r.data as unknown as StockQuote);
+    } catch (err) {
+      console.error(`Failed to get pre-open stocks for date ${dateStr}:`, err);
+      return [];
     }
   }
 
@@ -1678,6 +1772,22 @@ class AlgoEngineService {
     legFields?: { direction: string; legName: string; legTimeframe: string; dualLegGroupId: string | null }
   ): Promise<void> {
     try {
+      // Guard: Do not log duplicate FAILED trade if one already exists today for same client+strategy+leg
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const alreadyLogged = await prisma.trade.findFirst({
+        where: {
+          clientId: client.id,
+          strategyId: strategy.id,
+          legName: legFields?.legName ?? null,
+          createdAt: { gte: todayStart }
+        }
+      });
+      if (alreadyLogged) {
+        console.log(`AlgoEngine: FAILED trade already logged today for ${client.user.name} (${symbol}, leg: ${legFields?.legName ?? 'none'}). Skipping duplicate log.`);
+        return;
+      }
+
       await prisma.trade.create({
         data: {
           clientId: client.id,

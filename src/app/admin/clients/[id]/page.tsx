@@ -20,7 +20,9 @@ import {
   ChevronRight,
   Info,
   Pencil,
-  TrendingUp
+  TrendingUp,
+  Copy,
+  Check
 } from 'lucide-react';
 import { useAppViewModel } from '../../../../shared/viewmodels/AppContext';
 import { Modal } from '../../../../shared/components/views/Modal';
@@ -71,6 +73,8 @@ export default function ClientDetailsPage() {
   const [alertModal, setAlertModal] = useState<{ title: string; message: React.ReactNode; onConfirm?: () => void } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [copiedRedirectUrl, setCopiedRedirectUrl] = useState(false);
+  const [copiedIps, setCopiedIps] = useState(false);
 
   useEffect(() => {
     const fetchClient = async () => {
@@ -222,8 +226,72 @@ export default function ClientDetailsPage() {
         <ol style={{ fontSize: '13px', color: 'var(--text-body)', paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <li>
             <strong>Configure Redirect URL:</strong> Open the <a href="https://developers.kite.trade/" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>Kite Developer Console</a>, edit your app settings, and paste this Redirect URL:
-            <div style={{ margin: '6px 0', padding: '8px 12px', backgroundColor: 'var(--surface)', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-heading)', border: '1px solid var(--border-color)', wordBreak: 'break-all' }}>
-              {redirectUrl}
+            <div style={{ margin: '6px 0', display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div style={{ flex: 1, padding: '8px 12px', backgroundColor: 'var(--surface)', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-heading)', border: '1px solid var(--border-color)', wordBreak: 'break-all' }}>
+                {redirectUrl}
+              </div>
+              <button 
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(redirectUrl);
+                  setCopiedRedirectUrl(true);
+                  setTimeout(() => setCopiedRedirectUrl(false), 2000);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '8px 12px',
+                  backgroundColor: copiedRedirectUrl ? 'var(--success, #10b981)' : 'var(--primary)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  whiteSpace: 'nowrap',
+                  height: '34px'
+                }}
+              >
+                {copiedRedirectUrl ? <Check size={14} /> : <Copy size={14} />}
+                {copiedRedirectUrl ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+          </li>
+          <li>
+            <strong>IP Whitelist (For Auto-Login):</strong> Go to your <a href="https://developers.kite.trade/profile" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>Kite Profile Page</a>, scroll to the **IP Whitelist** section, and add these server IPs (one per line):
+            <div style={{ margin: '6px 0', display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div style={{ flex: 1, padding: '8px 12px', backgroundColor: 'var(--surface)', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-heading)', border: '1px solid var(--border-color)', whiteSpace: 'pre-line' }}>
+                93.127.173.164{"\n"}91.108.106.136
+              </div>
+              <button 
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText("93.127.173.164\n91.108.106.136");
+                  setCopiedIps(true);
+                  setTimeout(() => setCopiedIps(false), 2000);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '8px 12px',
+                  backgroundColor: copiedIps ? 'var(--success, #10b981)' : 'var(--primary)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  whiteSpace: 'nowrap',
+                  height: '34px'
+                }}
+              >
+                {copiedIps ? <Check size={14} /> : <Copy size={14} />}
+                {copiedIps ? 'Copied' : 'Copy'}
+              </button>
             </div>
           </li>
           <li>

@@ -290,3 +290,29 @@ model StrategyBacktest {
 
   @@map("strategy_backtests")
 }
+
+model HistoricalPreOpen {
+  id        String   @id @default(uuid())
+  date      String   // e.g., "13 Jul 2026"
+  symbol    String
+  data      Json     // Store the entire StockQuote JSON
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([date, symbol])
+  @@map("historical_pre_open")
+}
+
+model HistoricalOhlc {
+  id        String   @id @default(uuid())
+  date      String   // Format: "YYYY-MM-DD"
+  time      String   // "09:20", "09:30", "09:45", "12:00"
+  symbol    String
+  open      Float
+  high      Float
+  low       Float
+  close     Float    // Current LTP at that specific snapshot time
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([date, time, symbol])
+  @@map("historical_ohlc")
+}

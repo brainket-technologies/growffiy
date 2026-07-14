@@ -9,6 +9,47 @@ import { Zap, CheckCircle2, Download, Loader2, TrendingUp, TrendingDown, ArrowUp
 
 type CategoryType = 'Nifty 50' | 'Bank Nifty' | 'F&O' | 'SME' | 'Others' | 'All';
 
+function formatDateToNSE(dateVal: string): string {
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric'
+  }); // e.g. "13 Jul 2026"
+}
+
+function parseNSEDate(nseDateStr: string): string {
+  if (!nseDateStr) return '';
+  const d = new Date(nseDateStr);
+  if (isNaN(d.getTime())) return '';
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function isMarketHoliday(date: Date): boolean {
+  const day = date.getDay();
+  if (day === 0 || day === 6) return true; // Sunday/Saturday
+
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const dateStr = `${yyyy}-${mm}-${dd}`;
+
+  const holidays = [
+    // 2026 common NSE holidays
+    '2026-01-26', // Republic Day
+    '2026-03-06', // Holi
+    '2026-04-02', // Good Friday
+    '2026-04-14', // Ambedkar Jayanti
+    '2026-05-01', // Maharashtra Day
+    '2026-08-15', // Independence Day
+    '2026-10-02', // Gandhi Jayanti
+    '2026-12-25', // Christmas
+  ];
+  return holidays.includes(dateStr);
+}
+
 export default function PreOpenScannerPage() {
   const { scannerResults, isTradingActive, toggleTrading, loading, isSyncing, isWsConnected, preOpenDate, refreshAllData } = useAppViewModel();
 
@@ -22,6 +63,41 @@ export default function PreOpenScannerPage() {
   const [sortAsc, setSortAsc] = useState<boolean>(false);
   const [activeFilter, setActiveFilter] = useState<'all' | 'gainers' | 'losers'>('all');
 
+  // Historical date selection state
+  const [selectedDateStr, setSelectedDateStr] = useState<string>('');
+  const [historicalData, setHistoricalData] = useState<any[] | null>(null);
+  const [historicalDate, setHistoricalDate] = useState<string | null>(null);
+  const [loadingHistorical, setLoadingHistorical] = useState(false);
+
+  const fetchHistoricalData = async (dateVal: string) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (dateVal === todayStr) {
+      setHistoricalData(null);
+      setHistoricalDate(null);
+      return;
+    }
+
+    setLoadingHistorical(true);
+    try {
+      const formattedDate = formatDateToNSE(dateVal);
+      const res = await fetch(`/api/stocks?date=${encodeURIComponent(formattedDate)}`);
+      const data = await res.json();
+      if (data.success) {
+        setHistoricalData(data.preOpenStocks || []);
+        setHistoricalDate(data.preOpenDate);
+      } else {
+        setHistoricalData([]);
+        setHistoricalDate(formattedDate);
+      }
+    } catch (err) {
+      console.error('Error fetching historical pre-open:', err);
+      setHistoricalData([]);
+      setHistoricalDate(formatDateToNSE(dateVal));
+    } finally {
+      setLoadingHistorical(false);
+    }
+  };
+
   // Infinite Scroll Handler
   React.useEffect(() => {
     const handleScroll = () => {
@@ -29,12 +105,12 @@ export default function PreOpenScannerPage() {
         window.innerHeight + window.scrollY >=
         document.documentElement.scrollHeight - 120
       ) {
-        setVisibleCount(prev => Math.min(prev + 30, scannerResults.length));
+        setVisibleCount(prev => Math.min(prev + 30, (historicalData !== null ? historicalData.length : scannerResults.length)));
       }
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [scannerResults.length]);
+  }, [scannerResults.length, historicalData]);
 
   if (loading) {
     return <Loader title="Loading Pre-Open Scanner" text="Fetching indicative quotes and syncing pre-market feeds..." fullscreen={false} />;
@@ -90,7 +166,9 @@ export default function PreOpenScannerPage() {
     }
   };
 
-  const filteredStocks = scannerResults.filter(stock => {
+  const activeScannerResults = historicalData !== null ? historicalData : scannerResults;
+
+  const filteredStocks = activeScannerResults.filter(stock => {
     const matchesCat = filterByCategory(stock, category);
     const matchesSymbol = stock.symbol.toLowerCase().includes(symbolQuery.trim().toLowerCase());
     return matchesCat && matchesSymbol;
@@ -181,15 +259,43 @@ export default function PreOpenScannerPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            Pre-Open Scanner {preOpenDate && <span style={{ fontSize: '15px', fontWeight: 600, color: '#2563eb', backgroundColor: '#eff6ff', padding: '4px 10px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>{preOpenDate}</span>}
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            Pre-Open Scanner 
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <input 
+                type="date"
+                value={selectedDateStr || parseNSEDate(preOpenDate)}
+                max={new Date().toISOString().split('T')[0]}
+                onChange={async (e) => {
+                  const val = e.target.value;
+                  if (!val) return;
+                  setSelectedDateStr(val);
+                  await fetchHistoricalData(val);
+                }}
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: '#2563eb',
+                  backgroundColor: '#eff6ff',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid #bfdbfe',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit'
+                }}
+              />
+              {loadingHistorical && <Loader2 size={16} className="animate-spin" style={{ color: '#2563eb' }} />}
+            </span>
           </h1>
           <p style={{ color: 'var(--text-secondary)' }}>Automated scanner identifying top losers for breakout entry criteria.</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <Button variant="secondary" onClick={runManualScan} isLoading={isScanning}>
-            <Zap size={16} /> Run Scan Now
-          </Button>
+          {historicalData === null && (
+            <Button variant="secondary" onClick={runManualScan} isLoading={isScanning}>
+              <Zap size={16} /> Run Scan Now
+            </Button>
+          )}
         </div>
       </div>
 
@@ -508,8 +614,15 @@ export default function PreOpenScannerPage() {
                 })}
                 {visibleStocks.length === 0 && (
                   <tr>
-                    <td colSpan={11} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-                      No breakout candidates match the selected filters.
+                    <td colSpan={11} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                      {historicalData !== null ? (
+                        <div>
+                          <p style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)', marginBottom: '6px' }}>No pre-market quotes available for this date.</p>
+                          <p style={{ fontSize: '12px' }}>Note: Pre-open data starts recording in the database from 13 Jul 2026. Market is closed on weekends and trading holidays.</p>
+                        </div>
+                      ) : (
+                        "No breakout candidates match the selected filters."
+                      )}
                     </td>
                   </tr>
                 )}

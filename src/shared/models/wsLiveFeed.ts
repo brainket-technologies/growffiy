@@ -94,9 +94,37 @@ export class WsLiveFeed {
 
   getStocks(): StockQuote[] {
     const preOpenCache = this.getPreOpenCache();
-    if (this.stocksState.length === 0 && preOpenCache.length > 0) {
-      this.stocksState = [...preOpenCache];
+    
+    // If preOpenCache has been fetched and contains all pre-open stocks, but stocksState is empty or only contains fallback symbols,
+    // initialize/merge stocksState with the complete list of stocks.
+    if (preOpenCache.length > this.stocksState.length) {
+      const liveMap = new Map(this.stocksState.map(s => [s.symbol, s]));
+      this.stocksState = preOpenCache.map(cached => {
+        const live = liveMap.get(cached.symbol);
+        return live ? { ...cached, ...live } : cached;
+      });
     }
+
+    // Overlay isFo/isNifty50/isNifty500/isBankNifty/isSme flags from preOpenCache onto live WS stocks.
+    // WebSocket feed only carries price data — category flags must come from NSE pre-open fetch.
+    if (preOpenCache.length > 0) {
+      const flagMap = new Map<string, { isFo: boolean; isNifty50: boolean; isNifty500: boolean; isBankNifty: boolean; isSme: boolean }>();
+      for (const s of preOpenCache) {
+        flagMap.set(s.symbol, {
+          isFo: !!s.isFo,
+          isNifty50: !!s.isNifty50,
+          isNifty500: !!s.isNifty500,
+          isBankNifty: !!s.isBankNifty,
+          isSme: !!s.isSme,
+        });
+      }
+      this.stocksState = this.stocksState.map(stock => {
+        const flags = flagMap.get(stock.symbol);
+        if (!flags) return stock;
+        return { ...stock, ...flags };
+      });
+    }
+
     return this.stocksState;
   }
 
