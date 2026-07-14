@@ -42,7 +42,7 @@ export default function ClientPaymentHistory() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="page-payments" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div>
         <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
           Payment History
@@ -122,6 +122,17 @@ export default function ClientPaymentHistory() {
         <ShieldCheck size={16} />
         <span>For any transaction queries or custom corporate billing requests, write to support.</span>
       </div>
+      <style>{`
+@media (max-width: 1024px) {
+  .table-responsive table { font-size: 12px; }
+}
+@media (max-width: 640px) {
+  .table-responsive table { font-size: 11px; }
+  .table-responsive th, .table-responsive td { padding: 8px 4px !important; }
+  .table-responsive th:nth-child(4), .table-responsive td:nth-child(4) { display: none; }
+  .table-responsive th:nth-child(5), .table-responsive td:nth-child(5) { display: none; }
+}
+      `}</style>
     </div>
   );
 }

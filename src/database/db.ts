@@ -2,10 +2,21 @@ import dotenv from 'dotenv';
 import path from 'path';
 import ws from 'ws';
 
-// Force load .env from multiple potential directory contexts
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
-dotenv.config({ path: path.join(__dirname, '../../.env') });
-dotenv.config({ path: path.join(__dirname, '../../../.env') });
+// Force load .env from absolute root paths
+import fs from 'fs';
+const rootEnv = path.resolve(process.cwd(), '.env');
+const nestedEnv = path.join(__dirname, '../../../../.env');
+if (fs.existsSync(rootEnv)) {
+  dotenv.config({ path: rootEnv });
+} else if (fs.existsSync(nestedEnv)) {
+  dotenv.config({ path: nestedEnv });
+} else {
+  // Try up to root levels in project structure
+  dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+  dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+  dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
+  dotenv.config({ path: path.resolve(__dirname, '../../../../../.env') });
+}
 
 // Setup global WebSocket polyfill for Neon serverless adapter in Node.js environment
 if (!global.WebSocket) {

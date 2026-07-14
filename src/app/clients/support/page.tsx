@@ -88,13 +88,13 @@ export default function ClientSupportPage() {
   };
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+    <div className="page-support" style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      <div className="support-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <div>
           <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', margin: 0 }}>Support</h1>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0' }}>Manage your support tickets.</p>
         </div>
-        <button onClick={() => { setShowForm(true); setErrorMsg(null); setSuccessMsg(null); }}
+        <button className="support-new-ticket-btn" onClick={() => { setShowForm(true); setErrorMsg(null); setSuccessMsg(null); }}
           style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 600, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Plus size={16} /> New Ticket
         </button>
@@ -127,7 +127,7 @@ export default function ClientSupportPage() {
           <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', margin: 0 }}>
             All Tickets ({filtered.length})
           </h3>
-          <div style={{ position: 'relative', minWidth: '260px' }}>
+          <div className="support-search-wrap" style={{ position: 'relative', minWidth: '260px' }}>
             <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input type="text" placeholder="Search tickets..." value={search} onChange={e => setSearch(e.target.value)}
               style={{ width: '100%', padding: '8px 12px 8px 36px', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none', fontSize: '13px', boxSizing: 'border-box' }} />
@@ -189,6 +189,18 @@ export default function ClientSupportPage() {
           </table>
         </div>
       </Card>
+      <style>{`
+@media (max-width: 1024px) {
+  .page-support { padding: 0 16px; }
+}
+@media (max-width: 640px) {
+  .support-header { flex-direction: column; align-items: flex-start !important; gap: 12px; }
+  .support-new-ticket-btn { width: 100%; justify-content: center; }
+  .support-search-wrap { width: 100% !important; min-width: unset !important; }
+  .table-responsive th:nth-child(1), .table-responsive td:nth-child(1) { display: none; }
+  .table-responsive th:nth-child(5), .table-responsive td:nth-child(5) { display: none; }
+}
+      `}</style>
     </div>
   );
 }

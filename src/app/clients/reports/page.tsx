@@ -55,7 +55,7 @@ export default function ClientTradingReports() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="page-reports" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div>
         <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
           Trading Reports
@@ -63,7 +63,7 @@ export default function ClientTradingReports() {
         <p style={{ color: 'var(--text-muted)' }}>Analyze mathematical performance curves and track transaction execution sheets.</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '24px' }}>
+      <div className="reports-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '24px' }}>
         {stats.map((stat, idx) => (
           <Card key={idx}>
             <p style={{ color: 'var(--text-muted)', fontSize: '13px', fontWeight: 500 }}>{stat.name}</p>
@@ -75,7 +75,7 @@ export default function ClientTradingReports() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '24px', alignItems: 'start' }}>
+      <div className="reports-main-grid" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '24px', alignItems: 'start' }}>
         <Card>
           <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '20px', fontFamily: 'var(--font-title)' }}>
             Session Profit Trajectory
@@ -171,6 +171,19 @@ export default function ClientTradingReports() {
           </table>
         </div>
       </Card>
+      <style>{`
+@media (max-width: 1024px) {
+  .reports-main-grid { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 640px) {
+  .reports-stats-grid { grid-template-columns: 1fr !important; }
+  .reports-main-grid { grid-template-columns: 1fr !important; }
+  .table-responsive table { font-size: 11px; }
+  .table-responsive th, .table-responsive td { padding: 8px 4px !important; }
+  .table-responsive th:nth-child(2), .table-responsive td:nth-child(2) { display: none; }
+  .table-responsive th:nth-child(5), .table-responsive td:nth-child(5) { display: none; }
+}
+      `}</style>
     </div>
   );
 }

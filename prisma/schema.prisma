@@ -48,13 +48,45 @@ model Client {
   kycStatus          String               @default("pending") @map("kyc_status")
   panNumber          String?              @map("pan_number")
   productTypeId      String?              @map("product_type_id")
+  addedByStaffId     String?              @map("added_by_staff_id")
   productType        ProductType?         @relation(fields: [productTypeId], references: [id])
   strategy           Strategy?            @relation(fields: [strategyId], references: [id])
   user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addedByStaff       Staff?               @relation(fields: [addedByStaffId], references: [id])
   assignments        StrategyAssignment[]
   trades             Trade[]
 
   @@map("clients")
+}
+
+model Staff {
+  id          String             @id @default(uuid())
+  name        String
+  email       String             @unique
+  mobile      String?
+  userId      String             @unique @map("user_id")
+  password    String
+  status      String             @default("active")
+  adminId     String             @map("admin_id")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+  permissions StaffPermission[]
+  clients     Client[]
+
+  @@map("staff")
+}
+
+model StaffPermission {
+  id         String  @id @default(uuid())
+  staffId    String  @map("staff_id")
+  module     String
+  permission String  // e.g. 'view', 'edit', 'create', 'export', 'add', 'delete', etc.
+  granted    Boolean @default(false)
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, module, permission])
+  @@map("staff_permissions")
 }
 
 model Strategy {

@@ -103,9 +103,9 @@ export default function ClientMarketWatchPage() {
   const indicators = deriveIndicators(selectedStock);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="page-market" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header and status indicators */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+      <div className="market-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             Live Market watch <Sparkles size={20} color="#eab308" style={{ animation: 'pulse 2s infinite' }} />
@@ -130,7 +130,7 @@ export default function ClientMarketWatchPage() {
       </div>
 
       {/* Top Market Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+      <div className="market-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
         <Card style={{ padding: '16px' }}>
           <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500 }}>NIFTY Live</span>
           <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '8px 0 4px 0', color: 'var(--text-primary)' }}>{niftyLive.toLocaleString('en-IN')}</h2>
@@ -170,7 +170,7 @@ export default function ClientMarketWatchPage() {
       </div>
 
       {/* Market Breadth Panel */}
-      <Card style={{ padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+        <Card className="market-breadth" style={{ padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <div style={{ display: 'flex', gap: '16px', fontSize: '13px', fontWeight: 600 }}>
           <span>Advances: <strong style={{ color: 'var(--accent)' }}>{advances}</strong></span>
           <span>Declines: <strong style={{ color: 'var(--danger)' }}>{declines}</strong></span>
@@ -184,8 +184,8 @@ export default function ClientMarketWatchPage() {
       </Card>
 
       {/* Filter and Search Bar */}
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 12px', width: '280px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+      <div className="market-filter-bar" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="market-search-wrap" style={{ display: 'flex', alignItems: 'center', backgroundColor: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 12px', width: '280px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
           <Search size={16} color="var(--text-secondary)" style={{ marginRight: '8px' }} />
           <input
             placeholder="Search stock symbol..."
@@ -221,7 +221,7 @@ export default function ClientMarketWatchPage() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr', gap: '24px', alignItems: 'start' }}>
+      <div className="market-main-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr', gap: '24px', alignItems: 'start' }}>
         {/* Stocks Table */}
         <Card style={{ padding: '20px' }}>
           <div className="table-responsive" style={{ maxHeight: '650px', overflowY: 'auto' }}>
@@ -399,6 +399,23 @@ export default function ClientMarketWatchPage() {
           </div>
         ) : null}
       </div>
+      <style>{`
+@media (max-width: 1024px) {
+  .market-cards-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .market-main-grid { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 640px) {
+  .market-header { flex-direction: column; align-items: flex-start !important; }
+  .market-cards-grid { grid-template-columns: 1fr !important; }
+  .market-breadth { flex-direction: column; align-items: flex-start !important; }
+  .market-filter-bar { flex-direction: column; width: 100%; }
+  .market-filter-bar > * { width: 100%; }
+  .market-search-wrap { width: 100% !important; }
+  .table-responsive table { font-size: 11px; }
+  .table-responsive th, .table-responsive td { padding: 8px 4px !important; }
+  .table-responsive th:nth-child(4), .table-responsive td:nth-child(4) { display: none; }
+}
+      `}</style>
     </div>
   );
 }

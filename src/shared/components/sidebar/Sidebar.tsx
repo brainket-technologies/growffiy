@@ -23,14 +23,16 @@ import {
   PanelLeft,
   BarChart3,
   Terminal,
+  UserCog,
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { useAppViewModel } from '../../viewmodels/AppContext';
 import { api } from '../../services/api';
-import { API_ENDPOINTS } from '../../../core/constants';
+import { API_ENDPOINTS, STAFF_MODULE_DEFS } from '../../../core/constants';
 
 interface SidebarProps {
   isAdmin?: boolean;
+  staffPermissions?: { module: string; permission: string; granted: boolean }[];
 }
 
 interface MenuItem {
@@ -86,6 +88,7 @@ const adminGroups: MenuGroup[] = [
   {
     label: 'Settings',
     items: [
+      { name: 'Staff', path: '/admin/staff', icon: UserCog },
       { name: 'Software Setting', path: '/admin/settings', icon: Settings },
       { name: 'App Logs', path: '/admin/audit-logs', icon: ShieldCheck },
       { name: 'App Runtime Logs', path: '/admin/runtime-logs', icon: Terminal },
@@ -129,11 +132,19 @@ interface SidebarItemProps {
 
 const isPathActive = (itemPath: string | undefined, currentPath: string) => {
   if (!itemPath) return false;
+  // If it's a base reports path /staff/reports or /admin/reports, only highlight if pathname is exactly that,
+  // to prevent it from highlighting both child items and the parent tab at the same time if they are links.
+  if (itemPath.endsWith('/reports') || itemPath.endsWith('/payments')) {
+    return currentPath === itemPath;
+  }
   return currentPath === itemPath || (
     itemPath !== '/' &&
     itemPath !== '/admin' &&
     itemPath !== '/clients' &&
-    currentPath.startsWith(`${itemPath}/`)
+    itemPath !== '/staff' &&
+    currentPath.startsWith(`${itemPath}/`) &&
+    !currentPath.includes('/reports/') &&
+    !currentPath.includes('/payments/')
   );
 };
 
@@ -255,7 +266,105 @@ const SidebarGroup: React.FC<{
   );
 };
 
-export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
+const getModuleIcon = (iconName: string): React.ComponentType<{ size?: number }> => {
+  const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
+    Users, Search, CreditCard, TrendingUp, Activity, FileText, BarChart3, LifeBuoy, LineChart,
+  };
+  return iconMap[iconName] || FileText;
+};
+
+const MODULE_PATHS: Record<string, string> = {
+  clients: '/staff/clients',
+  preopen: '/staff/preopen',
+  plans: '/staff/plans',
+  marketWatch: '/staff/market-watch',
+  strategies: '/staff/strategies',
+  reports: '/staff/reports',
+  trades: '/staff/trades',
+  staff: '/staff/staff',
+  support: '/staff/support',
+};
+
+const staffGroups = (permissions: { module: string; permission: string; granted: boolean }[]): MenuGroup[] => {
+  const grantedModules = new Set(permissions.filter((p) => p.granted).map((p) => p.module));
+
+  const mainMenu: MenuItem[] = [];
+  const reportsMenu: MenuItem[] = [];
+  const transactionsMenu: MenuItem[] = [];
+  const settingsMenu: MenuItem[] = [];
+
+  STAFF_MODULE_DEFS.forEach((def) => {
+    // 1. Reports Group
+    if (def.key === 'reports') {
+      const hasStrategyView = permissions.some(p => p.module === 'reports' && p.permission === 'strategyView' && p.granted);
+      const hasClientView = permissions.some(p => p.module === 'reports' && p.permission === 'clientView' && p.granted);
+      
+      if (hasStrategyView) {
+        reportsMenu.push({ name: 'Strategy Report', path: '/staff/reports/strategy', icon: getModuleIcon(def.icon) });
+      }
+      if (hasClientView) {
+        reportsMenu.push({ name: 'Client Report', path: '/staff/reports/client', icon: getModuleIcon(def.icon) });
+      }
+    }
+    // 2. Transactions Group 
+    else if (def.key === 'trades') {
+      const hasTradeView = permissions.some(p => p.module === 'trades' && p.permission === 'tradeView' && p.granted);
+      const hasPlanView = permissions.some(p => p.module === 'trades' && p.permission === 'planView' && p.granted);
+      
+      if (hasPlanView) {
+        transactionsMenu.push({ name: 'Plan Txns', path: '/staff/payments/subscriptions', icon: getModuleIcon('CreditCard') });
+      }
+      if (hasTradeView) {
+        transactionsMenu.push({ name: 'Trade Txns', path: '/staff/payments/trades', icon: getModuleIcon('Activity') });
+      }
+    }
+    // 3. Settings Group (support, staff, settings)
+    else if (def.key === 'support' || def.key === 'staff') {
+      if (grantedModules.has(def.key)) {
+        settingsMenu.push({ name: def.label, path: MODULE_PATHS[def.key] || `/staff/${def.key}`, icon: getModuleIcon(def.icon) });
+      }
+    }
+    // 4. Main Menu (default modules: clients, preopen, plans, marketWatch, strategies)
+    else if (grantedModules.has(def.key)) {
+      mainMenu.push({ name: def.label, path: MODULE_PATHS[def.key] || `/staff/${def.key}`, icon: getModuleIcon(def.icon) });
+    }
+  });
+
+  const finalGroups: MenuGroup[] = [
+    {
+      label: 'Main Menu',
+      items: [
+        { name: 'Dashboard', path: '/staff', icon: LayoutDashboard },
+        ...mainMenu,
+      ],
+    }
+  ];
+
+  if (reportsMenu.length > 0) {
+    finalGroups.push({
+      label: 'Reports',
+      items: reportsMenu,
+    });
+  }
+
+  if (transactionsMenu.length > 0) {
+    finalGroups.push({
+      label: 'Transactions',
+      items: transactionsMenu,
+    });
+  }
+
+  if (settingsMenu.length > 0) {
+    finalGroups.push({
+      label: 'Settings',
+      items: settingsMenu,
+    });
+  }
+
+  return finalGroups;
+};
+
+export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true, staffPermissions }) => {
   const pathname = usePathname();
   const { clients = [], activeUser } = useAppViewModel();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -351,18 +460,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
     if (typeof window !== 'undefined') {
       const storedName = localStorage.getItem('growffiy_logged_in_user_name');
       const storedId = localStorage.getItem('growffiy_logged_in_user_id');
-      setUserName(storedName || (isAdmin ? 'Admin' : 'Client'));
+      const storedRole = localStorage.getItem('growffiy_logged_in_user_role');
+      
+      setUserName(storedName || (isAdmin ? 'Admin' : storedRole === 'staff' ? 'Staff' : 'Client'));
       setUserId(storedId || '');
     }
-  }, [isAdmin]);
+  }, [isAdmin, staffPermissions]);
 
   useEffect(() => {
     const fetchCounts = async () => {
       try {
-        const url = isAdmin
+        // Only fetch admin ticket counts if actual admin (not staff)
+        const isActualAdmin = isAdmin && !staffPermissions;
+        const url = isActualAdmin
           ? '/api/support/tickets?all=true'
           : `/api/support/tickets?userId=${userId}`;
-        if (isAdmin || userId) {
+        if ((isActualAdmin || userId) && !staffPermissions) {
           const res = await fetch(url);
           const data = await res.json();
           if (data.success && data.tickets) {
@@ -371,7 +484,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
           }
         }
 
-        if (isAdmin) {
+        if (isActualAdmin) {
           const stratRes = await fetch('/api/admin/strategies');
           const stratData = await stratRes.json();
           if (stratData.success && stratData.strategies) {
@@ -396,19 +509,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
   }, []);
 
   useEffect(() => {
-    const rawGroups = isAdmin ? adminGroups : userGroups;
-    const initialState: Record<string, boolean> = {};
-    rawGroups.forEach((g) => {
-      g.items.forEach((item) => {
-        if (item.isGroup) {
-          const hasActive = item.subItems?.some((sub) => pathname === sub.path);
-          initialState[item.name] = !!hasActive;
-        }
-      });
-    });
-    setOpenGroups(initialState);
-  }, [pathname, isAdmin]);
-
+    const handler = () => setSidebarOpen((p) => !p);
+    window.addEventListener('toggle-sidebar', handler);
+    return () => window.removeEventListener('toggle-sidebar', handler);
+  }, []);
   const handleToggleGroup = useCallback((name: string) => {
     if (collapsed) return;
     setOpenGroups((prev) => ({ ...prev, [name]: !prev[name] }));
@@ -434,47 +538,53 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
       localStorage.removeItem('growffiy_logged_in_user_id');
       localStorage.removeItem('growffiy_logged_in_user_role');
       localStorage.removeItem('growffiy_logged_in_user_name');
-      window.location.href = isAdmin ? '/admin/login' : '/vendor/login';
+      localStorage.removeItem('growffiy_staff_permissions');
+      window.location.href = isAdmin ? '/admin/login' : staffPermissions ? '/staff/login' : '/vendor/login';
     }
-  }, [isAdmin]);
-
+  }, [isAdmin, staffPermissions]);
   const groups = React.useMemo(() => {
-    const rawGroups = isAdmin ? adminGroups : userGroups;
+    let filteredGroups: MenuGroup[];
 
-    // For client users, filter based on product type
-    // Check product type FIRST before showing any UI - don't show then hide
-    let filteredGroups = rawGroups;
-    if (!isAdmin && activeUser?.client?.productType) {
-      const productTypeName = activeUser.client.productType.name.toLowerCase();
-      const isAlgoProduct = productTypeName.includes('algo');
+    if (staffPermissions) {
+      filteredGroups = staffGroups(staffPermissions);
+    } else {
+      const rawGroups = isAdmin ? adminGroups : userGroups;
 
-      if (!isAlgoProduct) {
-        // Remove Trading group items (Live Trade, Report) for non-algo products
+      // For client users, filter based on product type
+      // Check product type FIRST before showing any UI - don't show then hide
+      filteredGroups = rawGroups;
+      if (!isAdmin && activeUser?.client?.productType) {
+        const productTypeName = activeUser.client.productType.name.toLowerCase();
+        const isAlgoProduct = productTypeName.includes('algo');
+
+        if (!isAlgoProduct) {
+          // Remove Trading group items (Live Trade, Report) for non-algo products
+          filteredGroups = rawGroups.map((group) => ({
+            ...group,
+            items: group.label === 'Trading'
+              ? []
+              : group.items.filter((item) => {
+                if (item.name === 'Live Trade') return false;
+                if (item.name === 'Report') return false;
+                return true;
+              })
+          })).filter((group) => group.items.length > 0);
+        }
+      } else if (!isAdmin && !activeUser?.client?.productType) {
+        // If product type is not loaded yet, show minimal UI to avoid flash
+        // Only show Dashboard and Subscription Plans until product type is confirmed
         filteredGroups = rawGroups.map((group) => ({
           ...group,
-          items: group.label === 'Trading'
-            ? []
-            : group.items.filter((item) => {
-              if (item.name === 'Live Trade') return false;
-              if (item.name === 'Report') return false;
-              return true;
-            })
+          items: group.items.filter((item) => {
+            // Only show safe items that don't depend on product type
+            if (item.name === 'Dashboard') return true;
+            if (item.name === 'Subscription Plans') return true;
+            if (item.name === 'Payment History') return true;
+            if (item.name === 'Support') return true;
+            return false;
+          })
         })).filter((group) => group.items.length > 0);
       }
-    } else if (!isAdmin && !activeUser?.client?.productType) {
-      // If product type is not loaded yet, show minimal UI to avoid flash
-      // Only show Dashboard and Subscription Plans until product type is confirmed
-      filteredGroups = rawGroups.map((group) => ({
-        ...group,
-        items: group.items.filter((item) => {
-          // Only show safe items that don't depend on product type
-          if (item.name === 'Dashboard') return true;
-          if (item.name === 'Subscription Plans') return true;
-          if (item.name === 'Payment History') return true;
-          if (item.name === 'Support') return true;
-          return false;
-        })
-      })).filter((group) => group.items.length > 0);
     }
 
     return filteredGroups.map((group) => ({
@@ -492,13 +602,51 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true }) => {
         return item;
       }),
     }));
-  }, [isAdmin, clients.length, strategiesCount, openTicketsCount, activeUser]);
+  }, [isAdmin, staffPermissions, clients.length, strategiesCount, openTicketsCount, activeUser]);
+
+  useEffect(() => {
+    const initialState: Record<string, boolean> = {};
+    groups.forEach((g) => {
+      g.items.forEach((item) => {
+        if (item.isGroup) {
+          const hasActive = item.subItems?.some((sub) => pathname === sub.path);
+          initialState[item.name] = !!hasActive;
+        }
+      });
+    });
+    setOpenGroups(initialState);
+  }, [pathname, groups]);
 
   const userEmail = typeof window !== 'undefined' ? (localStorage.getItem('growffiy_logged_in_user_email') || activeUser?.email || '') : (activeUser?.email || '');
   const userInitial = userName.charAt(0).toUpperCase();
 
   return (
     <>
+      <style>{`
+        @media (max-width: 1024px) {
+          .${styles.overlay.replace(/:.*/, '')} {
+            display: block;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            backdrop-filter: blur(4px);
+          }
+          .${styles.sidebar.split(' ')[0]} {
+            width: 280px !important;
+          }
+          .${styles.sidebar.split(' ')[0]}.${styles.sidebarOpen.split(' ')[0]} {
+            width: 100% !important;
+            max-width: 320px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .${styles.sidebar.split(' ')[0]}.${styles.sidebarOpen.split(' ')[0]} {
+            max-width: 100% !important;
+            width: 100% !important;
+          }
+        }
+      `}</style>
       {isMobile && sidebarOpen && (
         <div className={styles.overlay} onClick={() => setSidebarOpen(false)} />
       )}

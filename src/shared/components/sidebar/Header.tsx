@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, ChevronDown, Lock, UserCheck, LogOut, X, RefreshCw, Sun, Moon } from 'lucide-react';
+import { Bell, ChevronDown, Lock, UserCheck, LogOut, X, RefreshCw, Sun, Moon, Menu } from 'lucide-react';
 import styles from './Header.module.css';
 import { api } from '../../services/api';
 import { API_ENDPOINTS } from '../../../core/constants';
@@ -192,6 +192,9 @@ export const Header: React.FC<HeaderProps> = ({
     <>
       <header className={styles.header}>
         <div className={styles.leftSection}>
+          <button className={styles.hamburger} onClick={() => window.dispatchEvent(new CustomEvent('toggle-sidebar'))} aria-label="Toggle sidebar">
+            <Menu size={20} />
+          </button>
           {renderBreadcrumb()}
         </div>
 

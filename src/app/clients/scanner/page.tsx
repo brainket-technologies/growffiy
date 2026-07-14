@@ -129,8 +129,36 @@ export default function ClientPreOpenScannerPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <style>{`
+        @media (max-width: 1024px) {
+          .scanner-header { flex-direction: column !important; align-items: flex-start !important; }
+          .scanner-sentiment-grid { grid-template-columns: 1fr !important; }
+          .scanner-gainers-grid { grid-template-columns: 1fr !important; }
+          .scanner-global-grid { grid-template-columns: 1fr !important; }
+          .scanner-signals-grid { grid-template-columns: 1fr !important; }
+          .scanner-fo-tabs { flex-wrap: wrap !important; gap: 4px !important; }
+          .scanner-fo-tabs button { flex: 1 1 auto !important; font-size: 10px !important; padding: 4px 6px !important; }
+        }
+        @media (max-width: 640px) {
+          .scanner-summary-cards { grid-template-columns: 1fr 1fr !important; }
+          .scanner-header h1 { font-size: 18px !important; }
+          .scanner-header p { font-size: 12px !important; }
+          .scanner-global-markets > div { font-size: 11px !important; }
+          .scanner-gainers-grid .table-responsive table,
+          .scanner-global-grid .table-responsive table,
+          .scanner-signals-grid .table-responsive table { font-size: 11px !important; }
+          .scanner-gainers-grid .table-responsive table th,
+          .scanner-gainers-grid .table-responsive table td,
+          .scanner-global-grid .table-responsive table th,
+          .scanner-global-grid .table-responsive table td,
+          .scanner-signals-grid .table-responsive table th,
+          .scanner-signals-grid .table-responsive table td { padding: 4px !important; }
+          .scanner-gainers-grid .table-responsive table thead th:nth-child(3),
+          .scanner-gainers-grid .table-responsive table tbody td:nth-child(3) { display: none; }
+        }
+      `}</style>
       {/* Page Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+      <div className="scanner-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             Pre-Open Market Scanner 
@@ -149,7 +177,7 @@ export default function ClientPreOpenScannerPage() {
       </div>
 
       {/* Top Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+      <div className="scanner-summary-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
         <Card style={{ padding: '16px' }}>
           <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500 }}>NIFTY 50 Indicative</span>
           <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '8px 0 4px 0', color: 'var(--text-primary)' }}>{niftyIndicative.toLocaleString('en-IN')}</h2>
@@ -188,7 +216,7 @@ export default function ClientPreOpenScannerPage() {
       </div>
 
       {/* Sentiment, Market Breadth & Gap Analysis */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '24px', alignItems: 'stretch' }}>
+      <div className="scanner-sentiment-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '24px', alignItems: 'stretch' }}>
         {/* Sentiment & Breadth */}
         <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <h3 style={{ fontSize: '14.5px', fontWeight: 600, margin: 0, borderBottom: '1px solid var(--surface)', paddingBottom: '8px' }}>Pre-Open Sentiment</h3>
@@ -270,7 +298,7 @@ export default function ClientPreOpenScannerPage() {
       </div>
 
       {/* Gainers, Losers, and Most Active */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
+      <div className="scanner-gainers-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
         {/* Top Gainers */}
         <Card style={{ padding: '16px' }}>
           <h3 style={{ fontSize: '14px', fontWeight: 600, margin: '0 0 10px 0', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -376,13 +404,13 @@ export default function ClientPreOpenScannerPage() {
       </div>
 
       {/* Global Markets & F&O Build Up */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '24px' }}>
+      <div className="scanner-global-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '24px' }}>
         {/* Global Markets */}
         <Card style={{ padding: '20px' }}>
           <h3 style={{ fontSize: '14.5px', fontWeight: 600, margin: '0 0 12px 0', borderBottom: '1px solid var(--surface)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Globe size={16} /> Global Markets
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12.5px' }}>
+          <div className="scanner-global-markets" style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12.5px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--surface)', paddingBottom: '6px' }}>
               <span>Dow Jones</span>
               <strong>39,087.38 <span style={{ color: 'var(--accent)', marginLeft: '6px' }}>+0.41%</span></strong>
@@ -412,7 +440,7 @@ export default function ClientPreOpenScannerPage() {
             <h3 style={{ fontSize: '14.5px', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Coins size={16} /> F&O Section
             </h3>
-            <div style={{ display: 'flex', gap: '4px' }}>
+            <div className="scanner-fo-tabs" style={{ display: 'flex', gap: '4px' }}>
               {(['oi', 'longBuild', 'shortBuild', 'shortCover', 'longUnwind'] as const).map(tab => (
                 <button
                   key={tab}
@@ -469,7 +497,7 @@ export default function ClientPreOpenScannerPage() {
       </div>
 
       {/* Strategy Signals & Watchlist Candidates */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+      <div className="scanner-signals-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
         {/* Buy Candidates */}
         <Card style={{ padding: '20px', borderLeft: '4px solid var(--accent)' }}>
           <h3 style={{ fontSize: '14.5px', fontWeight: 600, margin: '0 0 12px 0', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '6px' }}>

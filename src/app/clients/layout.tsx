@@ -45,7 +45,7 @@ export default function ClientDashboardLayout({
 
   return (
     <AppProvider>
-      <div className={styles.layoutWrapper}>
+      <div className={`${styles.layoutWrapper} client-layout`}>
         <Sidebar isAdmin={false} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <Header title="Growffiy Client Portal" userName={activeUser.name} userRole="Client Account" />
@@ -54,6 +54,11 @@ export default function ClientDashboardLayout({
           </main>
         </div>
       </div>
+      <style>{`
+        @media (max-width: 640px) {
+          .client-layout main { padding: 12px !important; }
+        }
+      `}</style>
     </AppProvider>
   );
 }

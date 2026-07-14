@@ -11,8 +11,16 @@ class ApiClient {
         headers: defaultHeaders,
       });
 
-      // Parse JSON payload
-      const data = await response.json();
+      // Parse JSON payload safely
+      const text = await response.text();
+      let data: any = {};
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error(`Invalid JSON response: ${text.substring(0, 100)}`);
+        }
+      }
       
       if (!response.ok || data.success === false) {
         throw new Error(data.error || `Request failed with status ${response.status}`);

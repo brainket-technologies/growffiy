@@ -187,7 +187,7 @@ export default function ClientDashboardOverview() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '1400px', margin: '0 auto', padding: '12px' }}>
+    <div className="client-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '1400px', margin: '0 auto', padding: '12px' }}>
       
       {/* Premium Welcome Header with status badge */}
       <div style={{
@@ -542,7 +542,7 @@ export default function ClientDashboardOverview() {
               </div>
 
               {/* Main content grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '28px', alignItems: 'start' }}>
+              <div className="client-grid-main" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '28px', alignItems: 'start' }}>
                 
                 {/* Performance Graph */}
                 <Card style={{ padding: '24px', borderRadius: '16px' }}>
@@ -840,7 +840,7 @@ export default function ClientDashboardOverview() {
             </>
           ) : (
             // Subscribed Scanner / non-Algo client layout (Hides Zerodha/graph/trades, shows spreadsheet button)
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '28px', alignItems: 'start' }}>
+            <div className="client-grid-main" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '28px', alignItems: 'start' }}>
               
               {/* Premium Scanner Sheet Redirect Card */}
               <Card style={{
@@ -967,6 +967,35 @@ export default function ClientDashboardOverview() {
           )}
         </>
       )}
+      <style>{`
+        .client-dashboard { gap: 28px; }
+        .client-grid-main { display: grid !important; }
+
+        @media (max-width: 1024px) {
+          .client-grid-main { grid-template-columns: 1fr !important; }
+          .client-dashboard { gap: 20px !important; }
+        }
+
+        @media (max-width: 640px) {
+          .client-dashboard { gap: 14px !important; padding: 6px !important; }
+          .client-dashboard > div:first-child { padding: 14px !important; }
+          .client-dashboard > div:first-child h1 { font-size: 17px !important; }
+          .client-dashboard > div:first-child p { font-size: 12px !important; }
+          .client-dashboard h3 { font-size: 20px !important; }
+          .client-dashboard h3[style*="font-size: 32px"] { font-size: 24px !important; letter-spacing: 2px !important; }
+          .client-dashboard [style*="padding: 24px"][style*="border-radius: 16px"] { padding: 16px !important; }
+          .client-dashboard [style*="padding: 32px"] { padding: 20px !important; }
+          .client-dashboard [style*="padding: 18px"] { padding: 14px !important; }
+          .client-dashboard [style*="padding: 20px"] { padding: 14px !important; }
+          .client-dashboard [style*="gap: 24px"] { gap: 14px !important; }
+          .client-dashboard [style*="height: 300px"] { height: 200px !important; }
+          .client-dashboard h2 { font-size: 18px !important; }
+          .client-dashboard h4 { font-size: 14px !important; }
+          .client-dashboard table { font-size: 11px !important; }
+          .client-dashboard table th,
+          .client-dashboard table td { padding: 6px 4px !important; }
+        }
+      `}</style>
     </div>
   );
 }

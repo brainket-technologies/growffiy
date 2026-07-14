@@ -45,6 +45,150 @@ export const API_ENDPOINTS = {
 export const USER_ROLES = {
   ADMIN: 'admin',
   CLIENT: 'client',
+  STAFF: 'staff',
+};
+
+export const STAFF_MODULES = [
+  'clients',
+  'preopen',
+  'plans',
+  'marketWatch',
+  'strategies',
+  'reports',
+  'trades',
+  'staff',
+  'support',
+] as const;
+
+export type StaffModule = typeof STAFF_MODULES[number];
+
+export interface StaffPermissionDef {
+  key: string;   // e.g. 'view', 'edit', 'create', 'export'
+  label: string; // display name
+}
+
+export interface StaffModuleDef {
+  key: StaffModule;
+  label: string;
+  icon: string;
+  permissions: StaffPermissionDef[];
+}
+
+export const STAFF_MODULE_DEFS: StaffModuleDef[] = [
+  {
+    key: 'clients',
+    label: 'Clients',
+    icon: 'Users',
+    permissions: [
+      { key: 'view',       label: 'View' },
+      { key: 'viewDetail', label: 'View Detail' },
+      { key: 'create',     label: 'Create' },
+      { key: 'edit',       label: 'Edit' },
+      { key: 'delete',     label: 'Delete' },
+      { key: 'export',     label: 'Export' },
+      { key: 'kiteLogin',  label: 'Kite Login' },
+    ],
+  },
+  {
+    key: 'preopen',
+    label: 'Pre-Open',
+    icon: 'Search',
+    permissions: [
+      { key: 'view',        label: 'View' },
+      { key: 'dateFilter',  label: 'Date Filter' },
+      { key: 'export',      label: 'Export' },
+    ],
+  },
+  {
+    key: 'plans',
+    label: 'Subscription Plans',
+    icon: 'CreditCard',
+    permissions: [
+      { key: 'view',   label: 'View' },
+      { key: 'create', label: 'Create' },
+      { key: 'edit',   label: 'Edit' },
+      { key: 'delete', label: 'Delete' },
+    ],
+  },
+  {
+    key: 'marketWatch',
+    label: 'Live Market',
+    icon: 'LineChart',
+    permissions: [
+      { key: 'liveView',       label: 'Live View' },
+      { key: 'historicalView', label: 'Historical View' },
+      { key: 'export',         label: 'Export' },
+    ],
+  },
+  {
+    key: 'strategies',
+    label: 'Strategies',
+    icon: 'TrendingUp',
+    permissions: [
+      { key: 'view',   label: 'View' },
+      { key: 'add',    label: 'Add' },
+      { key: 'edit',   label: 'Edit' },
+      { key: 'delete', label: 'Delete' },
+    ],
+  },
+  {
+    key: 'reports',
+    label: 'Reports',
+    icon: 'FileText',
+    permissions: [
+      { key: 'strategyView',   label: 'Strategy Report — View' },
+      { key: 'strategyExport', label: 'Strategy Report — Export' },
+      { key: 'clientView',     label: 'Client Report — View' },
+      { key: 'clientExport',   label: 'Client Report — Export' },
+    ],
+  },
+  {
+    key: 'trades',
+    label: 'Trade & Plan Transactions',
+    icon: 'Activity',
+    permissions: [
+      { key: 'tradeView', label: 'Trades — View (your clients only)' },
+      { key: 'planView',  label: 'Plan Transactions — View' },
+    ],
+  },
+  {
+    key: 'staff',
+    label: 'Staff',
+    icon: 'UserCog',
+    permissions: [
+      { key: 'view',   label: 'View' },
+      { key: 'add',    label: 'Add' },
+      { key: 'edit',   label: 'Edit / Update' },
+      { key: 'delete', label: 'Delete' },
+    ],
+  },
+  {
+    key: 'support',
+    label: 'Support',
+    icon: 'LifeBuoy',
+    permissions: [
+      { key: 'view',   label: 'View (your clients only)' },
+      { key: 'update', label: 'Update' },
+      { key: 'send',   label: 'Send (your clients only)' },
+    ],
+  },
+];
+
+// A permission record: module + specific permission key + granted boolean
+export type StaffModulePermission = {
+  module: StaffModule;
+  permission: string; // matches StaffPermissionDef.key
+  granted: boolean;
+};
+
+export const getDefaultPermissions = (): StaffModulePermission[] => {
+  const result: StaffModulePermission[] = [];
+  for (const def of STAFF_MODULE_DEFS) {
+    for (const perm of def.permissions) {
+      result.push({ module: def.key, permission: perm.key, granted: false });
+    }
+  }
+  return result;
 };
 
 export const TRADING_STATUS = {

@@ -68,17 +68,41 @@ export default function ClientTradesPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '100%', overflowX: 'hidden' }}>
+      <style>{`
+        @media (max-width: 1024px) {
+          .clients-trades-filters { flex-wrap: wrap !important; }
+          .clients-trades-filters > div:first-child { flex: 1 1 100% !important; }
+          .pagination-container { flex-direction: column !important; gap: 12px !important; align-items: flex-start !important; }
+        }
+        @media (max-width: 640px) {
+          .clients-trades-stats { grid-template-columns: 1fr 1fr !important; }
+          .clients-trades-stats .card-value { font-size: 22px !important; }
+          .clients-trades-filters { flex-direction: column !important; align-items: stretch !important; gap: 8px !important; padding: 12px !important; }
+          .clients-trades-filters > div:first-child { flex: 1 1 auto !important; }
+          .clients-trades-filters select, .clients-trades-filters input[type="date"] { width: 100% !important; min-width: unset !important; }
+          .clients-trades-filters > div:first-child input { width: 100% !important; }
+          .table-responsive table thead th:nth-child(2), .table-responsive table tbody td:nth-child(2),
+          .table-responsive table thead th:nth-child(5), .table-responsive table tbody td:nth-child(5),
+          .table-responsive table thead th:nth-child(6), .table-responsive table tbody td:nth-child(6) { display: none; }
+          .table-responsive table { font-size: 12px !important; }
+          .table-responsive table th, .table-responsive table td { padding: 6px 4px !important; }
+          .pagination-container { flex-direction: column !important; align-items: center !important; gap: 8px !important; }
+          .pagination-controls { flex-wrap: wrap !important; justify-content: center !important; }
+          h1 { font-size: 20px !important; }
+          .clients-trades-title p { font-size: 13px !important; }
+        }
+      `}</style>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
+        <div className="clients-trades-title">
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)', margin: 0 }}>Live Trades</h1>
           <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '4px 0 0' }}>Your executed trade transactions.</p>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+      <div className="clients-trades-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
         <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid var(--primary)' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Trades</span>
-          <span style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>{filtered.length}</span>
+          <span className="card-value" style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>{filtered.length}</span>
         </Card>
         <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid var(--warning)' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Open</span>
@@ -103,7 +127,7 @@ export default function ClientTradesPage() {
           </h3>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', alignItems: 'center', flexWrap: 'nowrap', background: 'var(--bg-secondary)', padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+        <div className="clients-trades-filters" style={{ display: 'flex', gap: '12px', marginBottom: '24px', alignItems: 'center', flexWrap: 'nowrap', background: 'var(--bg-secondary)', padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
           <div style={{ position: 'relative', flex: '4 1 500px' }}>
             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input type="text" placeholder="Search by symbol..." value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
@@ -209,7 +233,7 @@ export default function ClientTradesPage() {
         </div>
 
         {filtered.length > 0 && (
-          <div className="pagination-container">
+          <div className="pagination-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
             <div className="pagination-info">
               Showing <span style={{ fontWeight: 600 }}>{indexOfFirstItem + 1}</span> to{' '}
               <span style={{ fontWeight: 600 }}>{Math.min(indexOfLastItem, filtered.length)}</span> of{' '}

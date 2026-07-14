@@ -157,7 +157,7 @@ export default function ClientSubscriptionPlans() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', maxWidth: '1000px', margin: '0 auto', padding: '12px' }}>
+    <div className="page-subscription" style={{ display: 'flex', flexDirection: 'column', gap: '32px', maxWidth: '1000px', margin: '0 auto', padding: '12px' }}>
 
       {/* Header section with badge */}
       <div style={{ textAlign: 'center', margin: '12px 0 8px 0' }}>
@@ -432,6 +432,16 @@ export default function ClientSubscriptionPlans() {
 
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+@media (max-width: 1024px) {
+  .plans-grid { gap: 24px; }
+}
+@media (max-width: 640px) {
+  .plans-grid { grid-template-columns: 1fr !important; gap: 20px; }
+  .page-subscription .premium-plan-card { padding: 28px 20px; }
+  .page-subscription h1 { font-size: 24px !important; }
+}
+      `}</style>
     </div>
   );
 }
