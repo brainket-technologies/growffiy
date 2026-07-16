@@ -160,10 +160,11 @@ class AlgoEngineService {
     }
   }
 
-  private async getFreshCircuitLimits(client: any, exchange: string, symbol: string): Promise<{ upper: number; lower: number } | null> {
-    if (!client.zerodhaApiKey || !client.accessToken) return null;
+  private async getFreshCircuitLimits(client: any, exchange: string, symbol: string, accessToken?: string): Promise<{ upper: number; lower: number } | null> {
+    const token = accessToken || client.accessToken;
+    if (!client.zerodhaApiKey || !token) return null;
     try {
-      const quoteRes = await KiteClient.getQuotes(client.zerodhaApiKey, client.accessToken, [`${exchange}:${symbol}`]);
+      const quoteRes = await KiteClient.getQuotes(client.zerodhaApiKey, token, [`${exchange}:${symbol}`]);
       if (quoteRes?.status === 'success' && quoteRes.data?.[`${exchange}:${symbol}`]) {
         const q = quoteRes.data[`${exchange}:${symbol}`];
         if (q.upper_circuit_limit !== undefined && q.lower_circuit_limit !== undefined) {
@@ -1019,7 +1020,7 @@ class AlgoEngineService {
 
            // Fetch fresh circuit limits first to adjust entry price
           let adjustedEntryPrice = entryPrice;
-          const freshLimits = await this.getFreshCircuitLimits(client, exchangeParam, targetStock.symbol);
+          const freshLimits = await this.getFreshCircuitLimits(client, exchangeParam, targetStock.symbol, activeAccessToken);
           if (freshLimits) {
             const { upper, lower } = freshLimits;
             if (upper > 0 && lower > 0) {
@@ -1249,7 +1250,7 @@ class AlgoEngineService {
                   // Entry fill hote hi SL + Target place karo
                   if (client.zerodhaApiKey && activeAccessToken) {
                     // Fetch fresh circuit limits right before placing SL/Target
-                    const freshLimitsSLT = await this.getFreshCircuitLimits(client, exchangeParam, targetStock.symbol);
+                    const freshLimitsSLT = await this.getFreshCircuitLimits(client, exchangeParam, targetStock.symbol, activeAccessToken);
                     if (freshLimitsSLT) {
                       const { upper, lower } = freshLimitsSLT;
                       if (upper > 0 && lower > 0) {
