@@ -84,11 +84,12 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [googleAnalyticsId, setGoogleAnalyticsId] = useState('');
 
   // Legal Pages
-  const [legalActivePage, setLegalActivePage] = useState<'privacy' | 'terms' | 'refund' | 'disclaimer' | 'faq'>('privacy');
+  const [legalActivePage, setLegalActivePage] = useState<'privacy' | 'terms' | 'refund' | 'disclaimer' | 'about' | 'faq'>('privacy');
   const [legalPrivacyContent, setLegalPrivacyContent] = useState('');
   const [legalTermsContent, setLegalTermsContent] = useState('');
   const [legalRefundContent, setLegalRefundContent] = useState('');
   const [legalDisclaimerContent, setLegalDisclaimerContent] = useState('');
+  const [legalAboutContent, setLegalAboutContent] = useState('');
   const [legalFaqContent, setLegalFaqContent] = useState('');
   const defaultFaqItems: {q: string; a: string}[] = [
     {q: "How does the Pre-Open Momentum Breakout strategy work?", a: "<p style=\"font-size:14px;line-height:1.75;color:#475569;margin:0;\">The Pre-Open Momentum Breakout strategy scans NSE/BSE stocks during the pre-open session (9:00-9:08 AM) to identify high-momentum candidates based on volume and price thresholds. Once identified, it places automated MIS (Margin Intraday Squared-off) orders at market open. All orders are squared off by 3:15 PM automatically.</p>"},
@@ -170,6 +171,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
           setLegalTermsContent(res.settings.legal_terms_content || '');
           setLegalRefundContent(res.settings.legal_refund_content || '');
           setLegalDisclaimerContent(res.settings.legal_disclaimer_content || '');
+          setLegalAboutContent(res.settings.legal_about_content || '');
           setLegalFaqContent(res.settings.legal_faq_content || '');
           try {
             const parsed = JSON.parse(res.settings.legal_faq_content || '[]');
@@ -237,6 +239,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
         legal_terms_content: legalTermsContent,
         legal_refund_content: legalRefundContent,
         legal_disclaimer_content: legalDisclaimerContent,
+        legal_about_content: legalAboutContent,
         legal_faq_content: JSON.stringify(faqItems),
       });
 
@@ -434,27 +437,6 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
           SMTP Mail
         </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('support')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            border: 'none',
-            background: activeTab === 'support' ? 'var(--bg-white)' : 'transparent',
-            color: activeTab === 'support' ? 'var(--text-heading)' : 'var(--text-muted)',
-            padding: '6px 14px',
-            borderRadius: '6px',
-            fontSize: '13px',
-            fontWeight: activeTab === 'support' ? 700 : 600,
-            cursor: 'pointer',
-            boxShadow: activeTab === 'support' ? 'var(--shadow-sm)' : 'none',
-          }}
-        >
-          <LifeBuoy size={15} />
-          Support Info
-        </button>
 
         <button
           type="button"
@@ -498,72 +480,6 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
         >
           <Calendar size={15} />
           Market Calendar
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('branding')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            border: 'none',
-            background: activeTab === 'branding' ? 'var(--bg-white)' : 'transparent',
-            color: activeTab === 'branding' ? 'var(--text-heading)' : 'var(--text-muted)',
-            padding: '6px 14px',
-            borderRadius: '6px',
-            fontSize: '13px',
-            fontWeight: activeTab === 'branding' ? 700 : 600,
-            cursor: 'pointer',
-            boxShadow: activeTab === 'branding' ? 'var(--shadow-sm)' : 'none',
-          }}
-        >
-          <Image size={15} />
-          Branding
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('website')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            border: 'none',
-            background: activeTab === 'website' ? 'var(--bg-white)' : 'transparent',
-            color: activeTab === 'website' ? 'var(--text-heading)' : 'var(--text-muted)',
-            padding: '6px 14px',
-            borderRadius: '6px',
-            fontSize: '13px',
-            fontWeight: activeTab === 'website' ? 700 : 600,
-            cursor: 'pointer',
-            boxShadow: activeTab === 'website' ? 'var(--shadow-sm)' : 'none',
-          }}
-        >
-          <Globe size={15} />
-          Website
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('legal')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            border: 'none',
-            background: activeTab === 'legal' ? 'var(--bg-white)' : 'transparent',
-            color: activeTab === 'legal' ? 'var(--text-heading)' : 'var(--text-muted)',
-            padding: '6px 14px',
-            borderRadius: '6px',
-            fontSize: '13px',
-            fontWeight: activeTab === 'legal' ? 700 : 600,
-            cursor: 'pointer',
-            boxShadow: activeTab === 'legal' ? 'var(--shadow-sm)' : 'none',
-          }}
-        >
-          <FileText size={15} />
-          Legal Pages
         </button>
       </div>
 
@@ -1046,97 +962,6 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
           </Card>
         )}
 
-        {/* Support View Tab */}
-        {activeTab === 'support' && (
-          <Card style={{ padding: '24px 28px' }}>
-            <div style={{ marginBottom: '28px', borderBottom: '1px solid var(--border-light)', paddingBottom: '20px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-                Direct Support Information
-              </h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Configure the support contact details that are displayed to all clients on their help and support desks.
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Support Email
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={supportEmail}
-                  onChange={(e) => setSupportEmail(e.target.value)}
-                  placeholder="support@growffiy.com"
-                  style={{ height: '38px', fontSize: '13px' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Support Phone Number
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={supportPhone}
-                  onChange={(e) => setSupportPhone(e.target.value)}
-                  placeholder="+91 98765 43210"
-                  style={{ height: '38px', fontSize: '13px' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Live Chat Timings / Note
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={supportTimings}
-                  onChange={(e) => setSupportTimings(e.target.value)}
-                  placeholder="Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)"
-                  style={{ height: '38px', fontSize: '13px' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Support Address
-                </label>
-                <input
-                  type="text"
-                  value={supportAddress}
-                  onChange={(e) => setSupportAddress(e.target.value)}
-                  placeholder="Mumbai, India"
-                  style={{ height: '38px', fontSize: '13px' }}
-                />
-              </div>
-            </div>
-
-            {/* Submit Action inside Box */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '24px' }}>
-              <Button
-                type="submit"
-                disabled={saving}
-                style={{
-                  padding: '10px 28px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
-                  color: 'white',
-                  boxShadow: 'var(--shadow-blue)'
-                }}
-              >
-                {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
-                {saving ? 'Saving...' : 'Save & Apply Settings'}
-              </Button>
-            </div>
-          </Card>
-        )}
 
 
         {/* Algo Timings View Tab */}
@@ -1661,279 +1486,6 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
             </Modal>
 
           </>)}
-
-        {/* Branding Tab */}
-        {activeTab === 'branding' && (
-          <Card style={{ padding: '24px 28px' }}>
-            <div style={{ marginBottom: '24px', borderBottom: '1px solid var(--border-light)', paddingBottom: '20px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-                Branding Settings
-              </h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Customize app name, browser title, favicon, and logo. Changes reflect across admin, client, and website.
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Application Name</label>
-                <input type="text" value={appName} onChange={(e) => setAppName(e.target.value)}
-                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Browser Tab Title</label>
-                <input type="text" value={appTitle} onChange={(e) => setAppTitle(e.target.value)}
-                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
-              </div>
-              <ImagePicker label="Favicon" value={appFavicon} onChange={setAppFavicon} />
-              <ImagePicker label="Logo" value={appLogo} onChange={setAppLogo} />
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '24px' }}>
-              <Button type="submit" disabled={saving} style={{
-                padding: '10px 28px', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px',
-                background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)', color: 'white', boxShadow: 'var(--shadow-blue)'
-              }}>
-                {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
-                {saving ? 'Saving...' : 'Save & Apply Settings'}
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {/* Website / SEO Tab */}
-        {activeTab === 'website' && (
-          <Card style={{ padding: '24px 28px' }}>
-            <div style={{ marginBottom: '24px', borderBottom: '1px solid var(--border-light)', paddingBottom: '20px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-                Website & SEO Settings
-              </h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Manage meta tags, search engine optimization, and analytics tracking.
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Hero Title (HTML Supported)</label>
-                <textarea value={heroTitle} onChange={(e) => setHeroTitle(e.target.value)} rows={2}
-                  style={{ width: '100%', fontSize: '14px', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none', resize: 'vertical' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Hero Subtitle</label>
-                <textarea value={heroSubtitle} onChange={(e) => setHeroSubtitle(e.target.value)} rows={3}
-                  style={{ width: '100%', fontSize: '14px', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none', resize: 'vertical' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Meta Description</label>
-                <textarea value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} rows={3}
-                  style={{ width: '100%', fontSize: '14px', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none', resize: 'vertical' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Meta Keywords</label>
-                <input type="text" placeholder="algo trading, stock market, trading terminal" value={metaKeywords} onChange={(e) => setMetaKeywords(e.target.value)}
-                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Footer Text</label>
-                <input type="text" placeholder="© 2026 Growffiy. All rights reserved." value={footerText} onChange={(e) => setFooterText(e.target.value)}
-                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Footer Tagline</label>
-                <textarea value={footerTagline} onChange={(e) => setFooterTagline(e.target.value)} rows={2}
-                  style={{ width: '100%', fontSize: '14px', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none', resize: 'vertical' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Regulatory Disclaimer</label>
-                <textarea value={footerDisclaimer} onChange={(e) => setFooterDisclaimer(e.target.value)} rows={3}
-                  style={{ width: '100%', fontSize: '14px', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none', resize: 'vertical' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Bottom Tagline</label>
-                <input type="text" placeholder="Designed for NSE/BSE Intraday Algo Traders" value={footerBottomTagline} onChange={(e) => setFooterBottomTagline(e.target.value)}
-                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Google Analytics ID</label>
-                <input type="text" placeholder="G-XXXXXXXXXX" value={googleAnalyticsId} onChange={(e) => setGoogleAnalyticsId(e.target.value)}
-                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '24px' }}>
-              <Button type="submit" disabled={saving} style={{
-                padding: '10px 28px', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px',
-                background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)', color: 'white', boxShadow: 'var(--shadow-blue)'
-              }}>
-                {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
-                {saving ? 'Saving...' : 'Save & Apply Settings'}
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {/* Legal Pages Tab */}
-        {activeTab === 'legal' && (
-          <Card style={{ padding: '24px 28px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid var(--border-light)', paddingBottom: '20px' }}>
-              <div>
-                <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <FileText size={18} />
-                  Legal Pages Editor
-                </h3>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  Edit content for Privacy Policy, Terms & Conditions, Refund Policy, Risk Disclaimer, and FAQ pages.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setLegalPreview(!legalPreview)}
-                style={{
-                  padding: '8px 18px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)',
-                  background: legalPreview ? 'var(--primary)' : 'var(--surface)',
-                  color: legalPreview ? 'white' : 'var(--text-body)',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                {legalPreview ? 'Edit' : 'Preview'}
-              </button>
-            </div>
-
-            {/* Sub-tabs */}
-            <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', flexWrap: 'wrap' }}>
-              {([
-                { key: 'privacy' as const, label: 'Privacy Policy' },
-                { key: 'terms' as const, label: 'Terms & Conditions' },
-                { key: 'refund' as const, label: 'Refund Policy' },
-                { key: 'disclaimer' as const, label: 'Risk Disclaimer' },
-                { key: 'faq' as const, label: 'FAQ' },
-              ]).map(({ key, label }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => { setLegalActivePage(key); setLegalPreview(false); }}
-                  style={{
-                    padding: '6px 16px',
-                    borderRadius: '6px',
-                    background: legalActivePage === key ? 'var(--primary)' : 'var(--surface)',
-                    color: legalActivePage === key ? 'white' : 'var(--text-muted)',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    border: legalActivePage === key ? 'none' : '1px solid var(--border-color)',
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* Editor / Preview */}
-            {legalPreview ? (
-              <div style={{
-                background: 'var(--bg-white)',
-                borderRadius: '12px',
-                padding: 'clamp(20px, 5vw, 40px) clamp(16px, 5vw, 44px)',
-                border: '1px solid #e8edf5',
-                boxShadow: '0 4px 24px rgba(0,0,0,0.04)',
-                fontSize: '14px',
-                lineHeight: '1.75',
-                color: 'var(--text-body)',
-              }}>
-                {legalActivePage === 'faq' ? (
-                  <div>
-                    {faqItems.length === 0 && <p style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '13px' }}>No FAQ items to preview.</p>}
-                    {faqItems.map((item, i) => (
-                      <div key={i} style={{ marginBottom: '24px' }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px', color: 'var(--text-heading)' }}>{item.q || `Question ${i + 1}`}</h3>
-                        <div className="legal-rich-text" style={{ fontSize: '14px', lineHeight: '1.75', color: 'var(--text-body)' }} dangerouslySetInnerHTML={{ __html: item.a || '<em style="color:#94a3b8">No answer yet.</em>' }} />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="legal-rich-text" dangerouslySetInnerHTML={{
-                    __html: legalActivePage === 'privacy' ? legalPrivacyContent :
-                            legalActivePage === 'terms' ? legalTermsContent :
-                            legalActivePage === 'refund' ? legalRefundContent :
-                            legalDisclaimerContent
-                  }} />
-                )}
-              </div>
-            ) : (
-              <div>
-                {legalActivePage !== 'faq' && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                      Rich Text Editor — {legalActivePage === 'privacy' ? 'Privacy Policy' :
-                                         legalActivePage === 'terms' ? 'Terms & Conditions' :
-                                         legalActivePage === 'refund' ? 'Refund Policy' :
-                                         'Risk Disclaimer'}
-                    </label>
-                  </div>
-                )}
-                {legalActivePage === 'privacy' && (
-                  <RichTextEditor value={legalPrivacyContent} onChange={setLegalPrivacyContent} />
-                )}
-                {legalActivePage === 'terms' && (
-                  <RichTextEditor value={legalTermsContent} onChange={setLegalTermsContent} />
-                )}
-                {legalActivePage === 'refund' && (
-                  <RichTextEditor value={legalRefundContent} onChange={setLegalRefundContent} />
-                )}
-                {legalActivePage === 'disclaimer' && (
-                  <RichTextEditor value={legalDisclaimerContent} onChange={setLegalDisclaimerContent} />
-                )}
-                {legalActivePage === 'faq' && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                        FAQ Editor — Add, edit, or remove Q&A pairs
-                      </label>
-                    </div>
-                    {faqItems.length === 0 && (
-                      <div style={{ padding: '24px', textAlign: 'center', background: 'var(--surface)', borderRadius: '8px', border: '1px dashed var(--border-color)', color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px' }}>
-                        No FAQs yet. Click "Add Question" below to get started.
-                      </div>
-                    )}
-                    {faqItems.map((item, i) => (
-                      <div key={i} style={{ marginBottom: '16px', padding: '16px', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--bg-white)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Q{i + 1}</span>
-                          <button type="button" onClick={() => { const next = faqItems.filter((_, j) => j !== i); setFaqItems(next); }} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 600, padding: '4px 8px', borderRadius: '4px' }}>
-                            <Trash2 size={13} /> Remove
-                          </button>
-                        </div>
-                        <input type="text" value={item.q} onChange={(e) => { const next = [...faqItems]; next[i] = { ...next[i], q: e.target.value }; setFaqItems(next); }} placeholder="Enter question..." style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '13px', marginBottom: '8px', boxSizing: 'border-box' }} />
-                        <RichTextEditor value={item.a} onChange={(val) => { const next = [...faqItems]; next[i] = { ...next[i], a: val }; setFaqItems(next); }} minHeight="120px" />
-                      </div>
-                    ))}
-                    <button type="button" onClick={() => setFaqItems([...faqItems, { q: '', a: '' }])} style={{ padding: '10px 18px', borderRadius: '8px', border: '1px dashed var(--border-color)', background: 'var(--surface)', cursor: 'pointer', color: 'var(--primary)', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', width: '100%', justifyContent: 'center' }}>
-                      <Plus size={14} /> Add Question
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '24px' }}>
-              <Button type="submit" disabled={saving} style={{
-                padding: '10px 28px', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px',
-                background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)', color: 'white', boxShadow: 'var(--shadow-blue)'
-              }}>
-                {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
-                {saving ? 'Saving...' : 'Save & Apply Settings'}
-              </Button>
-            </div>
-          </Card>
-        )}
 
       </form>
 

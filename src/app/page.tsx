@@ -276,18 +276,18 @@ export default function GrowffiyLanding() {
           {/* Logo */}
           <Link href="/" className="navbar-logo" onClick={() => setMobileMenuOpen(false)}>
             <div className="navbar-logo-icon">
-              <img src={brandLogo || '/logo.png'} alt={brandName} style={{ width: 20, height: 20, objectFit: 'contain' }} />
+              <img src={brandLogo || '/logo.png'} alt={brandName} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
             {brandName.toUpperCase()}
           </Link>
 
           {/* Desktop Nav links */}
           <div className="navbar-nav">
-            <a href="#features" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Features</a>
-            <a href="#strategy" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Strategy</a>
-            <a href="#pricing" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Pricing</a>
-            <a href="#faq" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>FAQ</a>
-            <Link href="/vendor/login" target="_blank" className="btn-nav">Get Started →</Link>
+            <Link href="/" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`} style={{ color: '#1E88FF', fontWeight: 600 }}>Home</Link>
+            <Link href="/products" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Products</Link>
+            <Link href="/pricing" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Pricing</Link>
+            <Link href="/about" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>About Us</Link>
+            <Link href="/login" target="_blank" className="btn-nav">Get Started →</Link>
           </div>
 
           {/* Hamburger Button (mobile only) */}
@@ -303,11 +303,11 @@ export default function GrowffiyLanding() {
         {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
           <div className="mobile-nav">
-            <a href="#features" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Features</a>
-            <a href="#strategy" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Strategy</a>
-            <a href="#pricing" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
-            <a href="#faq" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
-            <Link href="/vendor/login" target="_blank" className="mobile-nav-cta" onClick={() => setMobileMenuOpen(false)}>
+            <Link href="/" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Home</Link>
+            <Link href="/products" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Products</Link>
+            <Link href="/pricing" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
+            <Link href="/about" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>About Us</Link>
+            <Link href="/login" target="_blank" className="mobile-nav-cta" onClick={() => setMobileMenuOpen(false)}>
               Get Started →
             </Link>
           </div>

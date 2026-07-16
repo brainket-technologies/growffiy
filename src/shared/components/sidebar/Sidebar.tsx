@@ -21,9 +21,10 @@ import {
   X,
   PanelLeftClose,
   PanelLeft,
-  BarChart3,
   Terminal,
   UserCog,
+  Globe,
+  BarChart3,
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { useAppViewModel } from '../../viewmodels/AppContext';
@@ -90,6 +91,7 @@ const adminGroups: MenuGroup[] = [
     items: [
       { name: 'Staff', path: '/admin/staff', icon: UserCog },
       { name: 'Software Setting', path: '/admin/settings', icon: Settings },
+      { name: 'Website Setting', path: '/admin/settings/website', icon: Globe },
       { name: 'App Logs', path: '/admin/audit-logs', icon: ShieldCheck },
       { name: 'App Runtime Logs', path: '/admin/runtime-logs', icon: Terminal },
       { name: 'Support', path: '/admin/support', icon: LifeBuoy, badge: 3 },
@@ -136,6 +138,10 @@ const isPathActive = (itemPath: string | undefined, currentPath: string) => {
   // to prevent it from highlighting both child items and the parent tab at the same time if they are links.
   if (itemPath.endsWith('/reports') || itemPath.endsWith('/payments')) {
     return currentPath === itemPath;
+  }
+  // /admin/settings is a parent of /admin/settings/website — only match exactly
+  if (itemPath === '/admin/settings') {
+    return currentPath === '/admin/settings';
   }
   return currentPath === itemPath || (
     itemPath !== '/' &&

@@ -3,17 +3,36 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Footer from './Footer';
+import { Menu, X, TrendingUp } from 'lucide-react';
 
 interface LegalLayoutProps {
   title: string;
   lastUpdated: string;
   children: React.ReactNode;
+  bannerSrc?: string;
 }
 
-export default function LegalLayout({ title, lastUpdated, children }: LegalLayoutProps) {
+interface Stock {
+  symbol: string;
+  ltp: number;
+  change: number;
+  high: number;
+  low: number;
+  volume: string;
+}
+
+export default function LegalLayout({ title, lastUpdated, children, bannerSrc }: LegalLayoutProps) {
   const [brandLogo, setBrandLogo] = useState('');
   const [brandName, setBrandName] = useState('Growffiy');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [stocks, setStocks] = useState<Stock[]>([
+    { symbol: 'RELIANCE', ltp: 2420.50, change: 1.25, high: 2435.00, low: 2410.00, volume: '4.8M' },
+    { symbol: 'TCS', ltp: 3250.10, change: -0.45, high: 3280.00, low: 3240.00, volume: '1.2M' },
+    { symbol: 'INFY', ltp: 1510.80, change: 0.85, high: 1525.00, low: 1502.00, volume: '2.5M' },
+    { symbol: 'HDFCBANK', ltp: 1620.30, change: -1.10, high: 1640.00, low: 1615.00, volume: '3.1M' },
+    { symbol: 'ICICIBANK', ltp: 940.75, change: 0.35, high: 950.00, low: 935.00, volume: '1.8M' },
+  ]);
 
   useEffect(() => {
     const load = () => {
@@ -22,8 +41,48 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
     };
     load();
     window.addEventListener('branding-updated', load);
-    return () => window.removeEventListener('branding-updated', load);
+
+    fetch('/api/settings/public')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.settings) {
+          const appName = data.settings.appName || 'Growffiy';
+          const appLogo = data.settings.appLogo || '';
+          setBrandName(appName);
+          setBrandLogo(appLogo);
+          localStorage.setItem('growffiy_brand_name', appName);
+          localStorage.setItem('growffiy_brand_logo', appLogo);
+        }
+      })
+      .catch(err => console.error('Failed to fetch public settings:', err));
+
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+
+    const fetchStocks = async () => {
+      try {
+        const res = await fetch('/api/public/stocks', { cache: 'no-store' });
+        const data = await res.json();
+        if (data.success && data.stocks?.length > 0) {
+          setStocks(data.stocks);
+        }
+      } catch (err) {
+        console.error('Failed to fetch stock prices:', err);
+      }
+    };
+    fetchStocks();
+    const interval = setInterval(fetchStocks, 60000);
+
+    return () => {
+      window.removeEventListener('branding-updated', load);
+      window.removeEventListener('scroll', handleScroll);
+      clearInterval(interval);
+    };
   }, []);
+
+  const isUp = (change: number) => change >= 0;
 
   return (
     <div data-theme="light" style={{
@@ -31,6 +90,51 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
       background: '#f8fafc',
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
     }}>
+      {/* Stock Ticker Bar at the very top */}
+      <div style={{
+        background: '#0f172a',
+        color: '#f8fafc',
+        height: '38px',
+        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        whiteSpace: 'nowrap',
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        position: 'relative',
+        zIndex: 1001,
+      }}>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes ticker-scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+          .ticker-track {
+            display: inline-flex;
+            animation: ticker-scroll 30s linear infinite;
+          }
+          .ticker-track:hover { animation-play-state: paused; }
+        `}}></style>
+        <div className="ticker-track">
+          {[...stocks, ...stocks].map((s, i) => (
+            <span key={i} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '0 28px',
+              borderRight: '1px solid rgba(255,255,255,0.08)',
+              fontSize: 12, fontWeight: 600,
+            }}>
+              <span style={{ color: '#94a3b8', fontWeight: 700, letterSpacing: '0.3px' }}>{s.symbol}</span>
+              <span style={{ color: '#f1f5f9', fontFamily: 'monospace', fontSize: 13 }}>₹{s.ltp.toFixed(2)}</span>
+              <span style={{
+                color: isUp(s.change) ? '#4ade80' : '#f87171',
+                fontSize: 11, fontWeight: 700,
+              }}>
+                {isUp(s.change) ? '▲' : '▼'} {Math.abs(s.change).toFixed(2)}%
+              </span>
+            </span>
+          ))}
+        </div>
+      </div>
+
       {/* Navbar - matches home page exactly */}
       <nav style={{
         position: 'sticky', top: 0, left: 0, right: 0, zIndex: 1000,
@@ -44,18 +148,17 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
         <div className="navbar-inner">
           <Link href="/" className="navbar-logo" onClick={() => setMobileMenuOpen(false)}>
             <div className="navbar-logo-icon">
-              <img src={brandLogo || '/logo.png'} alt={brandName} style={{ width: 20, height: 20, objectFit: 'contain' }} />
+              <img src={brandLogo || '/logo.png'} alt={brandName} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
             {brandName.toUpperCase()}
           </Link>
 
           <div className="navbar-nav">
-            <Link href="/" className="nav-link nav-link-dark">Home</Link>
-            <Link href="/vendor/privacy" className="nav-link nav-link-dark">Privacy</Link>
-            <Link href="/vendor/terms" className="nav-link nav-link-dark">Terms</Link>
-            <Link href="/vendor/refund" className="nav-link nav-link-dark">Refund</Link>
-            <Link href="/vendor/disclaimer" className="nav-link nav-link-dark">Disclaimer</Link>
-            <Link href="/vendor/login" target="_blank" className="btn-nav">Get Started →</Link>
+            <Link href="/" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Home</Link>
+            <Link href="/products" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Products</Link>
+            <Link href="/pricing" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Pricing</Link>
+            <Link href="/about" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>About Us</Link>
+            <Link href="/login" target="_blank" className="btn-nav">Get Started →</Link>
           </div>
 
           <button
@@ -63,26 +166,48 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
             onClick={() => setMobileMenuOpen(o => !o)}
             aria-label="Toggle menu"
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              {mobileMenuOpen
-                ? <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>
-                : <><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></>
-              }
-            </svg>
+            {mobileMenuOpen ? <X size={22} color="#0f172a" /> : <Menu size={22} color={scrolled ? '#0f172a' : '#0f172a'} />}
           </button>
         </div>
 
         {mobileMenuOpen && (
           <div className="mobile-nav">
             <Link href="/" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Home</Link>
-            <Link href="/vendor/privacy" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Privacy Policy</Link>
-            <Link href="/vendor/terms" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Terms & Conditions</Link>
-            <Link href="/vendor/refund" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Refund Policy</Link>
-            <Link href="/vendor/disclaimer" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Risk Disclaimer</Link>
-            <Link href="/vendor/login" target="_blank" className="mobile-nav-cta" onClick={() => setMobileMenuOpen(false)}>Get Started →</Link>
+            <Link href="/products" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Products</Link>
+            <Link href="/pricing" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
+            <Link href="/about" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>About Us</Link>
+            <Link href="/login" target="_blank" className="mobile-nav-cta" onClick={() => setMobileMenuOpen(false)}>Get Started →</Link>
           </div>
         )}
       </nav>
+
+      {/* Banner if provided */}
+      {bannerSrc && (
+        <div style={{
+          width: '100%',
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: '24px 24px 0 24px',
+        }}>
+          <div style={{
+            width: '100%',
+            borderRadius: '24px',
+            overflow: 'hidden',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+            border: '1px solid #e2e8f0',
+          }}>
+            <img 
+              src={bannerSrc} 
+              alt={title} 
+              style={{
+                width: '100%',
+                height: 'auto',
+                display: 'block',
+              }} 
+            />
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div style={{

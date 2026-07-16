@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Card } from '../../../shared/components/views/Card';
-import { Button } from '../../../shared/components/views/Button';
+import { Card } from '../../shared/components/views/Card';
+import { Button } from '../../shared/components/views/Button';
 import { Activity, ArrowLeft, Mail, Phone, MapPin, CheckCircle2 } from 'lucide-react';
-import Footer from '../../../shared/components/views/Footer';
+import Footer from '../../shared/components/views/Footer';
 
 export default function ContactPage() {
   const [name, setName] = useState('');

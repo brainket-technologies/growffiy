@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import LegalLayout from '../../../shared/components/views/LegalLayout';
+import LegalLayout from '../../shared/components/views/LegalLayout';
 
 interface FaqItem {
   q: string;

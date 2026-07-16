@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, TrendingUp, Shield, Zap, BarChart2, Sun, Moon, KeyRound, Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
-import { Loader } from '../../../shared/components/views/Loader';
-import { api } from '../../../shared/services/api';
-import { API_ENDPOINTS } from '../../../core/constants';
+import { Loader } from '../../shared/components/views/Loader';
+import { api } from '../../shared/services/api';
+import { API_ENDPOINTS } from '../../core/constants';
 
 export default function LoginPage() {
   const [userId, setUserId] = useState('');

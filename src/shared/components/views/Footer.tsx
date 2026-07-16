@@ -53,19 +53,19 @@ export default function Footer() {
           {/* Platform */}
           <div>
             <div className="footer-col-title">Platform</div>
-            <Link href="/#features" className="footer-link">Features</Link>
-            <Link href="/#strategy" className="footer-link">Strategy</Link>
-            <Link href="/#pricing" className="footer-link">Pricing</Link>
-            <Link href="/vendor/login" className="footer-link" style={{ color: '#1E88FF' }}>Client Portal</Link>
+            <Link href="/products" className="footer-link">Products</Link>
+            <Link href="/pricing" className="footer-link">Pricing</Link>
+            <Link href="/about" className="footer-link">About Us</Link>
+            <Link href="/login" className="footer-link" style={{ color: '#1E88FF' }}>Client Portal</Link>
           </div>
 
           {/* Legal */}
           <div>
             <div className="footer-col-title">Legal</div>
-            <Link href="/vendor/privacy" className="footer-link">Privacy Policy</Link>
-            <Link href="/vendor/terms" className="footer-link">Terms &amp; Conditions</Link>
-            <Link href="/vendor/refund" className="footer-link">Refund Policy</Link>
-            <Link href="/vendor/disclaimer" className="footer-link">Risk Disclaimer</Link>
+            <Link href="/privacy" className="footer-link">Privacy Policy</Link>
+            <Link href="/terms" className="footer-link">Terms &amp; Conditions</Link>
+            <Link href="/refund" className="footer-link">Refund Policy</Link>
+            <Link href="/disclaimer" className="footer-link">Risk Disclaimer</Link>
           </div>
 
           {/* Contact */}
