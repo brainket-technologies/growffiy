@@ -625,22 +625,22 @@ export default function MarketWatchPage() {
         </Card>
 
         {/* Today's Performance Card */}
-        <Card style={{ padding: '16px', borderLeft: `4px solid ${Number(dashboardStats?.todayPnl) >= 0 ? 'var(--accent)' : 'var(--danger)'}` }}>
+        <Card style={{ padding: '16px', borderLeft: `4px solid ${Number(dashboardStats?.totalPnl) >= 0 ? 'var(--accent)' : 'var(--danger)'}` }}>
           <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
-            {Number(dashboardStats?.todayPnl) >= 0 ? <ArrowUpRight size={15} color="var(--accent)" /> : <ArrowDownRight size={15} color="var(--danger)" />}
+            {Number(dashboardStats?.totalPnl) >= 0 ? <ArrowUpRight size={15} color="var(--accent)" /> : <ArrowDownRight size={15} color="var(--danger)" />}
             Today's Performance
           </span>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '10px' }}>
             <div>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 6px 0', color: Number(dashboardStats?.todayPnl) >= 0 ? 'var(--accent-dark)' : 'var(--danger)' }}>
-                {Number(dashboardStats?.todayPnl) >= 0 ? '+' : ''}₹{dashboardStats?.todayPnl?.toFixed(2) || '0.00'}
+              <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 6px 0', color: Number(dashboardStats?.totalPnl) >= 0 ? 'var(--accent-dark)' : 'var(--danger)' }}>
+                {Number(dashboardStats?.totalPnl) >= 0 ? '+' : ''}₹{dashboardStats?.totalPnl?.toFixed(2) || '0.00'}
               </h3>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                Total Trades placed: <strong>{dashboardStats?.totalTrades || 0}</strong>
+                Total Trades placed: <strong>{dashboardStats?.todayTrades || 0}</strong>
               </span>
             </div>
-            <span style={{ fontSize: '11.5px', fontWeight: 700, color: Number(dashboardStats?.todayPnl) >= 0 ? 'var(--accent-dark)' : 'var(--danger)', textTransform: 'uppercase' }}>
-              {Number(dashboardStats?.todayPnl) >= 0 ? 'PROFIT' : 'LOSS'}
+            <span style={{ fontSize: '11.5px', fontWeight: 700, color: Number(dashboardStats?.totalPnl) >= 0 ? 'var(--accent-dark)' : 'var(--danger)', textTransform: 'uppercase' }}>
+              {Number(dashboardStats?.totalPnl) >= 0 ? 'PROFIT' : 'LOSS'}
             </span>
           </div>
         </Card>
