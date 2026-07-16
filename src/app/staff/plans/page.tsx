@@ -577,7 +577,7 @@ export default function AdminPlansPage() {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div className="plans-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Price (INR)</label>
               <input
@@ -673,13 +673,13 @@ export default function AdminPlansPage() {
               type="text"
               required
               placeholder="e.g. Monthly Starter Plan"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
               className="plan-input-field"
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div className="plans-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Price (INR)</label>
               <input
@@ -781,6 +781,17 @@ export default function AdminPlansPage() {
           </div>
         </div>
       </Modal>
+      <style>{`
+        @media (max-width: 768px) { .plans-form-grid { grid-template-columns: 1fr !important; } }
+        @media (max-width: 480px) {
+          .plans-form-grid { grid-template-columns: 1fr !important; }
+          .plans-header { flex-direction: column !important; align-items: flex-start !important; }
+          .plans-header h1 { font-size: 20px !important; }
+          .plans-filters { flex-direction: column !important; align-items: stretch !important; }
+          .table-responsive table { font-size: 12px !important; min-width: 0 !important; }
+          .table-responsive td, .table-responsive th { padding: 8px 6px !important; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -48,7 +48,7 @@ function LegDetailCard({ leg, title, color }: { leg: any; title: string; color: 
         {color === 'var(--color-success)' ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
         {title}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '11px' }}>
+      <div className="leg-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '11px' }}>
         <span style={{ color: 'var(--text-secondary)' }}>Entry:</span><span style={{ fontWeight: 600 }}>₹{Number(leg.entryPrice || 0).toFixed(2)}</span>
         <span style={{ color: 'var(--text-secondary)' }}>SL:</span><span style={{ fontWeight: 600 }}>₹{Number(leg.stopLoss || 0).toFixed(2)}</span>
         <span style={{ color: 'var(--text-secondary)' }}>Target:</span><span style={{ fontWeight: 600 }}>₹{Number(leg.target || 0).toFixed(2)}</span>
@@ -101,7 +101,7 @@ function ModalLegSection({ leg, title, color }: { leg: any; title: string; color
         {color === 'var(--color-success)' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
         {title}
       </h4>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '12px' }}>
+      <div className="leg-section-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '12px' }}>
         {fields.map(([label, value]) => (
           <div key={label}>
             <span style={{ color: 'var(--text-secondary)', fontSize: '10px', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>{label}</span>
@@ -692,7 +692,7 @@ export default function LiveTradeTransactionsPage() {
       >
         {selectedTrade && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
+            <div className="trade-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Symbol</span>
                 <strong style={{ fontSize: '15px' }}>{selectedTrade.symbol}</strong>
@@ -736,7 +736,7 @@ export default function LiveTradeTransactionsPage() {
               </>
             ) : (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
+                <div className="trade-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
                   <div>
                     <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Leg</span>
                     <span>{selectedTrade.legName ? `${selectedTrade.legName} (${selectedTrade.direction || ''} / ${selectedTrade.legTimeframe || ''})` : '--'}</span>
@@ -870,6 +870,13 @@ export default function LiveTradeTransactionsPage() {
           </div>
         )}
       </Modal>
+      <style>{`
+        @media (max-width: 768px) {
+          .leg-detail-grid { grid-template-columns: 1fr !important; }
+          .trade-detail-grid { grid-template-columns: 1fr !important; }
+          .leg-section-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }

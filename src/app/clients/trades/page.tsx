@@ -91,6 +91,17 @@ export default function ClientTradesPage() {
           h1 { font-size: 20px !important; }
           .clients-trades-title p { font-size: 13px !important; }
         }
+        @media (max-width: 480px) {
+          .clients-trades-stats { grid-template-columns: 1fr !important; }
+          .clients-trades-stats .card-value { font-size: 20px !important; }
+          .clients-trades-filters { padding: 8px !important; gap: 6px !important; }
+          .clients-trades-filters select { min-width: unset !important; font-size: 12px !important; padding: 6px 8px !important; }
+          .clients-trades-filters > div:first-child input { font-size: 12px !important; padding: 6px 8px 6px 32px !important; }
+          .clients-trades-filters > div:first-child { flex: 1 1 100% !important; }
+          .table-responsive table { font-size: 11px !important; }
+          .table-responsive table th, .table-responsive table td { padding: 4px 3px !important; }
+          .pagination-info { font-size: 12px !important; }
+        }
       `}</style>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div className="clients-trades-title">
@@ -127,7 +138,7 @@ export default function ClientTradesPage() {
           </h3>
         </div>
 
-        <div className="clients-trades-filters" style={{ display: 'flex', gap: '12px', marginBottom: '24px', alignItems: 'center', flexWrap: 'nowrap', background: 'var(--bg-secondary)', padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+        <div className="clients-trades-filters" style={{ display: 'flex', gap: '12px', marginBottom: '24px', alignItems: 'center', flexWrap: 'wrap', background: 'var(--bg-secondary)', padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
           <div style={{ position: 'relative', flex: '4 1 500px' }}>
             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input type="text" placeholder="Search by symbol..." value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}

@@ -705,12 +705,12 @@ export default function ClientDetailsPage() {
           <span style={{ color: 'var(--text-heading)', fontWeight: 500 }}>{name}</span>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+        <div className="cdetail-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', letterSpacing: '-0.5px', margin: 0 }}>
               {name}
             </h1>
-            <span style={{
+            <span className="cdetail-status-badge" style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
@@ -1475,7 +1475,7 @@ export default function ClientDetailsPage() {
                         </span>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div className="margins-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                         {/* Available */}
                         <div>
                           <h6 style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '8px', borderBottom: '1px solid var(--border-light)', paddingBottom: '4px' }}>Available Cash</h6>
@@ -1571,7 +1571,7 @@ export default function ClientDetailsPage() {
                         </span>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div className="margins-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                         {/* Available */}
                         <div>
                           <h6 style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '8px', borderBottom: '1px solid var(--border-light)', paddingBottom: '4px' }}>Available Cash</h6>
@@ -1713,6 +1713,19 @@ export default function ClientDetailsPage() {
           </div>
         </Modal>
       )}
+      <style>{`
+        @media (max-width: 768px) {
+          .margins-grid-2 { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 480px) {
+          .margins-grid-2 { grid-template-columns: 1fr !important; }
+          .cdetail-header { flex-direction: column !important; align-items: flex-start !important; }
+          .cdetail-header h1 { font-size: 20px !important; }
+          .cdetail-header .cdetail-status-badge { align-self: flex-start !important; }
+          .table-responsive table { font-size: 12px !important; min-width: 0 !important; }
+          .table-responsive td, .table-responsive th { padding: 8px 6px !important; }
+        }
+      `}</style>
     </div>
   );
 }

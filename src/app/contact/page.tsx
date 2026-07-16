@@ -23,11 +23,11 @@ export default function ContactPage() {
 
   return (
     <div style={{ backgroundColor: '#030712', color: '#f3f4f6', fontFamily: 'var(--font-family)' }}>
-      <div style={{ minHeight: '100vh', padding: '40px 24px' }}>
+      <div className="contact-page-wrap" style={{ minHeight: '100vh', padding: '40px 24px' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
           {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '20px' }}>
+          <div className="contact-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <img src="/logo.png" alt="Growffiy" style={{ width: 24, height: 24, objectFit: 'contain' }} />
               <span style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-title)' }}>GROWFFIY</span>
@@ -39,7 +39,7 @@ export default function ContactPage() {
             </Link>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '32px', alignItems: 'start' }}>
+          <div className="contact-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '32px', alignItems: 'start' }}>
             {/* Info Column */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div>
@@ -81,7 +81,7 @@ export default function ContactPage() {
             </div>
 
             {/* Form Card */}
-            <Card style={{ backgroundColor: 'rgba(255, 255, 255, 0.01)', borderColor: 'rgba(255, 255, 255, 0.06)', padding: '32px' }}>
+            <Card className="contact-card" style={{ backgroundColor: 'rgba(255, 255, 255, 0.01)', borderColor: 'rgba(255, 255, 255, 0.06)', padding: '32px' }}>
               {submitted ? (
                 <div style={{ textAlign: 'center', padding: '24px 0', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
                   <CheckCircle2 size={36} color="var(--color-success)" />
@@ -133,6 +133,19 @@ export default function ContactPage() {
         </div>
       </div>
       <Footer />
+      <style>{`
+        @media (max-width: 768px) {
+          .contact-page-wrap { padding: 24px 16px !important; }
+          .contact-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
+          .contact-header { flex-direction: column !important; gap: 12px !important; align-items: flex-start !important; }
+          .contact-header h1 { font-size: 22px !important; }
+        }
+        @media (max-width: 480px) {
+          .contact-page-wrap { padding: 16px 12px !important; }
+          .contact-grid { gap: 20px !important; }
+          .contact-card { padding: 20px !important; }
+        }
+      `}</style>
     </div>
   );
 }

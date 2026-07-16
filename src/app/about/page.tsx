@@ -180,13 +180,13 @@ export default function AboutPage() {
       </nav>
 
       {/* Main Container */}
-      <div style={{
+      <div className="about-container" style={{
         maxWidth: '1280px',
         margin: '0 auto',
         padding: '24px 24px 80px',
       }}>
         {/* Top Hero: Text left, illustration right */}
-        <div style={{
+        <div className="about-hero-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
           gap: '48px',
@@ -271,7 +271,7 @@ export default function AboutPage() {
         )}
 
         {/* 4 Columns row immediately below */}
-        <div style={{
+        <div className="about-values-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: '24px',
@@ -319,7 +319,7 @@ export default function AboutPage() {
         </div>
 
         {/* Stats Row */}
-        <div style={{
+        <div className="about-stats-row" style={{
           background: '#ffffff',
           border: '1px solid #e2e8f0',
           borderRadius: '16px',
@@ -340,7 +340,7 @@ export default function AboutPage() {
             <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b' }}>Active Traders</div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid #f1f5f9' }}>
+          <div className="about-stat-item" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid #f1f5f9' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#1E88FF', marginBottom: '4px' }}>
               <TrendingUp size={16} />
               <span style={{ fontSize: '18px', fontWeight: 800 }}>500+</span>
@@ -348,7 +348,7 @@ export default function AboutPage() {
             <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b' }}>Pre-Market Scans Every Day</div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid #f1f5f9' }}>
+          <div className="about-stat-item" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid #f1f5f9' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#1E88FF', marginBottom: '4px' }}>
               <Award size={16} />
               <span style={{ fontSize: '18px', fontWeight: 800 }}>95%+</span>
@@ -356,7 +356,7 @@ export default function AboutPage() {
             <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b' }}>Strategy Accuracy</div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid #f1f5f9' }}>
+          <div className="about-stat-item" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid #f1f5f9' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#1E88FF', marginBottom: '4px' }}>
               <Zap size={16} />
               <span style={{ fontSize: '18px', fontWeight: 800 }}>24/7</span>
@@ -364,7 +364,7 @@ export default function AboutPage() {
             <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b' }}>AI Bots & Automation</div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid #f1f5f9' }}>
+          <div className="about-stat-item" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid #f1f5f9' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#1E88FF', marginBottom: '4px' }}>
               <ShieldCheck size={16} />
               <span style={{ fontSize: '18px', fontWeight: 800 }}>100%</span>
@@ -372,7 +372,7 @@ export default function AboutPage() {
             <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b' }}>Secure & Reliable</div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid #f1f5f9' }}>
+          <div className="about-stat-item" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid #f1f5f9' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#1E88FF', marginBottom: '4px' }}>
               <Star size={16} />
               <span style={{ fontSize: '18px', fontWeight: 800 }}>4.8/5</span>
@@ -382,7 +382,7 @@ export default function AboutPage() {
         </div>
 
         {/* Footer Callout */}
-        <div style={{
+        <div className="about-footer-section" style={{
           textAlign: 'center',
           maxWidth: '800px',
           margin: '0 auto',
@@ -407,6 +407,29 @@ export default function AboutPage() {
           </div>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .about-container { padding: 16px 16px 48px !important; }
+          .about-hero-grid { gap: 28px !important; margin-bottom: 32px !important; }
+          .about-values-grid { gap: 16px !important; margin-bottom: 32px !important; }
+          .about-stats-row { margin-bottom: 32px !important; padding: 16px 12px !important; }
+          .about-stats-row > .about-stat-item { border-left: none !important; }
+          .about-mission-heading { font-size: 14px !important; }
+          .about-footer-section { gap: 8px !important; }
+        }
+        @media (max-width: 480px) {
+          .about-container { padding: 12px 12px 36px !important; }
+          .about-hero-grid { gap: 20px !important; margin-bottom: 24px !important; }
+          .about-values-grid { gap: 12px !important; margin-bottom: 24px !important; }
+          .about-stats-row { margin-bottom: 24px !important; padding: 12px 8px !important; gap: 8px !important; }
+          .about-stats-row > .about-stat-item { border-left: none !important; }
+          .about-mission-heading { font-size: 13px !important; }
+          .about-footer-section { gap: 6px !important; }
+          .about-footer-tagline { font-size: 13px !important; }
+          .about-footer-tagline h3 { font-size: 13px !important; }
+        }
+      `}</style>
 
       <Footer />
     </div>

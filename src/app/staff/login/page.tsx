@@ -108,15 +108,18 @@ export default function StaffLoginPage() {
           transition: background-color 0.3s, color 0.3s;
         }
 
-        @media (max-width: 992px) {
+        @media (max-width: 1024px) {
           .login-wrap { grid-template-columns: 1fr; }
           .login-left  { display: none !important; }
           .login-mobile-bar { display: flex !important; }
           .login-right { padding: 40px 24px; }
         }
-
-        @media (max-width: 640px) {
-          .login-right { padding: 32px 16px !important; }
+        @media (max-width: 768px) {
+          .login-right { padding: 36px 20px; }
+          .login-left { display: none !important; }
+        }
+        @media (max-width: 480px) {
+          .login-right { padding: 28px 14px !important; }
           .login-right h2 { font-size: 22px !important; }
           .login-right > div > div:first-child { margin-bottom: 24px !important; }
           .login-input { padding: 11px 14px !important; font-size: 14px !important; }

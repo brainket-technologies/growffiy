@@ -592,7 +592,7 @@ export default function MarketWatchPage() {
       </div>
 
       {/* Main List Grid */}
-      <div style={{ 
+      <div className="market-watch-main" style={{ 
         display: 'grid', 
         gridTemplateColumns: selectedStock ? '1.3fr 1fr' : '1fr', 
         gap: '24px', 
@@ -1242,6 +1242,11 @@ export default function MarketWatchPage() {
           </div>
         ) : null}
       </div>
+      <style>{`
+        @media (max-width: 1024px) {
+          .market-watch-main { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }

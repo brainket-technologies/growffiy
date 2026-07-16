@@ -48,7 +48,7 @@ function LegDetailCard({ leg, title, color }: { leg: any; title: string; color: 
         {color === 'var(--color-success)' ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
         {title}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '11px' }}>
+            <div className="td-leg-detail" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '11px' }}>
         <span style={{ color: 'var(--text-secondary)' }}>Entry:</span><span style={{ fontWeight: 600 }}>₹{Number(leg.entryPrice || 0).toFixed(2)}</span>
         <span style={{ color: 'var(--text-secondary)' }}>SL:</span><span style={{ fontWeight: 600 }}>₹{Number(leg.stopLoss || 0).toFixed(2)}</span>
         <span style={{ color: 'var(--text-secondary)' }}>Target:</span><span style={{ fontWeight: 600 }}>₹{Number(leg.target || 0).toFixed(2)}</span>
@@ -101,7 +101,7 @@ function ModalLegSection({ leg, title, color }: { leg: any; title: string; color
         {color === 'var(--color-success)' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
         {title}
       </h4>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '12px' }}>
+      <div className="td-modal-leg-section" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '12px' }}>
         {fields.map(([label, value]) => (
           <div key={label}>
             <span style={{ color: 'var(--text-secondary)', fontSize: '10px', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>{label}</span>
@@ -359,7 +359,7 @@ export default function LiveTradeTransactionsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="td-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
             Live Trade Transactions
@@ -372,7 +372,7 @@ export default function LiveTradeTransactionsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+      <div className="td-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
         <Card>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
@@ -446,14 +446,14 @@ export default function LiveTradeTransactionsPage() {
 
       {/* Transactions Table */}
       <Card>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+        <div className="td-filters" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
             Trade Transaction Log ({filteredTrades.length})
           </h3>
         </div>
 
         {/* Filters */}
-        <div style={{
+        <div className="td-filters" style={{
           display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center',
           flexWrap: 'wrap', background: 'var(--bg-secondary)', padding: '12px 16px',
           borderRadius: '12px', border: '1px solid var(--border-color)'
@@ -692,7 +692,7 @@ export default function LiveTradeTransactionsPage() {
       >
         {selectedTrade && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
+            <div className="td-modal-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Symbol</span>
                 <strong style={{ fontSize: '15px' }}>{selectedTrade.symbol}</strong>
@@ -736,7 +736,7 @@ export default function LiveTradeTransactionsPage() {
               </>
             ) : (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
+                <div className="td-modal-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
                   <div>
                     <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Leg</span>
                     <span>{selectedTrade.legName ? `${selectedTrade.legName} (${selectedTrade.direction || ''} / ${selectedTrade.legTimeframe || ''})` : '--'}</span>
@@ -870,6 +870,26 @@ export default function LiveTradeTransactionsPage() {
           </div>
         )}
       </Modal>
+      <style>{`
+        @media (max-width: 480px) {
+          .td-header { flex-direction: column !important; align-items: flex-start !important; }
+          .td-header h1 { font-size: 20px !important; }
+          .td-summary { grid-template-columns: 1fr !important; }
+          .td-filters { flex-direction: column !important; align-items: stretch !important; }
+          .td-filters > div, .td-filters > .td-filters-inner { width: 100% !important; min-width: 0 !important; }
+          .td-filters-inner { flex-wrap: wrap !important; }
+          .table-responsive table { font-size: 12px !important; min-width: 0 !important; }
+          .table-responsive td, .table-responsive th { padding: 8px 6px !important; }
+          .td-modal-grid { grid-template-columns: 1fr !important; }
+          .td-leg-detail { grid-template-columns: 1fr !important; }
+          .td-modal-leg-section { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 768px) {
+          .td-modal-grid { grid-template-columns: 1fr !important; }
+          .td-leg-detail { grid-template-columns: 1fr !important; }
+          .td-modal-leg-section { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }

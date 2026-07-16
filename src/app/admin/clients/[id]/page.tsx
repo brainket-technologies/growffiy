@@ -1455,7 +1455,7 @@ export default function ClientDetailsPage() {
                         </span>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div className="margin-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                         {/* Available */}
                         <div>
                           <h6 style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '8px', borderBottom: '1px solid var(--border-light)', paddingBottom: '4px' }}>Available Cash</h6>
@@ -1551,7 +1551,7 @@ export default function ClientDetailsPage() {
                         </span>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div className="margin-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                         {/* Available */}
                         <div>
                           <h6 style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '8px', borderBottom: '1px solid var(--border-light)', paddingBottom: '4px' }}>Available Cash</h6>
@@ -1691,6 +1691,11 @@ export default function ClientDetailsPage() {
           </div>
         </Modal>
       )}
+      <style>{`
+        @media (max-width: 768px) {
+          .margin-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }

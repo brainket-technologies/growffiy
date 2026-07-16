@@ -392,7 +392,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
       )}
 
       {/* Tabs Switcher Navigation Bar */}
-      <div style={{ display: 'flex', background: 'var(--surface)', padding: '2px', borderRadius: '8px', border: '1px solid var(--border)', width: 'fit-content' }}>
+      <div className="settings-tabs" style={{ display: 'flex', background: 'var(--surface)', padding: '2px', borderRadius: '8px', border: '1px solid var(--border)', width: 'fit-content' }}>
         <button
           type="button"
           onClick={() => setActiveTab('payments')}
@@ -830,7 +830,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px' }}>
+                <div className="settings-smtp-row" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       Port
@@ -976,7 +976,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
               </p>
             </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+              <div className="settings-schedule-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
               <div style={{ padding: '16px 20px', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                   <div>
@@ -1237,7 +1237,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                 `${viewYear}-${String(viewMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
               return (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+              <div className="settings-calendar-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
                 <div style={{ padding: '16px 20px', borderRadius: '10px', background: 'var(--surface)', border: '1px solid var(--border-color)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <button type="button" onClick={() => {
@@ -1504,6 +1504,14 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
           {infoModal.content}
         </Modal>
       )}
+      <style>{`
+        @media (max-width: 768px) {
+          .settings-smtp-row { grid-template-columns: 1fr !important; }
+          .settings-schedule-grid { grid-template-columns: 1fr !important; }
+          .settings-calendar-grid { grid-template-columns: 1fr !important; }
+          .settings-tabs { width: 100% !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+        }
+      `}</style>
     </div>
   );
 }

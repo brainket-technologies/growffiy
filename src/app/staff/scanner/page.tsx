@@ -122,7 +122,7 @@ export default function StaffScannerPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="scanner-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             Scanner
@@ -146,7 +146,7 @@ export default function StaffScannerPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+      <div className="scanner-top-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
         {topGainer && (
           <Card style={{ padding: '16px', borderLeft: '4px solid var(--accent)' }}>
             <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -189,7 +189,7 @@ export default function StaffScannerPage() {
       </div>
 
       <Card style={{ padding: '24px' }}>
-        <div style={{ 
+        <div className="scanner-filters" style={{ 
           display: 'flex', 
           alignItems: 'center', 
           flexWrap: 'wrap', 
@@ -300,6 +300,17 @@ export default function StaffScannerPage() {
       </Card>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 1024px) { .scanner-header h1 { font-size: 22px !important; } }
+        @media (max-width: 768px) { .scanner-header h1 { font-size: 20px !important; } }
+        @media (max-width: 480px) {
+          .scanner-header { flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
+          .scanner-header h1 { font-size: 18px !important; flex-wrap: wrap !important; }
+          .scanner-filters { flex-direction: column !important; align-items: stretch !important; }
+          .scanner-filters > div, .scanner-filters > button { width: 100% !important; min-width: 0 !important; }
+          .scanner-top-cards { grid-template-columns: 1fr !important; }
+          .table-responsive table { font-size: 12px !important; min-width: 0 !important; }
+          .table-responsive td, .table-responsive th { padding: 8px 6px !important; }
+        }
       `}</style>
     </div>
   );

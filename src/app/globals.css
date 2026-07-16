@@ -2039,3 +2039,75 @@ select.kyc-status-select-pending {
   color: var(--text-heading) !important;
 }
 
+/* ══════════════════════════════════════════════════
+   RESPONSIVE UTILITY CLASSES
+   ══════════════════════════════════════════════════ */
+
+/* Hide / show at breakpoints */
+.hide-mobile { display: revert; }
+.show-mobile { display: none; }
+
+@media (max-width: 767px) {
+  .hide-mobile { display: none !important; }
+  .show-mobile { display: revert !important; }
+}
+
+/* Responsive grid helpers */
+.resp-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.resp-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.resp-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.resp-grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+
+@media (max-width: 1024px) {
+  .resp-grid-5 { grid-template-columns: repeat(3, 1fr); }
+  .resp-grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 767px) {
+  .resp-grid-2,
+  .resp-grid-3,
+  .resp-grid-4,
+  .resp-grid-5 { grid-template-columns: 1fr; }
+}
+
+/* Responsive flex wrap */
+.resp-flex { display: flex; flex-wrap: wrap; gap: 16px; }
+.resp-flex-center { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+
+/* Card / container padding */
+.resp-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+@media (max-width: 767px) {
+  .resp-container { padding: 16px; }
+}
+
+/* Stats grid – responsive */
+.resp-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+/* Table wrapper – horizontal scroll on mobile */
+.resp-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Gap / spacer helpers */
+.resp-gap-sm { gap: 8px; }
+.resp-gap-md { gap: 16px; }
+.resp-gap-lg { gap: 24px; }
+
+/* Typography scale helpers */
+.resp-text-xs { font-size: 12px; }
+.resp-text-sm { font-size: 14px; }
+.resp-text-base { font-size: 16px; }
+@media (max-width: 767px) {
+  .resp-text-sm { font-size: 13px; }
+  .resp-text-base { font-size: 14px; }
+}
+

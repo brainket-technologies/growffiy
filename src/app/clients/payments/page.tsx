@@ -126,11 +126,22 @@ export default function ClientPaymentHistory() {
 @media (max-width: 1024px) {
   .table-responsive table { font-size: 12px; }
 }
+@media (max-width: 768px) {
+  .page-payments { gap: 16px !important; }
+  .page-payments h1 { font-size: 20px !important; }
+}
 @media (max-width: 640px) {
+  .page-payments h1 { font-size: 18px !important; }
   .table-responsive table { font-size: 11px; }
   .table-responsive th, .table-responsive td { padding: 8px 4px !important; }
   .table-responsive th:nth-child(4), .table-responsive td:nth-child(4) { display: none; }
   .table-responsive th:nth-child(5), .table-responsive td:nth-child(5) { display: none; }
+}
+@media (max-width: 480px) {
+  .page-payments { gap: 12px !important; padding: 0 4px !important; }
+  .table-responsive table { font-size: 10px; }
+  .table-responsive th, .table-responsive td { padding: 6px 3px !important; }
+  table th:nth-child(2), table td:nth-child(2) { display: none; }
 }
       `}</style>
     </div>

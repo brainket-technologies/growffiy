@@ -753,7 +753,7 @@ export default function ClientPerformancePage() {
       </Card>
 
       {/* Metrics Row Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
+      <div className="perf-metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
         {/* Total P&L Card */}
         <Card 
           style={{ 
@@ -916,7 +916,7 @@ export default function ClientPerformancePage() {
       </div>
 
       {/* Charts & Summary Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '4.5fr 3.5fr 3fr', gap: '20px' }}>
+      <div className="perf-charts-row" style={{ display: 'grid', gridTemplateColumns: '4.5fr 3.5fr 3fr', gap: '20px' }}>
         {/* P&L Overview (chart) */}
         <Card style={{ padding: '20px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-md)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -958,7 +958,7 @@ export default function ClientPerformancePage() {
           <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', marginBottom: '16px' }}>
             Performance Summary
           </h4>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '12px' }}>
+          <div className="perf-summary-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '12px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Average Profit (₹)</span>
               <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>₹{avgProfit.toFixed(2)}</strong>
@@ -1344,7 +1344,7 @@ export default function ClientPerformancePage() {
       >
         {selectedTrade && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
+            <div className="trade-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Symbol</span>
                 <strong style={{ fontSize: '15px' }}>{selectedTrade.symbol}</strong>
@@ -1487,6 +1487,20 @@ export default function ClientPerformancePage() {
           </div>
         )}
       </Modal>
+      <style>{`
+        @media (max-width: 1024px) {
+          .perf-metrics-grid { grid-template-columns: repeat(3, 1fr) !important; }
+          .perf-charts-row { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 768px) {
+          .perf-metrics-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .perf-summary-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 480px) {
+          .perf-metrics-grid { grid-template-columns: 1fr !important; }
+          .trade-detail-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }

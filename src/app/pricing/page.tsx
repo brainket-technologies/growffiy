@@ -300,7 +300,7 @@ export default function PricingPage() {
       </nav>
 
       {/* Main Header / Badges */}
-      <section style={{
+      <section className="pricing-header-section" style={{
         padding: '70px 24px 30px',
         maxWidth: '1200px',
         margin: '0 auto',
@@ -347,7 +347,7 @@ export default function PricingPage() {
           </div>
         </div>
 
-        <h1 style={{
+        <h1 className="pricing-plan-heading" style={{
           fontSize: 'clamp(32px, 5vw, 52px)',
           fontWeight: 900,
           color: '#0f172a',
@@ -413,7 +413,7 @@ export default function PricingPage() {
       </section>
 
       {/* Pricing Cards Grid */}
-      <section style={{
+      <section className="pricing-cards-section" style={{
         padding: '0 24px 80px',
         maxWidth: '1280px',
         margin: '0 auto'
@@ -543,7 +543,7 @@ export default function PricingPage() {
       </section>
 
       {/* Trust Grid Panel */}
-      <section style={{
+      <section className="pricing-trust-section" style={{
         background: '#ffffff',
         borderTop: '1px solid #e2e8f0',
         borderBottom: '1px solid #e2e8f0',
@@ -573,7 +573,7 @@ export default function PricingPage() {
       </section>
 
       {/* CTA: View Yearly Plans Promo */}
-      <section style={{
+      <section className="pricing-cta-section" style={{
         padding: '50px 24px',
         background: '#f8fafc',
         textAlign: 'center'
@@ -619,9 +619,15 @@ export default function PricingPage() {
       {/* Styled Grid Adaptations */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media (max-width: 768px) {
+          .pricing-header-section { padding: 40px 16px 24px !important; }
+          .pricing-cards-section { padding: 0 16px 48px !important; }
+          .pricing-trust-section { padding: 40px 16px !important; }
+          .pricing-cta-section { padding: 32px 16px !important; }
           .pricing-card {
             transform: none !important;
+            padding: 28px 20px !important;
           }
+          .pricing-plan-heading { font-size: 24px !important; letter-spacing: -0.5px !important; }
           .promo-bar {
             flex-direction: column !important;
             text-align: center !important;
@@ -629,6 +635,14 @@ export default function PricingPage() {
           .promo-bar div {
             text-align: center !important;
           }
+        }
+        @media (max-width: 480px) {
+          .pricing-header-section { padding: 28px 12px 20px !important; }
+          .pricing-cards-section { padding: 0 12px 36px !important; }
+          .pricing-trust-section { padding: 28px 12px !important; }
+          .pricing-cta-section { padding: 24px 12px !important; }
+          .pricing-card { padding: 22px 16px !important; }
+          .pricing-plan-heading { font-size: 20px !important; }
         }
       ` }} />
 

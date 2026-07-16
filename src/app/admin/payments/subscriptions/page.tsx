@@ -413,7 +413,7 @@ export default function SubscriptionTransactionsPage() {
       >
         {selectedPayment && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
+            <div className="payment-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Client Name</span>
                 <strong>{selectedPayment.user?.name || 'Unknown Client'}</strong>
@@ -472,6 +472,11 @@ export default function SubscriptionTransactionsPage() {
           </div>
         )}
       </Modal>
+      <style>{`
+        @media (max-width: 768px) {
+          .payment-detail-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }

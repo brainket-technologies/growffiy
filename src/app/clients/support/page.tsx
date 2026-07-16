@@ -193,12 +193,25 @@ export default function ClientSupportPage() {
 @media (max-width: 1024px) {
   .page-support { padding: 0 16px; }
 }
+@media (max-width: 768px) {
+  .page-support h1 { font-size: 18px !important; }
+  .support-header { gap: 12px; }
+}
 @media (max-width: 640px) {
   .support-header { flex-direction: column; align-items: flex-start !important; gap: 12px; }
   .support-new-ticket-btn { width: 100%; justify-content: center; }
   .support-search-wrap { width: 100% !important; min-width: unset !important; }
   .table-responsive th:nth-child(1), .table-responsive td:nth-child(1) { display: none; }
   .table-responsive th:nth-child(5), .table-responsive td:nth-child(5) { display: none; }
+}
+@media (max-width: 480px) {
+  .page-support { padding: 0 8px !important; }
+  .page-support h1 { font-size: 16px !important; }
+  .support-header p { font-size: 12px !important; }
+  .support-new-ticket-btn { font-size: 12px !important; padding: 8px 14px !important; }
+  .table-responsive table { font-size: 11px; }
+  .table-responsive th, .table-responsive td { padding: 6px 3px !important; }
+  .table-responsive th:nth-child(4), .table-responsive td:nth-child(4) { display: none; }
 }
       `}</style>
     </div>

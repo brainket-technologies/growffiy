@@ -436,6 +436,11 @@ export default function ClientSubscriptionPlans() {
 @media (max-width: 1024px) {
   .plans-grid { gap: 24px; }
 }
+@media (max-width: 768px) {
+  .page-subscription { gap: 24px !important; padding: 8px !important; }
+  .page-subscription h1 { font-size: 26px !important; }
+  .plans-grid { gap: 20px; }
+}
 @media (max-width: 640px) {
   .plans-grid { grid-template-columns: 1fr !important; gap: 20px; }
   .page-subscription .premium-plan-card { padding: 28px 20px; }

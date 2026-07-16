@@ -253,6 +253,7 @@ export default function ClientDashboardOverview() {
           justifyContent: 'space-between',
           alignItems: 'center',
           gap: '16px',
+          flexWrap: 'wrap',
           boxShadow: 'var(--shadow-sm)',
           animation: 'slideUp 0.3s ease-out'
         }}>
@@ -299,6 +300,7 @@ export default function ClientDashboardOverview() {
           justifyContent: 'space-between',
           alignItems: 'center',
           gap: '16px',
+          flexWrap: 'wrap',
           boxShadow: 'var(--shadow-sm)',
           animation: 'slideUp 0.3s ease-out'
         }}>
@@ -546,7 +548,7 @@ export default function ClientDashboardOverview() {
                 
                 {/* Performance Graph */}
                 <Card style={{ padding: '24px', borderRadius: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
                     <div>
                       <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', margin: 0 }}>
                         My Performance Curve
@@ -746,7 +748,7 @@ export default function ClientDashboardOverview() {
 
               {/* Client Trades List Table */}
               <Card style={{ padding: '24px', borderRadius: '16px', marginTop: '8px' }}>
-                <div style={{ marginBottom: '20px' }}>
+                <div style={{ marginBottom: '20px' }} className="trades-header-wrap">
                   <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', margin: 0 }}>
                     My Executed Trades
                   </h3>
@@ -974,6 +976,14 @@ export default function ClientDashboardOverview() {
         @media (max-width: 1024px) {
           .client-grid-main { grid-template-columns: 1fr !important; }
           .client-dashboard { gap: 20px !important; }
+        }
+
+        @media (max-width: 768px) {
+          .client-dashboard { gap: 18px !important; }
+          .client-dashboard > div:first-child { padding: 18px !important; }
+          .client-dashboard > div:first-child h1 { font-size: 20px !important; }
+          .client-dashboard [style*="gap: 24px"] { gap: 16px !important; }
+          .trades-header-wrap { margin-bottom: 14px !important; }
         }
 
         @media (max-width: 640px) {

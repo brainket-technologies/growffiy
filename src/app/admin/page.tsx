@@ -239,6 +239,7 @@ export default function AdminDashboard() {
 
 
   return (
+    <>
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1400px', margin: '0 auto', fontFamily: 'var(--font-body)' }}>
       
       {/* Top Header & Controls */}
@@ -414,7 +415,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* 5 Top KPI Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '18px' }}>
+      <div className="kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '18px' }}>
         <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--primary)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total Clients</span>
@@ -492,7 +493,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Middle Row: P&L Overview & Strategies Performance */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
+      <div className="dashboard-two-col" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
         {/* Left: P&L Area Curve Chart */}
         <Card style={{ padding: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-md)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -601,7 +602,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Bottom Row: Live Strategy & Exposure 2x2 mini-cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
+      <div className="dashboard-two-col" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
         {/* Left: Live Strategy Table */}
         <Card style={{ padding: '24px', borderRadius: '12px', border: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -685,7 +686,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Right: Exposure & Positions metrics in a 2x2 grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', height: 'fit-content' }}>
+        <div className="exposure-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', height: 'fit-content' }}>
           {/* Card: Total Exposure */}
           <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -740,6 +741,21 @@ export default function AdminDashboard() {
         </div>
       </div>
     </div>
+    <style>{`
+      @media (max-width: 1024px) {
+        .kpi-grid { grid-template-columns: repeat(3, 1fr) !important; }
+        .dashboard-two-col { grid-template-columns: 1fr !important; }
+      }
+      @media (max-width: 768px) {
+        .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        .exposure-grid { grid-template-columns: repeat(2, 1fr) !important; }
+      }
+      @media (max-width: 480px) {
+        .kpi-grid { grid-template-columns: 1fr !important; }
+        .exposure-grid { grid-template-columns: 1fr !important; }
+      }
+    `}</style>
+    </>
   );
 }
 

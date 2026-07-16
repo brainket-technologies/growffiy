@@ -130,6 +130,10 @@ export default function ClientPreOpenScannerPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <style>{`
+        @media (max-width: 768px) {
+          .scanner-summary-cards { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+          .scanner-header h1 { font-size: 20px !important; }
+        }
         @media (max-width: 1024px) {
           .scanner-header { flex-direction: column !important; align-items: flex-start !important; }
           .scanner-sentiment-grid { grid-template-columns: 1fr !important; }
@@ -155,6 +159,26 @@ export default function ClientPreOpenScannerPage() {
           .scanner-signals-grid .table-responsive table td { padding: 4px !important; }
           .scanner-gainers-grid .table-responsive table thead th:nth-child(3),
           .scanner-gainers-grid .table-responsive table tbody td:nth-child(3) { display: none; }
+        }
+        @media (max-width: 480px) {
+          .scanner-summary-cards { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+          .scanner-summary-cards > * { padding: 12px !important; }
+          .scanner-summary-cards h2 { font-size: 16px !important; }
+          .scanner-header h1 { font-size: 16px !important; }
+          .scanner-header p { font-size: 11px !important; }
+          .scanner-header > div:last-child > div { font-size: 10px !important; padding: 4px 8px !important; }
+          .scanner-summary-cards span { font-size: 11px !important; }
+          .scanner-sentiment-grid { gap: 12px !important; }
+          .scanner-sentiment-grid > * { padding: 14px !important; }
+          .scanner-gainers-grid { gap: 12px !important; }
+          .scanner-gainers-grid > * { padding: 12px !important; }
+          .scanner-global-grid { gap: 12px !important; }
+          .scanner-global-grid > * { padding: 14px !important; }
+          .scanner-signals-grid { gap: 12px !important; }
+          .scanner-signals-grid > * { padding: 14px !important; }
+          .scanner-global-markets { font-size: 11px !important; }
+          .table-responsive table { font-size: 10px !important; }
+          .table-responsive th, .table-responsive td { padding: 3px !important; }
         }
       `}</style>
       {/* Page Header */}

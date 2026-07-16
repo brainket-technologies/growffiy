@@ -141,7 +141,7 @@ export default function SubscriptionTransactionsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="sub-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
             Subscription Plan Transactions
@@ -154,7 +154,7 @@ export default function SubscriptionTransactionsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+      <div className="sub-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
         <Card>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
@@ -231,14 +231,14 @@ export default function SubscriptionTransactionsPage() {
 
       {/* Transactions Table */}
       <Card>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+        <div className="sub-filters" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
             All Subscription Payments ({filteredPayments.length})
           </h3>
         </div>
 
         {/* Filters */}
-        <div style={{
+        <div className="sub-filters-inner" style={{
           display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center',
           flexWrap: 'wrap', background: 'var(--bg-secondary)', padding: '12px 16px',
           borderRadius: '12px', border: '1px solid var(--border-color)'
@@ -413,7 +413,7 @@ export default function SubscriptionTransactionsPage() {
       >
         {selectedPayment && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
+            <div className="sub-modal-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Client Name</span>
                 <strong>{selectedPayment.user?.name || 'Unknown Client'}</strong>
@@ -472,6 +472,21 @@ export default function SubscriptionTransactionsPage() {
           </div>
         )}
       </Modal>
+      <style>{`
+        @media (max-width: 480px) {
+          .sub-header { flex-direction: column !important; align-items: flex-start !important; }
+          .sub-header h1 { font-size: 20px !important; }
+          .sub-summary { grid-template-columns: 1fr !important; }
+          .sub-filters { flex-direction: column !important; align-items: stretch !important; }
+          .sub-filters-inner { flex-wrap: wrap !important; }
+          .table-responsive table { font-size: 12px !important; min-width: 0 !important; }
+          .table-responsive td, .table-responsive th { padding: 8px 6px !important; }
+          .sub-modal-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 768px) {
+          .sub-modal-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }

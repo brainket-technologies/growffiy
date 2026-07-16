@@ -189,7 +189,7 @@ export default function ProductsPage() {
       </nav>
 
       {/* ═══ HERO — Light Premium Split Layout ═══ */}
-      <section style={{
+      <section className="products-hero-section" style={{
         background: '#ffffff',
         padding: '70px 24px 0',
         overflow: 'hidden',
@@ -211,7 +211,7 @@ export default function ProductsPage() {
         }} className="product-hero-grid">
 
           {/* ── Left ── */}
-          <div style={{ paddingBottom: '70px' }}>
+          <div className="hero-card-left" style={{ paddingBottom: '70px' }}>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: '8px',
               background: 'rgba(30,136,255,0.08)',
@@ -368,7 +368,7 @@ export default function ProductsPage() {
 
 
       {/* Product 1: Live Nifty 500 Scanner */}
-      <section id="scanner" style={{
+      <section id="scanner" className="products-section" style={{
         padding: '80px 24px',
         background: '#ffffff',
         borderTop: '1px solid #f1f5f9',
@@ -383,7 +383,7 @@ export default function ProductsPage() {
           alignItems: 'center'
         }} className="product-grid">
           {/* Left Column: Visual representation */}
-          <div style={{
+          <div className="product-visual-card" style={{
             background: 'radial-gradient(135deg, rgba(30,136,255,0.04) 0%, rgba(13,71,161,0.06) 100%)',
             borderRadius: '24px',
             padding: '40px',
@@ -433,7 +433,7 @@ export default function ProductsPage() {
           {/* Right Column: Features & Info */}
           <div>
             <span style={{ fontSize: '12px', fontWeight: 700, color: '#1E88FF', letterSpacing: '1px' }}>FIND THE BEST INTRADAY TRADES</span>
-            <h2 style={{ fontSize: '32px', fontWeight: 800, color: '#0f172a', marginTop: '6px', letterSpacing: '-0.5px' }}>Growffi Scanner</h2>
+            <h2 className="products-section-heading" style={{ fontSize: '32px', fontWeight: 800, color: '#0f172a', marginTop: '6px', letterSpacing: '-0.5px' }}>Growffi Scanner</h2>
             <p style={{ fontSize: '15px', color: '#475569', marginTop: '12px', lineHeight: 1.6 }}>
               The Intraday Live Nifty 500 Scanner continuously scans all Nifty 500 stocks throughout the trading session and identifies stocks that match powerful intraday trading conditions. Instead of manually analyzing hundreds of charts, our scanner instantly highlights the strongest opportunities based on predefined technical filters.
             </p>
@@ -485,7 +485,7 @@ export default function ProductsPage() {
       </section>
 
       {/* Product 2: Algo Trading Tools */}
-      <section id="algo" style={{
+      <section id="algo" className="products-section" style={{
         padding: '80px 24px',
         background: '#f8fafc'
       }}>
@@ -500,7 +500,7 @@ export default function ProductsPage() {
           {/* Left Column: Features & Info */}
           <div>
             <span style={{ fontSize: '12px', fontWeight: 700, color: '#1E88FF', letterSpacing: '1px' }}>COMPLETE STRATEGY AUTOMATION</span>
-            <h2 style={{ fontSize: '32px', fontWeight: 800, color: '#0f172a', marginTop: '6px', letterSpacing: '-0.5px' }}>Growffi Algo Trading Tools</h2>
+            <h2 className="products-section-heading" style={{ fontSize: '32px', fontWeight: 800, color: '#0f172a', marginTop: '6px', letterSpacing: '-0.5px' }}>Growffi Algo Trading Tools</h2>
             <p style={{ fontSize: '15px', color: '#475569', marginTop: '12px', lineHeight: 1.6 }}>
               Our Algo Trading Tools help traders automate their trading strategies with speed, precision, and discipline. Once configured, the system continuously monitors live market hours and executes trades automatically based on your predefined rules.
             </p>
@@ -551,7 +551,7 @@ export default function ProductsPage() {
           </div>
 
           {/* Right Column: Visual representation */}
-          <div style={{
+          <div className="product-visual-card" style={{
             background: 'radial-gradient(135deg, rgba(30,136,255,0.04) 0%, rgba(13,71,161,0.06) 100%)',
             borderRadius: '24px',
             padding: '40px',
@@ -601,7 +601,7 @@ export default function ProductsPage() {
       </section>
 
       {/* Comparison Matrix Table */}
-      <section style={{
+      <section className="products-section" style={{
         padding: '80px 24px',
         background: '#ffffff',
         borderBottom: '1px solid #f1f5f9'
@@ -669,7 +669,7 @@ export default function ProductsPage() {
       </section>
 
       {/* Grid: Why Choose Growffi */}
-      <section style={{
+      <section className="products-section" style={{
         padding: '80px 24px',
         background: '#f8fafc',
         borderBottom: '1px solid #f1f5f9'
@@ -720,7 +720,7 @@ export default function ProductsPage() {
 
 
       {/* ═══ BEAUTIFUL FEATURE ICONS ROW — MOVED TO BOTTOM ═══ */}
-      <section style={{ background: '#f8fafc', padding: '60px 24px 80px', borderTop: '1px solid #e2e8f0' }}>
+      <section className="products-bottom-section" style={{ background: '#f8fafc', padding: '60px 24px 80px', borderTop: '1px solid #e2e8f0' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '40px' }}>
             <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px' }}>Designed for Peak Performance</h2>
@@ -766,6 +766,24 @@ export default function ProductsPage() {
           transform: translateY(-5px);
           box-shadow: 0 12px 30px rgba(30,136,255,0.08) !important;
           border-color: rgba(30,136,255,0.2) !important;
+        }
+        @media (max-width: 768px) {
+          .products-hero-section { padding: 40px 16px 0 !important; }
+          .products-section { padding: 48px 16px !important; }
+          .products-bottom-section { padding: 36px 16px 48px !important; }
+          .products-section-heading { font-size: 24px !important; }
+          .product-detail-heading { font-size: 24px !important; }
+          .hero-card-left { padding-bottom: 40px !important; }
+          .product-visual-card { padding: 24px !important; }
+        }
+        @media (max-width: 480px) {
+          .products-hero-section { padding: 28px 12px 0 !important; }
+          .products-section { padding: 36px 12px !important; }
+          .products-bottom-section { padding: 28px 12px 36px !important; }
+          .products-section-heading { font-size: 20px !important; }
+          .product-detail-heading { font-size: 20px !important; }
+          .product-visual-card { padding: 18px !important; }
+          .hero-card-left { padding-bottom: 28px !important; }
         }
       ` }} />
 

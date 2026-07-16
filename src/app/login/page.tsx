@@ -201,6 +201,12 @@ export default function LoginPage() {
           .login-mobile-bar { display: flex !important; }
           .login-right { padding: 40px 24px; }
         }
+        @media (max-width: 480px) {
+          .login-right { padding: 24px 16px !important; }
+          .login-wrap { height: auto; min-height: 100vh; }
+          .login-left-stats { gap: 16px !important; flex-wrap: wrap !important; }
+          .login-left-stats > div { min-width: 80px; }
+        }
 
         .login-left {
           background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
@@ -367,7 +373,7 @@ export default function LoginPage() {
               ))}
             </div>
 
-            <div style={{
+            <div className="login-left-stats" style={{
               display: 'flex', gap: 32, marginTop: 48,
               paddingTop: 32, borderTop: '1px solid rgba(255,255,255,0.08)',
             }}>

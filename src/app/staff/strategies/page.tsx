@@ -1148,6 +1148,27 @@ export default function StrategiesPage() {
         <>
           {/* Premium Stat Cards */}
           <div className="strat-stat-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+            <style>{`
+              @media (max-width: 1024px) { .strat-stat-cards { grid-template-columns: repeat(2, 1fr) !important; } }
+              @media (max-width: 768px) { .strat-stat-cards { grid-template-columns: repeat(2, 1fr) !important; gap: 14px !important; } }
+              @media (max-width: 480px) { .strat-stat-cards { grid-template-columns: 1fr !important; gap: 12px !important; } }
+              @media (max-width: 1024px) { .strategies-form-main { grid-template-columns: 1fr !important; } }
+              @media (max-width: 768px) { .strat-mkt-sel { grid-template-columns: 1fr 1fr !important; } }
+              @media (max-width: 480px) { .strat-mkt-sel { grid-template-columns: 1fr !important; } }
+              @media (max-width: 768px) { .strat-leg-grid { grid-template-columns: 1fr 1fr !important; } }
+              @media (max-width: 480px) { .strat-leg-grid { grid-template-columns: 1fr !important; } }
+              @media (max-width: 768px) { .strat-sl-grid { grid-template-columns: 1fr !important; } }
+              @media (max-width: 1024px) { .strat-cond-row { grid-template-columns: 1fr !important; gap: 6px !important; } }
+              @media (max-width: 768px) { .strat-cond-inner { flex-wrap: wrap !important; } }
+              @media (max-width: 480px) { .strategy-header { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; } }
+              @media (max-width: 480px) { .strategy-header h1 { font-size: 20px !important; } }
+              @media (max-width: 480px) { .strat-filters { flex-direction: column !important; align-items: stretch !important; } }
+              @media (max-width: 480px) { .strat-filters > div { width: 100% !important; min-width: 0 !important; } }
+              @media (max-width: 480px) { .table-responsive table { font-size: 12px !important; } }
+              @media (max-width: 480px) { .strat-template-grid { grid-template-columns: 1fr !important; } }
+              @media (max-width: 480px) { .strat-edit-actions { flex-direction: column !important; } }
+              @media (max-width: 480px) { .strat-edit-actions button, .strat-edit-actions a { width: 100% !important; justify-content: center !important; } }
+            `}</style>
             {/* Total Strategies */}
             <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--primary)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -1436,8 +1457,7 @@ export default function StrategiesPage() {
                 </Card>
               )}
   
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '28px', alignItems: 'start' }}>
-                {/* LEFT: BASIC INFO & TRADE ACTIONS */}
+              <div className="strategies-form-main" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '28px', alignItems: 'start' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
                   
                   {/* Basic Information */}
@@ -1478,7 +1498,7 @@ export default function StrategiesPage() {
                   {/* MARKET SELECTION */}
                   <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '4px' }}>
                     <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>MARKET SELECTION</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                    <div className="strat-market-sel-inner" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <label style={{ fontSize: '12px', fontWeight: 600 }}>Trade Type</label>
                         <select
@@ -1533,7 +1553,7 @@ export default function StrategiesPage() {
                   {/* TIMING */}
                   <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '16px' }}>
                     <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>TIMING</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div className="strat-sl-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <label style={{ fontSize: '11px', fontWeight: 600 }}>Pre-Select Time</label>
                         <input
@@ -1747,7 +1767,7 @@ export default function StrategiesPage() {
                         </button>
                       )}
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                    <div className="strat-leg-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <label style={{ fontSize: '11px', fontWeight: 600 }}>Entry Time</label>
                         <input type="time" step="1" value={leg.entryTime} onChange={(e) => handleLegChange(legIdx, 'entryTime', e.target.value)}
@@ -1825,7 +1845,7 @@ export default function StrategiesPage() {
                     <ShieldAlert size={16} color="var(--color-danger)" /> Target & Stoploss Rules
                   </h3>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                <div className="strat-cond-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 600 }}>Stoploss Type</label>
                     <select

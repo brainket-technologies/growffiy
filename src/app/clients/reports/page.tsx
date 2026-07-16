@@ -175,6 +175,10 @@ export default function ClientTradingReports() {
 @media (max-width: 1024px) {
   .reports-main-grid { grid-template-columns: 1fr !important; }
 }
+@media (max-width: 768px) {
+  .page-reports h1 { font-size: 20px !important; }
+  .reports-stats-grid { gap: 16px !important; }
+}
 @media (max-width: 640px) {
   .reports-stats-grid { grid-template-columns: 1fr !important; }
   .reports-main-grid { grid-template-columns: 1fr !important; }
@@ -182,6 +186,17 @@ export default function ClientTradingReports() {
   .table-responsive th, .table-responsive td { padding: 8px 4px !important; }
   .table-responsive th:nth-child(2), .table-responsive td:nth-child(2) { display: none; }
   .table-responsive th:nth-child(5), .table-responsive td:nth-child(5) { display: none; }
+}
+@media (max-width: 480px) {
+  .page-reports { gap: 14px !important; }
+  .page-reports h1 { font-size: 17px !important; }
+  .page-reports > div:first-child p { font-size: 12px !important; }
+  .reports-stats-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
+  .reports-stats-grid h3 { font-size: 18px !important; }
+  .table-responsive table { font-size: 10px; }
+  .table-responsive th, .table-responsive td { padding: 5px 3px !important; }
+  .table-responsive th:nth-child(3), .table-responsive td:nth-child(3) { display: none; }
+  .table-responsive th:nth-child(4), .table-responsive td:nth-child(4) { display: none; }
 }
       `}</style>
     </div>

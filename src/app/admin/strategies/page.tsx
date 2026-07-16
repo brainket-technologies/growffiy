@@ -1128,7 +1128,7 @@ export default function StrategiesPage() {
       {viewMode === 'list' && (
         <>
           {/* Premium Stat Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+          <div className="strategy-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
             {/* Total Strategies */}
             <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--primary)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -1417,7 +1417,7 @@ export default function StrategiesPage() {
                 </Card>
               )}
   
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '28px', alignItems: 'start' }}>
+              <div className="strategy-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '28px', alignItems: 'start' }}>
                 {/* LEFT: BASIC INFO & TRADE ACTIONS */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
                   
@@ -1459,7 +1459,7 @@ export default function StrategiesPage() {
                   {/* MARKET SELECTION */}
                   <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '4px' }}>
                     <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>MARKET SELECTION</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                    <div className="strategy-form-grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <label style={{ fontSize: '12px', fontWeight: 600 }}>Trade Type</label>
                         <select
@@ -2241,7 +2241,7 @@ export default function StrategiesPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               
               {/* Row 1: 5 KPI Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
+              <div className="strategy-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
                 {/* Total P&L Card */}
                 <Card style={{ padding: '20px', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -2329,7 +2329,7 @@ export default function StrategiesPage() {
               </div>
 
               {/* Row 2: Equity Curve (2fr), P&L Distribution (1.5fr), Trade Performance (1.5fr) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.3fr 1.3fr', gap: '20px' }}>
+              <div className="strategy-charts-row" style={{ display: 'grid', gridTemplateColumns: '2fr 1.3fr 1.3fr', gap: '20px' }}>
                 <Card style={{ borderRadius: '12px', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>Equity Curve</h4>
@@ -2441,7 +2441,7 @@ export default function StrategiesPage() {
               </div>
 
               {/* Row 3: Performance Metrics (1.5fr), stacked Bar Charts (1.5fr), Strategy Overview (1.5fr) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1.3fr', gap: '20px' }}>
+              <div className="strategy-charts-row2" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1.3fr', gap: '20px' }}>
                 <Card style={{ borderRadius: '12px', border: '1px solid var(--border)' }}>
                   <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', marginBottom: '14px' }}>Performance Metrics</h4>
                   <table style={{ width: '100%', borderCollapse: 'collapse' }} className="metrics-table">
@@ -2755,6 +2755,25 @@ export default function StrategiesPage() {
         </div>
       </Modal>
 
+
+      <style>{`
+        @media (max-width: 1024px) {
+          .strategy-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .strategy-kpi-grid { grid-template-columns: repeat(3, 1fr) !important; }
+          .strategy-charts-row { grid-template-columns: 1fr !important; }
+          .strategy-charts-row2 { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 768px) {
+          .strategy-stats-grid { grid-template-columns: 1fr !important; }
+          .strategy-detail-grid { grid-template-columns: 1fr !important; }
+          .strategy-form-grid-3 { grid-template-columns: 1fr 1fr !important; }
+          .strategy-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (max-width: 480px) {
+          .strategy-kpi-grid { grid-template-columns: 1fr !important; }
+          .strategy-form-grid-3 { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }
