@@ -39,24 +39,15 @@ function runBuildCheck() {
   
   if (dev) return;
   
+  if (process.env.DISABLE_AUTO_BUILD === 'true') {
+    console.log('AlgoEngine Deployer: Auto-build is disabled via DISABLE_AUTO_BUILD env variable.');
+    return;
+  }
+  
   // Check if rebuild needed
-  const gitIndex = path.join(__dirname, '.git', 'index');
   const prismaClientDir = path.join(__dirname, 'node_modules', '.prisma', 'client');
   
   let shouldBuild = !hasExistingBuild || !fs.existsSync(prismaClientDir);
-  
-  if (!shouldBuild && fs.existsSync(gitIndex)) {
-    try {
-      const nextMtime = fs.statSync(nextDir).mtimeMs;
-      const gitMtime = fs.statSync(gitIndex).mtimeMs;
-      if (gitMtime > nextMtime) {
-        console.log('AlgoEngine Deployer: Detected fresh Git pull. Rebuilding Next.js in background...');
-        shouldBuild = true;
-      }
-    } catch (err) {
-      console.error('Error checking mtimes:', err);
-    }
-  }
   
   if (shouldBuild) {
     // Only block requests if there's ZERO existing build (first deploy)
