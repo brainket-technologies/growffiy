@@ -150,6 +150,7 @@ export async function GET() {
     settings['smtp_status'] = 'false'; // 'true' (on) or 'false' (off)
     settings['support_email'] = 'support@growffiy.com';
     settings['support_phone'] = '+91 98765 43210';
+    settings['support_whatsapp'] = '+91 902666305';
     settings['support_timings'] = 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)';
     settings['support_address'] = 'Mumbai, India';
     settings['algo_preopen_fetch_time'] = '09:08';
@@ -173,6 +174,11 @@ export async function GET() {
     settings['google_credentials_json'] = '';
     settings['master_zerodha_api_key'] = '';
     settings['master_zerodha_api_secret'] = '';
+    settings['social_telegram'] = 'https://t.me/growffiy';
+    settings['social_youtube'] = 'https://youtube.com/@growffiy';
+    settings['social_twitter'] = 'https://x.com/growffiy';
+    settings['social_instagram'] = 'https://instagram.com/growffiy';
+    settings['social_facebook'] = 'https://facebook.com/growffiy';
 
     settings['legal_privacy_content'] = defaultPrivacyContent;
     settings['legal_terms_content'] = defaultTermsContent;
@@ -225,6 +231,11 @@ export async function GET() {
         footer_disclaimer: 'Algorithmic trading involves substantial financial risk. Growffiy is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.',
         footer_bottom_tagline: 'Designed for NSE/BSE Intraday Algo Traders',
         google_analytics_id: '',
+        social_telegram: 'https://t.me/growffiy',
+        social_youtube: 'https://youtube.com/@growffiy',
+        social_twitter: 'https://x.com/growffiy',
+        social_instagram: 'https://instagram.com/growffiy',
+        social_facebook: 'https://facebook.com/growffiy',
         legal_privacy_content: defaultPrivacyContent,
         legal_terms_content: defaultTermsContent,
         legal_refund_content: defaultRefundContent,
@@ -256,6 +267,7 @@ export async function PUT(request: Request) {
       smtp_status,
       support_email,
       support_phone,
+      support_whatsapp,
       support_timings,
       support_address,
       algo_preopen_fetch_time,
@@ -282,7 +294,12 @@ export async function PUT(request: Request) {
       hero_title,
       hero_subtitle,
       master_zerodha_api_key,
-      master_zerodha_api_secret
+      master_zerodha_api_secret,
+      social_telegram,
+      social_youtube,
+      social_twitter,
+      social_instagram,
+      social_facebook
     } = body;
 
     const updates = {
@@ -302,6 +319,7 @@ export async function PUT(request: Request) {
       smtp_status,
       support_email,
       support_phone,
+      support_whatsapp,
       support_timings,
       support_address,
       algo_preopen_fetch_time,
@@ -330,7 +348,12 @@ export async function PUT(request: Request) {
       legal_about_content,
       legal_faq_content,
       hero_title,
-      hero_subtitle
+      hero_subtitle,
+      social_telegram,
+      social_youtube,
+      social_twitter,
+      social_instagram,
+      social_facebook
     };
 
 

@@ -8,7 +8,10 @@ const SYMBOLS = [
   { symbol: 'HDFCBANK',   yahoo: 'HDFCBANK.NS',   name: 'HDFC Bank' },
   { symbol: 'ICICIBANK',  yahoo: 'ICICIBANK.NS',  name: 'ICICI Bank' },
   { symbol: 'NIFTY50',    yahoo: '^NSEI',         name: 'Nifty 50' },
-  { symbol: 'SENSEX',     yahoo: '^BSESN',        name: 'Sensex' },
+  { symbol: 'BANKNIFTY',  yahoo: '^NSEBANK',      name: 'Bank Nifty' },
+  { symbol: 'INDIAVIX',   yahoo: '^INDIAVIX',     name: 'India VIX' },
+  { symbol: 'WIPRO',      yahoo: 'WIPRO.NS',      name: 'Wipro Ltd.' },
+  { symbol: 'SBIN',       yahoo: 'SBIN.NS',       name: 'State Bank of India' },
 ];
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/125.0 Safari/537.36';

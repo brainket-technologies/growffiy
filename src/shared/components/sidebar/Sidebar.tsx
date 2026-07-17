@@ -25,6 +25,7 @@ import {
   UserCog,
   Globe,
   BarChart3,
+  MessageSquare,
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { useAppViewModel } from '../../viewmodels/AppContext';
@@ -62,6 +63,7 @@ const adminGroups: MenuGroup[] = [
     items: [
       { name: 'Clients', path: '/admin/clients', icon: Users, badge: 12 },
       { name: 'Subscription Plans', path: '/admin/plans', icon: CreditCard },
+      { name: 'Enquiries', path: '/admin/enquiries', icon: MessageSquare },
     ],
   },
   {

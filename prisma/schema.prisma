@@ -348,3 +348,15 @@ model HistoricalOhlc {
   @@unique([date, time, symbol])
   @@map("historical_ohlc")
 }
+
+model Enquiry {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  phone     String
+  enquiry   String   @default("Momentum Breakout Strategy")
+  message   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("enquiries")
+}

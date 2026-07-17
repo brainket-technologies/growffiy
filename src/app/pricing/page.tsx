@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Footer from '../../shared/components/views/Footer';
-import { Menu, X, Check, ArrowRight, ShieldCheck, Zap, Cpu, Award, Users, RefreshCw, Sparkles, HelpCircle } from 'lucide-react';
+import { Menu, X, Check, ArrowRight, ShieldCheck, Zap, Cpu, Award, Users, RefreshCw, Sparkles, HelpCircle, User, Mail, Phone, Activity, ChevronDown, MessageSquare } from 'lucide-react';
 import { API_ENDPOINTS } from '../../core/constants';
 
 interface Stock {
@@ -29,6 +29,52 @@ export default function PricingPage() {
   const [brandName, setBrandName] = useState('Growffiy');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  // Consultation Modal States
+  const [showConsultationModal, setShowConsultationModal] = useState(false);
+  const [consultationName, setConsultationName] = useState('');
+  const [consultationEmail, setConsultationEmail] = useState('');
+  const [consultationPhone, setConsultationPhone] = useState('');
+  const [consultationEnquiry, setConsultationEnquiry] = useState('Scanner');
+  const [consultationMessage, setConsultationMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [supportPhone, setSupportPhone] = useState('+91 902666305');
+  const [supportWhatsapp, setSupportWhatsapp] = useState('+91 902666305');
+
+  const handleConsultationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitError('');
+    try {
+      const res = await fetch('/api/consultation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: consultationName,
+          email: consultationEmail,
+          phone: consultationPhone,
+          enquiry: consultationEnquiry,
+          message: consultationMessage
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSubmitSuccess(true);
+        setConsultationName('');
+        setConsultationEmail('');
+        setConsultationPhone('');
+        setConsultationMessage('');
+      } else {
+        setSubmitError(data.error || 'Failed to submit request.');
+      }
+    } catch (err) {
+      setSubmitError('Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   const [stocks, setStocks] = useState<Stock[]>([
     { symbol: 'RELIANCE', ltp: 2420.50, change: 1.25, high: 2435.00, low: 2410.00, volume: '4.8M' },
     { symbol: 'TCS', ltp: 3250.10, change: -0.45, high: 3280.00, low: 3240.00, volume: '1.2M' },
@@ -37,9 +83,9 @@ export default function PricingPage() {
     { symbol: 'ICICIBANK', ltp: 940.75, change: 0.35, high: 950.00, low: 935.00, volume: '1.8M' },
   ]);
 
-  const [dbPlans, setDbPlans] = useState<Plan[]>([]);
+  const [dbPlans, setDbPlans] = useState<any[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+  const [activePlanTab, setActivePlanTab] = useState<string>('');
 
   useEffect(() => {
     const load = () => {
@@ -52,13 +98,15 @@ export default function PricingPage() {
     fetch('/api/settings/public')
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.settings) {
-          const appName = data.settings.appName || 'Growffiy';
-          const appLogo = data.settings.appLogo || '';
+        if (data.success) {
+          const appName = data.appName || 'Growffiy';
+          const appLogo = data.appLogo || '';
           setBrandName(appName);
           setBrandLogo(appLogo);
           localStorage.setItem('growffiy_brand_name', appName);
           localStorage.setItem('growffiy_brand_logo', appLogo);
+          if (data.supportPhone) setSupportPhone(data.supportPhone);
+          if (data.supportWhatsapp) setSupportWhatsapp(data.supportWhatsapp);
         }
       })
       .catch(err => console.error('Failed to fetch public settings:', err));
@@ -87,7 +135,30 @@ export default function PricingPage() {
         const res = await fetch(API_ENDPOINTS.PLANS, { cache: 'no-store' });
         const data = await res.json();
         if (data.success && data.plans) {
-          setDbPlans(data.plans.filter((p: any) => p.status === 'active'));
+          const activePlans = data.plans.filter((p: any) => p.status === 'active');
+          if (activePlans.length > 0) {
+            activePlans.sort((a: any, b: any) => Number(a.price) - Number(b.price));
+            const mapped = activePlans.map((p: any) => {
+              const typeMatch = p.name.match(/^(.+?)\s*(monthly|quarterly|yearly|daily|annual|half|weekly)/i);
+              const productType = typeMatch ? typeMatch[1].trim() : p.name.split(' ')[0];
+              return {
+                id: p.id,
+                tag: p.name.toLowerCase().includes('monthly') ? 'Standard Access' : p.name.toLowerCase().includes('quarterly') ? 'Most Popular' : 'Best Value',
+                name: p.name,
+                price: p.price,
+                per: `${p.durationDays} Days`,
+                popular: p.name.toLowerCase().includes('quarterly') || p.name.toLowerCase().includes('popular'),
+                features: p.features,
+                productType,
+                durationDays: p.durationDays
+              };
+            });
+            setDbPlans(mapped);
+            const firstType = mapped[0]?.productType || '';
+            setActivePlanTab(firstType);
+          } else {
+            setDbPlans([]);
+          }
         }
       } catch (err) {
         console.error('Failed to fetch subscription plans:', err);
@@ -97,96 +168,20 @@ export default function PricingPage() {
     };
     fetchPlans();
 
+    const handleOpenModal = () => setShowConsultationModal(true);
+    window.addEventListener('open-consultation-modal', handleOpenModal);
+
     return () => {
       window.removeEventListener('branding-updated', load);
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('open-consultation-modal', handleOpenModal);
       clearInterval(interval);
     };
   }, []);
 
   const isUp = (change: number) => change >= 0;
 
-  // Filter plans based on Billing Period toggle
-  const getFilteredPlans = () => {
-    // If we have explicit monthly/yearly plans, filter them.
-    // If not, we just show whatever active plans exist.
-    const hasYearly = dbPlans.some(p => p.name.toLowerCase().includes('yearly') || p.name.toLowerCase().includes('annual') || p.durationDays >= 300);
-    if (!hasYearly) return dbPlans; // Fallback to all plans if no yearly plans defined in admin yet
 
-    if (billingPeriod === 'monthly') {
-      return dbPlans.filter(p => !p.name.toLowerCase().includes('yearly') && !p.name.toLowerCase().includes('annual') && p.durationDays < 300);
-    } else {
-      return dbPlans.filter(p => p.name.toLowerCase().includes('yearly') || p.name.toLowerCase().includes('annual') || p.durationDays >= 300);
-    }
-  };
-
-  // Get static features to make it look premium like the mock image
-  const getPremiumFeatures = (planName: string, fallbackFeatures: string[]) => {
-    const name = planName.toLowerCase();
-    if (name.includes('basic')) {
-      return [
-        "Live Market Scanners",
-        "Daily Watchlist Access",
-        "Basic Filters Configuration",
-        "Email Notifications",
-        "Community Chat Room",
-        "1 Active Login Session"
-      ];
-    } else if (name.includes('pro')) {
-      return [
-        "All Basic Features Included",
-        "Advanced Live Scanners",
-        "Strategy Builder & Testing",
-        "Real-Time Alerts Dispatch",
-        "Backtesting Suite (Limited)",
-        "2 Active Login Sessions",
-        "Priority Support Channel"
-      ];
-    } else if (name.includes('premium')) {
-      return [
-        "All Pro Features Included",
-        "Advanced Algo Automation Tools",
-        "Backtesting Suite (Unlimited)",
-        "Auto Trade (1 Strategy)",
-        "AI Bots Live Access",
-        "Risk Management Controls",
-        "Performance Live Analytics",
-        "3 Active Login Sessions",
-        "24/7 Premium Support"
-      ];
-    } else if (name.includes('enterprise')) {
-      return [
-        "All Premium Features Included",
-        "Auto Trade Execution (Unlimited)",
-        "AI Bots Access (Unlimited) [NEW]",
-        "Custom Automated Strategies",
-        "Dedicated Account Manager",
-        "API Programmatic Access [NEW]",
-        "5 Active Login Sessions",
-        "24/7 Instant Support Dispatch"
-      ];
-    }
-    return fallbackFeatures;
-  };
-
-  const getSubtext = (planName: string) => {
-    const name = planName.toLowerCase();
-    if (name.includes('basic')) return "Perfect for Beginners";
-    if (name.includes('pro')) return "For Active Traders";
-    if (name.includes('premium')) return "For Serious Traders";
-    if (name.includes('enterprise')) return "For Professionals & Teams";
-    return "Complete Strategy Access";
-  };
-
-  const getCardIcon = (planName: string) => {
-    const name = planName.toLowerCase();
-    if (name.includes('basic')) return <Zap size={22} color="#1E88FF" />;
-    if (name.includes('pro')) return <Cpu size={22} color="#16a34a" />;
-    if (name.includes('premium')) return <Award size={22} color="#0D47A1" />;
-    return <Sparkles size={22} color="#8b5cf6" />;
-  };
-
-  const filtered = getFilteredPlans();
 
   return (
     <div data-theme="light" style={{
@@ -272,7 +267,7 @@ export default function PricingPage() {
             <Link href="/products" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Products</Link>
             <Link href="/pricing" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`} style={{ color: '#1E88FF', fontWeight: 600 }}>Pricing</Link>
             <Link href="/about" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>About Us</Link>
-            <Link href="/login" target="_blank" className="btn-nav">Get Started →</Link>
+            <button onClick={() => setShowConsultationModal(true)} className="btn-nav" style={{ border: 'none', cursor: 'pointer' }}>Get Started →</button>
           </div>
 
           {/* Hamburger Button (mobile only) */}
@@ -292,9 +287,9 @@ export default function PricingPage() {
             <Link href="/products" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Products</Link>
             <Link href="/pricing" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
             <Link href="/about" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>About Us</Link>
-            <Link href="/login" target="_blank" className="mobile-nav-cta" onClick={() => setMobileMenuOpen(false)}>
+            <button className="mobile-nav-cta" onClick={() => { setShowConsultationModal(true); setMobileMenuOpen(false); }} style={{ border: 'none', textAlign: 'center', width: '100%', cursor: 'pointer' }}>
               Get Started →
-            </Link>
+            </button>
           </div>
         )}
       </nav>
@@ -307,45 +302,6 @@ export default function PricingPage() {
         textAlign: 'center',
         position: 'relative'
       }}>
-        {/* Trust Badges flanking the Hero */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '24px',
-          alignItems: 'center',
-          marginBottom: '28px',
-          flexWrap: 'wrap'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: 'white',
-            border: '1px solid #e2e8f0',
-            padding: '8px 16px',
-            borderRadius: '12px',
-            fontSize: '12px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.02)'
-          }}>
-            <ShieldCheck size={16} color="#1E88FF" />
-            <span><strong>Risk Free</strong>: 7-Day Refund Guarantee</span>
-          </div>
-
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: 'white',
-            border: '1px solid #e2e8f0',
-            padding: '8px 16px',
-            borderRadius: '12px',
-            fontSize: '12px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.02)'
-          }}>
-            <Zap size={16} color="#22c55e" />
-            <span><strong>Save More</strong>: With Yearly Subscriptions</span>
-          </div>
-        </div>
 
         <h1 className="pricing-plan-heading" style={{
           fontSize: 'clamp(32px, 5vw, 52px)',
@@ -368,51 +324,48 @@ export default function PricingPage() {
           margin: '16px auto 36px',
           lineHeight: 1.5,
         }}>
-          Select the perfect plan that fits your trading goals and take your strategies to the next level. Toggle billing cycles below.
+          No hidden fees. Cancel anytime. All plans include full platform access.
         </p>
 
-        {/* Toggle Switch */}
-        <div style={{
-          display: 'inline-flex',
-          background: 'white',
-          border: '1px solid #e2e8f0',
-          borderRadius: '30px',
-          padding: '4px',
-          gap: '4px',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.03)'
-        }}>
-          <button
-            onClick={() => setBillingPeriod('monthly')}
-            style={{
-              border: 'none',
-              borderRadius: '24px',
-              padding: '8px 24px',
-              fontSize: '13px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              background: billingPeriod === 'monthly' ? '#1E88FF' : 'transparent',
-              color: billingPeriod === 'monthly' ? 'white' : '#475569',
-              transition: 'all 0.25s'
-            }}
-          >Monthly Plans</button>
-          <button
-            onClick={() => setBillingPeriod('yearly')}
-            style={{
-              border: 'none',
-              borderRadius: '24px',
-              padding: '8px 24px',
-              fontSize: '13px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              background: billingPeriod === 'yearly' ? '#1E88FF' : 'transparent',
-              color: billingPeriod === 'yearly' ? 'white' : '#475569',
-              transition: 'all 0.25s'
-            }}
-          >Yearly (Save 20%)</button>
-        </div>
+        {/* Tab Buttons from Home Page */}
+        {!loadingPlans && dbPlans.length > 0 && (() => {
+          const productTypes = [...new Set(dbPlans.map((p: any) => p.productType))];
+          return (
+            <div style={{
+              display: 'flex', justifyContent: 'center', gap: 8,
+              marginTop: 20, flexWrap: 'wrap',
+            }}>
+              {productTypes.map(type => (
+                <button
+                  key={type}
+                  onClick={() => setActivePlanTab(type)}
+                  style={{
+                    padding: '10px 28px',
+                    borderRadius: 99,
+                    fontWeight: 700,
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    transition: 'all 0.25s',
+                    border: activePlanTab === type ? 'none' : '1.5px solid #e2e8f0',
+                    background: activePlanTab === type
+                      ? 'linear-gradient(135deg, #1252AB, #1E88FF)'
+                      : '#ffffff',
+                    color: activePlanTab === type ? '#ffffff' : '#64748b',
+                    boxShadow: activePlanTab === type
+                      ? '0 6px 20px rgba(18,82,171,0.25)'
+                      : '0 1px 4px rgba(0,0,0,0.06)',
+                    transform: activePlanTab === type ? 'translateY(-1px)' : 'none',
+                  }}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          );
+        })()}
       </section>
 
-      {/* Pricing Cards Grid */}
+      {/* Pricing Cards Grid from Home Page */}
       <section className="pricing-cards-section" style={{
         padding: '0 24px 80px',
         maxWidth: '1280px',
@@ -423,198 +376,70 @@ export default function PricingPage() {
             <RefreshCw className="animate-spin" size={20} />
             <span style={{ fontSize: '14px', fontWeight: 600 }}>Loading subscription tiers...</span>
           </div>
-        ) : filtered.length === 0 ? (
+        ) : dbPlans.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', background: 'white', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
             <HelpCircle size={32} color="#64748b" style={{ margin: '0 auto 12px' }} />
             <h3 style={{ fontSize: '16px', fontWeight: 700 }}>No Plans Available</h3>
             <p style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>Please configure subscription plans in the Admin panel settings tab.</p>
           </div>
-        ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(auto-fit, minmax(280px, 1fr))`,
-            gap: '30px',
-            alignItems: 'stretch'
-          }}>
-            {filtered.map((plan) => {
-              const isPopular = plan.name.toLowerCase().includes('premium') || plan.name.toLowerCase().includes('popular');
-              const premiumFeatures = getPremiumFeatures(plan.name, plan.features);
-              return (
-                <div key={plan.id} style={{
-                  background: 'white',
-                  borderRadius: '20px',
-                  border: isPopular ? '2px solid #1E88FF' : '1px solid #e2e8f0',
-                  boxShadow: isPopular ? '0 10px 30px rgba(30,136,255,0.12)' : '0 4px 12px rgba(0,0,0,0.02)',
-                  padding: '36px 30px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  position: 'relative',
-                  transform: isPopular ? 'scale(1.02)' : 'none',
-                  transition: 'all 0.25s',
-                  zIndex: isPopular ? 2 : 1
-                }} className="pricing-card">
-                  {isPopular && (
-                    <span style={{
-                      position: 'absolute',
-                      top: '-14px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      background: 'linear-gradient(135deg, #1E88FF 0%, #0D47A1 100%)',
-                      color: 'white',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      padding: '4px 16px',
-                      borderRadius: '20px',
-                      boxShadow: '0 4px 10px rgba(30,136,255,0.2)',
-                      letterSpacing: '1px',
-                      textTransform: 'uppercase'
-                    }}>★ Most Popular</span>
-                  )}
-
-                  {/* Header info */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{
-                      width: '42px',
-                      height: '42px',
-                      borderRadius: '10px',
-                      background: isPopular ? 'rgba(30,136,255,0.08)' : 'rgba(0,0,0,0.03)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      {getCardIcon(plan.name)}
+        ) : (() => {
+          const filteredPlans = dbPlans.filter((p: any) => p.productType === activePlanTab);
+          return (
+            <>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                flexWrap: 'wrap',
+                gap: '24px',
+                marginTop: '12px',
+                alignItems: 'stretch'
+              }}>
+                {filteredPlans.map(plan => (
+                  <div
+                    key={plan.name}
+                    className={`pricing-card${plan.popular ? ' popular' : ''}`}
+                    style={{ flex: '1 1 300px', maxWidth: '360px', minWidth: '260px' }}
+                  >
+                    {plan.popular && <div className="popular-badge">Most Popular</div>}
+                    <div className="pricing-tag">{plan.tag}</div>
+                    <div className="pricing-name">{plan.name}</div>
+                    <div className="pricing-amount">
+                      <span className="pricing-currency">₹</span>
+                      <span className="pricing-price">{Number(plan.price).toLocaleString()}</span>
+                      <span className="pricing-per">/ {plan.per}</span>
                     </div>
-                    <div>
-                      <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>{plan.name.split(' ')[0]}</h3>
-                      <p style={{ fontSize: '12px', color: '#64748b' }}>{getSubtext(plan.name)}</p>
-                    </div>
+                    <ul className="pricing-features">
+                      {plan.features.map((f: string) => (
+                        <li key={f} className="pricing-feature-item">
+                          <div className="check-icon"><Check size={11} /></div>
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <Link href={`/login?redirect=purchase&planId=${plan.id}`} style={{ display: 'block' }}>
+                      <button style={{
+                        width: '100%', padding: '13px', borderRadius: 99, fontWeight: 700,
+                        fontSize: 14, cursor: 'pointer', transition: 'all 0.3s',
+                        background: plan.popular ? 'linear-gradient(135deg, #1252AB, #1E88FF)' : 'white',
+                        color: plan.popular ? 'white' : '#334155',
+                        boxShadow: plan.popular ? '0 6px 20px rgba(18,82,171,0.25)' : 'none',
+                        border: plan.popular ? 'none' : '1.5px solid #e2e8f0',
+                      }}>
+                        Get Started →
+                      </button>
+                    </Link>
                   </div>
+                ))}
+              </div>
 
-                  {/* Price */}
-                  <div style={{ margin: '24px 0 28px' }}>
-                    <span style={{ fontSize: '32px', fontWeight: 900, color: '#0f172a' }}>₹{Number(plan.price).toLocaleString('en-IN')}</span>
-                    <span style={{ fontSize: '13px', color: '#64748b' }}> / {plan.durationDays} Days</span>
-                  </div>
-
-                  {/* Features checklist */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, marginBottom: '32px' }}>
-                    {premiumFeatures.map((feat, index) => {
-                      const isBoldBlue = feat.includes("Auto Trade (1 Strategy)");
-                      return (
-                        <div key={index} style={{
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: '10px',
-                          fontSize: '13px',
-                          color: isBoldBlue ? '#1E88FF' : '#334155',
-                          fontWeight: isBoldBlue ? 700 : 500
-                        }}>
-                          <Check size={16} color={isPopular ? "#1E88FF" : "#16a34a"} style={{ marginTop: 2, flexShrink: 0 }} />
-                          <span>
-                            {feat}
-                            {feat.includes("[NEW]") && (
-                              <span style={{ marginLeft: '6px', fontSize: '9px', fontWeight: 800, background: '#8b5cf6', color: 'white', padding: '1px 5px', borderRadius: '4px' }}>NEW</span>
-                            )}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Button */}
-                  <Link href={`/login?redirect=purchase&planId=${plan.id}`} style={{
-                    textDecoration: 'none',
-                    textAlign: 'center',
-                    fontWeight: 700,
-                    fontSize: '14px',
-                    padding: '12px 20px',
-                    borderRadius: '8px',
-                    border: isPopular ? 'none' : '1.5px solid #cbd5e1',
-                    background: isPopular ? 'linear-gradient(135deg, #1E88FF 0%, #0D47A1 100%)' : 'white',
-                    color: isPopular ? 'white' : '#475569',
-                    boxShadow: isPopular ? '0 6px 15px rgba(30,136,255,0.2)' : 'none',
-                    transition: 'all 0.2s',
-                  }}>Get Started</Link>
-                </div>
-              );
-            })}
-          </div>
-        )}
+            </>
+          );
+        })()}
       </section>
 
-      {/* Trust Grid Panel */}
-      <section className="pricing-trust-section" style={{
-        background: '#ffffff',
-        borderTop: '1px solid #e2e8f0',
-        borderBottom: '1px solid #e2e8f0',
-        padding: '60px 24px'
-      }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '30px'
-        }} className="trust-grid">
-          {[
-            { icon: <ShieldCheck size={26} color="#1E88FF" />, title: "7-Day Money Back", desc: "Not satisfied? Get a full refund within 7 days." },
-            { icon: <Award size={26} color="#22c55e" />, title: "No Hidden Charges", desc: "Transparent pricing. No extra hidden cost." },
-            { icon: <Cpu size={26} color="#8b5cf6" />, title: "Upgrade Anytime", desc: "Change or upgrade your plan anytime dynamically." },
-            { icon: <RefreshCw size={26} color="#f59e0b" />, title: "Pause or Cancel", desc: "Pause or cancel your plan whenever you want." },
-            { icon: <Users size={26} color="#0f172a" />, title: "Priority Support", desc: "Dedicated support for all registered members." }
-          ].map((item, i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ marginBottom: '4px' }}>{item.icon}</div>
-              <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{item.title}</h4>
-              <p style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5 }}>{item.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
 
-      {/* CTA: View Yearly Plans Promo */}
-      <section className="pricing-cta-section" style={{
-        padding: '50px 24px',
-        background: '#f8fafc',
-        textAlign: 'center'
-      }}>
-        <div style={{
-          maxWidth: '750px',
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          background: 'white',
-          border: '1px solid #e2e8f0',
-          borderRadius: '16px',
-          padding: '24px 32px',
-          flexWrap: 'wrap',
-          gap: '20px'
-        }} className="promo-bar">
-          <div style={{ textAlign: 'left' }} className="text-center">
-            <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>Save More with Yearly Plans</h4>
-            <p style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>Get up to 20% OFF on all yearly subscription structures.</p>
-          </div>
-          <button
-            onClick={() => setBillingPeriod('yearly')}
-            style={{
-              border: 'none',
-              background: '#1E88FF',
-              color: 'white',
-              fontWeight: 700,
-              fontSize: '13px',
-              padding: '10px 22px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            View Yearly Plans <ArrowRight size={14} />
-          </button>
-        </div>
-      </section>
+
+
 
       {/* Styled Grid Adaptations */}
       <style dangerouslySetInnerHTML={{ __html: `
@@ -647,7 +472,363 @@ export default function PricingPage() {
       ` }} />
 
       {/* Footer component */}
+      {/* Footer component */}
       <Footer />
+
+      {/* Consultation Modal */}
+      {showConsultationModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.5)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }} onClick={() => setShowConsultationModal(false)}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '24px',
+            width: '100%',
+            maxWidth: '480px',
+            boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
+            border: '1px solid rgba(226, 232, 240, 0.8)',
+            padding: '32px',
+            position: 'relative',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '24px',
+            animation: 'faqFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+          }} onClick={(e) => e.stopPropagation()}>
+            
+            {/* Close Button */}
+            <button 
+              onClick={() => setShowConsultationModal(false)}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: '#f1f5f9',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#64748b',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#0f172a'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#64748b'; }}
+            >
+              <X size={16} />
+            </button>
+
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginTop: '8px' }}>
+              <h3 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', margin: 0 }}>Get Free Consultation!</h3>
+              <p style={{ fontSize: '13px', color: '#64748b', marginTop: '6px', marginBottom: 0 }}>Transform your trading experience with our automated strategies.</p>
+            </div>
+
+            {/* Features (Checks) */}
+            <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+                <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyItems: 'center', color: '#10b981', flexShrink: 0, justifyContent: 'center' }}>
+                  <Check size={11} strokeWidth={3} />
+                </div>
+                Free Project Analysis
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+                <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyItems: 'center', color: '#10b981', flexShrink: 0, justifyContent: 'center' }}>
+                  <Check size={11} strokeWidth={3} />
+                </div>
+                24/7 Expert Support
+              </div>
+            </div>
+
+            {submitSuccess ? (
+              <div style={{ 
+                background: 'rgba(16, 185, 129, 0.08)', 
+                border: '1px solid rgba(16, 185, 129, 0.2)', 
+                borderRadius: '12px', 
+                padding: '24px', 
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                alignItems: 'center'
+              }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#10b981', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' }}>
+                  <Check size={24} strokeWidth={3} />
+                </div>
+                <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#065f46', margin: 0 }}>Request Submitted!</h4>
+                <p style={{ fontSize: '13px', color: '#047857', margin: 0 }}>Our team will reach out to you shortly.</p>
+                <button 
+                  onClick={() => setSubmitSuccess(false)}
+                  style={{
+                    marginTop: '16px',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    background: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    fontWeight: 600,
+                    fontSize: '12px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Submit Another
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleConsultationSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {submitError && (
+                  <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#b91c1c', borderRadius: '8px', padding: '10px 12px', fontSize: '13px' }}>
+                    {submitError}
+                  </div>
+                )}
+
+                {/* Name */}
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', display: 'flex', alignItems: 'center' }}>
+                    <User size={16} />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Your Name"
+                    value={consultationName}
+                    onChange={(e) => setConsultationName(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px 12px 44px',
+                      borderRadius: '12px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      color: '#0f172a',
+                      background: '#f8fafc',
+                      outline: 'none',
+                      transition: 'all 0.2s'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.border = '1px solid #1E88FF'; e.currentTarget.style.background = '#ffffff'; }}
+                    onBlur={(e) => { e.currentTarget.style.border = '1px solid #e2e8f0'; e.currentTarget.style.background = '#f8fafc'; }}
+                  />
+                </div>
+
+                {/* Email */}
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', display: 'flex', alignItems: 'center' }}>
+                    <Mail size={16} />
+                  </div>
+                  <input
+                    type="email"
+                    required
+                    placeholder="Your Email"
+                    value={consultationEmail}
+                    onChange={(e) => setConsultationEmail(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px 12px 44px',
+                      borderRadius: '12px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      color: '#0f172a',
+                      background: '#f8fafc',
+                      outline: 'none',
+                      transition: 'all 0.2s'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.border = '1px solid #1E88FF'; e.currentTarget.style.background = '#ffffff'; }}
+                    onBlur={(e) => { e.currentTarget.style.border = '1px solid #e2e8f0'; e.currentTarget.style.background = '#f8fafc'; }}
+                  />
+                </div>
+
+                {/* Mobile */}
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', display: 'flex', alignItems: 'center' }}>
+                    <Phone size={16} />
+                  </div>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="Your Mobile"
+                    value={consultationPhone}
+                    onChange={(e) => setConsultationPhone(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px 12px 44px',
+                      borderRadius: '12px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      color: '#0f172a',
+                      background: '#f8fafc',
+                      outline: 'none',
+                      transition: 'all 0.2s'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.border = '1px solid #1E88FF'; e.currentTarget.style.background = '#ffffff'; }}
+                    onBlur={(e) => { e.currentTarget.style.border = '1px solid #e2e8f0'; e.currentTarget.style.background = '#f8fafc'; }}
+                  />
+                </div>
+
+
+
+                {/* Enquiry Type Dropdown */}
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                    <HelpCircle size={16} />
+                  </div>
+                  <select
+                    value={consultationEnquiry}
+                    onChange={(e) => setConsultationEnquiry(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px 12px 44px',
+                      borderRadius: '12px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      color: '#0f172a',
+                      background: '#f8fafc',
+                      outline: 'none',
+                      appearance: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      fontFamily: 'inherit'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.border = '1px solid #1E88FF'; e.currentTarget.style.background = '#ffffff'; }}
+                    onBlur={(e) => { e.currentTarget.style.border = '1px solid #e2e8f0'; e.currentTarget.style.background = '#f8fafc'; }}
+                  >
+                    <option value="Scanner">Scanner</option>
+                    <option value="Algo Trading">Algo Trading</option>
+                  </select>
+                  {/* Custom dropdown arrow */}
+                  <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                  </div>
+                </div>
+
+                {/* Message */}
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '16px', top: '16px', color: '#94a3b8', display: 'flex', alignItems: 'center' }}>
+                    <MessageSquare size={16} />
+                  </div>
+                  <textarea
+                    placeholder="Your Message"
+                    value={consultationMessage}
+                    onChange={(e) => setConsultationMessage(e.target.value)}
+                    rows={3}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px 12px 44px',
+                      borderRadius: '12px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      color: '#0f172a',
+                      background: '#f8fafc',
+                      outline: 'none',
+                      resize: 'none',
+                      transition: 'all 0.2s',
+                      fontFamily: 'inherit'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.border = '1px solid #1E88FF'; e.currentTarget.style.background = '#ffffff'; }}
+                    onBlur={(e) => { e.currentTarget.style.border = '1px solid #e2e8f0'; e.currentTarget.style.background = '#f8fafc'; }}
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  style={{
+                    background: '#1E88FF',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '12px',
+                    padding: '14px',
+                    fontSize: '14px',
+                    fontWeight: 700,
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 14px rgba(30, 136, 255, 0.3)',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => { if (!isSubmitting) { e.currentTarget.style.background = '#0A53BE'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(10, 83, 190, 0.4)'; } }}
+                  onMouseLeave={(e) => { if (!isSubmitting) { e.currentTarget.style.background = '#1E88FF'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(30, 136, 255, 0.3)'; } }}
+                >
+                  {isSubmitting ? 'Submitting...' : 'Get Free Consultation'} <ArrowRight size={16} />
+                </button>
+              </form>
+            )}
+
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#e2e8f0' }}>
+              <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+              <span style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>Or connect directly</span>
+              <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+            </div>
+
+            {/* Quick Contact Actions */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <a 
+                href={`tel:${supportPhone.replace(/[\s\(\)\-+]/g, '')}`} 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: '1.5px solid #e2e8f0',
+                  background: '#ffffff',
+                  color: '#0f172a',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  textDecoration: 'none',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#0f172a'; e.currentTarget.style.background = '#f8fafc'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = '#ffffff'; }}
+              >
+                <Phone size={14} /> Call Now
+              </a>
+              <a 
+                href={`https://wa.me/${supportWhatsapp.replace(/[\s\(\)\-+]/g, '')}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: '1.5px solid #e2e8f0',
+                  background: '#ffffff',
+                  color: '#0f172a',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  textDecoration: 'none',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.color = '#10b981'; e.currentTarget.style.background = '#f0fdf4'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#0f172a'; e.currentTarget.style.background = '#ffffff'; }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.963C16.59 2.016 14.12 1.01 11.516 1.01c-5.44 0-9.866 4.372-9.87 9.802 0 1.689.451 3.337 1.309 4.793L1.99 21.019l5.656-1.865zm10.985-7.79c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg> WhatsApp
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

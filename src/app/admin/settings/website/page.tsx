@@ -4,11 +4,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '../../../../shared/components/views/Card';
 import { Button } from '../../../../shared/components/views/Button';
 import RichTextEditor from '../../../../shared/components/views/RichTextEditor';
-import { RefreshCw, CheckCircle2, AlertTriangle, Plus, Trash2, Image, Globe, FileText, Upload, LifeBuoy } from 'lucide-react';
+import { RefreshCw, CheckCircle2, AlertTriangle, Plus, Trash2, Image, Globe, FileText, Upload, LifeBuoy, Share2 } from 'lucide-react';
 import { api } from '../../../../shared/services/api';
 import { API_ENDPOINTS } from '../../../../core/constants';
 
-type TabType = 'branding' | 'support' | 'website' | 'legal';
+type TabType = 'branding' | 'support' | 'website' | 'social' | 'legal';
 
 export default function WebsiteSettingsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('branding');
@@ -22,6 +22,7 @@ export default function WebsiteSettingsPage() {
   // Support contact info
   const [supportEmail, setSupportEmail] = useState('support@growffiy.com');
   const [supportPhone, setSupportPhone] = useState('+91 98765 43210');
+  const [supportWhatsapp, setSupportWhatsapp] = useState('+91 902666305');
   const [supportTimings, setSupportTimings] = useState('Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)');
   const [supportAddress, setSupportAddress] = useState('Mumbai, India');
 
@@ -35,6 +36,13 @@ export default function WebsiteSettingsPage() {
   const [footerDisclaimer, setFooterDisclaimer] = useState('Algorithmic trading involves substantial financial risk. Growffiy is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.');
   const [footerBottomTagline, setFooterBottomTagline] = useState('Designed for NSE/BSE Intraday Algo Traders');
   const [googleAnalyticsId, setGoogleAnalyticsId] = useState('');
+
+  // Social Links
+  const [socialTelegram, setSocialTelegram] = useState('');
+  const [socialYoutube, setSocialYoutube] = useState('');
+  const [socialTwitter, setSocialTwitter] = useState('');
+  const [socialInstagram, setSocialInstagram] = useState('');
+  const [socialFacebook, setSocialFacebook] = useState('');
 
   // Legal Pages
   const [legalActivePage, setLegalActivePage] = useState<'privacy' | 'terms' | 'refund' | 'disclaimer' | 'about' | 'faq'>('privacy');
@@ -69,6 +77,7 @@ export default function WebsiteSettingsPage() {
           setAppLogo(res.settings.app_logo || '');
           setSupportEmail(res.settings.support_email || 'support@growffiy.com');
           setSupportPhone(res.settings.support_phone || '+91 98765 43210');
+          setSupportWhatsapp(res.settings.support_whatsapp || '+91 902666305');
           setSupportTimings(res.settings.support_timings || 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)');
           setSupportAddress(res.settings.support_address || 'Mumbai, India');
           setHeroTitle(res.settings.hero_title || 'Automate Your<br /><span class="text-gradient">Stock Market</span><br />Trades Smarter');
@@ -80,6 +89,11 @@ export default function WebsiteSettingsPage() {
           setFooterDisclaimer(res.settings.footer_disclaimer || 'Algorithmic trading involves substantial financial risk. Growffiy is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.');
           setFooterBottomTagline(res.settings.footer_bottom_tagline || 'Designed for NSE/BSE Intraday Algo Traders');
           setGoogleAnalyticsId(res.settings.google_analytics_id || '');
+          setSocialTelegram(res.settings.social_telegram || '');
+          setSocialYoutube(res.settings.social_youtube || '');
+          setSocialTwitter(res.settings.social_twitter || '');
+          setSocialInstagram(res.settings.social_instagram || '');
+          setSocialFacebook(res.settings.social_facebook || '');
           setLegalPrivacyContent(res.settings.legal_privacy_content || '');
           setLegalTermsContent(res.settings.legal_terms_content || '');
           setLegalRefundContent(res.settings.legal_refund_content || '');
@@ -117,6 +131,7 @@ export default function WebsiteSettingsPage() {
         app_logo: appLogo,
         support_email: supportEmail,
         support_phone: supportPhone,
+        support_whatsapp: supportWhatsapp,
         support_timings: supportTimings,
         support_address: supportAddress,
         hero_title: heroTitle,
@@ -128,6 +143,11 @@ export default function WebsiteSettingsPage() {
         footer_disclaimer: footerDisclaimer,
         footer_bottom_tagline: footerBottomTagline,
         google_analytics_id: googleAnalyticsId,
+        social_telegram: socialTelegram,
+        social_youtube: socialYoutube,
+        social_twitter: socialTwitter,
+        social_instagram: socialInstagram,
+        social_facebook: socialFacebook,
         legal_privacy_content: legalPrivacyContent,
         legal_terms_content: legalTermsContent,
         legal_refund_content: legalRefundContent,
@@ -146,6 +166,11 @@ export default function WebsiteSettingsPage() {
         localStorage.setItem('growffiy_support_email', supportEmail);
         localStorage.setItem('growffiy_support_phone', supportPhone);
         localStorage.setItem('growffiy_support_address', supportAddress);
+        localStorage.setItem('growffiy_social_telegram', socialTelegram);
+        localStorage.setItem('growffiy_social_youtube', socialYoutube);
+        localStorage.setItem('growffiy_social_twitter', socialTwitter);
+        localStorage.setItem('growffiy_social_instagram', socialInstagram);
+        localStorage.setItem('growffiy_social_facebook', socialFacebook);
         window.dispatchEvent(new Event('branding-updated'));
 
         setNotification({ type: 'success', message: 'Settings saved and applied successfully!' });
@@ -283,6 +308,17 @@ export default function WebsiteSettingsPage() {
           Website & SEO
         </button>
 
+        <button type="button" onClick={() => setActiveTab('social')} style={{
+          display: 'flex', alignItems: 'center', gap: '6px', border: 'none',
+          background: activeTab === 'social' ? 'var(--bg-white)' : 'transparent',
+          color: activeTab === 'social' ? 'var(--text-heading)' : 'var(--text-muted)',
+          padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: activeTab === 'social' ? 700 : 600, cursor: 'pointer',
+          boxShadow: activeTab === 'social' ? 'var(--shadow-sm)' : 'none',
+        }}>
+          <Share2 size={15} />
+          Social Links
+        </button>
+
         <button type="button" onClick={() => setActiveTab('legal')} style={{
           display: 'flex', alignItems: 'center', gap: '6px', border: 'none',
           background: activeTab === 'legal' ? 'var(--bg-white)' : 'transparent',
@@ -357,6 +393,11 @@ export default function WebsiteSettingsPage() {
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Support Phone Number</label>
                 <input type="text" value={supportPhone} onChange={(e) => setSupportPhone(e.target.value)}
+                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Support WhatsApp Number</label>
+                <input type="text" value={supportWhatsapp} onChange={(e) => setSupportWhatsapp(e.target.value)}
                   style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
               </div>
               <div>
@@ -436,9 +477,61 @@ export default function WebsiteSettingsPage() {
                 <input type="text" placeholder="Designed for Algo Traders" value={footerBottomTagline} onChange={(e) => setFooterBottomTagline(e.target.value)}
                   style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
               </div>
-              <div>
+              <div style={{ marginTop: '10px' }}>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Google Analytics Measurement ID</label>
                 <input type="text" placeholder="G-XXXXXXXXXX" value={googleAnalyticsId} onChange={(e) => setGoogleAnalyticsId(e.target.value)}
+                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '20px', marginTop: '24px' }}>
+              <Button type="submit" disabled={saving} style={{
+                padding: '10px 28px', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px',
+                background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)', color: 'white', boxShadow: 'var(--shadow-blue)'
+              }}>
+                {saving ? <RefreshCw size={14} className="animate-spin" /> : null}
+                {saving ? 'Saving...' : 'Save & Apply Settings'}
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Social Links Tab */}
+        {activeTab === 'social' && (
+          <Card style={{ padding: '24px 28px' }}>
+            <div style={{ marginBottom: '24px', borderBottom: '1px solid var(--border-light)', paddingBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
+                Social Media Links
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Configure URLs for your official social media pages. These will be linked directly to the social icons in the footer.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Telegram Channel/Group Link</label>
+                <input type="text" placeholder="https://t.me/yourchannel" value={socialTelegram} onChange={(e) => setSocialTelegram(e.target.value)}
+                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>YouTube Channel Link</label>
+                <input type="text" placeholder="https://youtube.com/@yourchannel" value={socialYoutube} onChange={(e) => setSocialYoutube(e.target.value)}
+                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Twitter / X Link</label>
+                <input type="text" placeholder="https://x.com/yourhandle" value={socialTwitter} onChange={(e) => setSocialTwitter(e.target.value)}
+                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Instagram Profile Link</label>
+                <input type="text" placeholder="https://instagram.com/yourhandle" value={socialInstagram} onChange={(e) => setSocialInstagram(e.target.value)}
+                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Facebook Page Link</label>
+                <input type="text" placeholder="https://facebook.com/yourpage" value={socialFacebook} onChange={(e) => setSocialFacebook(e.target.value)}
                   style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
               </div>
             </div>
