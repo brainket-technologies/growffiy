@@ -711,6 +711,9 @@ export class TradingScheduler {
 
                     if (!trade.targetOrderId || trade.targetOrderId === '') {
                       try {
+                        // Add 2-second delay to let Zerodha process the SL order before sending Target order
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+
                         const targetParams = {
                           exchange: exchangeParam, tradingsymbol: trade.symbol,
                           transaction_type: isShortTrade ? 'BUY' as const : 'SELL' as const, quantity: Number(trade.quantity),
