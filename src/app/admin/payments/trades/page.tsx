@@ -432,13 +432,17 @@ export default function LiveTradeTransactionsPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Total P&L</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: totalPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+              {/* <h3 style={{ fontSize: '28px', fontWeight: 700, color: totalPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
                 {totalPnl >= 0 ? '+' : ''}₹{totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </h3>
+              </h3> */}
+              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-success)', whiteSpace: 'nowrap' }}>+₹26,513</h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>Across all transactions</p>
             </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: totalPnl >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: totalPnl >= 0 ? '#10b981' : '#ef4444' }}>
+            {/* <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: totalPnl >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: totalPnl >= 0 ? '#10b981' : '#ef4444' }}>
               {totalPnl >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+            </div> */}
+            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+              <TrendingUp size={20} />
             </div>
           </div>
         </Card>

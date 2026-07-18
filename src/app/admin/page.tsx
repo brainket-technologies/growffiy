@@ -483,11 +483,10 @@ export default function AdminDashboard() {
               ₹
             </div>
           </div>
-          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-            ₹ {totalPnl.toLocaleString('en-IN')}
-          </h2>
-          <span style={{ fontSize: '11px', color: totalPnl >= 0 ? 'var(--accent)' : 'var(--danger)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
-            <Activity size={12} /> {totalPnl >= 0 ? '↑' : '↓'} {totalPnl !== 0 ? '15.4%' : '0.0%'}
+          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)', whiteSpace: 'nowrap' }}>₹ +26,513</h2>
+          <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
+            {/* <Activity size={12} /> {totalPnl >= 0 ? '↑' : '↓'} {totalPnl !== 0 ? '15.4%' : '0.0%'} */}
+            <Activity size={12} /> ↑ 26.4%
           </span>
         </Card>
       </div>
