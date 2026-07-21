@@ -26,6 +26,7 @@ import {
   Globe,
   BarChart3,
   MessageSquare,
+  PlusCircle,
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { useAppViewModel } from '../../viewmodels/AppContext';
@@ -115,6 +116,13 @@ const userGroups: MenuGroup[] = [
     ],
   },
   {
+    label: 'Strategy',
+    items: [
+      { name: 'Strategy', path: '/clients/strategy', icon: TrendingUp },
+      { name: 'Add Strategy', path: '/clients/strategy/add', icon: PlusCircle },
+    ],
+  },
+  {
     label: 'Account',
     items: [
       { name: 'Subscription Plans', path: '/clients/subscription', icon: CreditCard },
@@ -139,6 +147,10 @@ const isPathActive = (itemPath: string | undefined, currentPath: string) => {
   // to prevent it from highlighting both child items and the parent tab at the same time if they are links.
   if (itemPath.endsWith('/reports') || itemPath.endsWith('/payments')) {
     return currentPath === itemPath;
+  }
+  // /clients/strategy is a parent of /clients/strategy/add — only match exactly
+  if (itemPath === '/clients/strategy') {
+    return currentPath === '/clients/strategy';
   }
   // /admin/settings is a parent of /admin/settings/website — only match exactly
   if (itemPath === '/admin/settings') {
@@ -565,14 +577,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true, staffPermissio
         const isAlgoProduct = productTypeName.includes('algo');
 
         if (!isAlgoProduct) {
-          // Remove Trading group items (Live Trade, Report) for non-algo products
+          // Remove Trading and Strategy group items for non-algo products
           filteredGroups = rawGroups.map((group) => ({
             ...group,
-            items: group.label === 'Trading'
+            items: (group.label === 'Trading' || group.label === 'Strategy')
               ? []
               : group.items.filter((item) => {
                 if (item.name === 'Live Trade') return false;
                 if (item.name === 'Report') return false;
+                if (item.name === 'Strategy') return false;
+                if (item.name === 'Add Strategy') return false;
                 return true;
               })
           })).filter((group) => group.items.length > 0);

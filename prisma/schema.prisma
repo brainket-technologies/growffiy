@@ -49,29 +49,30 @@ model Client {
   panNumber          String?              @map("pan_number")
   productTypeId      String?              @map("product_type_id")
   addedByStaffId     String?              @map("added_by_staff_id")
+  addedByStaff       Staff?               @relation(fields: [addedByStaffId], references: [id])
   productType        ProductType?         @relation(fields: [productTypeId], references: [id])
   strategy           Strategy?            @relation(fields: [strategyId], references: [id])
   user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  addedByStaff       Staff?               @relation(fields: [addedByStaffId], references: [id])
   assignments        StrategyAssignment[]
   trades             Trade[]
+  demoStrategies     DemoStrategy[]
 
   @@map("clients")
 }
 
 model Staff {
-  id          String             @id @default(uuid())
+  id          String            @id @default(uuid())
   name        String
-  email       String             @unique
+  email       String            @unique
   mobile      String?
-  userId      String             @unique @map("user_id")
+  userId      String            @unique @map("user_id")
   password    String
-  status      String             @default("active")
-  adminId     String             @map("admin_id")
-  createdAt   DateTime           @default(now()) @map("created_at")
-  updatedAt   DateTime           @updatedAt @map("updated_at")
-  permissions StaffPermission[]
+  status      String            @default("active")
+  adminId     String            @map("admin_id")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
   clients     Client[]
+  permissions StaffPermission[]
 
   @@map("staff")
 }
@@ -80,30 +81,33 @@ model StaffPermission {
   id         String  @id @default(uuid())
   staffId    String  @map("staff_id")
   module     String
-  permission String  // e.g. 'view', 'edit', 'create', 'export', 'add', 'delete', etc.
+  permission String
   granted    Boolean @default(false)
-
-  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staff      Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@unique([staffId, module, permission])
   @@map("staff_permissions")
 }
 
+// ============================================================
+// ✅  REAL / PRODUCTION TABLE — Admin Strategy Templates
+// This table (strategies) stores admin-configured strategies.
+// ============================================================
 model Strategy {
-  id          String               @id @default(uuid())
-  name        String
-  description String?
-  status      String               @default("active")
-  configJson  String?              @map("config_json")
-  createdAt   DateTime             @default(now()) @map("created_at")
-  updatedAt   DateTime             @updatedAt @map("updated_at")
-  clients     Client[]
-  assignments StrategyAssignment[]
-  backtests   StrategyBacktest[]
-  conditions  StrategyCondition[]
-  preselections StrategyPreselect[]
-  logs        StrategyLog[]
-  trades      Trade[]
+  id            String               @id @default(uuid())
+  name          String
+  description   String?
+  status        String               @default("active")
+  configJson    String?              @map("config_json")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+  clients       Client[]
+  assignments   StrategyAssignment[]
+  backtests     StrategyBacktest[]
+  conditions    StrategyCondition[]
+  logs          StrategyLog[]
+  preselections StrategyPreselect?
+  trades        Trade[]
 
   @@map("strategies")
 }
@@ -325,9 +329,9 @@ model StrategyBacktest {
 
 model HistoricalPreOpen {
   id        String   @id @default(uuid())
-  date      String   // e.g., "13 Jul 2026"
+  date      String
   symbol    String
-  data      Json     // Store the entire StockQuote JSON
+  data      Json
   createdAt DateTime @default(now()) @map("created_at")
 
   @@unique([date, symbol])
@@ -336,13 +340,13 @@ model HistoricalPreOpen {
 
 model HistoricalOhlc {
   id        String   @id @default(uuid())
-  date      String   // Format: "YYYY-MM-DD"
-  time      String   // "09:20", "09:30", "09:45", "12:00"
+  date      String
+  time      String
   symbol    String
   open      Float
   high      Float
   low       Float
-  close     Float    // Current LTP at that specific snapshot time
+  close     Float
   createdAt DateTime @default(now()) @map("created_at")
 
   @@unique([date, time, symbol])
@@ -359,4 +363,25 @@ model Enquiry {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("enquiries")
+}
+
+// ============================================================
+// ⚠️  STATIC / DEMO TABLE — NOT CONNECTED TO TRADING ENGINE
+// This table (demo_stttgry) stores client-side demo strategies.
+// It has NO connection to any live trading, algo engine, or
+// order execution system. AI must NOT use this table for
+// any trading logic, broker calls, or financial transactions.
+// ============================================================
+model DemoStrategy {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  status      String   @default("active")
+  configJson  String?  @map("config_json")
+  clientId    String   @map("client_id")
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("demo_stttgry")
 }

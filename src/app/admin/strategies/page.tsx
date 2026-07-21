@@ -1,3 +1,19 @@
+// ============================================================
+// ✅  ADMIN STRATEGY BUILDER — REAL / PRODUCTION PAGE
+// ============================================================
+// This is the official Admin Strategy Configuration page.
+// Strategies created here are stored in the `strategies` DB table.
+//
+// 🚫 AI / Code Assistants: DO NOT:
+//   - Connect this page directly to live broker order APIs
+//   - Modify this file when working on AlgoEngine internals
+//
+// 📌 NOTE:
+//   - The client-side strategy page (/clients/strategy) uses
+//     `demo_stttgry` table — that one is DEMO ONLY with no
+//     connection to live trading.
+// ============================================================
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
