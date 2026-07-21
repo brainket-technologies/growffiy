@@ -12,7 +12,7 @@ import { getLatestOrderState } from '../utils/kiteHelper';
 export interface EngineAccess {
   todayTokenRefreshed: Set<string>;
   getAlgoSetting(key: string, defaultValue: string): Promise<string>;
-  getPreOpenStocks(): Promise<StockQuote[]>;
+  getPreOpenStocks(forceFetch?: boolean): Promise<StockQuote[]>;
   preSelectAllClients(strategyId?: string): Promise<void>;
   executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyId?: string, legIndex?: number, dualLegGroupId?: string | null): Promise<void>;
 }
@@ -67,10 +67,10 @@ export class TradingScheduler {
         cachedFetchTime = await this.engine.getAlgoSetting('algo_preopen_fetch_time', '09:08');
 
         if (currentTimeStr === cachedFetchTime && lastFetchedDate !== currentDateKey) {
-          console.log(`AlgoEngine Scheduler: Pre-open fetch time ${cachedFetchTime} reached. Fetching NSE pre-open data...`);
+          console.log(`AlgoEngine Scheduler: Pre-open fetch time ${cachedFetchTime} reached. Fetching fresh NSE pre-open data...`);
           lastFetchedDate = currentDateKey;
           dailyDualLegGroupId.clear();
-          await this.engine.getPreOpenStocks();
+          await this.engine.getPreOpenStocks(true);
         }
 
         const autoTradeEnabled = await this.engine.getAlgoSetting('auto_trade_enabled', 'true');
@@ -971,7 +971,7 @@ export class TradingScheduler {
             where: {
               dualLegGroupId: { not: null },
               createdAt: { gte: today },
-              status: { in: ['pending', 'open'] }
+              status: { in: ['pending', 'open', 'closed'] }
             },
             include: { client: { include: { user: true } } }
           });
@@ -984,9 +984,9 @@ export class TradingScheduler {
           }
 
           for (const [gId, trades] of groups) {
-            const filled = trades.filter(t => t.status === 'open' && (t.entryOrderStatus === 'filled' || t.entryOrderStatus === 'COMPLETE'));
+            const filled = trades.filter(t => (t.status === 'open' || t.status === 'closed') && (t.entryOrderStatus === 'filled' || t.entryOrderStatus === 'COMPLETE'));
             const filledIds = new Set(filled.map(t => t.id));
-            const losers = trades.filter(t => !filledIds.has(t.id));
+            const losers = trades.filter(t => t.status !== 'closed' && t.status !== 'cancelled' && !filledIds.has(t.id));
 
             if (filled.length > 0 && losers.length > 0) {
               for (const loser of losers) {

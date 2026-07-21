@@ -90,7 +90,7 @@ class AlgoEngineService {
       {
         todayTokenRefreshed: this.todayTokenRefreshed,
         getAlgoSetting: (key, defaultValue) => this.getAlgoSetting(key, defaultValue),
-        getPreOpenStocks: () => this.getPreOpenStocks(),
+        getPreOpenStocks: (forceFetch) => this.getPreOpenStocks(forceFetch),
         preSelectAllClients: (strategyId) => this.preSelectAllClients(strategyId),
         executePreOpenTrades: (adminId, mockStocks, strategyId, legIndex, dualLegGroupId) => this.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId),
       },
@@ -415,7 +415,8 @@ class AlgoEngineService {
         continue;
       }
 
-      const sortedStocks = [...matchingStocks].sort((a, b) => a.changePercent - b.changePercent);
+      const getPreOpenPct = (s: any) => s.preOpenChangePercent !== undefined ? s.preOpenChangePercent : (s.prevClose ? ((s.iep - s.prevClose) / s.prevClose) * 100 : s.changePercent);
+      const sortedStocks = [...matchingStocks].sort((a, b) => getPreOpenPct(a) - getPreOpenPct(b));
 
       if (sortedStocks.length < selectPosition) {
         console.log(`AlgoEngine preSelect: Only ${sortedStocks.length} stocks, cannot pick #${selectPosition} for strategy ${strategy.name}.`);
@@ -621,8 +622,9 @@ class AlgoEngineService {
               return;
             }
 
+            const getPreOpenPct = (s: any) => s.preOpenChangePercent !== undefined ? s.preOpenChangePercent : (s.prevClose ? ((s.iep - s.prevClose) / s.prevClose) * 100 : s.changePercent);
             const sortedStocks = [...matchingStocks].sort((a, b) =>
-              action === 'Long' ? a.changePercent - b.changePercent : b.changePercent - a.changePercent
+              action === 'Long' ? getPreOpenPct(a) - getPreOpenPct(b) : getPreOpenPct(b) - getPreOpenPct(a)
             );
 
             if (sortedStocks.length < selectPosition) {
@@ -663,7 +665,6 @@ class AlgoEngineService {
 
           try {
             // Check if ANY trade was placed today for this client+strategy+leg (regardless of symbol)
-            // This prevents re-trade after server restart where in-memory lastEntryByStrategy is cleared
             const existingTrade = await prisma.trade.findFirst({
               where: {
                 clientId: client.id,
@@ -675,6 +676,23 @@ class AlgoEngineService {
             if (existingTrade) {
               console.log(`AlgoEngine: Trade already exists today for strategy leg "${currentLeg.name}" (${client.user.name}) — symbol: ${existingTrade.symbol}. Skipping duplicate.`);
               return;
+            }
+
+            // OCO Rule: Check if ANY other leg in this dualLegGroupId has already filled/completed today
+            if (finalDualLegGroupId) {
+              const existingOcoFilled = await prisma.trade.findFirst({
+                where: {
+                  clientId: client.id,
+                  strategyId: strategy.id,
+                  dualLegGroupId: finalDualLegGroupId,
+                  entryOrderStatus: { in: ['filled', 'COMPLETE'] },
+                  createdAt: { gte: todayStart }
+                }
+              });
+              if (existingOcoFilled) {
+                console.log(`AlgoEngine: OCO Group ${finalDualLegGroupId} already has a filled leg (${existingOcoFilled.legName}). Skipping Leg ${currentLegIdx + 1} (${currentLeg.name}).`);
+                return;
+              }
             }
 
             // MOVED HERE from before lock: conditions check (prevents duplicate FAILED trades)
@@ -1556,6 +1574,7 @@ class AlgoEngineService {
 
           return {
             symbol, name, ltp, open, high, low, prevClose, volume, change, changePercent,
+            preOpenChangePercent: changePercent,
             iep, final: ltp, finalQuantity: volume, value, ffmCap,
             nm52wH: nseItem.metadata.yearHigh || parseFloat((prevClose * 1.25).toFixed(2)),
             nm52wL: nseItem.metadata.yearLow || parseFloat((prevClose * 0.75).toFixed(2)),
@@ -1637,7 +1656,7 @@ class AlgoEngineService {
     return this.fetchLivePreOpenFromNSE();
   }
 
-  public async getPreOpenStocks(): Promise<StockQuote[]> {
+  public async getPreOpenStocks(forceFetch = false): Promise<StockQuote[]> {
     const todayDateStr = new Date().toLocaleDateString('en-GB', {
       day: '2-digit', month: 'short', year: 'numeric'
     });
@@ -1645,8 +1664,8 @@ class AlgoEngineService {
     const isCacheExpired = this.preOpenCacheDate !== todayDateStr;
     const canRefetch = Date.now() - this.lastPreOpenFetchTime > 5 * 60 * 1000;
 
-    if (this.preOpenCache.length === 0 || (isCacheExpired && canRefetch)) {
-      console.log(`AlgoEngine: Pre-open cache empty or expired for today. Fetching fresh NSE pre-open data...`);
+    if (forceFetch || this.preOpenCache.length === 0 || (isCacheExpired && canRefetch)) {
+      console.log(`AlgoEngine: Fetching fresh official NSE pre-open data (forceFetch=${forceFetch})...`);
       await this.fetchLivePreOpenFromNSE();
     }
     return this.preOpenCache;
