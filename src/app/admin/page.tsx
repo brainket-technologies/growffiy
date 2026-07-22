@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAppViewModel } from '../../shared/viewmodels/AppContext';
 import { Card } from '../../shared/components/views/Card';
 import { Button } from '../../shared/components/views/Button';
@@ -219,8 +219,62 @@ export default function AdminDashboard() {
   const realizedPnl = stats?.realizedPnl || 0;
   const openPositionsCount = stats?.openTrades || 0;
 
-  const pnlHistoryData = stats?.pnlHistoryData || [0, 0];
-  const pnlHistoryLabels = stats?.pnlHistoryLabels || ['Start', 'Today'];
+  // Dynamic P&L History calculation based on selected pnlPeriod (Daily, Weekly, Monthly, Yearly, Cumulative)
+  const { pnlHistoryData, pnlHistoryLabels } = useMemo(() => {
+    const closedList = trades
+      .filter(t => t.status && t.status.toLowerCase() !== 'open')
+      .sort((a, b) => new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime());
+
+    if (closedList.length === 0) {
+      return {
+        pnlHistoryData: stats?.pnlHistoryData || [0, 0],
+        pnlHistoryLabels: stats?.pnlHistoryLabels || ['Start', 'Today']
+      };
+    }
+
+    if (pnlPeriod === 'Cumulative') {
+      let runSum = 0;
+      const data: number[] = [0];
+      const labels: string[] = ['Start'];
+      closedList.forEach(t => {
+        runSum += Number(t.pnl || 0);
+        data.push(runSum);
+        const d = new Date(t.createdAt);
+        labels.push(d.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
+      });
+      return { pnlHistoryData: data, pnlHistoryLabels: labels };
+    }
+
+    // Grouping by Period
+    const map = new Map<string, number>();
+    closedList.forEach(t => {
+      const d = new Date(t.createdAt);
+      let key = '';
+      if (pnlPeriod === 'Weekly') {
+        const firstDayOfYear = new Date(d.getFullYear(), 0, 1);
+        const pastDaysOfYear = (d.getTime() - firstDayOfYear.getTime()) / 86400000;
+        const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+        key = `W${weekNum} '${String(d.getFullYear()).slice(2)}`;
+      } else if (pnlPeriod === 'Monthly') {
+        key = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      } else if (pnlPeriod === 'Yearly') {
+        key = String(d.getFullYear());
+      } else {
+        // Daily
+        key = d.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
+      }
+      map.set(key, (map.get(key) || 0) + Number(t.pnl || 0));
+    });
+
+    const labels = Array.from(map.keys());
+    const data = Array.from(map.values());
+
+    if (data.length === 1) {
+      return { pnlHistoryData: [0, data[0]], pnlHistoryLabels: ['Start', labels[0]] };
+    }
+
+    return { pnlHistoryData: data, pnlHistoryLabels: labels };
+  }, [trades, pnlPeriod, stats]);
 
   const dateRangeStr = `${startDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}`;
 
@@ -523,6 +577,9 @@ export default function AdminDashboard() {
               }}
             >
               <option value="Daily">Daily</option>
+              <option value="Weekly">Weekly</option>
+              <option value="Monthly">Monthly</option>
+              <option value="Yearly">Yearly</option>
               <option value="Cumulative">Cumulative</option>
             </select>
           </div>

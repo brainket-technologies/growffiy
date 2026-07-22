@@ -25,7 +25,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
   const valueRange = maxVal - minVal;
 
   const pointsCount = data.length;
-  const paddingLeft = 40;
+  const paddingLeft = 52;
   const paddingRight = 20;
   const paddingTop = 20;
   const paddingBottom = 32;
@@ -180,19 +180,26 @@ const ChartRenderer: React.FC<RendererProps> = ({
         />
       ))}
 
-      {/* X Axis Labels */}
-      {labels.map((label, idx) => (
-        <text
-          key={idx}
-          x={getX(idx)}
-          y={height - paddingBottom / 2 + 2}
-          fontSize="10"
-          fill="var(--text-muted, #94a3b8)"
-          textAnchor="middle"
-        >
-          {label}
-        </text>
-      ))}
+      {/* X Axis Labels (Sampled to prevent overlapping when many data points exist) */}
+      {(() => {
+        const maxLabels = 7;
+        const step = pointsCount > maxLabels ? Math.ceil(pointsCount / (maxLabels - 1)) : 1;
+        return labels.map((label, idx) => {
+          if (idx !== 0 && idx !== pointsCount - 1 && idx % step !== 0) return null;
+          return (
+            <text
+              key={idx}
+              x={getX(idx)}
+              y={height - paddingBottom / 2 + 4}
+              fontSize="10"
+              fill="var(--text-muted, #94a3b8)"
+              textAnchor="middle"
+            >
+              {label}
+            </text>
+          );
+        });
+      })()}
     </g>
   );
 };
