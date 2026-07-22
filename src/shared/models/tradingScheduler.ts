@@ -486,7 +486,7 @@ export class TradingScheduler {
               let slAvgPrice = 0;
               let targetAvgPrice = 0;
 
-              if (trade.slOrderId) {
+              if (trade.slOrderId && trade.slOrderId !== 'REJECTED') {
                 try {
                   const slStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.slOrderId);
                   const slData = getLatestOrderState(slStatus?.data);
@@ -504,7 +504,7 @@ export class TradingScheduler {
                 } catch (e) { console.warn(`AlgoEngine Monitor: SL order status check failed for ${trade.symbol}:`, e); }
               }
 
-              if (trade.targetOrderId) {
+              if (trade.targetOrderId && trade.targetOrderId !== 'REJECTED') {
                 try {
                   const tgtStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.targetOrderId);
                   const tgtData = getLatestOrderState(tgtStatus?.data);
@@ -681,7 +681,7 @@ export class TradingScheduler {
                   }
 
                   if (client.zerodhaApiKey && client.accessToken) {
-                    if (!trade.slOrderId || trade.slOrderId === '') {
+                    if (!trade.slOrderId || trade.slOrderId === '' || trade.slOrderId === 'REJECTED') {
                       try {
                         const slParams = {
                           exchange: exchangeParam, tradingsymbol: trade.symbol,
@@ -709,7 +709,7 @@ export class TradingScheduler {
                       } catch (slErr) { console.warn(`AlgoEngine Monitor: SL placement failed for ${trade.symbol}:`, slErr); }
                     }
 
-                    if (!trade.targetOrderId || trade.targetOrderId === '') {
+                    if (!trade.targetOrderId || trade.targetOrderId === '' || trade.targetOrderId === 'REJECTED') {
                       try {
                         // Add 2-second delay to let Zerodha process the SL order before sending Target order
                         await new Promise(resolve => setTimeout(resolve, 2000));

@@ -402,21 +402,17 @@ class AlgoEngineService {
         continue;
       }
 
-      const filteredStocks: any[] = [];
-      for (const stock of matchingStocks) {
-        if (await this.matchesConditions(stock, config.conditions, null)) {
-          filteredStocks.push(stock);
-        }
-      }
-      matchingStocks = filteredStocks;
 
-      if (matchingStocks.length === 0) {
-        console.log(`AlgoEngine preSelect: No stocks passed conditions for strategy ${strategy.name}.`);
-        continue;
-      }
+
+      const explicitType = config.basicInfo?.stockSelectionType;
+      const isShortTrade = explicitType
+        ? explicitType.includes('Gapdown') || explicitType.includes('Losers')
+        : ((config.legs || []).some((l: any) => ['Short', 'Sell'].includes(l.tradeAction?.action)) || strategy.name.toLowerCase().includes('gapdown') || strategy.name.toLowerCase().includes('short'));
 
       const getPreOpenPct = (s: any) => s.preOpenChangePercent !== undefined ? s.preOpenChangePercent : (s.prevClose ? ((s.iep - s.prevClose) / s.prevClose) * 100 : s.changePercent);
-      const sortedStocks = [...matchingStocks].sort((a, b) => getPreOpenPct(a) - getPreOpenPct(b));
+      const sortedStocks = [...matchingStocks].sort((a, b) =>
+        isShortTrade ? getPreOpenPct(a) - getPreOpenPct(b) : getPreOpenPct(b) - getPreOpenPct(a)
+      );
 
       if (sortedStocks.length < selectPosition) {
         console.log(`AlgoEngine preSelect: Only ${sortedStocks.length} stocks, cannot pick #${selectPosition} for strategy ${strategy.name}.`);
@@ -609,22 +605,11 @@ class AlgoEngineService {
               return true;
             });
 
-            const filteredStocks: any[] = [];
-            for (const stock of matchingStocks) {
-              if (await this.matchesConditions(stock, config.conditions, client)) {
-                filteredStocks.push(stock);
-              }
-            }
-            matchingStocks = filteredStocks;
 
-            if (matchingStocks.length === 0) {
-              console.log(`AlgoEngine: No F&O stocks matched strategy conditions for client ${client.user.name}.`);
-              return;
-            }
 
             const getPreOpenPct = (s: any) => s.preOpenChangePercent !== undefined ? s.preOpenChangePercent : (s.prevClose ? ((s.iep - s.prevClose) / s.prevClose) * 100 : s.changePercent);
             const sortedStocks = [...matchingStocks].sort((a, b) =>
-              action === 'Long' ? getPreOpenPct(a) - getPreOpenPct(b) : getPreOpenPct(b) - getPreOpenPct(a)
+              isShortTrade ? getPreOpenPct(a) - getPreOpenPct(b) : getPreOpenPct(b) - getPreOpenPct(a)
             );
 
             if (sortedStocks.length < selectPosition) {

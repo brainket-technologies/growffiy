@@ -83,6 +83,7 @@ interface StrategyConfig {
     exitTime: string;
     maxTradesPerDay: number;
     selectPosition: number;
+    stockSelectionType?: 'Gapdown (Losers)' | 'Gapup (Gainers)';
     checkIntervalSec: number;
     status: 'active' | 'inactive';
   };
@@ -1563,6 +1564,20 @@ export default function StrategiesPage() {
                   {/* TRADE SELECTION */}
                   <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '16px' }}>
                     <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>TRADE SELECTION</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Selection Type</label>
+                      <select
+                        value={formData.basicInfo.stockSelectionType || 'Gapdown (Losers)'}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          basicInfo: { ...formData.basicInfo, stockSelectionType: e.target.value as any }
+                        })}
+                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                      >
+                        <option value="Gapdown (Losers)">Top Gapdown (Losers)</option>
+                        <option value="Gapup (Gainers)">Top Gapup (Gainers)</option>
+                      </select>
+                    </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
                       <label style={{ fontSize: '12px', fontWeight: 600 }}>Select Position</label>
                       <select
