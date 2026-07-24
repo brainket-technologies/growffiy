@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Bell, ChevronDown, Lock, UserCheck, LogOut, X, RefreshCw, Sun, Moon, Menu } from 'lucide-react';
 import styles from './Header.module.css';
 import { api } from '../../services/api';
@@ -18,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   userName = 'Firoz Mohammad',
   userRole = 'Administrator',
 }) => {
+  const router = useRouter();
   const { isTradingActive } = useAppViewModel();
   const [autoTradeEnabled, setAutoTradeEnabled] = useState(true);
   const [tradingDays, setTradingDays] = useState<string[]>([]);
@@ -66,12 +68,26 @@ export const Header: React.FC<HeaderProps> = ({
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
+  const [showClientProfile, setShowClientProfile] = useState<boolean>(true);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('growffiy_theme');
       const prefersDark = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
       setIsDark(prefersDark);
+
+      const storedProf = localStorage.getItem('growffiy_show_client_profile');
+      if (storedProf !== null) setShowClientProfile(storedProf !== 'false');
     }
+
+    const handleUpdate = () => {
+      if (typeof window !== 'undefined') {
+        const storedProf = localStorage.getItem('growffiy_show_client_profile');
+        if (storedProf !== null) setShowClientProfile(storedProf !== 'false');
+      }
+    };
+    window.addEventListener('branding-updated', handleUpdate);
+    return () => window.removeEventListener('branding-updated', handleUpdate);
   }, []);
 
   const toggleTheme = (dark: boolean) => {
@@ -267,9 +283,21 @@ export const Header: React.FC<HeaderProps> = ({
 
             {dropdownOpen && (
               <div className={styles.dropdown}>
-                <button className={styles.dropdownItem} onClick={() => { setDropdownOpen(false); setProfileModalOpen(true); }}>
-                  <UserCheck size={14} /> Update Profile
-                </button>
+                {(userRole !== 'Client Account' || showClientProfile) && (
+                  <button 
+                    className={styles.dropdownItem} 
+                    onClick={() => { 
+                      setDropdownOpen(false); 
+                      if (userRole === 'Client Account' || typeof window !== 'undefined' && localStorage.getItem('growffiy_logged_in_user_role') === 'client') {
+                        router.push('/clients/profile');
+                      } else {
+                        setProfileModalOpen(true);
+                      }
+                    }}
+                  >
+                    <UserCheck size={14} /> Update Profile
+                  </button>
+                )}
                 <button className={styles.dropdownItem} onClick={() => { setDropdownOpen(false); setPasswordModalOpen(true); }}>
                   <Lock size={14} /> Change Password
                 </button>

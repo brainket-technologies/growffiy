@@ -113,6 +113,7 @@ const userGroups: MenuGroup[] = [
     items: [
       { name: 'Live Trade', path: '/clients/trades', icon: TrendingUp },
       { name: 'Report', path: '/clients/reports', icon: BarChart3 },
+      { name: 'Performance', path: '/clients/performance', icon: Activity },
     ],
   },
   {
@@ -399,15 +400,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true, staffPermissio
   const [brandLogo, setBrandLogo] = useState('');
   const [brandName, setBrandName] = useState('');
   const [brandTitle, setBrandTitle] = useState('');
+  const [showClientStrategy, setShowClientStrategy] = useState(true);
+  const [showClientProfile, setShowClientProfile] = useState(true);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const storedLogo = localStorage.getItem('growffiy_brand_logo');
     const storedName = localStorage.getItem('growffiy_brand_name');
     const storedTitle = localStorage.getItem('growffiy_brand_title');
+    const storedStrat = localStorage.getItem('growffiy_show_client_strategy');
+    const storedProf = localStorage.getItem('growffiy_show_client_profile');
     if (storedLogo) setBrandLogo(storedLogo);
     if (storedName) setBrandName(storedName);
     if (storedTitle) { setBrandTitle(storedTitle); document.title = storedTitle; }
+    if (storedStrat !== null) setShowClientStrategy(storedStrat !== 'false');
+    if (storedProf !== null) setShowClientProfile(storedProf !== 'false');
 
     const fetchBranding = async () => {
       try {
@@ -420,18 +427,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true, staffPermissio
           const keywords = res.settings.meta_keywords || '';
           const gaId = res.settings.google_analytics_id || '';
           const footerText = res.settings.footer_text || '';
+          const stratToggle = res.settings.show_client_strategy ?? 'true';
+          const profToggle = res.settings.show_client_profile ?? 'true';
+          const zerodhaToggle = res.settings.show_zerodha_connect ?? 'true';
+
           setBrandLogo(logo); setBrandName(name); setBrandTitle(title);
+          setShowClientStrategy(stratToggle !== 'false');
+          setShowClientProfile(profToggle !== 'false');
           document.title = title;
-          const metaDesc = document.querySelector('meta[name="description"]');
-          if (metaDesc) metaDesc.setAttribute('content', desc);
-          const metaKw = document.querySelector('meta[name="keywords"]');
-          if (metaKw) metaKw.setAttribute('content', keywords);
+
           localStorage.setItem('growffiy_brand_logo', logo);
           localStorage.setItem('growffiy_brand_name', name);
           localStorage.setItem('growffiy_brand_title', title);
           localStorage.setItem('growffiy_meta_description', desc);
           localStorage.setItem('growffiy_meta_keywords', keywords);
           localStorage.setItem('growffiy_footer_text', footerText);
+          localStorage.setItem('growffiy_show_client_strategy', stratToggle);
+          localStorage.setItem('growffiy_show_client_profile', profToggle);
+          localStorage.setItem('growffiy_show_zerodha_connect', zerodhaToggle);
           injectGA(gaId);
         }
       } catch { }
@@ -605,6 +618,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true, staffPermissio
             return false;
           })
         })).filter((group) => group.items.length > 0);
+      }
+
+      // Apply Admin Feature Toggles for Client Portal
+      if (!isAdmin) {
+        filteredGroups = filteredGroups.map((group) => {
+          if (group.label === 'Strategy' && !showClientStrategy) {
+            return { ...group, items: [] };
+          }
+          return {
+            ...group,
+            items: group.items.filter((item) => {
+              if (item.name === 'Profile' && !showClientProfile) return false;
+              if ((item.name === 'Strategy' || item.name === 'Add Strategy') && !showClientStrategy) return false;
+              return true;
+            })
+          };
+        }).filter((group) => group.items.length > 0);
       }
     }
 

@@ -25,8 +25,8 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
   const valueRange = maxVal - minVal;
 
   const pointsCount = data.length;
-  const paddingLeft = 52;
-  const paddingRight = 20;
+  const paddingLeft = 55;
+  const paddingRight = 45;
   const paddingTop = 20;
   const paddingBottom = 32;
 

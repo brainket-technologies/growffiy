@@ -10,10 +10,15 @@ import { Modal } from '../../../shared/components/views/Modal';
 import { API_ENDPOINTS } from '../../../core/constants';
 
 
-type TabType = 'payments' | 'smtp' | 'support' | 'algo' | 'calendar' | 'branding' | 'website' | 'legal';
+type TabType = 'payments' | 'smtp' | 'support' | 'algo' | 'calendar' | 'client_portal' | 'branding' | 'website' | 'legal';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('payments');
+
+  // Client Portal Feature Toggles
+  const [showZerodhaConnect, setShowZerodhaConnect] = useState('true');
+  const [showClientProfile, setShowClientProfile] = useState('true');
+  const [showClientStrategy, setShowClientStrategy] = useState('true');
 
   // Razorpay
   const [razorpayTestKeyId, setRazorpayTestKeyId] = useState('');
@@ -143,6 +148,9 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
           setAlgoTokenRefreshTime(res.settings.algo_token_refresh_time || '08:00');
           setMasterZerodhaApiKey(res.settings.master_zerodha_api_key || '');
           setMasterZerodhaApiSecret(res.settings.master_zerodha_api_secret || '');
+          setShowZerodhaConnect(res.settings.show_zerodha_connect ?? 'true');
+          setShowClientProfile(res.settings.show_client_profile ?? 'true');
+          setShowClientStrategy(res.settings.show_client_strategy ?? 'true');
           setGoogleSheetUrl(res.settings.google_sheet_url || '');
           setGoogleCredentialsJson(res.settings.google_credentials_json || '');
 
@@ -216,6 +224,9 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
         algo_token_refresh_time: algoTokenRefreshTime,
         master_zerodha_api_key: masterZerodhaApiKey,
         master_zerodha_api_secret: masterZerodhaApiSecret,
+        show_zerodha_connect: showZerodhaConnect,
+        show_client_profile: showClientProfile,
+        show_client_strategy: showClientStrategy,
         google_sheet_url: googleSheetUrl,
         google_credentials_json: googleCredentialsJson,
         auto_trade_enabled: autoTradeEnabled ? 'true' : 'false',
@@ -279,6 +290,44 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleToggleFeature = async (feature: 'zerodha' | 'profile' | 'strategy', nextVal: string) => {
+    let newZerodha = showZerodhaConnect;
+    let newProfile = showClientProfile;
+    let newStrategy = showClientStrategy;
+
+    if (feature === 'zerodha') {
+      setShowZerodhaConnect(nextVal);
+      newZerodha = nextVal;
+    } else if (feature === 'profile') {
+      setShowClientProfile(nextVal);
+      newProfile = nextVal;
+    } else if (feature === 'strategy') {
+      setShowClientStrategy(nextVal);
+      newStrategy = nextVal;
+    }
+
+    try {
+      const res = await api.put(API_ENDPOINTS.SETTINGS, {
+        show_zerodha_connect: newZerodha,
+        show_client_profile: newProfile,
+        show_client_strategy: newStrategy,
+      });
+      if (res.success) {
+        localStorage.setItem('growffiy_show_zerodha_connect', newZerodha);
+        localStorage.setItem('growffiy_show_client_profile', newProfile);
+        localStorage.setItem('growffiy_show_client_strategy', newStrategy);
+        window.dispatchEvent(new Event('branding-updated'));
+        setNotification({
+          type: 'success',
+          message: 'Setting updated and saved instantly!'
+        });
+        setTimeout(() => setNotification(null), 2500);
+      }
+    } catch (err: any) {
+      console.error('Error auto-saving toggle feature:', err);
     }
   };
 
@@ -481,10 +530,194 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
           <Calendar size={15} />
           Market Calendar
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('client_portal')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            border: 'none',
+            background: activeTab === 'client_portal' ? 'var(--bg-white)' : 'transparent',
+            color: activeTab === 'client_portal' ? 'var(--text-heading)' : 'var(--text-muted)',
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: activeTab === 'client_portal' ? 700 : 600,
+            cursor: 'pointer',
+            boxShadow: activeTab === 'client_portal' ? 'var(--shadow-sm)' : 'none',
+          }}
+        >
+          <ToggleRight size={15} />
+          Client Portal Controls
+        </button>
       </div>
 
 
       <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        
+        {/* Client Portal Controls Tab */}
+        {activeTab === 'client_portal' && (
+          <Card style={{ padding: '28px', borderRadius: '16px' }}>
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Shield size={20} style={{ color: 'var(--primary)' }} /> Client Portal Feature Controls
+              </h3>
+              <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Enable or disable specific features, cards, and navigation options on the Client Portal in real-time. Changes are permanently stored in Neon PostgreSQL database.
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+              
+              {/* 1. Zerodha Connect Toggle */}
+              <div style={{
+                padding: '20px',
+                borderRadius: '12px',
+                border: '1px solid var(--border-light)',
+                background: 'var(--surface)',
+                display: 'flex',
+                flexDirection: 'column',
+                justify: 'space-between',
+                gap: '16px'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)' }}>
+                      1. Zerodha Demat Connect
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleFeature('zerodha', showZerodhaConnect === 'true' ? 'false' : 'true')}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s ease',
+                        backgroundColor: showZerodhaConnect === 'true' ? '#10b981' : '#ef4444',
+                        color: '#ffffff',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      {showZerodhaConnect === 'true' ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+                      {showZerodhaConnect === 'true' ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    Controls whether clients can see and connect/disconnect their Zerodha Kite Demat account from the client portal.
+                  </p>
+                </div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: showZerodhaConnect === 'true' ? '#10b981' : '#ef4444' }}>
+                  {showZerodhaConnect === 'true' ? '✓ Visible on Client Panel' : '✕ Hidden from Client Panel'}
+                </div>
+              </div>
+
+              {/* 2. Client Profile Toggle */}
+              <div style={{
+                padding: '20px',
+                borderRadius: '12px',
+                border: '1px solid var(--border-light)',
+                background: 'var(--surface)',
+                display: 'flex',
+                flexDirection: 'column',
+                justify: 'space-between',
+                gap: '16px'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)' }}>
+                      2. Client Profile Settings
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleFeature('profile', showClientProfile === 'true' ? 'false' : 'true')}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s ease',
+                        backgroundColor: showClientProfile === 'true' ? '#10b981' : '#ef4444',
+                        color: '#ffffff',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      {showClientProfile === 'true' ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+                      {showClientProfile === 'true' ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    Controls whether the Profile page link and account profile settings are visible in the Client Portal.
+                  </p>
+                </div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: showClientProfile === 'true' ? '#10b981' : '#ef4444' }}>
+                  {showClientProfile === 'true' ? '✓ Visible on Client Panel' : '✕ Hidden from Client Panel'}
+                </div>
+              </div>
+
+              {/* 3. Client Strategy Toggle */}
+              <div style={{
+                padding: '20px',
+                borderRadius: '12px',
+                border: '1px solid var(--border-light)',
+                background: 'var(--surface)',
+                display: 'flex',
+                flexDirection: 'column',
+                justify: 'space-between',
+                gap: '16px'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)' }}>
+                      3. Client Strategy Builder
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleFeature('strategy', showClientStrategy === 'true' ? 'false' : 'true')}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s ease',
+                        backgroundColor: showClientStrategy === 'true' ? '#10b981' : '#ef4444',
+                        color: '#ffffff',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      {showClientStrategy === 'true' ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+                      {showClientStrategy === 'true' ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    Controls whether the Strategy menu group (Strategy & Add Strategy) is visible in the client sidebar navigation.
+                  </p>
+                </div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: showClientStrategy === 'true' ? '#10b981' : '#ef4444' }}>
+                  {showClientStrategy === 'true' ? '✓ Visible on Client Panel' : '✕ Hidden from Client Panel'}
+                </div>
+              </div>
+
+            </div>
+          </Card>
+        )}
         
         {/* Payments View Tab */}
         {activeTab === 'payments' && (

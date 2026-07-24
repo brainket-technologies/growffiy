@@ -557,3 +557,155 @@
     width: 180px;
   }
 }
+
+/* ============================================================
+   LIGHT MODE SIDEBAR — Deep Blue Background & Clean White Text
+   (Applies across Admin, Staff, and Client panels in Light Mode)
+   ============================================================ */
+:global(html:not([data-theme="dark"])) .sidebar,
+:global(html[data-theme="light"]) .sidebar {
+  background: linear-gradient(180deg, #104193 0%, #0c3374 100%) !important;
+  color: #ffffff !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+:global(html:not([data-theme="dark"])) .brandText,
+:global(html[data-theme="light"]) .brandText {
+  background: linear-gradient(to right, #ffffff, #93c5fd) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+:global(html:not([data-theme="dark"])) .searchIcon,
+:global(html[data-theme="light"]) .searchIcon {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+:global(html:not([data-theme="dark"])) .searchInput,
+:global(html[data-theme="light"]) .searchInput {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+}
+
+:global(html:not([data-theme="dark"])) .searchInput::placeholder,
+:global(html[data-theme="light"]) .searchInput::placeholder {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+:global(html:not([data-theme="dark"])) .searchInput:focus,
+:global(html[data-theme="light"]) .searchInput:focus {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2) !important;
+}
+
+:global(html:not([data-theme="dark"])) .groupLabel,
+:global(html[data-theme="light"]) .groupLabel {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+:global(html:not([data-theme="dark"])) .menuItem,
+:global(html[data-theme="light"]) .menuItem {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+:global(html:not([data-theme="dark"])) .menuItem:hover,
+:global(html[data-theme="light"]) .menuItem:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+:global(html:not([data-theme="dark"])) .menuItemActive,
+:global(html[data-theme="light"]) .menuItemActive {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.22) !important;
+  font-weight: 700 !important;
+}
+
+:global(html:not([data-theme="dark"])) .menuItemActive::before,
+:global(html[data-theme="light"]) .menuItemActive::before {
+  background: #ffffff !important;
+}
+
+:global(html:not([data-theme="dark"])) .subItem,
+:global(html[data-theme="light"]) .subItem {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+:global(html:not([data-theme="dark"])) .subItem:hover,
+:global(html[data-theme="light"]) .subItem:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+:global(html:not([data-theme="dark"])) .subItemActive,
+:global(html[data-theme="light"]) .subItemActive {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+:global(html:not([data-theme="dark"])) .subItemDot,
+:global(html[data-theme="light"]) .subItemDot {
+  background: rgba(255, 255, 255, 0.4) !important;
+}
+
+:global(html:not([data-theme="dark"])) .subItemActive .subItemDot,
+:global(html[data-theme="light"]) .subItemActive .subItemDot {
+  background: #ffffff !important;
+}
+
+:global(html:not([data-theme="dark"])) .footer,
+:global(html[data-theme="light"]) .footer {
+  background: transparent !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+:global(html:not([data-theme="dark"])) .profileName,
+:global(html[data-theme="light"]) .profileName {
+  color: #ffffff !important;
+}
+
+:global(html:not([data-theme="dark"])) .profileEmail,
+:global(html[data-theme="light"]) .profileEmail {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+:global(html:not([data-theme="dark"])) .logoutBtn,
+:global(html[data-theme="light"]) .logoutBtn {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+:global(html:not([data-theme="dark"])) .logoutBtn:hover,
+:global(html[data-theme="light"]) .logoutBtn:hover {
+  background: rgba(239, 68, 68, 0.3) !important;
+  color: #ffffff !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+}
+
+:global(html:not([data-theme="dark"])) .collapseBtn,
+:global(html[data-theme="light"]) .collapseBtn {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+:global(html:not([data-theme="dark"])) .collapseBtn:hover,
+:global(html[data-theme="light"]) .collapseBtn:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+:global(html:not([data-theme="dark"])) .collapsed .collapseBtn,
+:global(html[data-theme="light"]) .collapsed .collapseBtn {
+  background: #104193 !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  color: #ffffff !important;
+}
+
+:global(html:not([data-theme="dark"])) .toggleBtn,
+:global(html[data-theme="light"]) .toggleBtn {
+  background: #104193 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}

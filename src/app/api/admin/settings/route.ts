@@ -174,6 +174,9 @@ export async function GET() {
     settings['google_credentials_json'] = '';
     settings['master_zerodha_api_key'] = '';
     settings['master_zerodha_api_secret'] = '';
+    settings['show_zerodha_connect'] = 'true';
+    settings['show_client_profile'] = 'true';
+    settings['show_client_strategy'] = 'true';
     settings['social_telegram'] = 'https://t.me/growffiy';
     settings['social_youtube'] = 'https://youtube.com/@growffiy';
     settings['social_twitter'] = 'https://x.com/growffiy';
@@ -295,6 +298,9 @@ export async function PUT(request: Request) {
       hero_subtitle,
       master_zerodha_api_key,
       master_zerodha_api_secret,
+      show_zerodha_connect,
+      show_client_profile,
+      show_client_strategy,
       social_telegram,
       social_youtube,
       social_twitter,
@@ -309,6 +315,9 @@ export async function PUT(request: Request) {
       razorpay_live_key_secret,
       master_zerodha_api_key,
       master_zerodha_api_secret,
+      show_zerodha_connect,
+      show_client_profile,
+      show_client_strategy,
       razorpay_mode,
       smtp_host,
       smtp_port,

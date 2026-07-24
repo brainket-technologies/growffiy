@@ -62,15 +62,33 @@ export const Header: React.FC<HeaderProps> = ({
     }
   }, [profileModalOpen, userName]);
 
+  const [showClientProfile, setShowClientProfile] = useState<boolean>(true);
+
   // Click outside to close dropdown
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedProf = localStorage.getItem('growffiy_show_client_profile');
+      if (storedProf !== null) setShowClientProfile(storedProf !== 'false');
+    }
+
+    const handleUpdate = () => {
+      if (typeof window !== 'undefined') {
+        const storedProf = localStorage.getItem('growffiy_show_client_profile');
+        if (storedProf !== null) setShowClientProfile(storedProf !== 'false');
+      }
+    };
+    window.addEventListener('branding-updated', handleUpdate);
+
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      window.removeEventListener('branding-updated', handleUpdate);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -252,32 +270,38 @@ export const Header: React.FC<HeaderProps> = ({
                 flexDirection: 'column',
                 gap: '2px'
               }}>
-                <button
-                  onClick={() => {
-                    setDropdownOpen(false);
-                    setProfileModalOpen(true);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    width: '100%',
-                    padding: '10px 12px',
-                    background: 'none',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 500,
-                    color: 'var(--text-body)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  <UserCheck size={14} /> Update Profile
-                </button>
+                {(!isClient || showClientProfile) && (
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      if (isClient) {
+                        router.push('/clients/profile');
+                      } else {
+                        setProfileModalOpen(true);
+                      }
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      width: '100%',
+                      padding: '10px 12px',
+                      background: 'none',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      color: 'var(--text-body)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    <UserCheck size={14} /> Update Profile
+                  </button>
+                )}
 
                 <button
                   onClick={() => {

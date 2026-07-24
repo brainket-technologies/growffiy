@@ -238,6 +238,25 @@ export default function ClientStrategyPage({ initialViewMode = 'list' }: ClientS
   };
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('growffiy_show_client_strategy');
+      if (stored === 'false') {
+        router.push('/clients');
+        return;
+      }
+    }
+    const checkSetting = async () => {
+      try {
+        const res = await fetch(API_ENDPOINTS.SETTINGS).then(r => r.json());
+        if (res.success && res.settings && res.settings.show_client_strategy === 'false') {
+          router.push('/clients');
+        }
+      } catch {}
+    };
+    checkSetting();
+  }, [router]);
+
+  useEffect(() => {
     if (activeUser?.id) {
       loadStrategies();
     } else {

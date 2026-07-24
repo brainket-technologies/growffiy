@@ -69,18 +69,13 @@ export default function ClientTradesPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '100%', overflowX: 'hidden' }}>
       <style>{`
-        @media (max-width: 1024px) {
-          .clients-trades-filters { flex-wrap: wrap !important; }
-          .clients-trades-filters > div:first-child { flex: 1 1 100% !important; }
-          .pagination-container { flex-direction: column !important; gap: 12px !important; align-items: flex-start !important; }
+        @media (max-width: 768px) {
+          .clients-trades-filters { grid-template-columns: 1fr 1fr !important; }
         }
         @media (max-width: 640px) {
           .clients-trades-stats { grid-template-columns: 1fr 1fr !important; }
           .clients-trades-stats .card-value { font-size: 22px !important; }
-          .clients-trades-filters { flex-direction: column !important; align-items: stretch !important; gap: 8px !important; padding: 12px !important; }
-          .clients-trades-filters > div:first-child { flex: 1 1 auto !important; }
-          .clients-trades-filters select, .clients-trades-filters input[type="date"] { width: 100% !important; min-width: unset !important; }
-          .clients-trades-filters > div:first-child input { width: 100% !important; }
+          .clients-trades-filters { grid-template-columns: 1fr !important; }
           .table-responsive table thead th:nth-child(2), .table-responsive table tbody td:nth-child(2),
           .table-responsive table thead th:nth-child(5), .table-responsive table tbody td:nth-child(5),
           .table-responsive table thead th:nth-child(6), .table-responsive table tbody td:nth-child(6) { display: none; }
@@ -94,10 +89,6 @@ export default function ClientTradesPage() {
         @media (max-width: 480px) {
           .clients-trades-stats { grid-template-columns: 1fr !important; }
           .clients-trades-stats .card-value { font-size: 20px !important; }
-          .clients-trades-filters { padding: 8px !important; gap: 6px !important; }
-          .clients-trades-filters select { min-width: unset !important; font-size: 12px !important; padding: 6px 8px !important; }
-          .clients-trades-filters > div:first-child input { font-size: 12px !important; padding: 6px 8px 6px 32px !important; }
-          .clients-trades-filters > div:first-child { flex: 1 1 100% !important; }
           .table-responsive table { font-size: 11px !important; }
           .table-responsive table th, .table-responsive table td { padding: 4px 3px !important; }
           .pagination-info { font-size: 12px !important; }
@@ -138,52 +129,61 @@ export default function ClientTradesPage() {
           </h3>
         </div>
 
-        <div className="clients-trades-filters" style={{ display: 'flex', gap: '12px', marginBottom: '24px', alignItems: 'center', flexWrap: 'wrap', background: 'var(--bg-secondary)', padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
-          <div style={{ position: 'relative', flex: '4 1 500px' }}>
+        {/* Filters arranged in a single clean horizontal line */}
+        <div className="clients-trades-filters" style={{ 
+          display: 'flex', 
+          gap: '12px', 
+          marginBottom: '24px', 
+          alignItems: 'center', 
+          flexWrap: 'nowrap',
+          overflowX: 'auto',
+          background: 'var(--bg-secondary)', 
+          padding: '12px 16px', 
+          borderRadius: '12px', 
+          border: '1px solid var(--border-light)' 
+        }}>
+          <div style={{ position: 'relative', flex: '2 1 240px', minWidth: '180px' }}>
             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input type="text" placeholder="Search by symbol..." value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
               style={{ width: '100%', padding: '8px 12px 8px 36px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px', backgroundColor: 'var(--bg-white)', color: 'var(--text-primary)' }} />
           </div>
+
           <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px', background: '#ffffff', cursor: 'pointer', minWidth: '120px' }}>
+            style={{ flex: '1 1 130px', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px', background: '#ffffff', cursor: 'pointer' }}>
             <option value="all">All Statuses</option>
             <option value="open">Open</option>
             <option value="closed">Closed</option>
             <option value="cancelled">Cancelled</option>
           </select>
-          <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setCurrentPage(1); }}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px', background: '#ffffff', cursor: 'pointer', minWidth: '100px' }}>
-            <option value="all">All Types</option>
-            <option value="buy">Buy</option>
-            <option value="sell">Sell</option>
-          </select>
+
           <select value={dateFilter} onChange={e => { setDateFilter(e.target.value); setCurrentPage(1); }}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px', background: '#ffffff', cursor: 'pointer', minWidth: '120px' }}>
+            style={{ flex: '1 1 130px', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px', background: '#ffffff', cursor: 'pointer' }}>
             <option value="all">All Dates</option>
             <option value="today">Today</option>
             <option value="month">Month</option>
             <option value="year">Year</option>
             <option value="custom">Custom</option>
           </select>
+
           {dateFilter === 'month' && (
             <select value={selectedMonth} onChange={e => { setSelectedMonth(Number(e.target.value)); setCurrentPage(1); }}
-              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px', background: '#ffffff', cursor: 'pointer', minWidth: '100px' }}>
+              style={{ flex: '1 1 110px', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px', background: '#ffffff', cursor: 'pointer' }}>
               {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
             </select>
           )}
           {(dateFilter === 'month' || dateFilter === 'year') && (
             <select value={selectedYear} onChange={e => { setSelectedYear(Number(e.target.value)); setCurrentPage(1); }}
-              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px', background: '#ffffff', cursor: 'pointer', minWidth: '100px' }}>
+              style={{ flex: '1 1 100px', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px', background: '#ffffff', cursor: 'pointer' }}>
               {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           )}
           {dateFilter === 'custom' && (
             <>
               <input type="date" value={customStart} onChange={e => { setCustomStart(e.target.value); setCurrentPage(1); }}
-                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px', background: 'var(--bg-white)', color: 'var(--text-primary)' }} />
+                style={{ flex: '1 1 130px', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px', background: 'var(--bg-white)', color: 'var(--text-primary)' }} />
               <span style={{ color: 'var(--text-subtle)', fontSize: '13px' }}>to</span>
               <input type="date" value={customEnd} onChange={e => { setCustomEnd(e.target.value); setCurrentPage(1); }}
-                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px', background: 'var(--bg-white)', color: 'var(--text-primary)' }} />
+                style={{ flex: '1 1 130px', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '13px', background: 'var(--bg-white)', color: 'var(--text-primary)' }} />
             </>
           )}
         </div>
@@ -193,8 +193,6 @@ export default function ClientTradesPage() {
             <thead>
               <tr>
                 <th>Symbol</th>
-                <th>Leg</th>
-                <th>Type</th>
                 <th>Qty</th>
                 <th>Entry</th>
                 <th>Exit</th>
@@ -206,33 +204,51 @@ export default function ClientTradesPage() {
             <tbody>
               {currentTrades.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                     No trades match the search or filter criteria.
                   </td>
                 </tr>
               ) : (
                 currentTrades.map((t) => {
-                  const pnl = Number(t.pnl || 0);
+                  const pnlVal = Number(t.pnl || 0);
+                  const rawStatus = (t.status || 'EXECUTED').toUpperCase();
+                  const isProfit = pnlVal > 0 || rawStatus.includes('TARGET') || rawStatus === 'PROFIT';
+                  const isLoss = pnlVal < 0 || rawStatus.includes('SL') || rawStatus === 'LOSS';
+
+                  const displayStatus = isProfit ? 'PROFIT' : isLoss ? 'LOSS' : rawStatus;
+
+                  let statusColor = '#4f46e5';
+                  if (isProfit) {
+                    statusColor = '#10b981';
+                  } else if (isLoss) {
+                    statusColor = '#ef4444';
+                  } else if (displayStatus === 'CANCELLED') {
+                    statusColor = '#6b7280';
+                  } else if (displayStatus === 'REJECTED' || displayStatus === 'FAILED') {
+                    statusColor = '#d97706';
+                  } else if (displayStatus === 'OPEN') {
+                    statusColor = '#0284c7';
+                  }
+
                   return (
                     <tr key={t.id}>
                       <td style={{ fontWeight: 600 }}>{t.symbol}</td>
-                      <td style={{ fontSize: '12px' }}>{t.legName ? `${t.legName} (${t.direction || ''})` : '--'}</td>
-                      <td>{t.orderType || '--'}</td>
                       <td>{t.quantity || '--'}</td>
                       <td>₹{Number(t.entryPrice || 0).toFixed(2)}</td>
                       <td>{t.exitPrice ? `₹${Number(t.exitPrice).toFixed(2)}` : '--'}</td>
-                      <td style={{ fontWeight: 600, color: pnl >= 0 ? 'var(--accent)' : 'var(--danger)' }}>
-                        {pnl >= 0 ? '+' : ''}₹{Math.abs(pnl).toFixed(2)}
+                      <td style={{ fontWeight: 700, fontSize: '13.5px' }}>
+                        <span style={{ color: pnlVal > 0 ? '#10b981' : pnlVal < 0 ? '#ef4444' : '#000000' }}>
+                          {pnlVal > 0 ? `+₹${pnlVal.toFixed(2)}` : pnlVal < 0 ? `-₹${Math.abs(pnlVal).toFixed(2)}` : `₹0.00`}
+                        </span>
                       </td>
-                      <td>
-                        <span className={`badge ${t.status === 'open' ? 'badge-info' : t.status === 'closed' ? 'badge-success' : ''}`}
-                          style={{ textTransform: 'none', fontSize: '11px', padding: '4px 10px' }}>
-                          {t.status}
+                      <td style={{ fontWeight: 700, fontSize: '12.5px', letterSpacing: '0.3px' }}>
+                        <span style={{ color: statusColor }}>
+                          {displayStatus}
                         </span>
                       </td>
                       <td style={{ whiteSpace: 'nowrap', fontSize: '12px', color: 'var(--text-muted)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <Clock size={11} /> {new Date(t.createdAt).toLocaleString()}
+                          <Clock size={11} /> {new Date(t.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </div>
                       </td>
                     </tr>

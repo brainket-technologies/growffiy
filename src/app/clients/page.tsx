@@ -14,6 +14,8 @@ import {
   TrendingUp,
   TrendingDown,
   Clock,
+  ChevronLeft,
+  ChevronRight,
   Shield,
   Key,
   Mail,
@@ -25,14 +27,44 @@ import {
 } from 'lucide-react';
 import { KiteClient } from '../../shared/services/kite';
 import { generateClientTOTP, getTOTPCountdown } from '../../shared/services/totpClient';
-import { API_ENDPOINTS } from '../../core/constants';
+import { API_ENDPOINTS } from '../../core/constants';import { Modal } from '../../shared/components/views/Modal';
+import { Button } from '../../shared/components/views/Button';
+import { api } from '../../shared/services/api';
 
 
 export default function ClientDashboardOverview() {
-  const { trades, clients, colors, loading, activeUser } = useAppViewModel();
+  const { trades, clients, colors, loading, activeUser, updateClient } = useAppViewModel();
   const [totpCode, setTotpCode] = useState<string>('------');
   const [countdown, setCountdown] = useState<number>(30);
   const [liveMargin, setLiveMargin] = useState<number | null>(null);
+  const [isDisconnecting, setIsDisconnecting] = useState<boolean>(false);
+  const [showZerodhaConnect, setShowZerodhaConnect] = useState<boolean>(true);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [alertModal, setAlertModal] = useState<{
+    title: string;
+    message: React.ReactNode;
+    onConfirm?: () => void;
+  } | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedSetting = localStorage.getItem('growffiy_show_zerodha_connect');
+      if (storedSetting !== null) {
+        setShowZerodhaConnect(storedSetting !== 'false');
+      }
+    }
+    const checkSetting = async () => {
+      try {
+        const res = await api.get(API_ENDPOINTS.SETTINGS);
+        if (res.success && res.settings) {
+          const isEnabled = res.settings.show_zerodha_connect !== 'false';
+          setShowZerodhaConnect(isEnabled);
+          localStorage.setItem('growffiy_show_zerodha_connect', String(isEnabled));
+        }
+      } catch {}
+    };
+    checkSetting();
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -56,6 +88,130 @@ export default function ClientDashboardOverview() {
     c.user?.userId?.toLowerCase() === activeUser?.id?.toLowerCase() ||
     c.user?.name?.toLowerCase() === activeUser?.name?.toLowerCase()
   );
+
+  const hasAccessToken = !!(matchedClient?.accessToken);
+
+  const handleSimulateConnection = async (connect: boolean) => {
+    if (!matchedClient?.id) return;
+
+    const apiKeyToUse = matchedClient.zerodhaApiKey || process.env.NEXT_PUBLIC_ZERODHA_API_KEY || '4y7j026qyv9lkacw';
+    const clientId = matchedClient.zerodhaClientId || matchedClient.id;
+
+    if (connect) {
+      console.log('%c[KITE CONNECT API LOG] 🚀 Initiating Zerodha Connection...', 'color: #1252ab; font-weight: bold; font-size: 13px;');
+      console.log('📌 Zerodha Client ID:', clientId);
+      console.log('📌 App API Key:', apiKeyToUse);
+      console.log('🌐 1. OAuth Connect URL:', KiteClient.getLoginUrl(apiKeyToUse, clientId));
+      console.log('🌐 2. Session Exchange Endpoint: POST https://api.kite.trade/session/token');
+      console.log('🌐 3. Profile Fetch Endpoint: GET https://api.kite.trade/user/profile');
+      console.log('🌐 4. Live Margins Endpoint: GET https://api.kite.trade/user/margins');
+
+      if (matchedClient.zerodhaTotpSecret) {
+        console.log('[KITE CONNECT API LOG] Executing Auto-Login via TOTP Endpoint:', `${API_ENDPOINTS.CLIENTS}/${matchedClient.id}/autologin`);
+        setAlertModal({
+          title: 'Auto-Login in Progress',
+          message: 'Connecting to Zerodha using Auto-Login...',
+        });
+        try {
+          const res = await api.post(`${API_ENDPOINTS.CLIENTS}/${matchedClient.id}/autologin`, {}).catch(err => ({
+            success: false,
+            error: err.message || 'Auto-login failed'
+          }));
+          if (res.success) {
+            console.log('%c[KITE CONNECT API LOG] ✅ Zerodha Session Connected Successfully!', 'color: #16a34a; font-weight: bold;');
+            console.log('🔑 Generated Access Token:', res.accessToken || 'active');
+            setAlertModal({
+              title: 'Connected',
+              message: 'Zerodha Kite Connect session established successfully via Auto-Login!',
+              onConfirm: () => window.location.reload()
+            });
+          } else {
+            console.warn('[KITE CONNECT API LOG] ⚠️ Auto-login failed, prompting manual OAuth login fallback:', res.error);
+            setAlertModal({
+              title: 'Auto-Login Failed',
+              message: (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <p>{res.error || 'Failed to auto-login.'}</p>
+                  <p style={{ fontWeight: 600, fontSize: '13.5px', color: 'var(--text-heading)', marginTop: '4px' }}>
+                    Would you like to log in manually via Zerodha OAuth instead?
+                  </p>
+                </div>
+              ),
+              onConfirm: () => {
+                console.log('[KITE CONNECT API LOG] Redirecting to Zerodha OAuth Page:', KiteClient.getLoginUrl(apiKeyToUse, clientId));
+                window.location.href = KiteClient.getLoginUrl(apiKeyToUse, clientId);
+              }
+            });
+          }
+        } catch (err: any) {
+          console.error('[KITE CONNECT API LOG] ❌ Auto-login error:', err);
+          setAlertModal({
+            title: 'Auto-Login Error',
+            message: (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <p>{err.message || 'Error occurred during auto-login.'}</p>
+                <p style={{ fontWeight: 600, fontSize: '13.5px', color: 'var(--text-heading)', marginTop: '4px' }}>
+                  Would you like to log in manually via Zerodha OAuth instead?
+                </p>
+              </div>
+            ),
+            onConfirm: () => {
+              console.log('[KITE CONNECT API LOG] Redirecting to Zerodha OAuth Page:', KiteClient.getLoginUrl(apiKeyToUse, clientId));
+              window.location.href = KiteClient.getLoginUrl(apiKeyToUse, clientId);
+            }
+          });
+        }
+      } else {
+        setAlertModal({
+          title: 'Connect to Zerodha',
+          message: 'Do you want to authorize your account via the standard Zerodha Kite OAuth login page?',
+          onConfirm: () => {
+            console.log('[KITE CONNECT API LOG] Redirecting user to Zerodha OAuth Page:', KiteClient.getLoginUrl(apiKeyToUse, clientId));
+            window.location.href = KiteClient.getLoginUrl(apiKeyToUse, clientId);
+          }
+        });
+      }
+    } else {
+      console.log('%c[KITE CONNECT API LOG] 🛑 Initiating Zerodha Session Disconnect...', 'color: #ef4444; font-weight: bold; font-size: 13px;');
+      console.log('📌 Target Client ID:', clientId);
+      console.log('🌐 Invalidate Token API Endpoint:', `PUT ${API_ENDPOINTS.CLIENTS}/${matchedClient.id} | Payload: { accessToken: null }`);
+      console.log('🌐 Zerodha Logout Endpoint: DELETE https://api.kite.trade/session/token');
+
+      setAlertModal({
+        title: 'Disconnect Zerodha',
+        message: 'Are you sure you want to disconnect your Zerodha Kite session?',
+        onConfirm: async () => {
+          setIsDisconnecting(true);
+          try {
+            const success = await updateClient(matchedClient.id, { accessToken: null });
+            if (success) {
+              console.log('%c[KITE CONNECT API LOG] 🔴 Zerodha Session Disconnected & Token Invalidated', 'color: #ef4444; font-weight: bold;');
+              setLiveMargin(null);
+              setAlertModal({
+                title: 'Success',
+                message: 'Zerodha session disconnected.',
+                onConfirm: () => window.location.reload()
+              });
+            } else {
+              console.error('[KITE CONNECT API LOG] ❌ Failed to disconnect Zerodha session');
+              setAlertModal({
+                title: 'Error',
+                message: 'Failed to disconnect session.'
+              });
+            }
+          } catch (err: any) {
+            console.error('[KITE CONNECT API LOG] ❌ Error during disconnect:', err);
+            setAlertModal({
+              title: 'Error',
+              message: 'Error updating connection: ' + err.message
+            });
+          } finally {
+            setIsDisconnecting(false);
+          }
+        }
+      });
+    }
+  };
 
   useEffect(() => {
     if (!matchedClient?.zerodhaTotpSecret) return;
@@ -108,6 +264,8 @@ export default function ClientDashboardOverview() {
 
   const activeStrategy = matchedClient?.strategy?.name || 'Pre-Open Breakout';
 
+  const pageSize = 10;
+
   // Filter trades placed on behalf of this client dynamically
   const clientTrades = trades.filter(t => {
     if (matchedClient) {
@@ -116,6 +274,11 @@ export default function ClientDashboardOverview() {
     const name = t.client?.user?.name || t.clientName || '';
     return name.toLowerCase().includes('aman') || t.clientId === 'c1';
   });
+
+  const totalTradesCount = clientTrades.length;
+  const totalPages = Math.ceil(totalTradesCount / pageSize) || 1;
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedTrades = clientTrades.slice(startIndex, startIndex + pageSize);
 
   const totalPnl = clientTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
   
@@ -213,32 +376,74 @@ export default function ClientDashboardOverview() {
           </p>
         </div>
 
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          padding: '8px 16px',
-          borderRadius: '99px',
-          background: isSubscriptionActive ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-          border: `1px solid ${isSubscriptionActive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
-        }}>
-          <span style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: isSubscriptionActive ? 'var(--accent)' : 'var(--danger)',
-            animation: isSubscriptionActive ? 'pulseDot 2.5s infinite' : 'none',
-            display: 'inline-block'
-          }} />
-          <span style={{
-            fontSize: '12px',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            color: isSubscriptionActive ? 'var(--accent-dark)' : 'var(--danger)'
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '8px 16px',
+            borderRadius: '99px',
+            background: isSubscriptionActive ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+            border: `1px solid ${isSubscriptionActive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
           }}>
-            {isSubscriptionActive ? 'Trading Engine Active' : 'Trading Engine Paused'}
-          </span>
+            <span style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: isSubscriptionActive ? 'var(--accent)' : 'var(--danger)',
+              animation: isSubscriptionActive ? 'pulseDot 2.5s infinite' : 'none',
+              display: 'inline-block'
+            }} />
+            <span style={{
+              fontSize: '12px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: isSubscriptionActive ? 'var(--accent-dark)' : 'var(--danger)'
+            }}>
+              {isSubscriptionActive ? 'Trading Engine Active' : 'Trading Engine Paused'}
+            </span>
+          </div>
+
+          {showZerodhaConnect && matchedClient && (
+            <div>
+              {hasAccessToken ? (
+                <Button
+                  type="button"
+                  variant="danger"
+                  onClick={() => handleSimulateConnection(false)}
+                  disabled={isDisconnecting}
+                  style={{
+                    borderRadius: '8px',
+                    padding: '8px 18px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  {isDisconnecting ? 'Disconnecting...' : 'Disconnect Zerodha'}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={() => handleSimulateConnection(true)}
+                  style={{
+                    borderRadius: '8px',
+                    padding: '8px 18px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    backgroundColor: 'var(--primary, #1252ab)',
+                    color: '#ffffff',
+                    border: 'none'
+                  }}
+                >
+                  Connect Zerodha
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -687,7 +892,7 @@ export default function ClientDashboardOverview() {
                   </Card>
 
                   {/* Zerodha details card */}
-                  {matchedClient?.zerodhaClientId && (
+                  {showZerodhaConnect && matchedClient?.zerodhaClientId && (
                     <Card style={{ padding: '18px', borderRadius: '16px' }}>
                       <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '14px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
                         Zerodha Demat Account
@@ -762,8 +967,6 @@ export default function ClientDashboardOverview() {
                     <thead>
                       <tr>
                         <th>Symbol</th>
-                        <th>Strategy</th>
-                        <th>Order</th>
                         <th>Qty</th>
                         <th>Entry Time</th>
                         <th>Entry Price</th>
@@ -776,28 +979,36 @@ export default function ClientDashboardOverview() {
                     <tbody>
                       {clientTrades.length === 0 ? (
                         <tr>
-                          <td colSpan={10} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)', fontSize: '14px' }}>
+                          <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)', fontSize: '14px' }}>
                             No trades executed today. The engine is active and waiting for system breakout signals.
                           </td>
                         </tr>
                       ) : (
-                        clientTrades.map((trade) => {
-                          const pnl = Number(trade.pnl || 0);
-                          const isPositive = pnl >= 0;
+                        paginatedTrades.map((trade) => {
+                          const pnlVal = Number(trade.pnl || 0);
+                          const rawStatus = (trade.status || 'EXECUTED').toUpperCase();
+                          const isProfit = pnlVal > 0 || rawStatus.includes('TARGET') || rawStatus === 'PROFIT';
+                          const isLoss = pnlVal < 0 || rawStatus.includes('SL') || rawStatus === 'LOSS';
+
+                          const displayStatus = isProfit ? 'PROFIT' : isLoss ? 'LOSS' : rawStatus;
+
+                          let statusColor = '#4f46e5';
+                          if (isProfit) {
+                            statusColor = '#10b981';
+                          } else if (isLoss) {
+                            statusColor = '#ef4444';
+                          } else if (displayStatus === 'CANCELLED') {
+                            statusColor = '#6b7280';
+                          } else if (displayStatus === 'REJECTED' || displayStatus === 'FAILED') {
+                            statusColor = '#d97706';
+                          } else if (displayStatus === 'OPEN') {
+                            statusColor = '#0284c7';
+                          }
+
                           return (
                             <tr key={trade.id}>
                               <td style={{ fontWeight: 700, color: 'var(--text-heading)' }}>
                                 {trade.symbol}
-                              </td>
-                              <td style={{ color: 'var(--text-secondary)' }}>Pre-Open Breakout</td>
-                              <td>
-                                <span style={{
-                                  fontWeight: 600,
-                                  fontSize: '12px',
-                                  color: trade.orderType?.toUpperCase() === 'BUY' ? 'var(--accent-dark)' : 'var(--danger)'
-                                }}>
-                                  {trade.orderType || 'BUY'}
-                                </span>
                               </td>
                               <td style={{ fontWeight: 500 }}>{trade.quantity}</td>
                               <td style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
@@ -812,23 +1023,14 @@ export default function ClientDashboardOverview() {
                               </td>
                               <td style={{
                                 fontWeight: 700,
-                                color: isPositive ? 'var(--accent-dark)' : 'var(--danger)',
-                                background: isPositive ? 'rgba(34, 197, 94, 0.04)' : 'rgba(239, 68, 68, 0.04)',
-                                borderRadius: '6px'
+                                fontSize: '13px',
+                                color: pnlVal > 0 ? '#10b981' : pnlVal < 0 ? '#ef4444' : '#000000'
                               }}>
-                                {isPositive ? `+₹${pnl.toFixed(2)}` : `-₹${Math.abs(pnl).toFixed(2)}`}
+                                {pnlVal > 0 ? `+₹${pnlVal.toFixed(2)}` : pnlVal < 0 ? `-₹${Math.abs(pnlVal).toFixed(2)}` : `₹0.00`}
                               </td>
-                              <td>
-                                <span className={`badge ${
-                                  trade.status.toLowerCase() === 'open' 
-                                    ? 'badge-blue' 
-                                    : trade.status.toLowerCase() === 'failed' 
-                                      ? 'badge-red' 
-                                      : trade.status.toLowerCase() === 'cancelled'
-                                        ? 'badge-orange'
-                                        : 'badge-green'
-                                }`}>
-                                  {trade.status}
+                              <td style={{ fontWeight: 700, fontSize: '12.5px', letterSpacing: '0.3px' }}>
+                                <span style={{ color: statusColor }}>
+                                  {displayStatus}
                                 </span>
                               </td>
                             </tr>
@@ -838,6 +1040,40 @@ export default function ClientDashboardOverview() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Pagination Controls matching Live Trades 1:1 */}
+                {totalTradesCount > 0 && (
+                  <div className="pagination-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border-light)' }}>
+                    <div className="pagination-info">
+                      Showing <span style={{ fontWeight: 600 }}>{startIndex + 1}</span> to{' '}
+                      <span style={{ fontWeight: 600 }}>{Math.min(startIndex + pageSize, totalTradesCount)}</span> of{' '}
+                      <span style={{ fontWeight: 600 }}>{totalTradesCount}</span> trades
+                    </div>
+                    <div className="pagination-controls">
+                      <button className="pagination-btn" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1} title="Previous Page">
+                        <ChevronLeft size={16} />
+                      </button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+                        if (totalPages > 7 && pageNum !== 1 && pageNum !== totalPages && Math.abs(pageNum - currentPage) > 1) {
+                          if (pageNum === 2 && currentPage > 3) return <span key="ellipsis-start" style={{ padding: '0 4px', color: 'var(--text-muted)' }}>...</span>;
+                          if (pageNum === totalPages - 1 && currentPage < totalPages - 2) return <span key="ellipsis-end" style={{ padding: '0 4px', color: 'var(--text-muted)' }}>...</span>;
+                          return null;
+                        }
+                        return (
+                          <button key={pageNum} className={`pagination-btn ${currentPage === pageNum ? 'active' : ''}`}
+                            onClick={() => setCurrentPage(pageNum)}>
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                      <button className="pagination-btn" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages} title="Next Page">
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </Card>
             </>
           ) : (
@@ -969,6 +1205,39 @@ export default function ClientDashboardOverview() {
           )}
         </>
       )}
+      {alertModal && (
+        <Modal
+          isOpen={!!alertModal}
+          onClose={() => setAlertModal(null)}
+          title={alertModal.title}
+          footer={
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
+              {alertModal.onConfirm && (
+                <Button
+                  variant="secondary"
+                  onClick={() => setAlertModal(null)}
+                >
+                  Cancel
+                </Button>
+              )}
+              <Button
+                variant="primary"
+                onClick={() => {
+                  if (alertModal.onConfirm) {
+                    alertModal.onConfirm();
+                  }
+                  setAlertModal(null);
+                }}
+              >
+                {alertModal.onConfirm ? 'Confirm' : 'OK'}
+              </Button>
+            </div>
+          }
+        >
+          <div>{alertModal.message}</div>
+        </Modal>
+      )}
+
       <style>{`
         .client-dashboard { gap: 28px; }
         .client-grid-main { display: grid !important; }
