@@ -53,8 +53,8 @@ export async function performKiteAutoLogin(clientId: string): Promise<{ success:
 
     const masterApiKeySetting = await prisma.appSettings.findUnique({ where: { settingKey: 'master_zerodha_api_key' } });
     const masterApiSecretSetting = await prisma.appSettings.findUnique({ where: { settingKey: 'master_zerodha_api_secret' } });
-    const apiKey = masterApiKeySetting?.settingValue || '';
-    const apiSecret = masterApiSecretSetting?.settingValue || '';
+    const apiKey = (client.zerodhaApiKey || masterApiKeySetting?.settingValue || '').trim();
+    const apiSecret = (client.zerodhaApiSecret || masterApiSecretSetting?.settingValue || '').trim();
 
     if (!apiKey || !apiSecret) {
       return { success: false, error: 'Master Zerodha API credentials not configured in settings' };

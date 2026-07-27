@@ -52,8 +52,8 @@ export async function GET(request: Request) {
 
     const masterApiKeySetting = await prisma.appSettings.findUnique({ where: { settingKey: 'master_zerodha_api_key' } });
     const masterApiSecretSetting = await prisma.appSettings.findUnique({ where: { settingKey: 'master_zerodha_api_secret' } });
-    const apiKey = masterApiKeySetting?.settingValue || '';
-    const apiSecret = masterApiSecretSetting?.settingValue || '';
+    const apiKey = (client.zerodhaApiKey || masterApiKeySetting?.settingValue || '').trim();
+    const apiSecret = (client.zerodhaApiSecret || masterApiSecretSetting?.settingValue || '').trim();
 
     if (!apiKey || !apiSecret) {
       return NextResponse.redirect(getRedirectUrl(`/admin/clients/${clientId}?error=missing_master_api_credentials`, request));
