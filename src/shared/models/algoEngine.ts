@@ -1134,6 +1134,22 @@ class AlgoEngineService {
               orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, orderParams);
 
               if (orderRes && orderRes.status === 'error' &&
+                (orderRes.message?.includes('Trigger price') ||
+                  orderRes.message?.includes('stoploss') ||
+                  orderRes.message?.includes('lower than') ||
+                  orderRes.message?.includes('higher than'))) {
+                console.log(`AlgoEngine: Trigger price already crossed for ${targetStock.symbol}. Retrying entry order as MARKET order.`);
+                const fallbackParams = {
+                  ...orderParams,
+                  order_type: 'MARKET' as const,
+                  price: undefined,
+                  trigger_price: undefined,
+                  ...(orderTypeParam === 'MARKET' || orderTypeParam === 'SL-M' ? { market_protection: marketProtectionVal } : {})
+                };
+                orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, fallbackParams);
+              }
+
+              if (orderRes && orderRes.status === 'error' &&
                 (orderRes.message?.includes('After Market Order') ||
                   orderRes.message?.includes('AMO') ||
                   orderRes.message?.includes('closed') ||
