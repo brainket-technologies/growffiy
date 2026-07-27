@@ -25,6 +25,8 @@ if (!global.WebSocket) {
 
 import { PrismaClient } from '@prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool as PgPool } from 'pg';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
@@ -40,10 +42,10 @@ function getPrisma(): PrismaClient {
 
   const connString = process.env.DATABASE_URL;
   if (!connString) {
-    console.warn("db.ts: DATABASE_URL is not defined in the environment. Initializing standard PrismaClient placeholder.");
-    activePrisma = new PrismaClient({
-      log: process.env.NODE_ENV === 'development' ? ['query'] : [],
-    });
+    console.warn("db.ts: DATABASE_URL is not defined in the environment.");
+    const pool = new PgPool({ connectionString: 'postgresql://localhost:5432/growffiy_db' });
+    const adapter = new PrismaPg(pool);
+    activePrisma = new PrismaClient({ adapter });
     return activePrisma;
   }
 
@@ -55,15 +57,18 @@ function getPrisma(): PrismaClient {
         log: process.env.NODE_ENV === 'development' ? ['query'] : [],
       });
     } else {
+      const pool = new PgPool({ connectionString: connString });
+      const adapter = new PrismaPg(pool);
       activePrisma = new PrismaClient({
+        adapter,
         log: process.env.NODE_ENV === 'development' ? ['query'] : [],
       });
     }
   } catch (err) {
-    console.error("db.ts: Failed to initialize Prisma with Neon adapter, falling back to standard PrismaClient:", err);
-    activePrisma = new PrismaClient({
-      log: process.env.NODE_ENV === 'development' ? ['query'] : [],
-    });
+    console.error("db.ts: Failed to initialize Prisma adapter:", err);
+    const pool = new PgPool({ connectionString: connString });
+    const adapter = new PrismaPg(pool);
+    activePrisma = new PrismaClient({ adapter });
   }
 
   if (process.env.NODE_ENV !== 'production') {
