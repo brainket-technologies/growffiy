@@ -892,7 +892,7 @@ export default function ClientProfilePage() {
                         {totpCountdown}
                       </div>
                       <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {totpCode === '------' ? 'No secret key' : 'Current TOTP — match this with your phone app'}
+                        {totpCode === '------' ? 'Invalid TOTP Secret' : 'Current TOTP — match this with your phone app'}
                       </span>
                     </div>
                   )}

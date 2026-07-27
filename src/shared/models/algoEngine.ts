@@ -695,12 +695,10 @@ class AlgoEngineService {
               const instTokenStr = Object.entries(this.wsLive.instrumentToSymbol).find(([, sym]) => sym === candidateStock.symbol)?.[0];
               if (instTokenStr) {
                 try {
-                  const today = new Date();
-                  const formatKiteDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                  const formatDateOnly = (d: Date) => formatKiteDate(d);
-
-                  const from = formatDateOnly(today);
-                  const to = formatDateOnly(today);
+                  // Lock date to Asia/Kolkata (IST) timezone regardless of VPS system clock
+                  const todayIST = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+                  const from = todayIST;
+                  const to = todayIST;
 
                   console.log(`AlgoEngine: Fetching historical data for ${candidateStock.symbol} token=${instTokenStr} from=${from} to=${to}`);
                   const kiteInterval = mapTimeframeToKiteInterval(legTimeframe);
@@ -740,16 +738,10 @@ class AlgoEngineService {
             }
 
             if (candlePrice === 0) {
-              const fallbackPrice = candidateStock.high || candidateStock.ltp || candidateStock.iep;
-              if (fallbackPrice && fallbackPrice > 0) {
-                console.log(`AlgoEngine: Kite historical data unavailable for ${candidateStock.symbol}, using fallback price (high/ltp): ${fallbackPrice}`);
-                candlePrice = fallbackPrice;
-              } else {
-                const reason = `Could not determine candle price for ${candidateStock.symbol} and no fallback available`;
-                console.log(`AlgoEngine: ${reason}. Logging FAILED trade for ${client.user.name}.`);
-                await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
-                return;
-              }
+              const reason = `Candle data not fetched for ${candidateStock.symbol}`;
+              console.log(`AlgoEngine: ${reason}. Logging FAILED trade for ${client.user.name}.`);
+              await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
+              return;
             }
 
             const bufferPct = legBufferPct;
