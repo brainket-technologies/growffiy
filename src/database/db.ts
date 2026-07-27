@@ -48,11 +48,17 @@ function getPrisma(): PrismaClient {
   }
 
   try {
-    const adapter = new PrismaNeon({ connectionString: connString });
-    activePrisma = new PrismaClient({
-      adapter,
-      log: process.env.NODE_ENV === 'development' ? ['query'] : [],
-    });
+    if (connString.includes('neon.tech')) {
+      const adapter = new PrismaNeon({ connectionString: connString });
+      activePrisma = new PrismaClient({
+        adapter,
+        log: process.env.NODE_ENV === 'development' ? ['query'] : [],
+      });
+    } else {
+      activePrisma = new PrismaClient({
+        log: process.env.NODE_ENV === 'development' ? ['query'] : [],
+      });
+    }
   } catch (err) {
     console.error("db.ts: Failed to initialize Prisma with Neon adapter, falling back to standard PrismaClient:", err);
     activePrisma = new PrismaClient({
