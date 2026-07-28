@@ -649,17 +649,18 @@ class AlgoEngineService {
           }
 
           try {
-            // Check if ANY trade was placed today for this client+strategy+leg (regardless of symbol)
+            // Check if ANY valid (non-failed/non-rejected entry) trade was placed today for this client+strategy+leg
             const existingTrade = await prisma.trade.findFirst({
               where: {
                 clientId: client.id,
                 strategyId: strategy.id,
                 legName: currentLeg.name,
-                createdAt: { gte: todayStart }
+                createdAt: { gte: todayStart },
+                entryOrderStatus: { notIn: ['FAILED', 'REJECTED', 'cancelled'] }
               }
             });
             if (existingTrade) {
-              console.log(`AlgoEngine: Trade already exists today for strategy leg "${currentLeg.name}" (${client.user.name}) — symbol: ${existingTrade.symbol}. Skipping duplicate.`);
+              console.log(`AlgoEngine: Valid active/completed trade already exists today for strategy leg "${currentLeg.name}" (${client.user.name}) — symbol: ${existingTrade.symbol}. Skipping duplicate.`);
               return;
             }
 
