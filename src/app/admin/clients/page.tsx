@@ -99,14 +99,23 @@ export default function ClientsPage() {
   const [zerodhaApiSecret, setZerodhaApiSecret] = useState('');
   const [zerodhaPassword, setZerodhaPassword] = useState('');
   const [zerodhaTotpSecret, setZerodhaTotpSecret] = useState('');
+  const [dedicatedIp, setDedicatedIp] = useState('');
+  const [proxyUrl, setProxyUrl] = useState('');
   const [capital, setCapital] = useState('');
   const [strategies, setStrategies] = useState<any[]>([]);
   const [selectedStrategyId, setSelectedStrategyId] = useState('');
   const [productTypes, setProductTypes] = useState<any[]>([]);
   const [selectedProductTypeId, setSelectedProductTypeId] = useState('');
+  const [serverIp, setServerIp] = useState('');
+  const [copiedIp, setCopiedIp] = useState(false);
 
-  // Fetch strategies & product types
+  // Fetch strategies & product types & server IP
   useEffect(() => {
+    fetch('/api/system/public-ip')
+      .then(res => res.json())
+      .then(data => { if (data.success && data.ip) setServerIp(data.ip); })
+      .catch(err => console.error('Failed to load server IP:', err));
+
     fetch('/api/admin/strategies')
       .then(res => res.json())
       .then(data => {
@@ -129,8 +138,24 @@ export default function ClientsPage() {
   // Autofill prevention state
   const [focusedFields, setFocusedFields] = useState<Record<string, boolean>>({});
 
+  const duplicateClientInModal = clients.find(c =>
+    c.dedicatedIp &&
+    dedicatedIp.trim() !== '' &&
+    (c.dedicatedIp || '').trim() === dedicatedIp.trim()
+  );
+  const isModalDuplicateIp = !!duplicateClientInModal;
+  const modalDuplicateClientName = duplicateClientInModal ? (duplicateClientInModal.user?.name || duplicateClientInModal.name || duplicateClientInModal.zerodhaClientId || 'another client') : '';
+
   const handleAddClient = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!name || !email || !zerodhaClientId) return;
+
+    if (isModalDuplicateIp) {
+      alert(`Static IP "${dedicatedIp.trim()}" is already assigned to client "${modalDuplicateClientName}". Each client must have a unique static IP address.`);
+      return;
+    }
+
+    setIsSubmitting(true);
     const result = await addClient({
       name,
       email,
@@ -139,6 +164,8 @@ export default function ClientsPage() {
       zerodhaApiSecret,
       zerodhaPassword,
       zerodhaTotpSecret,
+      dedicatedIp: dedicatedIp ? dedicatedIp.trim() : null,
+      proxyUrl: proxyUrl ? proxyUrl.trim() : null,
       capital: Number(capital),
       strategyId: selectedStrategyId || null,
       productTypeId: selectedProductTypeId || null,
@@ -153,6 +180,8 @@ export default function ClientsPage() {
       setZerodhaApiSecret('');
       setZerodhaPassword('');
       setZerodhaTotpSecret('');
+      setDedicatedIp('');
+      setProxyUrl('');
       setCapital('');
       setSelectedStrategyId('');
       setSelectedProductTypeId('');
@@ -762,12 +791,12 @@ export default function ClientsPage() {
 
           <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Kite API Key (Optional)</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Kite API Key (Client Specific)</label>
               <input
                 type="text"
                 value={zerodhaApiKey}
                 onChange={(e) => setZerodhaApiKey(e.target.value)}
-                placeholder="Enter API Key"
+                placeholder="Enter Client API Key"
                 autoComplete="off"
                 readOnly={!focusedFields['zerodhaApiKey']}
                 onFocus={() => setFocusedFields(prev => ({ ...prev, zerodhaApiKey: true }))}
@@ -775,12 +804,12 @@ export default function ClientsPage() {
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Kite API Secret (Optional)</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Kite API Secret (Client Specific)</label>
               <input
                 type="text"
                 value={zerodhaApiSecret}
                 onChange={(e) => setZerodhaApiSecret(e.target.value)}
-                placeholder="Enter API Secret"
+                placeholder="Enter Client API Secret"
                 autoComplete="off"
                 readOnly={!focusedFields['zerodhaApiSecret']}
                 onFocus={() => setFocusedFields(prev => ({ ...prev, zerodhaApiSecret: true }))}
@@ -791,7 +820,7 @@ export default function ClientsPage() {
 
           <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Zerodha Password (Optional)</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Zerodha Password</label>
               <input
                 type="password"
                 value={zerodhaPassword}
@@ -804,18 +833,131 @@ export default function ClientsPage() {
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Zerodha TOTP Secret (Optional)</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Zerodha TOTP Secret</label>
               <input
                 type="text"
                 value={zerodhaTotpSecret}
                 onChange={(e) => setZerodhaTotpSecret(e.target.value)}
-                placeholder="Enter TOTP Secret"
+                placeholder="Enter TOTP Secret Key"
                 autoComplete="off"
                 readOnly={!focusedFields['zerodhaTotpSecret']}
                 onFocus={() => setFocusedFields(prev => ({ ...prev, zerodhaTotpSecret: true }))}
                 onBlur={() => setFocusedFields(prev => ({ ...prev, zerodhaTotpSecret: false }))}
               />
             </div>
+          </div>
+
+          {/* Dedicated Static IP Whitelist Card */}
+          <div style={{
+            padding: '12px 14px',
+            borderRadius: '10px',
+            backgroundColor: 'rgba(14, 165, 233, 0.06)',
+            border: '1px solid rgba(14, 165, 233, 0.2)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)' }}>
+                🔒 Client Dedicated Static IP (Permanent / Fixed)
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {serverIp && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDedicatedIp(serverIp);
+                    }}
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      backgroundColor: 'var(--surface)',
+                      color: 'var(--primary)',
+                      border: '1px solid var(--border-light)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Use Server IP ({serverIp})
+                  </button>
+                )}
+                {dedicatedIp && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(dedicatedIp);
+                      setCopiedIp(true);
+                      setTimeout(() => setCopiedIp(false), 2000);
+                    }}
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      backgroundColor: copiedIp ? '#10b981' : 'var(--primary)',
+                      color: 'white',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {copiedIp ? '✓ Copied' : '📋 Copy IP'}
+                  </button>
+                )}
+              </div>
+            </div>
+            <input
+              type="text"
+              value={dedicatedIp}
+              onChange={(e) => setDedicatedIp(e.target.value)}
+              placeholder={serverIp ? `Enter client unique IP (e.g. 185.220.101.5)` : "Enter unique static IP"}
+              autoComplete="off"
+              style={{
+                fontSize: '12.5px',
+                fontWeight: 600,
+                fontFamily: 'monospace',
+                backgroundColor: 'var(--bg-white)',
+                color: isModalDuplicateIp ? '#ef4444' : 'var(--text-heading)',
+                borderColor: isModalDuplicateIp ? '#ef4444' : undefined
+              }}
+            />
+            {isModalDuplicateIp && (
+              <div style={{
+                marginTop: '4px',
+                padding: '6px 10px',
+                borderRadius: '6px',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#ef4444',
+                fontSize: '11px',
+                fontWeight: 600
+              }}>
+                ⚠️ <strong>Duplicate Static IP!</strong> IP <code>{dedicatedIp.trim()}</code> is already assigned to client <strong>{modalDuplicateClientName}</strong>.
+              </div>
+            )}
+
+            <div style={{ marginTop: '6px' }}>
+              <label style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>
+                Proxy Server URL (Optional)
+              </label>
+              <input
+                type="text"
+                value={proxyUrl}
+                onChange={(e) => setProxyUrl(e.target.value)}
+                placeholder="e.g. http://username:password@185.220.101.5:8080"
+                autoComplete="off"
+                style={{
+                  fontSize: '12px',
+                  fontFamily: 'monospace',
+                  backgroundColor: 'var(--bg-white)',
+                  color: 'var(--text-heading)'
+                }}
+              />
+            </div>
+
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+              Assign a <strong>unique static IP or Proxy URL</strong> for this client. Add IP to client's <strong>developers.kite.trade</strong> -&gt; Profile -&gt; <strong>IP Whitelist</strong>.
+            </span>
           </div>
 
           <div>

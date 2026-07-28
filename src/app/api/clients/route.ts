@@ -68,7 +68,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, userId, password, zerodhaClientId, zerodhaApiKey, zerodhaApiSecret, zerodhaPassword, zerodhaTotpSecret, capital, riskPercentage, strategyId, productTypeId } = body;
+    const { name, email, userId, password, zerodhaClientId, zerodhaApiKey, zerodhaApiSecret, zerodhaPassword, zerodhaTotpSecret, dedicatedIp, proxyUrl, capital, riskPercentage, strategyId, productTypeId } = body;
 
     // Auto-generate credentials for the client
     const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -82,6 +82,20 @@ export async function POST(request: Request) {
     const finalPassword = password || `grw_${generatedPassword}`;
 
     try {
+      if (dedicatedIp && dedicatedIp.trim()) {
+        const formattedIp = dedicatedIp.trim();
+        const existingClientWithIp = await prisma.client.findFirst({
+          where: { dedicatedIp: formattedIp },
+          include: { user: true }
+        });
+        if (existingClientWithIp) {
+          return NextResponse.json({
+            success: false,
+            error: `Static IP address "${formattedIp}" is already assigned to client "${existingClientWithIp.user.name || existingClientWithIp.zerodhaClientId}". Each client must have a unique static IP.`
+          }, { status: 400 });
+        }
+      }
+
       const newUser = await prisma.user.create({
         data: {
           name,
@@ -100,6 +114,8 @@ export async function POST(request: Request) {
           zerodhaApiSecret,
           zerodhaPassword,
           zerodhaTotpSecret,
+          dedicatedIp: dedicatedIp ? dedicatedIp.trim() : null,
+          proxyUrl: proxyUrl ? proxyUrl.trim() : null,
           capital: Math.max(-1, Number(capital)),
           strategyId,
           productTypeId,

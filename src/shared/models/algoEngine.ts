@@ -338,18 +338,10 @@ class AlgoEngineService {
     };
     if (strategyId) where.strategyId = strategyId;
 
-    const masterApiKey = await this.getAlgoSetting('master_zerodha_api_key', '');
-    const masterApiSecret = await this.getAlgoSetting('master_zerodha_api_secret', '');
-
     const clients = await prisma.client.findMany({
       where,
       include: { user: true, strategy: true }
     });
-
-    for (const client of clients) {
-      client.zerodhaApiKey = masterApiKey;
-      client.zerodhaApiSecret = masterApiSecret;
-    }
 
     if (clients.length === 0) {
       console.log('AlgoEngine preSelect: No active clients with connected Kite session.');
@@ -493,18 +485,10 @@ class AlgoEngineService {
       };
       if (strategyId) where.strategyId = strategyId;
 
-      const masterApiKey = await this.getAlgoSetting('master_zerodha_api_key', '');
-      const masterApiSecret = await this.getAlgoSetting('master_zerodha_api_secret', '');
-
       const clients = await prisma.client.findMany({
         where,
         include: { user: true, strategy: true }
       });
-
-      for (const client of clients) {
-        client.zerodhaApiKey = masterApiKey;
-        client.zerodhaApiSecret = masterApiSecret;
-      }
 
       if (clients.length === 0) {
         console.log('AlgoEngine: No active clients found.');

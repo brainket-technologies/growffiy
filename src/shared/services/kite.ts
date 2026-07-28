@@ -1,4 +1,13 @@
 import crypto from 'crypto';
+import https from 'https';
+
+async function kiteFetch(url: string, options: any, dedicatedIp?: string | null) {
+  const fetchOpts: any = { ...options };
+  if (dedicatedIp && dedicatedIp.trim()) {
+    fetchOpts.agent = new https.Agent({ localAddress: dedicatedIp.trim(), keepAlive: true });
+  }
+  return fetch(url, fetchOpts);
+}
 
 export class KiteClient {
   private static BASE_URL = 'https://api.kite.trade';
@@ -16,7 +25,7 @@ export class KiteClient {
    * Generates a secure checksum and exchanges the request_token for an access_token.
    * Format: sha256(api_key + request_token + api_secret)
    */
-  public static async generateSession(apiKey: string, apiSecret: string, requestToken: string) {
+  public static async generateSession(apiKey: string, apiSecret: string, requestToken: string, dedicatedIp?: string | null) {
     const checksum = crypto
       .createHash('sha256')
       .update(apiKey + requestToken + apiSecret)
@@ -27,14 +36,14 @@ export class KiteClient {
     params.append('request_token', requestToken);
     params.append('checksum', checksum);
 
-    const response = await fetch(`${this.BASE_URL}/session/token`, {
+    const response = await kiteFetch(`${this.BASE_URL}/session/token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'X-Kite-Version': this.KITE_VERSION,
       },
       body: params.toString(),
-    });
+    }, dedicatedIp);
 
     const data = await response.json();
     return data;
@@ -43,29 +52,29 @@ export class KiteClient {
   /**
    * Fetches the user profile.
    */
-  public static async getProfile(apiKey: string, accessToken: string) {
-    const response = await fetch(`${this.BASE_URL}/user/profile`, {
+  public static async getProfile(apiKey: string, accessToken: string, dedicatedIp?: string | null) {
+    const response = await kiteFetch(`${this.BASE_URL}/user/profile`, {
       method: 'GET',
       headers: {
         'Authorization': `token ${apiKey}:${accessToken}`,
         'X-Kite-Version': this.KITE_VERSION,
       },
-    });
+    }, dedicatedIp);
     return response.json();
   }
 
   /**
    * Fetches user funds and margins.
    */
-  public static async getMargins(apiKey: string, accessToken: string, segment?: string) {
+  public static async getMargins(apiKey: string, accessToken: string, segment?: string, dedicatedIp?: string | null) {
     const endpoint = segment ? `/user/margins/${segment}` : '/user/margins';
-    const response = await fetch(`${this.BASE_URL}${endpoint}`, {
+    const response = await kiteFetch(`${this.BASE_URL}${endpoint}`, {
       method: 'GET',
       headers: {
         'Authorization': `token ${apiKey}:${accessToken}`,
         'X-Kite-Version': this.KITE_VERSION,
       },
-    });
+    }, dedicatedIp);
     return response.json();
   }
 

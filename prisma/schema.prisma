@@ -43,6 +43,8 @@ model Client {
   zerodhaSession     String?              @map("zerodha_session")
   zerodhaPassword    String?              @map("zerodha_password")
   zerodhaTotpSecret  String?              @map("zerodha_totp_secret")
+  dedicatedIp        String?              @map("dedicated_ip")
+  proxyUrl           String?              @map("proxy_url")
   aadhaarNumber      String?              @map("aadhaar_number")
   dob                String?              @map("dob")
   kycStatus          String               @default("pending") @map("kyc_status")

@@ -38,18 +38,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         return { isValid: false, profile: null, margins: null };
       };
 
-      const masterApiKeySetting = await prisma.appSettings.findUnique({ where: { settingKey: 'master_zerodha_api_key' } });
-      const masterApiKey = masterApiKeySetting?.settingValue || '';
+      const clientApiKey = (client.zerodhaApiKey || '').trim();
 
-      // 1. If we have a token, check it using the Master API Key
-      if (client.accessToken && client.tradingStatus === 'active' && masterApiKey) {
+      // 1. If we have a token and client API key, check it using the Client's own API Key
+      if (client.accessToken && client.tradingStatus === 'active' && clientApiKey) {
         try {
-          const check = await checkAndFetchData(masterApiKey, client.accessToken);
+          const check = await checkAndFetchData(clientApiKey, client.accessToken);
           if (check.isValid) {
             profileData = check.profile;
             marginData = check.margins;
           } else {
-            console.warn(`Kite token verification failed for client ${client.id} using Master Key. Clearing token.`);
+            console.warn(`Kite token verification failed for client ${client.id} using client API Key. Clearing token.`);
             await prisma.client.update({
               where: { id },
               data: { accessToken: null }
@@ -61,7 +60,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         }
       }
 
-      return NextResponse.json({ success: true, client, profile: profileData, margin: marginData, marginError, masterZerodhaApiKey: masterApiKey });
+      return NextResponse.json({ success: true, client, profile: profileData, margin: marginData, marginError, zerodhaApiKey: clientApiKey });
     } catch {
       let client = inMemoryClients.find((c) => c.id === id);
       if (client) {
@@ -89,6 +88,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       zerodhaApiSecret, 
       zerodhaPassword,
       zerodhaTotpSecret,
+      dedicatedIp,
+      proxyUrl,
       capital,
       riskPercentage,
       tradingStatus,
@@ -110,6 +111,23 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
  
        if (!client) {
          return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
+       }
+
+       if (dedicatedIp !== undefined && dedicatedIp && dedicatedIp.trim()) {
+         const formattedIp = dedicatedIp.trim();
+         const existingClientWithIp = await prisma.client.findFirst({
+           where: {
+             dedicatedIp: formattedIp,
+             id: { not: id }
+           },
+           include: { user: true }
+         });
+         if (existingClientWithIp) {
+           return NextResponse.json({
+             success: false,
+             error: `Static IP address "${formattedIp}" is already assigned to client "${existingClientWithIp.user.name || existingClientWithIp.zerodhaClientId}". Each client must have a unique static IP.`
+           }, { status: 400 });
+         }
        }
  
        // Update associated user account
@@ -142,12 +160,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
            zerodhaApiSecret: zerodhaApiSecret !== undefined ? zerodhaApiSecret : undefined,
            zerodhaPassword: zerodhaPassword !== undefined ? zerodhaPassword : undefined,
            zerodhaTotpSecret: zerodhaTotpSecret !== undefined ? zerodhaTotpSecret : undefined,
+           dedicatedIp: dedicatedIp !== undefined ? (dedicatedIp ? dedicatedIp.trim() : null) : undefined,
+           proxyUrl: proxyUrl !== undefined ? (proxyUrl ? proxyUrl.trim() : null) : undefined,
            tradingStatus: tradingStatus !== undefined ? tradingStatus : undefined,
            subscriptionStatus: subscriptionStatus !== undefined ? subscriptionStatus : undefined,
            strategyId: strategyId !== undefined ? strategyId : undefined,
            productTypeId: productTypeId !== undefined ? productTypeId : undefined,
-             capital: capital ? Math.max(-1, Number(capital)) : undefined,
-            accessToken: (tradingStatus === 'inactive' || accessToken === null) ? null : (accessToken !== undefined ? accessToken : undefined),
+           capital: capital ? Math.max(-1, Number(capital)) : undefined,
+           accessToken: (tradingStatus === 'inactive' || accessToken === null) ? null : (accessToken !== undefined ? accessToken : undefined),
            zerodhaSession: (tradingStatus === 'inactive' || accessToken === null) ? null : undefined,
            panNumber: panNumber !== undefined ? panNumber : undefined,
            aadhaarNumber: aadhaarNumber !== undefined ? aadhaarNumber : undefined,

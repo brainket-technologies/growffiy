@@ -51,13 +51,11 @@ export async function performKiteAutoLogin(clientId: string): Promise<{ success:
       return { success: false, error: 'Missing client credentials (User ID, Password, or TOTP Secret)' };
     }
 
-    const masterApiKeySetting = await prisma.appSettings.findUnique({ where: { settingKey: 'master_zerodha_api_key' } });
-    const masterApiSecretSetting = await prisma.appSettings.findUnique({ where: { settingKey: 'master_zerodha_api_secret' } });
-    const apiKey = (client.zerodhaApiKey || masterApiKeySetting?.settingValue || '').trim();
-    const apiSecret = (client.zerodhaApiSecret || masterApiSecretSetting?.settingValue || '').trim();
+    const apiKey = (client.zerodhaApiKey || '').trim();
+    const apiSecret = (client.zerodhaApiSecret || '').trim();
 
     if (!apiKey || !apiSecret) {
-      return { success: false, error: 'Master Zerodha API credentials not configured in settings' };
+      return { success: false, error: 'Client-specific Zerodha Kite API Key & Secret are required for login' };
     }
 
     let requestToken: string | null = null;

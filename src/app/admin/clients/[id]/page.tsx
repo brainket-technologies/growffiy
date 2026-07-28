@@ -9,6 +9,7 @@ import {
   CheckCircle2, 
   Shield, 
   Server, 
+  Globe,
   User, 
   Mail, 
   Lock, 
@@ -34,7 +35,7 @@ export default function ClientDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const { updateClient } = useAppViewModel();
+  const { clients, updateClient } = useAppViewModel();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +63,10 @@ export default function ClientDetailsPage() {
   const [kycStatus, setKycStatus] = useState('pending');
   const [productTypeId, setProductTypeId] = useState('');
   const [productTypes, setProductTypes] = useState<any[]>([]);
+  const [dedicatedIp, setDedicatedIp] = useState('');
+  const [proxyUrl, setProxyUrl] = useState('');
+  const [serverIp, setServerIp] = useState('');
+  const [copiedIp, setCopiedIp] = useState(false);
 
   // TOTP Display
   const [totpCode, setTotpCode] = useState('------');
@@ -93,6 +98,8 @@ export default function ClientDetailsPage() {
           setMasterZerodhaApiKey(res.masterZerodhaApiKey || '');
           setZerodhaPassword(c.zerodhaPassword || '');
           setZerodhaTotpSecret(c.zerodhaTotpSecret || '');
+          setDedicatedIp(c.dedicatedIp || c.dedicated_ip || '');
+          setProxyUrl(c.proxyUrl || c.proxy_url || '');
           setCapital(String(c.capital));
           setTradingStatus(c.tradingStatus);
           setAccessToken(c.accessToken || null);
@@ -125,8 +132,19 @@ export default function ClientDetailsPage() {
       }
     };
 
+    const fetchPublicIp = async () => {
+      try {
+        const res = await fetch('/api/system/public-ip');
+        const data = await res.json();
+        if (data.success && data.ip) setServerIp(data.ip);
+      } catch (err) {
+        console.error('Failed to load server IP:', err);
+      }
+    };
+
     fetchClient();
     fetchProductTypes();
+    fetchPublicIp();
   }, [id]);
 
   useEffect(() => {
@@ -169,8 +187,27 @@ export default function ClientDetailsPage() {
     return () => clearInterval(interval);
   }, [zerodhaTotpSecret]);
 
+  // Real-time duplicate IP detection
+  const duplicateClient = clients.find(c =>
+    c.id !== id &&
+    c.dedicatedIp &&
+    dedicatedIp.trim() !== '' &&
+    (c.dedicatedIp || '').trim() === dedicatedIp.trim()
+  );
+  const isDuplicateIp = !!duplicateClient;
+  const duplicateClientName = duplicateClient ? (duplicateClient.user?.name || duplicateClient.name || duplicateClient.zerodhaClientId || 'another client') : '';
+
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isDuplicateIp) {
+      setAlertModal({
+        title: 'Duplicate Static IP Error',
+        message: `Static IP "${dedicatedIp.trim()}" is already assigned to client "${duplicateClientName}". Each client must have a unique static IP address.`
+      });
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -184,6 +221,8 @@ export default function ClientDetailsPage() {
         zerodhaApiSecret,
         zerodhaPassword,
         zerodhaTotpSecret,
+        dedicatedIp: dedicatedIp ? dedicatedIp.trim() : null,
+        proxyUrl: proxyUrl ? proxyUrl.trim() : null,
         capital: Number(capital),
         tradingStatus,
         panNumber,
@@ -1267,6 +1306,142 @@ export default function ClientDetailsPage() {
                       </select>
                     </div>
                   </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Standalone Card: Client Dedicated Static Outbound IP & Proxy Settings */}
+            <Card style={{ padding: '24px 28px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-title)', margin: 0 }}>
+                  <Shield size={18} color="var(--primary)" /> Client Dedicated Static Outbound IP (Permanent / Fixed)
+                </h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {serverIp && (
+                    <button
+                      type="button"
+                      onClick={() => setDedicatedIp(serverIp)}
+                      style={{
+                        fontSize: '11.5px',
+                        fontWeight: 600,
+                        padding: '5px 10px',
+                        borderRadius: '6px',
+                        backgroundColor: 'var(--surface)',
+                        color: 'var(--primary)',
+                        border: '1px solid var(--border-light)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Use Server IP ({serverIp})
+                    </button>
+                  )}
+                  {(dedicatedIp || serverIp) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(dedicatedIp || serverIp);
+                        setCopiedIp(true);
+                        setTimeout(() => setCopiedIp(false), 2000);
+                      }}
+                      style={{
+                        fontSize: '11.5px',
+                        fontWeight: 600,
+                        padding: '5px 12px',
+                        borderRadius: '6px',
+                        backgroundColor: copiedIp ? '#10b981' : 'var(--primary)',
+                        color: 'white',
+                        border: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {copiedIp ? '✓ Copied IP' : '📋 Copy Static IP'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">
+                      Dedicated Static IPv4 Address *
+                    </label>
+                    <div className="premium-input-wrapper" style={isDuplicateIp ? { border: '1.5px solid #ef4444' } : {}}>
+                      <Server size={15} className="premium-input-icon" color={isDuplicateIp ? '#ef4444' : undefined} />
+                      <input
+                        type="text"
+                        value={dedicatedIp}
+                        onChange={(e) => setDedicatedIp(e.target.value)}
+                        placeholder={serverIp ? `e.g. ${serverIp} or 185.220.101.5` : "Enter static IP address"}
+                        className="premium-input"
+                        style={{ fontSize: '13px', fontWeight: 600, fontFamily: 'monospace', color: isDuplicateIp ? '#ef4444' : undefined }}
+                      />
+                    </div>
+                    {isDuplicateIp && (
+                      <div style={{
+                        marginTop: '6px',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        color: '#ef4444',
+                        fontSize: '11.5px',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <span>⚠️ <strong>Duplicate Static IP!</strong> IP <code>{dedicatedIp.trim()}</code> is already assigned to client <strong>{duplicateClientName}</strong>. Each client must have a unique IP.</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      Proxy Gateway URL (Optional)
+                    </label>
+                    <div className="premium-input-wrapper">
+                      <Globe size={15} className="premium-input-icon" />
+                      <input
+                        type="text"
+                        value={proxyUrl}
+                        onChange={(e) => setProxyUrl(e.target.value)}
+                        placeholder="http://username:password@185.220.101.5:8080"
+                        className="premium-input"
+                        style={{ fontSize: '12.5px', fontFamily: 'monospace' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(14, 165, 233, 0.06)',
+                  border: '1px solid rgba(14, 165, 233, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  flexWrap: 'wrap'
+                }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                    👉 Add this specific IP address to client's <strong>developers.kite.trade</strong> -&gt; Profile -&gt; <strong>IP Whitelist</strong> so trade execution never encounters <i>PermissionException</i>.
+                  </div>
+                  <a
+                    href="https://developers.kite.trade/profile"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: 'var(--primary)',
+                      textDecoration: 'underline',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    Open Kite Developer Console ↗
+                  </a>
                 </div>
               </div>
             </Card>

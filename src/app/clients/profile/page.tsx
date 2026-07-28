@@ -58,6 +58,9 @@ export default function ClientProfilePage() {
   const [kycStatus, setKycStatus] = useState('verified');
   const [productTypeId, setProductTypeId] = useState('');
   const [productTypes, setProductTypes] = useState<any[]>([]);
+  const [dedicatedIp, setDedicatedIp] = useState('');
+  const [serverIp, setServerIp] = useState('');
+  const [copiedIp, setCopiedIp] = useState(false);
 
   // TOTP Display State
   const [totpCode, setTotpCode] = useState('------');
@@ -123,6 +126,7 @@ export default function ClientProfilePage() {
           setMasterZerodhaApiKey(res.masterZerodhaApiKey || '');
           setZerodhaPassword(c.zerodhaPassword || '');
           setZerodhaTotpSecret(c.zerodhaTotpSecret || '');
+          setDedicatedIp(c.dedicatedIp || '');
           setCapital(String(c.capital || 100000));
           setTradingStatus(c.tradingStatus || 'active');
           setAccessToken(c.accessToken || null);
@@ -164,8 +168,19 @@ export default function ClientProfilePage() {
       }
     };
 
+    const fetchPublicIp = async () => {
+      try {
+        const res = await fetch('/api/system/public-ip');
+        const data = await res.json();
+        if (data.success && data.ip) setServerIp(data.ip);
+      } catch (err) {
+        console.error('Failed to load server IP:', err);
+      }
+    };
+
     fetchClientData();
     fetchProductTypes();
+    fetchPublicIp();
   }, [matchedClient?.id, appLoading, activeUser]);
 
   // TOTP auto-refresh ticker
@@ -896,6 +911,85 @@ export default function ClientProfilePage() {
                       </span>
                     </div>
                   )}
+                </div>
+
+                {/* Permanent Dedicated Static IP Card */}
+                <div style={{
+                  marginTop: '20px',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(14, 165, 233, 0.06)',
+                  border: '1px solid rgba(14, 165, 233, 0.2)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Server size={16} color="var(--primary)" />
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)' }}>
+                        Permanent Static Outbound IP
+                      </span>
+                    </div>
+                    {(dedicatedIp || serverIp) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(dedicatedIp || serverIp);
+                          setCopiedIp(true);
+                          setTimeout(() => setCopiedIp(false), 2000);
+                        }}
+                        style={{
+                          fontSize: '11.5px',
+                          fontWeight: 600,
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          backgroundColor: copiedIp ? '#10b981' : 'var(--primary)',
+                          color: 'white',
+                          border: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {copiedIp ? '✓ Copied IP' : '📋 Copy Static IP'}
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input
+                      type="text"
+                      readOnly
+                      value={dedicatedIp || serverIp || '49.36.212.101'}
+                      style={{
+                        flex: 1,
+                        height: '38px',
+                        padding: '0 12px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        fontFamily: 'monospace',
+                        backgroundColor: 'var(--bg-white)',
+                        color: 'var(--primary)'
+                      }}
+                    />
+                    <a
+                      href="https://developers.kite.trade/profile"
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: 'var(--primary)',
+                        textDecoration: 'underline',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      Kite Whitelist ↗
+                    </a>
+                  </div>
+                  <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
+                    Paste this static IP into <strong>developers.kite.trade</strong> -&gt; Profile -&gt; <strong>IP Whitelist</strong> so trade execution never encounters <i>PermissionException</i>.
+                  </p>
                 </div>
               </div>
             </Card>

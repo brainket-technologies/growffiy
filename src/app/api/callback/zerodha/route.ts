@@ -50,13 +50,11 @@ export async function GET(request: Request) {
       return NextResponse.redirect(getRedirectUrl(`/admin/clients?error=client_not_found`, request));
     }
 
-    const masterApiKeySetting = await prisma.appSettings.findUnique({ where: { settingKey: 'master_zerodha_api_key' } });
-    const masterApiSecretSetting = await prisma.appSettings.findUnique({ where: { settingKey: 'master_zerodha_api_secret' } });
-    const apiKey = (client.zerodhaApiKey || masterApiKeySetting?.settingValue || '').trim();
-    const apiSecret = (client.zerodhaApiSecret || masterApiSecretSetting?.settingValue || '').trim();
+    const apiKey = (client.zerodhaApiKey || '').trim();
+    const apiSecret = (client.zerodhaApiSecret || '').trim();
 
     if (!apiKey || !apiSecret) {
-      return NextResponse.redirect(getRedirectUrl(`/admin/clients/${clientId}?error=missing_master_api_credentials`, request));
+      return NextResponse.redirect(getRedirectUrl(`/admin/clients/${clientId}?error=${encodeURIComponent('Client Zerodha API Key & Secret required')}`, request));
     }
 
     // 2. Request Session Access Token from Zerodha Kite Connect API using helper
