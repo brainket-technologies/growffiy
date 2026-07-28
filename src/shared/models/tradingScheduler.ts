@@ -517,16 +517,23 @@ export class TradingScheduler {
                     } else if (tgtData?.status === 'CANCELLED' || tgtData?.status === 'REJECTED') {
                       console.log(`AlgoEngine Monitor: Target order ${trade.targetOrderId} ${tgtData?.status}`);
                       await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: tgtData.status } });
-                      // Agar dono orders cancel hue (Zerodha auto square-off ya manual), trade CANCELLED mark karo
-                      const slAlsoCancelled = !slComplete && (trade.slOrderId ? true : true);
-                      if (slAlsoCancelled) {
-                        await prisma.trade.update({
-                          where: { id: trade.id },
-                          data: { status: 'cancelled', exitTime: new Date(), exitReason: 'Orders Cancelled (External/Auto Square-off)' }
-                        });
-                        console.log(`AlgoEngine Monitor: Both SL & Target cancelled for trade ${trade.id} (${trade.symbol}). Marked CANCELLED.`);
-                        return;
+                      
+                      // Target REJECTED/CANCELLED: Cancel open SL order on Kite immediately to avoid stray pending order
+                      if (trade.slOrderId && trade.slOrderId !== 'REJECTED' && trade.slOrderId !== 'CANCELLED') {
+                        try {
+                          await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.slOrderId);
+                          console.log(`AlgoEngine Monitor: Auto-cancelled pending SL order ${trade.slOrderId} because Target order was ${tgtData?.status}`);
+                        } catch (e) {
+                          console.warn(`AlgoEngine Monitor: Failed to cancel SL order ${trade.slOrderId} after Target ${tgtData?.status}:`, e);
+                        }
                       }
+
+                      // Mark trade status properly
+                      await prisma.trade.update({
+                        where: { id: trade.id },
+                        data: { status: 'closed', exitTime: new Date(), exitReason: `Target Order ${tgtData?.status}` }
+                      });
+                      return;
                     }
                   }
                 } catch (e) { console.warn(`AlgoEngine Monitor: Target order status check failed for ${trade.symbol}:`, e); }
