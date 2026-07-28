@@ -17,8 +17,8 @@ export async function sendClientWelcomeEmail({
   loginUrl
 }: SendClientCredentialsOptions) {
   const finalLoginUrl = loginUrl || 
-    (typeof window !== 'undefined' ? `${window.location.origin}/vendor/login` : 
-    (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/vendor/login` : 'http://localhost:3000/vendor/login'));
+    (typeof window !== 'undefined' ? `${window.location.origin}/login` : 
+    (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/login` : 'http://localhost:3000/login'));
   try {
     // 1. Fetch settings from DB
     const dbSettings = await prisma.appSettings.findMany();

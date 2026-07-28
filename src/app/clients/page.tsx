@@ -76,7 +76,7 @@ export default function ClientDashboardOverview() {
         } else {
           localStorage.removeItem('growffiy_logged_in_user_id');
           localStorage.removeItem('growffiy_logged_in_user_role');
-          window.location.href = '/vendor/login';
+          window.location.href = '/login';
         }
       }
     }

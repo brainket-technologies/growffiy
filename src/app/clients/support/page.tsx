@@ -23,7 +23,7 @@ export default function ClientSupportPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      if (!localStorage.getItem('growffiy_logged_in_user_id')) window.location.href = '/vendor/login';
+      if (!localStorage.getItem('growffiy_logged_in_user_id')) window.location.href = '/login';
     }
   }, []);
 

@@ -1258,7 +1258,7 @@ export default function GrowffiyLanding() {
                           </li>
                         ))}
                       </ul>
-                      <Link href="/vendor/login" target="_blank" style={{ display: 'block' }}>
+                      <Link href="/login" target="_blank" style={{ display: 'block' }}>
                         <button style={{
                           width: '100%', padding: '13px', borderRadius: 99, fontWeight: 700,
                           fontSize: 14, cursor: 'pointer', transition: 'all 0.3s',

@@ -135,7 +135,7 @@ export const Header: React.FC<HeaderProps> = ({
       const activeRole = localStorage.getItem('growffiy_logged_in_user_role');
       localStorage.removeItem('growffiy_logged_in_user_id');
       localStorage.removeItem('growffiy_logged_in_user_role');
-      window.location.href = activeRole === 'admin' ? '/admin/login' : '/vendor/login';
+      window.location.href = activeRole === 'admin' ? '/admin/login' : '/login';
     }
   };
 

@@ -130,7 +130,7 @@ export async function POST(request: Request) {
         const originUrl = request.headers.get('origin') || request.headers.get('host') || 'http://localhost:3000';
         // Normalize HTTP protocol wrapper for host fallback if origin is missing
         const formattedOrigin = originUrl.startsWith('http') ? originUrl : `https://${originUrl}`;
-        const loginUrl = `${formattedOrigin}/vendor/login`;
+        const loginUrl = `${formattedOrigin}/login`;
         // Non-blocking fire and forget welcome email
         sendClientWelcomeEmail({
           email: newUser.email,

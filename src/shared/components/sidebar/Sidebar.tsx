@@ -571,7 +571,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true, staffPermissio
       localStorage.removeItem('growffiy_logged_in_user_role');
       localStorage.removeItem('growffiy_logged_in_user_name');
       localStorage.removeItem('growffiy_staff_permissions');
-      window.location.href = isAdmin ? '/admin/login' : staffPermissions ? '/staff/login' : '/vendor/login';
+      window.location.href = isAdmin ? '/admin/login' : staffPermissions ? '/staff/login' : '/login';
     }
   }, [isAdmin, staffPermissions]);
   const groups = React.useMemo(() => {

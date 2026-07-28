@@ -116,7 +116,7 @@ export async function POST(request: Request) {
         const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
         const host = request.headers.get('host') || 'localhost:3000';
         const protocol = host.includes('localhost') ? 'http' : 'https';
-        const loginUrl = `${protocol}://${host}/vendor/login`;
+        const loginUrl = `${protocol}://${host}/login`;
         const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
 
         try {

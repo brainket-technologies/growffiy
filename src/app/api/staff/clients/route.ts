@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       try {
         const originUrl = request.headers.get('origin') || request.headers.get('host') || 'http://localhost:3000';
         const formattedOrigin = originUrl.startsWith('http') ? originUrl : `https://${originUrl}`;
-        const loginUrl = `${formattedOrigin}/vendor/login`;
+        const loginUrl = `${formattedOrigin}/login`;
         sendClientWelcomeEmail({
           email: newUser.email,
           name: newUser.name,

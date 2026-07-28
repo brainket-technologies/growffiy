@@ -20,7 +20,7 @@ export default function ClientSubscriptionPlans() {
     if (typeof window !== 'undefined') {
       const storedId = localStorage.getItem('growffiy_logged_in_user_id');
       if (!storedId) {
-        window.location.href = '/vendor/login';
+        window.location.href = '/login';
         return;
       }
     }
