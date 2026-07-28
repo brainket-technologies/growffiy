@@ -1259,6 +1259,39 @@ class AlgoEngineService {
                   console.log(`AlgoEngine: Entry order ${orderId} COMPLETE at avg price ₹${actualEntryPrice}`);
                   entryFilled = true;
 
+                  // Dual Leg OCO: Cancel any other open/pending leg entry orders in Zerodha for this client & group
+                  if (finalDualLegGroupId && client.zerodhaApiKey && activeAccessToken) {
+                    try {
+                      const otherLegTrades = await prisma.trade.findMany({
+                        where: {
+                          clientId: client.id,
+                          strategyId: strategy.id,
+                          dualLegGroupId: finalDualLegGroupId,
+                          id: tradeId ? { not: tradeId } : undefined,
+                          entryOrderId: { not: null },
+                          entryOrderStatus: { in: ['open', 'submitted', 'trigger pending', 'OPEN', 'TRIGGER PENDING', 'PUT ORDER REQ RECEIVED'] }
+                        }
+                      });
+
+                      for (const otherTrade of otherLegTrades) {
+                        if (otherTrade.entryOrderId) {
+                          console.log(`AlgoEngine OCO: Cancelling pending opposite leg order ${otherTrade.entryOrderId} (${otherTrade.legName}) in Zerodha...`);
+                          try {
+                            await KiteClient.cancelOrder(client.zerodhaApiKey, activeAccessToken, otherTrade.entryOrderId);
+                            await prisma.trade.update({
+                              where: { id: otherTrade.id },
+                              data: { entryOrderStatus: 'CANCELLED', status: 'CANCELLED' }
+                            });
+                          } catch (cErr) {
+                            console.warn(`AlgoEngine OCO: Error cancelling pending order ${otherTrade.entryOrderId} in Zerodha:`, cErr);
+                          }
+                        }
+                      }
+                    } catch (ocoCancelErr) {
+                      console.error(`AlgoEngine OCO: Error searching/cancelling opposite leg orders:`, ocoCancelErr);
+                    }
+                  }
+
                   // Entry fill hote hi SL + Target place karo
                   if (client.zerodhaApiKey && activeAccessToken) {
                     // Fetch fresh circuit limits right before placing SL/Target
