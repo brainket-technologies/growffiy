@@ -65,7 +65,6 @@ export default function ClientDetailsPage() {
   const [zerodhaClientId, setZerodhaClientId] = useState('');
   const [zerodhaApiKey, setZerodhaApiKey] = useState('');
   const [zerodhaApiSecret, setZerodhaApiSecret] = useState('');
-  const [masterZerodhaApiKey, setMasterZerodhaApiKey] = useState('');
   const [zerodhaPassword, setZerodhaPassword] = useState('');
   const [zerodhaTotpSecret, setZerodhaTotpSecret] = useState('');
   const [capital, setCapital] = useState('');
@@ -108,7 +107,6 @@ export default function ClientDetailsPage() {
           setZerodhaClientId(c.zerodhaClientId || '');
           setZerodhaApiKey(c.zerodhaApiKey || '');
           setZerodhaApiSecret(c.zerodhaApiSecret || '');
-          setMasterZerodhaApiKey(res.masterZerodhaApiKey || '');
           setZerodhaPassword(c.zerodhaPassword || '');
           setZerodhaTotpSecret(c.zerodhaTotpSecret || '');
           setCapital(String(c.capital));
@@ -338,12 +336,12 @@ export default function ClientDetailsPage() {
       </div>
     );
 
-    const apiToUse = masterZerodhaApiKey || zerodhaApiKey;
+    const apiToUse = zerodhaApiKey;
     if (shouldConnect) {
       if (!apiToUse) {
         setAlertModal({
           title: 'Missing Credentials',
-          message: 'Master Zerodha API Key is not configured. Please configure it in Settings first.'
+          message: 'Client Kite API Key is missing. Please enter the client\'s Kite API Key first.'
         });
         return;
       }
@@ -452,12 +450,12 @@ export default function ClientDetailsPage() {
       return;
     }
 
-    const apiToUse = masterZerodhaApiKey || zerodhaApiKey;
+    const apiToUse = zerodhaApiKey;
     if (connect) {
       if (!apiToUse) {
         setAlertModal({
           title: 'Missing Credentials',
-          message: 'Master Zerodha API Key is not configured. Please configure it in Settings first.'
+          message: 'Client Kite API Key is missing. Please enter the client\'s Kite API Key first.'
         });
         return;
       }

@@ -44,7 +44,6 @@ export default function ClientProfilePage() {
   const [zerodhaClientId, setZerodhaClientId] = useState('');
   const [zerodhaApiKey, setZerodhaApiKey] = useState('');
   const [zerodhaApiSecret, setZerodhaApiSecret] = useState('');
-  const [masterZerodhaApiKey, setMasterZerodhaApiKey] = useState('');
   const [zerodhaPassword, setZerodhaPassword] = useState('');
   const [zerodhaTotpSecret, setZerodhaTotpSecret] = useState('');
   const [capital, setCapital] = useState('');
@@ -123,7 +122,6 @@ export default function ClientProfilePage() {
           setZerodhaClientId(c.zerodhaClientId || '');
           setZerodhaApiKey(c.zerodhaApiKey || '');
           setZerodhaApiSecret(c.zerodhaApiSecret || '');
-          setMasterZerodhaApiKey(res.masterZerodhaApiKey || '');
           setZerodhaPassword(c.zerodhaPassword || '');
           setZerodhaTotpSecret(c.zerodhaTotpSecret || '');
           setDedicatedIp(c.dedicatedIp || '');
@@ -251,7 +249,7 @@ export default function ClientProfilePage() {
 
   const handleSimulateConnection = async (connect: boolean) => {
     if (!client?.id) return;
-    const apiToUse = masterZerodhaApiKey || zerodhaApiKey;
+    const apiToUse = zerodhaApiKey;
 
     if (connect) {
       if (zerodhaTotpSecret) {

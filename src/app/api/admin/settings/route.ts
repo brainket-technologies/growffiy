@@ -172,8 +172,6 @@ export async function GET() {
     settings['google_analytics_id'] = '';
     settings['google_sheet_url'] = '';
     settings['google_credentials_json'] = '';
-    settings['master_zerodha_api_key'] = '';
-    settings['master_zerodha_api_secret'] = '';
     settings['show_zerodha_connect'] = 'true';
     settings['show_client_profile'] = 'true';
     settings['show_client_strategy'] = 'true';
@@ -296,8 +294,6 @@ export async function PUT(request: Request) {
       legal_faq_content,
       hero_title,
       hero_subtitle,
-      master_zerodha_api_key,
-      master_zerodha_api_secret,
       show_zerodha_connect,
       show_client_profile,
       show_client_strategy,
@@ -313,8 +309,6 @@ export async function PUT(request: Request) {
       razorpay_test_key_secret,
       razorpay_live_key_id,
       razorpay_live_key_secret,
-      master_zerodha_api_key,
-      master_zerodha_api_secret,
       show_zerodha_connect,
       show_client_profile,
       show_client_strategy,
