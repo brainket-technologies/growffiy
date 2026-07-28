@@ -440,10 +440,10 @@ export default function LoginPage() {
                     fontSize: 26, fontWeight: 800, color: 'var(--text-heading)',
                     fontFamily: 'Outfit, sans-serif', marginBottom: 8,
                   }}>
-                    Welcome back
+                    Welcome to Growffiy
                   </h2>
                   <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                    Sign in to access your trading dashboard and manage your portfolio.
+                    Sign in to access your algorithmic trading dashboard.
                   </p>
                 </div>
 
