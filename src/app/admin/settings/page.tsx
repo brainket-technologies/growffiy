@@ -47,6 +47,8 @@ export default function SettingsPage() {
   const [algoTokenRefreshTime, setAlgoTokenRefreshTime] = useState('08:00');
   const [googleSheetUrl, setGoogleSheetUrl] = useState('');
   const [googleCredentialsJson, setGoogleCredentialsJson] = useState('');
+  const [selectedMasterClientId, setSelectedMasterClientId] = useState('');
+  const [clientsList, setClientsList] = useState<any[]>([]);
 
   // Auto Trade Calendar
   const [autoTradeEnabled, setAutoTradeEnabled] = useState(true);
@@ -149,6 +151,16 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
           setShowClientStrategy(res.settings.show_client_strategy ?? 'true');
           setGoogleSheetUrl(res.settings.google_sheet_url || '');
           setGoogleCredentialsJson(res.settings.google_credentials_json || '');
+          setSelectedMasterClientId(res.settings.master_scanner_client_id || '');
+
+          try {
+            const clientRes = await api.get(API_ENDPOINTS.CLIENTS);
+            if (clientRes.success && clientRes.clients) {
+              setClientsList(clientRes.clients);
+            }
+          } catch (cErr) {
+            console.error('Failed to load clients list:', cErr);
+          }
 
           setAutoTradeEnabled(res.settings.auto_trade_enabled !== 'false');
           try { setTradingDays(JSON.parse(res.settings.trading_days || '["Mon","Tue","Wed","Thu","Fri"]')); } catch {}
@@ -223,6 +235,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
         show_client_strategy: showClientStrategy,
         google_sheet_url: googleSheetUrl,
         google_credentials_json: googleCredentialsJson,
+        master_scanner_client_id: selectedMasterClientId,
         auto_trade_enabled: autoTradeEnabled ? 'true' : 'false',
         trading_days: JSON.stringify(tradingDays),
         special_market_days: JSON.stringify(specialDays),
@@ -1258,7 +1271,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
  
             <div style={{ marginTop: '32px', borderTop: '1px solid var(--border-light)', paddingTop: '24px' }}>
               <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '16px', fontFamily: 'var(--font-title)' }}>
-                Google Sheets Synchronization
+                Master Stock Scanner & Google Sheets Credentials
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div>
@@ -1273,6 +1286,44 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                     style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }}
                   />
                 </div>
+
+                <div style={{ padding: '16px', borderRadius: '10px', border: '1px solid var(--border-light)', backgroundColor: 'var(--surface)' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Key size={16} style={{ color: 'var(--primary)' }} /> Select Client for Master Stock Scanner & Sheet Sync
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px', lineHeight: 1.5 }}>
+                    Select which client's Zerodha Kite credentials (API Key, Secret, Client ID, Password & TOTP) will be used by the Stock Scanner to fetch market data and stream to Google Sheet.
+                  </p>
+                  <select
+                    value={selectedMasterClientId}
+                    onChange={(e) => setSelectedMasterClientId(e.target.value)}
+                    style={{
+                      width: '100%',
+                      height: '42px',
+                      fontSize: '14px',
+                      padding: '0 14px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="">-- Use Default / First Active Client --</option>
+                    {clientsList.map((client) => {
+                      const cName = client.name || client.user?.name || client.zerodhaClientId || 'Unnamed Client';
+                      const cId = client.id || client.zerodhaClientId;
+                      const zId = client.zerodhaClientId ? ` (${client.zerodhaClientId})` : '';
+                      return (
+                        <option key={cId} value={cId}>
+                          {cName}{zId}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', marginBottom: '6px' }}>
                     Google Service Account Credentials (JSON)
@@ -1281,7 +1332,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                     placeholder='{"type": "service_account", ...}'
                     value={googleCredentialsJson}
                     onChange={(e) => setGoogleCredentialsJson(e.target.value)}
-                    rows={6}
+                    rows={5}
                     style={{ width: '100%', fontSize: '14px', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none', fontFamily: 'monospace' }}
                   />
                 </div>

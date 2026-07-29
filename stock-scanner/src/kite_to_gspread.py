@@ -126,7 +126,26 @@ def load_kite_credentials_from_db():
     try:
         conn = psycopg2.connect(db_url)
         cur = conn.cursor()
-        cur.execute("SELECT zerodha_api_key, zerodha_api_secret, zerodha_client_id, zerodha_password, zerodha_totp_secret FROM clients LIMIT 1")
+        cur.execute("SELECT setting_value FROM app_settings WHERE setting_key = 'master_scanner_client_id'")
+        target_client_row = cur.fetchone()
+        target_client_id = target_client_row[0] if target_client_row else None
+
+        if target_client_id:
+            cur.execute("SELECT zerodha_api_key, zerodha_api_secret, zerodha_client_id, zerodha_password, zerodha_totp_secret FROM clients WHERE id = %s OR zerodha_client_id = %s LIMIT 1", (target_client_id, target_client_id))
+            row = cur.fetchone()
+            if row and row[0] and row[1]:
+                cur.close()
+                conn.close()
+                return {
+                    "kite_api_key": row[0],
+                    "kite_api_secret": row[1],
+                    "kite_client_id": row[2],
+                    "kite_password": row[3],
+                    "kite_totp_secret": row[4]
+                }
+
+        # Fallback to first available client with non-null credentials
+        cur.execute("SELECT zerodha_api_key, zerodha_api_secret, zerodha_client_id, zerodha_password, zerodha_totp_secret FROM clients WHERE zerodha_api_key IS NOT NULL AND zerodha_api_key != '' LIMIT 1")
         row = cur.fetchone()
         cur.close()
         conn.close()
@@ -440,17 +459,16 @@ def run_streamer():
             raise Exception(f"2FA authentication failed: {twofa_res.get('message')}")
             
         auth_url = f"https://kite.zerodha.com/connect/login?api_key={api_key}&v=3"
-        r_auth = session.get(auth_url, allow_redirects=True)
-        all_urls = [r.headers.get("Location") or r.url for r in r_auth.history] + [r_auth.url]
-        
-        location = None
-        for url in all_urls:
-            if "request_token" in url:
-                location = url
-                break
-            
-        if not location:
-            raise Exception("Could not find any URL containing request_token in the redirection chain.")
+        r_auth = session.get(auth_url, allow_redirects=False)
+        location = r_auth.headers.get("Location")
+        if location and "connect/finish" in location:
+            if not location.startswith("http"):
+                location = "https://kite.zerodha.com" + location
+            r_finish = session.get(location, allow_redirects=False)
+            location = r_finish.headers.get("Location") or location
+
+        if not location or "request_token" not in location:
+            raise Exception(f"Could not find request_token in Zerodha redirect header. Status: {r_auth.status_code}, Location: {location}")
             
         parsed_url = urllib.parse.urlparse(location)
         query_params = urllib.parse.parse_qs(parsed_url.query)
