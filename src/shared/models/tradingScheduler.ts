@@ -828,9 +828,10 @@ export class TradingScheduler {
               const istTimeStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
               if (istTimeStr >= config.basicInfo.exitTime) {
                 exitTriggered = true;
-                exitPrice = Number(trade.entryPrice);
+                const liveLtp = this.wsLive.getStockLtp(trade.symbol);
+                exitPrice = liveLtp > 0 ? liveLtp : Number(trade.entryPrice);
                 exitReason = `Market Close (${config.basicInfo.exitTime})`;
-                console.log(`AlgoEngine Monitor: Market close time ${config.basicInfo.exitTime} reached for trade ${trade.id} (${trade.symbol}). Forcing exit.`);
+                console.log(`AlgoEngine Monitor: Market close time ${config.basicInfo.exitTime} reached for trade ${trade.id} (${trade.symbol}). Forcing exit at LTP ₹${exitPrice}.`);
 
                 // Cancel pending orders before exiting
                 if (trade.slOrderId) {
