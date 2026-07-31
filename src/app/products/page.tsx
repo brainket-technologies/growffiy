@@ -63,6 +63,7 @@ export default function ProductsPage() {
   };
 
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [supportPhone, setSupportPhone] = useState('+91 902666305');
   const [supportWhatsapp, setSupportWhatsapp] = useState('+91 902666305');

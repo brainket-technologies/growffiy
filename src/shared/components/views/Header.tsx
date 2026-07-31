@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, HelpCircle, User, ChevronDown, Lock, UserCheck, LogOut, X, RefreshCw } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
 import styles from './components.module.css';
 import { api } from '../../services/api';
 import { API_ENDPOINTS } from '../../../core/constants';
@@ -17,6 +18,9 @@ export const Header: React.FC<HeaderProps> = ({
   userName = 'Firoz Mohammad',
   userRole = 'Administrator',
 }) => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const isClient = pathname?.startsWith('/clients') ?? false;
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);

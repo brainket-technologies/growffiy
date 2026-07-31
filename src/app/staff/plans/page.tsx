@@ -673,8 +673,8 @@ export default function AdminPlansPage() {
               type="text"
               required
               placeholder="e.g. Monthly Starter Plan"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className="plan-input-field"
             />
           </div>

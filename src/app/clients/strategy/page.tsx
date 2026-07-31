@@ -18,6 +18,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
+import { API_ENDPOINTS } from '../../../core/constants';
 import { Card } from '../../../shared/components/views/Card';
 import { Button } from '../../../shared/components/views/Button';
 import { Loader } from '../../../shared/components/views/Loader';

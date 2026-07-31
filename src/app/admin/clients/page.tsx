@@ -155,7 +155,6 @@ export default function ClientsPage() {
       return;
     }
 
-    setIsSubmitting(true);
     const result = await addClient({
       name,
       email,

@@ -467,8 +467,8 @@ export class TradingScheduler {
             const targetType = config.target.type;
             const trailingSlStep = config?.stoploss?.trailingSL;
             const trailingTgtStep = config?.target?.trailingTarget;
-            const marketProtectionVal = config?.tradeAction?.marketProtection !== undefined
-              ? Number(config.tradeAction.marketProtection) : -1;
+            const marketProtectionVal = (config?.tradeAction?.marketProtection !== undefined && Number(config.tradeAction.marketProtection) >= 0)
+              ? Number(config.tradeAction.marketProtection) : 0.05;
             // marketProtectionVal is set during entry creation; this is a fallback
 
             const entryPrice = Number(trade.entryPrice);
@@ -515,28 +515,25 @@ export class TradingScheduler {
                       targetAvgPrice = Number(tgtData?.average_price || tgtData?.filled_price || 0);
                       console.log(`AlgoEngine Monitor: Target order ${trade.targetOrderId} COMPLETE for ${trade.symbol} @ ₹${targetAvgPrice}`);
                     } else if (tgtData?.status === 'CANCELLED' || tgtData?.status === 'REJECTED') {
-                      console.log(`AlgoEngine Monitor: Target order ${trade.targetOrderId} ${tgtData?.status}`);
-                      await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: tgtData.status } });
-                      
-                      // Target REJECTED/CANCELLED: Cancel open SL order on Kite immediately to avoid stray pending order
-                      if (trade.slOrderId && trade.slOrderId !== 'REJECTED' && trade.slOrderId !== 'CANCELLED') {
-                        try {
-                          await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.slOrderId);
-                          console.log(`AlgoEngine Monitor: Auto-cancelled pending SL order ${trade.slOrderId} because Target order was ${tgtData?.status}`);
-                        } catch (e) {
-                          console.warn(`AlgoEngine Monitor: Failed to cancel SL order ${trade.slOrderId} after Target ${tgtData?.status}:`, e);
-                        }
-                      }
-
-                      // Mark trade status properly
-                      await prisma.trade.update({
-                        where: { id: trade.id },
-                        data: { status: 'closed', exitTime: new Date(), exitReason: `Target Order ${tgtData?.status}` }
-                      });
-                      return;
+                      console.log(`AlgoEngine Monitor: Target order ${trade.targetOrderId} on Zerodha is ${tgtData?.status}. Switching targetOrderStatus to VIRTUAL_PENDING for live LTP monitoring.`);
+                      await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: 'VIRTUAL_PENDING' } });
                     }
                   }
                 } catch (e) { console.warn(`AlgoEngine Monitor: Target order status check failed for ${trade.symbol}:`, e); }
+              }
+
+              // Virtual Target monitoring check (if Target order failed/rejected on Zerodha)
+              if (!exitTriggered && !slComplete && (!trade.targetOrderId || trade.targetOrderStatus === 'VIRTUAL_PENDING' || trade.targetOrderStatus === 'REJECTED')) {
+                const liveLtp = this.wsLive.getStockLtp(trade.symbol);
+                if (liveLtp > 0 && trade.target) {
+                  const targetVal = Number(trade.target);
+                  const isTargetHit = isShortTrade ? (liveLtp <= targetVal) : (liveLtp >= targetVal);
+                  if (isTargetHit) {
+                    targetComplete = true;
+                    targetAvgPrice = liveLtp;
+                    console.log(`AlgoEngine Monitor: Virtual Target Hit for ${trade.symbol} @ LTP ₹${liveLtp} (Target: ₹${targetVal})`);
+                  }
+                }
               }
 
               if (slComplete) {
@@ -652,7 +649,7 @@ export class TradingScheduler {
             }
 
             // --- Priority 2: Entry placed but SL/Target not yet set ---
-            if (!exitTriggered && (!trade.slOrderId || !trade.targetOrderId) && trade.entryOrderId) {
+            if (!exitTriggered && !trade.slOrderId && !trade.targetOrderId && trade.entryOrderId && trade.slOrderStatus !== 'REJECTED' && trade.targetOrderStatus !== 'REJECTED' && trade.targetOrderStatus !== 'VIRTUAL_PENDING') {
               try {
                 const entryStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.entryOrderId);
                 const latestEntryOrder = getLatestOrderState(entryStatus?.data);
@@ -733,12 +730,12 @@ export class TradingScheduler {
                           newTargetOrderId = tgtRes.data.order_id;
                           await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: 'OPEN', targetKiteResponse: tgtRes } });
                         } else if (tgtRes?.status === 'error') {
-                          newTargetOrderId = 'REJECTED';
-                          await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: 'REJECTED', targetKiteResponse: tgtRes } });
-                          const errMsg = `Kite rejected Target order for ${trade.symbol}. Reason: ${tgtRes.message}`;
+                          newTargetOrderId = null;
+                          await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: 'VIRTUAL_PENDING', targetKiteResponse: tgtRes } });
+                          const errMsg = `Kite rejected Target order for ${trade.symbol}. Reason: ${tgtRes.message}. Switched to VIRTUAL target monitoring.`;
                           console.warn(`AlgoEngine Monitor: ${errMsg}`);
                           await logSystemEvent({
-                            action: 'TARGET ORDER REJECTED',
+                            action: 'TARGET ORDER VIRTUAL FALLBACK',
                             oldValue: `Trade ID: ${trade.id}`,
                             newValue: errMsg
                           });

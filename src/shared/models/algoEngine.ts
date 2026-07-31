@@ -994,9 +994,9 @@ class AlgoEngineService {
             return;
           }
 
-          const marketProtectionVal = currentLeg.tradeAction?.marketProtection !== undefined
+          const marketProtectionVal = (currentLeg.tradeAction?.marketProtection !== undefined && Number(currentLeg.tradeAction.marketProtection) >= 0)
             ? Number(currentLeg.tradeAction.marketProtection)
-            : -1;
+            : 0.05;
 
            // Fetch fresh circuit limits first to adjust entry price
           let adjustedEntryPrice = entryPrice;
@@ -1219,6 +1219,7 @@ class AlgoEngineService {
           let actualEntryPrice = finalEntryPrice;
           let slOrderId = '';
           let targetOrderId = '';
+          let targetOrderStatusVal: string | null = null;
 
           let entryFilled = false;
           let latestOrderStatus = 'OPEN';
@@ -1308,6 +1309,9 @@ class AlgoEngineService {
                       }
                     }
 
+                    // Small delay to ensure Zerodha processes opposite leg cancellation and frees up margin
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+
                     try {
                       const slParams = {
                         exchange: exchangeParam,
@@ -1331,6 +1335,9 @@ class AlgoEngineService {
                       console.error(`AlgoEngine: Error placing SL-M order:`, slErr);
                     }
 
+                    // 2-second gap after SL placement before placing Target LIMIT order
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+
                     try {
                       const targetParams = {
                         exchange: exchangeParam,
@@ -1345,11 +1352,15 @@ class AlgoEngineService {
                       const targetRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, targetParams);
                       if (targetRes?.status === 'success' && targetRes.data?.order_id) {
                         targetOrderId = targetRes.data.order_id;
+                        targetOrderStatusVal = 'OPEN';
                         console.log(`AlgoEngine: Target LIMIT order placed: ${targetOrderId} for ${targetStock.symbol} @ ₹${finalTarget}`);
                       } else {
-                        console.warn(`AlgoEngine: Target LIMIT order failed: ${targetRes?.message || 'unknown'}`);
+                        targetOrderStatusVal = 'VIRTUAL_PENDING';
+                        const errMsg = targetRes?.message || 'unknown';
+                        console.warn(`AlgoEngine: Target LIMIT order failed/rejected on Zerodha: ${errMsg}. Transitioned to VIRTUAL target monitoring.`);
                       }
-                    } catch (tgtErr) {
+                    } catch (tgtErr: any) {
+                      targetOrderStatusVal = 'VIRTUAL_PENDING';
                       console.error(`AlgoEngine: Error placing Target LIMIT order:`, tgtErr);
                     }
                   }
@@ -1412,6 +1423,7 @@ class AlgoEngineService {
                 entryOrderStatus: entryFilled ? 'filled' : (latestOrderStatus === 'COMPLETE' ? 'filled' : latestOrderStatus),
                 slOrderId: slOrderId || null,
                 targetOrderId: targetOrderId || null,
+                targetOrderStatus: targetOrderStatusVal || (targetOrderId ? 'OPEN' : null),
                 slTriggerPrice: finalStopLoss,
                 kiteResponse: orderRes,
                 direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId
@@ -1433,6 +1445,7 @@ class AlgoEngineService {
                 entryOrderStatus: entryFilled ? 'filled' : (latestOrderStatus === 'COMPLETE' ? 'filled' : latestOrderStatus),
                 slOrderId: slOrderId || null,
                 targetOrderId: targetOrderId || null,
+                targetOrderStatus: targetOrderStatusVal || (targetOrderId ? 'OPEN' : null),
                 slTriggerPrice: finalStopLoss,
                 kiteResponse: orderRes,
                 direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId

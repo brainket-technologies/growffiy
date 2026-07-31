@@ -586,7 +586,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                 background: 'var(--surface)',
                 display: 'flex',
                 flexDirection: 'column',
-                justify: 'space-between',
+                justifyContent: 'space-between',
                 gap: '16px'
               }}>
                 <div>
@@ -634,7 +634,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                 background: 'var(--surface)',
                 display: 'flex',
                 flexDirection: 'column',
-                justify: 'space-between',
+                justifyContent: 'space-between',
                 gap: '16px'
               }}>
                 <div>
@@ -682,7 +682,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                 background: 'var(--surface)',
                 display: 'flex',
                 flexDirection: 'column',
-                justify: 'space-between',
+                justifyContent: 'space-between',
                 gap: '16px'
               }}>
                 <div>
