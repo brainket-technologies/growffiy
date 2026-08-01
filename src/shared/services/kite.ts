@@ -3,10 +3,28 @@ import https from 'https';
 
 async function kiteFetch(url: string, options: any, dedicatedIp?: string | null) {
   const fetchOpts: any = { ...options };
-  if (dedicatedIp && dedicatedIp.trim()) {
-    fetchOpts.agent = new https.Agent({ localAddress: dedicatedIp.trim(), keepAlive: true });
+  const ip = dedicatedIp ? String(dedicatedIp).trim() : '';
+  
+  if (ip && ip !== 'null' && ip !== 'undefined' && ip !== '0.0.0.0') {
+    try {
+      fetchOpts.agent = new https.Agent({ localAddress: ip, keepAlive: true });
+    } catch (e) {
+      console.warn(`KiteFetch: Could not bind dedicated IP ${ip}, using default interface:`, e);
+    }
   }
-  return fetch(url, fetchOpts);
+
+  try {
+    const res = await fetch(url, fetchOpts);
+    return res;
+  } catch (err: any) {
+    // Fallback without agent if localAddress binding caused socket connection error (e.g. EADDRNOTAVAIL)
+    if (fetchOpts.agent) {
+      console.warn(`KiteFetch: Direct IP socket failed (${err?.message}). Retrying without agent fallback...`);
+      delete fetchOpts.agent;
+      return fetch(url, fetchOpts);
+    }
+    throw err;
+  }
 }
 
 export class KiteClient {
@@ -81,53 +99,53 @@ export class KiteClient {
   /**
    * Invalidates the active access_token session.
    */
-  public static async logout(apiKey: string, accessToken: string) {
-    const response = await fetch(`${this.BASE_URL}/session/token?api_key=${apiKey}&access_token=${accessToken}`, {
+  public static async logout(apiKey: string, accessToken: string, dedicatedIp?: string | null) {
+    const response = await kiteFetch(`${this.BASE_URL}/session/token?api_key=${apiKey}&access_token=${accessToken}`, {
       method: 'DELETE',
       headers: {
         'X-Kite-Version': this.KITE_VERSION,
       },
-    });
+    }, dedicatedIp);
     return response.json();
   }
 
-  public static async getQuotes(apiKey: string, accessToken: string, instruments: string[]) {
+  public static async getQuotes(apiKey: string, accessToken: string, instruments: string[], dedicatedIp?: string | null) {
     const query = instruments.map(ins => `i=${ins}`).join('&');
-    const response = await fetch(`${this.BASE_URL}/quote?${query}`, {
+    const response = await kiteFetch(`${this.BASE_URL}/quote?${query}`, {
       method: 'GET',
       headers: {
         'Authorization': `token ${apiKey}:${accessToken}`,
         'X-Kite-Version': this.KITE_VERSION,
       },
-    });
+    }, dedicatedIp);
     return response.json();
   }
 
   /**
    * Fetches all orders for the current day.
    */
-  public static async getOrders(apiKey: string, accessToken: string) {
-    const response = await fetch(`${this.BASE_URL}/orders`, {
+  public static async getOrders(apiKey: string, accessToken: string, dedicatedIp?: string | null) {
+    const response = await kiteFetch(`${this.BASE_URL}/orders`, {
       method: 'GET',
       headers: {
         'Authorization': `token ${apiKey}:${accessToken}`,
         'X-Kite-Version': this.KITE_VERSION,
       },
-    });
+    }, dedicatedIp);
     return response.json();
   }
 
   /**
    * Fetches a single order by order_id.
    */
-  public static async getOrderById(apiKey: string, accessToken: string, orderId: string) {
-    const response = await fetch(`${this.BASE_URL}/orders/${orderId}`, {
+  public static async getOrderById(apiKey: string, accessToken: string, orderId: string, dedicatedIp?: string | null) {
+    const response = await kiteFetch(`${this.BASE_URL}/orders/${orderId}`, {
       method: 'GET',
       headers: {
         'Authorization': `token ${apiKey}:${accessToken}`,
         'X-Kite-Version': this.KITE_VERSION,
       },
-    });
+    }, dedicatedIp);
     return response.json();
   }
 
@@ -144,7 +162,8 @@ export class KiteClient {
       price?: number;
       trigger_price?: number;
       validity?: 'DAY' | 'IOC';
-    }
+    },
+    dedicatedIp?: string | null
   ) {
     const bodyParams = new URLSearchParams();
     if (params.order_type) bodyParams.append('order_type', params.order_type);
@@ -153,7 +172,7 @@ export class KiteClient {
     if (params.trigger_price !== undefined) bodyParams.append('trigger_price', String(params.trigger_price));
     if (params.validity) bodyParams.append('validity', params.validity);
 
-    const response = await fetch(`${this.BASE_URL}/orders/${orderId}`, {
+    const response = await kiteFetch(`${this.BASE_URL}/orders/${orderId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -161,21 +180,21 @@ export class KiteClient {
         'X-Kite-Version': this.KITE_VERSION,
       },
       body: bodyParams.toString(),
-    });
+    }, dedicatedIp);
     return response.json();
   }
 
   /**
    * Cancels an order by order_id.
    */
-  public static async cancelOrder(apiKey: string, accessToken: string, orderId: string, variety: string = 'regular') {
-    const response = await fetch(`${this.BASE_URL}/orders/${variety}/${orderId}`, {
+  public static async cancelOrder(apiKey: string, accessToken: string, orderId: string, variety: string = 'regular', dedicatedIp?: string | null) {
+    const response = await kiteFetch(`${this.BASE_URL}/orders/${variety}/${orderId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `token ${apiKey}:${accessToken}`,
         'X-Kite-Version': this.KITE_VERSION,
       },
-    });
+    }, dedicatedIp);
     return response.json();
   }
 
@@ -197,7 +216,8 @@ export class KiteClient {
       trigger_price?: number;
       market_protection?: number;
       variety?: 'regular' | 'amo';
-    }
+    },
+    dedicatedIp?: string | null
   ) {
     const bodyParams = new URLSearchParams();
     bodyParams.append('exchange', params.exchange);
@@ -212,7 +232,7 @@ export class KiteClient {
     if (params.market_protection !== undefined) bodyParams.append('market_protection', String(params.market_protection));
 
     const variety = params.variety || 'regular';
-    const response = await fetch(`${this.BASE_URL}/orders/${variety}`, {
+    const response = await kiteFetch(`${this.BASE_URL}/orders/${variety}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -220,7 +240,7 @@ export class KiteClient {
         'X-Kite-Version': this.KITE_VERSION,
       },
       body: bodyParams.toString(),
-    });
+    }, dedicatedIp);
 
     return response.json();
   }
@@ -234,9 +254,10 @@ export class KiteClient {
     instrumentToken: string,
     interval: string,
     from: string,
-    to: string
+    to: string,
+    dedicatedIp?: string | null
   ) {
-    const response = await fetch(
+    const response = await kiteFetch(
       `${this.BASE_URL}/instruments/historical/${instrumentToken}/${interval}?from=${from}&to=${to}`,
       {
         method: 'GET',
@@ -244,7 +265,8 @@ export class KiteClient {
           'Authorization': `token ${apiKey}:${accessToken}`,
           'X-Kite-Version': this.KITE_VERSION,
         },
-      }
+      },
+      dedicatedIp
     );
     return response.json();
   }

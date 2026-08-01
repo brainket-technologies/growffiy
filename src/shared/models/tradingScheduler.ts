@@ -695,7 +695,7 @@ export class TradingScheduler {
                           trigger_price: finalSlTrigger,
                           market_protection: marketProtectionVal
                         };
-                        const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, slParams);
+                        const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, slParams, client.dedicatedIp);
                         if (slRes?.status === 'success' && slRes.data?.order_id) {
                           newSlOrderId = slRes.data.order_id;
                           await prisma.trade.update({ where: { id: trade.id }, data: { slOrderStatus: 'OPEN', slKiteResponse: slRes } });
@@ -725,7 +725,7 @@ export class TradingScheduler {
                           validity: 'DAY' as const,
                           price: finalTarget
                         };
-                        const tgtRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, targetParams);
+                        const tgtRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, targetParams, client.dedicatedIp);
                         if (tgtRes?.status === 'success' && tgtRes.data?.order_id) {
                           newTargetOrderId = tgtRes.data.order_id;
                           await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: 'OPEN', targetKiteResponse: tgtRes } });
@@ -872,13 +872,13 @@ export class TradingScheduler {
                   market_protection: marketProtectionVal
                 };
 
-                sellRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, sellParams);
+                sellRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, sellParams, client.dedicatedIp);
 
                 // Actual fill price fetch karo (2.5 sec wait karo fill hone do)
                 if (sellRes?.status === 'success' && sellRes?.data?.order_id) {
                   try {
                     await new Promise(r => setTimeout(r, 2500));
-                    const fillData = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, sellRes.data.order_id);
+                    const fillData = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, sellRes.data.order_id, client.dedicatedIp);
                     const fillOrder = getLatestOrderState(fillData?.data);
                     const actualFillPrice = Number(fillOrder?.average_price || 0);
                     if (actualFillPrice > 0) {

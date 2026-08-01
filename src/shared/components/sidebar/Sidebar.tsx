@@ -111,8 +111,6 @@ const userGroups: MenuGroup[] = [
   {
     label: 'Trading',
     items: [
-      { name: 'Live Trade', path: '/clients/trades', icon: TrendingUp },
-      { name: 'Report', path: '/clients/reports', icon: BarChart3 },
       { name: 'Performance', path: '/clients/performance', icon: Activity },
     ],
   },

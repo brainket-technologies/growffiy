@@ -1,16 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../database/db';
 
-// In-memory cache to reduce DB load
-let dashboardCache: { data: any; timestamp: number } | null = null;
-const CACHE_TTL = 10000; // 10 seconds
-
 export async function GET(request: Request) {
   try {
-    const now = Date.now();
-    if (dashboardCache && (now - dashboardCache.timestamp) < CACHE_TTL) {
-      return NextResponse.json({ success: true, stats: dashboardCache.data });
-    }
 
     const { searchParams } = new URL(request.url);
     const startDateStr = searchParams.get('startDate');
@@ -21,27 +13,35 @@ export async function GET(request: Request) {
     const defaultStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
     const defaultEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    const startFilter = startDateStr ? new Date(startDateStr) : defaultStartDate;
-    // Set time to end of day if only YYYY-MM-DD was sent
-    const endFilter = endDateStr ? new Date(new Date(endDateStr).setHours(23, 59, 59, 999)) : defaultEndDate;
+    const startFilter = startDateStr ? new Date(`${startDateStr}T00:00:00.000`) : defaultStartDate;
+    const endFilter = endDateStr ? new Date(`${endDateStr}T23:59:59.999`) : defaultEndDate;
 
     // 1. Client counts
     const totalClients = await prisma.client.count();
     const activeClients = await prisma.client.count({ where: { tradingStatus: 'active' } });
     const inactiveClients = totalClients - activeClients;
 
+    const helperCalcPnl = (t: any) => {
+      const status = (t.status || '').toLowerCase();
+      if (status === 'cancelled' || status === 'failed' || status === 'rejected' || status === 'open') {
+        return 0;
+      }
+      let val = Number(t.pnl || 0);
+      if ((t.pnl === null || t.pnl === undefined || val === 0) && t.entryPrice && t.exitPrice && Number(t.quantity) > 0) {
+        const isShort = (t.direction || '').toLowerCase() === 'short';
+        const entry = Number(t.entryPrice);
+        const exit = Number(t.exitPrice);
+        const qty = Number(t.quantity);
+        val = isShort ? (entry - exit) * qty : (exit - entry) * qty;
+      }
+      return val;
+    };
+
     // 2. Strategy counts & performance
     const activeStrategies = await prisma.strategy.count({ where: { status: 'active' } });
     const strategies = await prisma.strategy.findMany({
       include: { 
-        trades: {
-          where: {
-            createdAt: {
-              gte: startFilter,
-              lte: endFilter
-            }
-          }
-        } 
+        trades: true
       }
     });
 
@@ -50,7 +50,13 @@ export async function GET(request: Request) {
     let breakevenStrategies = 0;
 
     strategies.forEach(strat => {
-      const stratPnl = strat.trades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
+      const stratFilteredTrades = (strat.trades || []).filter(t => {
+        const dStr = t.createdAt || t.entryTime;
+        if (!dStr) return false;
+        const d = new Date(dStr);
+        return d >= startFilter && d <= endFilter;
+      });
+      const stratPnl = stratFilteredTrades.reduce((sum, t) => sum + helperCalcPnl(t), 0);
       if (stratPnl > 0) {
         winningStrategies++;
       } else if (stratPnl < 0) {
@@ -61,15 +67,16 @@ export async function GET(request: Request) {
     });
 
     // 3. Trade metrics calculations
-    const allTrades = await prisma.trade.findMany({
-      where: {
-        createdAt: {
-          gte: startFilter,
-          lte: endFilter
-        }
-      }
+    const allDbTrades = await prisma.trade.findMany();
+
+    // Date-filtered trades strictly matching startFilter and endFilter
+    const filteredTrades = allDbTrades.filter(t => {
+      const dStr = t.createdAt || t.entryTime;
+      if (!dStr) return false;
+      const d = new Date(dStr);
+      return d >= startFilter && d <= endFilter;
     });
-    
+
     let totalPnl = 0;
     let totalExposure = 0;
     let unrealizedPnl = 0;
@@ -77,35 +84,42 @@ export async function GET(request: Request) {
     let openPositions = 0;
     let closedTrades = 0;
 
-    allTrades.forEach(trade => {
+    // Calculate real-time Open Positions & Exposure across all currently open trades
+    allDbTrades.forEach(trade => {
       const entryPrice = Number(trade.entryPrice || 0);
-      const qty = trade.quantity;
-      const pnl = Number(trade.pnl || 0);
+      const qty = Number(trade.quantity || 0);
+      const pnl = helperCalcPnl(trade);
 
-      totalPnl += pnl;
-
-      if (trade.status.toLowerCase() === 'open') {
+      if ((trade.status || '').toLowerCase() === 'open') {
         openPositions++;
         totalExposure += entryPrice * qty;
-      } else {
+        unrealizedPnl += pnl;
+      }
+    });
+
+    // Calculate Total P&L and Realized P&L STRICTLY for the selected Date Filter period (including profits + losses)
+    filteredTrades.forEach(trade => {
+      const pnl = helperCalcPnl(trade);
+      totalPnl += pnl;
+      if ((trade.status || '').toLowerCase() !== 'open' && (trade.status || '').toLowerCase() !== 'cancelled' && (trade.status || '').toLowerCase() !== 'failed') {
         closedTrades++;
         realizedPnl += pnl;
       }
     });
 
-    // 4. Historical curve based on real trades
+    // 4. Historical curve strictly based on date-filtered trades
     let pnlHistoryData = [0];
     let pnlHistoryLabels = ['Start'];
-    if (allTrades.length > 0) {
+    if (filteredTrades.length > 0) {
       let runningSum = 0;
-      const sortedTrades = [...allTrades]
-        .filter(t => t.status.toLowerCase() !== 'open')
-        .sort((a, b) => new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime());
+      const sortedTrades = [...filteredTrades]
+        .filter(t => (t.status || '').toLowerCase() !== 'open')
+        .sort((a, b) => new Date(a.createdAt || a.entryTime || '').getTime() - new Date(b.createdAt || b.entryTime || '').getTime());
       
       sortedTrades.forEach((t) => {
-        runningSum += Number(t.pnl || 0);
+        runningSum += helperCalcPnl(t);
         pnlHistoryData.push(runningSum);
-        const date = t.createdAt ? new Date(t.createdAt) : new Date();
+        const date = t.createdAt || t.entryTime ? new Date(t.createdAt || t.entryTime) : new Date();
         pnlHistoryLabels.push(date.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
       });
     }
@@ -129,12 +143,10 @@ export async function GET(request: Request) {
       realizedPnl,
       openTrades: openPositions,
       closedTrades,
-      todayTrades: allTrades.length,
+      todayTrades: allDbTrades.length,
       pnlHistoryData,
       pnlHistoryLabels
     };
-
-    dashboardCache = { data: statsResult, timestamp: Date.now() };
 
     return NextResponse.json({
       success: true,

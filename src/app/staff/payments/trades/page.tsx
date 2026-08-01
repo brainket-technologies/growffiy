@@ -94,6 +94,20 @@ function ModalLegSection({ leg, title, color }: { leg: any; title: string; color
     ['Target Order Status', leg.targetOrderStatus?.toUpperCase() || '--'],
     ['Exit Time', formatDateTime(leg.exitTime)],
     ['Exit Price', leg.exitPrice ? `₹${Number(leg.exitPrice).toFixed(2)}` : '--'],
+    ['P&L (INR)', (() => {
+      let legPnl = Number(leg.pnl || 0);
+      if ((leg.pnl === null || leg.pnl === undefined || leg.pnl === 0) && leg.entryPrice && leg.exitPrice) {
+        const isShort = (leg.direction || '').toLowerCase() === 'short';
+        const entry = Number(leg.entryPrice);
+        const exit = Number(leg.exitPrice);
+        const qty = Number(leg.quantity || 0);
+        legPnl = isShort ? (entry - exit) * qty : (exit - entry) * qty;
+      }
+      if (leg.exitPrice || leg.pnl != null) {
+        return legPnl >= 0 ? `+₹${legPnl.toFixed(2)}` : `-₹${Math.abs(legPnl).toFixed(2)}`;
+      }
+      return '--';
+    })()],
   ];
   return (
     <div style={{ borderLeft: `3px solid ${color}`, paddingLeft: '14px', marginBottom: '20px' }}>

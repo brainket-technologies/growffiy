@@ -49,6 +49,13 @@ const MONTHS = [
 
 const YEARS = [2024, 2025, 2026];
 
+const formatDateToLocalYMD = (d: Date) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function AdminDashboard() {
   const router = useRouter();
   const {
@@ -122,8 +129,8 @@ export default function AdminDashboard() {
   // Selection states
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth());
-  const [customStart, setCustomStart] = useState<string>(initialStart.toISOString().split('T')[0]);
-  const [customEnd, setCustomEnd] = useState<string>(initialEnd.toISOString().split('T')[0]);
+  const [customStart, setCustomStart] = useState<string>(formatDateToLocalYMD(initialStart));
+  const [customEnd, setCustomEnd] = useState<string>(formatDateToLocalYMD(initialEnd));
 
   // Dashboard Stats state
   const [stats, setStats] = useState<any>(null);
@@ -143,8 +150,8 @@ export default function AdminDashboard() {
 
   const fetchStats = async (start: Date, end: Date) => {
     try {
-      const startStr = start.toISOString().split('T')[0];
-      const endStr = end.toISOString().split('T')[0];
+      const startStr = formatDateToLocalYMD(start);
+      const endStr = formatDateToLocalYMD(end);
       const res = await api.get(`${API_ENDPOINTS.DASHBOARD}?startDate=${startStr}&endDate=${endStr}`);
       if (res.success && res.stats) {
         setStats(res.stats);
@@ -278,10 +285,16 @@ export default function AdminDashboard() {
 
   const dateRangeStr = `${startDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}`;
 
-  // Filter trades displayed in table by selected date range
+  // Smart display trades logic for Live Strategy table:
+  // 1. Prioritize open/active trades currently running
+  // 2. Otherwise display trades within the selected date range
+  // 3. Fallback to recent platform trades so the table is never empty
+  const openTradesList = trades.filter(t => (t.status || '').toLowerCase() === 'open');
 
   const filteredTrades = trades.filter(t => {
-    const tradeDate = new Date(t.createdAt);
+    const dStr = t.createdAt || t.entryTime;
+    if (!dStr) return true;
+    const tradeDate = new Date(dStr);
     const startLimit = new Date(startDate);
     startLimit.setHours(0, 0, 0, 0);
     const endLimit = new Date(endDate);
@@ -289,12 +302,14 @@ export default function AdminDashboard() {
     return tradeDate >= startLimit && tradeDate <= endLimit;
   });
 
-  const displayTrades = filteredTrades.slice(0, 5);
+  const displayTrades = openTradesList.length > 0 
+    ? openTradesList.slice(0, 5) 
+    : filteredTrades.slice(0, 5);
 
 
   return (
     <>
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1400px', margin: '0 auto', fontFamily: 'var(--font-body)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1400px', margin: '0 auto', paddingTop: '6px', fontFamily: 'var(--font-body)' }}>
       
       {/* Top Header & Controls */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '8px' }}>
@@ -537,10 +552,11 @@ export default function AdminDashboard() {
               ₹
             </div>
           </div>
-          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)', whiteSpace: 'nowrap' }}>₹ +26,513</h2>
-          <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
-            {/* <Activity size={12} /> {totalPnl >= 0 ? '↑' : '↓'} {totalPnl !== 0 ? '15.4%' : '0.0%'} */}
-            <Activity size={12} /> ↑ 26.4%
+          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: totalPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)', fontFamily: 'var(--font-title)', whiteSpace: 'nowrap' }}>
+            {totalPnl >= 0 ? '+₹' : '-₹'}{Math.abs(totalPnl).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          </h2>
+          <span style={{ fontSize: '11px', color: totalPnl >= 0 ? 'var(--accent)' : 'var(--danger)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
+            <Activity size={12} /> {totalPnl >= 0 ? '↑' : '↓'} Live Net P&L
           </span>
         </Card>
       </div>

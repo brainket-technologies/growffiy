@@ -36,12 +36,30 @@ export class WsLiveFeed {
         return;
       }
 
-      const client = await prisma.client.findFirst({
-        where: { accessToken: { not: null }, zerodhaApiKey: { not: null } }
+      const masterSetting = await prisma.appSettings.findUnique({
+        where: { settingKey: 'master_scanner_client_id' }
       });
+      let client = null;
+      if (masterSetting?.settingValue) {
+        client = await prisma.client.findFirst({
+          where: {
+            OR: [
+              { id: masterSetting.settingValue },
+              { zerodhaClientId: masterSetting.settingValue }
+            ],
+            accessToken: { not: null },
+            zerodhaApiKey: { not: null }
+          }
+        });
+      }
+      if (!client) {
+        client = await prisma.client.findFirst({
+          where: { accessToken: { not: null }, zerodhaApiKey: { not: null } }
+        });
+      }
 
       if (client && client.zerodhaApiKey && client.accessToken) {
-        console.log(`Using database configuration for Client: ${client.zerodhaClientId}`);
+        console.log(`Using Master Client Market Data Feed (${client.zerodhaClientId || client.id})`);
         this.connectKiteWebSocket(client.zerodhaApiKey, client.accessToken);
       } else {
         console.log('No Zerodha details found in .env or database. WebSocket ticker standby.');
@@ -70,9 +88,28 @@ export class WsLiveFeed {
       console.warn('Kite Socket: Skipping env credentials due to recent auth error. Trying DB...');
     }
 
-    const client = await prisma.client.findFirst({
-      where: { accessToken: { not: null }, zerodhaApiKey: { not: null } }
+    const masterSetting = await prisma.appSettings.findUnique({
+      where: { settingKey: 'master_scanner_client_id' }
     });
+    let client = null;
+    if (masterSetting?.settingValue) {
+      client = await prisma.client.findFirst({
+        where: {
+          OR: [
+            { id: masterSetting.settingValue },
+            { zerodhaClientId: masterSetting.settingValue }
+          ],
+          accessToken: { not: null },
+          zerodhaApiKey: { not: null }
+        }
+      });
+    }
+    if (!client) {
+      client = await prisma.client.findFirst({
+        where: { accessToken: { not: null }, zerodhaApiKey: { not: null } }
+      });
+    }
+
     if (client && client.zerodhaApiKey && client.accessToken) {
       this.activeApiKey = client.zerodhaApiKey;
       this.activeAccessToken = client.accessToken;

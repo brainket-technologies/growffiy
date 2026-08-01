@@ -94,6 +94,20 @@ function ModalLegSection({ leg, title, color }: { leg: any; title: string; color
     ['Target Order Status', leg.targetOrderStatus?.toUpperCase() || '--'],
     ['Exit Time', formatDateTime(leg.exitTime)],
     ['Exit Price', leg.exitPrice ? `₹${Number(leg.exitPrice).toFixed(2)}` : '--'],
+    ['P&L (INR)', (() => {
+      let legPnl = Number(leg.pnl || 0);
+      if ((leg.pnl === null || leg.pnl === undefined || leg.pnl === 0) && leg.entryPrice && leg.exitPrice) {
+        const isShort = (leg.direction || '').toLowerCase() === 'short';
+        const entry = Number(leg.entryPrice);
+        const exit = Number(leg.exitPrice);
+        const qty = Number(leg.quantity || 0);
+        legPnl = isShort ? (entry - exit) * qty : (exit - entry) * qty;
+      }
+      if (leg.exitPrice || leg.pnl != null) {
+        return legPnl >= 0 ? `+₹${legPnl.toFixed(2)}` : `-₹${Math.abs(legPnl).toFixed(2)}`;
+      }
+      return '--';
+    })()],
   ];
   return (
     <div style={{ borderLeft: `3px solid ${color}`, paddingLeft: '14px', marginBottom: '20px' }}>
@@ -303,7 +317,19 @@ export default function LiveTradeTransactionsPage() {
   const failedTrades = useMemo(() => trades.filter(t => (t.status || '').toLowerCase() === 'failed'), [trades]);
   const cancelledTrades = useMemo(() => trades.filter(t => (t.status || '').toLowerCase() === 'cancelled'), [trades]);
 
-  const totalPnl = useMemo(() => trades.reduce((sum, t) => sum + Number(t.pnl || 0), 0), [trades]);
+  const totalPnl = useMemo(() => {
+    return (trades || []).reduce((sum, t) => {
+      let pnlVal = Number(t.pnl || 0);
+      if ((t.pnl === null || t.pnl === undefined || t.pnl === 0) && t.entryPrice && t.exitPrice) {
+        const isShort = (t.direction || '').toLowerCase() === 'short';
+        const entry = Number(t.entryPrice);
+        const exit = Number(t.exitPrice);
+        const qty = Number(t.quantity || 0);
+        pnlVal = isShort ? (entry - exit) * qty : (exit - entry) * qty;
+      }
+      return sum + pnlVal;
+    }, 0);
+  }, [trades]);
   const openInvestment = useMemo(
     () => openTrades.reduce((sum, t) => sum + Number(t.entryPrice || 0) * Number(t.quantity || 0), 0),
     [openTrades]
@@ -432,17 +458,13 @@ export default function LiveTradeTransactionsPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Total P&L</p>
-              {/* <h3 style={{ fontSize: '28px', fontWeight: 700, color: totalPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+              <h3 style={{ fontSize: '28px', fontWeight: 700, color: totalPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)', whiteSpace: 'nowrap' }}>
                 {totalPnl >= 0 ? '+' : ''}₹{totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </h3> */}
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-success)', whiteSpace: 'nowrap' }}>+₹26,513</h3>
+              </h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>Across all transactions</p>
             </div>
-            {/* <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: totalPnl >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: totalPnl >= 0 ? '#10b981' : '#ef4444' }}>
+            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: totalPnl >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: totalPnl >= 0 ? '#10b981' : '#ef4444' }}>
               {totalPnl >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
-            </div> */}
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-              <TrendingUp size={20} />
             </div>
           </div>
         </Card>
@@ -537,7 +559,17 @@ export default function LiveTradeTransactionsPage() {
                 paginatedTrades.map((row: any, idx: number) => {
                   if (row._isOcoMerged) {
                     const oco = getOcoStatus(row);
-                    const totalPnl = (row.legs || []).reduce((sum: number, l: any) => sum + Number(l.pnl || 0), 0);
+                    const totalPnl = (row.legs || []).reduce((sum: number, l: any) => {
+                      let legPnl = Number(l.pnl || 0);
+                      if ((l.pnl === null || l.pnl === undefined || l.pnl === 0) && l.entryPrice && l.exitPrice) {
+                        const isShort = (l.direction || '').toLowerCase() === 'short';
+                        const entry = Number(l.entryPrice);
+                        const exit = Number(l.exitPrice);
+                        const qty = Number(l.quantity || 0);
+                        legPnl = isShort ? (entry - exit) * qty : (exit - entry) * qty;
+                      }
+                      return sum + legPnl;
+                    }, 0);
                     const activeLeg = (row.legs || []).find((l: any) => (l.entryOrderStatus || '').toLowerCase() === 'filled');
                     return (
                       <tr key={row.dualLegGroupId}
@@ -579,7 +611,14 @@ export default function LiveTradeTransactionsPage() {
                     );
                   }
                   // Solo trade (non-OCO)
-                  const pnl = Number(row.pnl || 0);
+                  let pnl = Number(row.pnl || 0);
+                  if ((row.pnl === null || row.pnl === undefined || row.pnl === 0) && row.entryPrice && row.exitPrice) {
+                    const isShort = (row.direction || '').toLowerCase() === 'short';
+                    const entry = Number(row.entryPrice);
+                    const exit = Number(row.exitPrice);
+                    const qty = Number(row.quantity || 0);
+                    pnl = isShort ? (entry - exit) * qty : (exit - entry) * qty;
+                  }
                   const entryPriceVal = Number(row.entryPrice || 0);
                   const txType = (row.direction || '').toLowerCase() === 'short' ? 'SELL' : 'BUY';
                   return (

@@ -40,6 +40,7 @@ export default function ClientDashboardOverview() {
   const [isDisconnecting, setIsDisconnecting] = useState<boolean>(false);
   const [showZerodhaConnect, setShowZerodhaConnect] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [performancePeriod, setPerformancePeriod] = useState<'7D' | '1M' | '3M' | '6M' | '1Y' | 'ALL'>('7D');
   const [alertModal, setAlertModal] = useState<{
     title: string;
     message: React.ReactNode;
@@ -266,13 +267,22 @@ export default function ClientDashboardOverview() {
 
   const pageSize = 10;
 
-  // Filter trades placed on behalf of this client dynamically
+  // Filter trades placed on behalf of this client dynamically (only PROFIT or LOSS trades)
   const clientTrades = trades.filter(t => {
+    let belongsToClient = false;
     if (matchedClient) {
-      return t.clientId === matchedClient.id;
+      belongsToClient = t.clientId === matchedClient.id;
+    } else {
+      const name = t.client?.user?.name || t.clientName || '';
+      belongsToClient = name.toLowerCase().includes('aman') || t.clientId === 'c1';
     }
-    const name = t.client?.user?.name || t.clientName || '';
-    return name.toLowerCase().includes('aman') || t.clientId === 'c1';
+    if (!belongsToClient) return false;
+
+    const pnlVal = Number(t.pnl || 0);
+    const rawStatus = (t.status || '').toUpperCase();
+    const isProfit = pnlVal > 0 || rawStatus.includes('TARGET') || rawStatus === 'PROFIT';
+    const isLoss = pnlVal < 0 || rawStatus.includes('SL') || rawStatus === 'LOSS';
+    return isProfit || isLoss;
   });
 
   const totalTradesCount = clientTrades.length;
@@ -323,14 +333,33 @@ export default function ClientDashboardOverview() {
     }
   };
 
-  const startDateStr = activeSub?.startDate ? formatDate(activeSub.startDate) : '--';
-  const endDateStr = activeSub?.endDate ? formatDate(activeSub.endDate) : '--';
+  const getSubDates = () => {
+    if (!activeSub) {
+      const start = new Date();
+      const end = new Date(start.getTime() + 365 * 24 * 60 * 60 * 1000);
+      return { start, end };
+    }
+    const start = new Date(activeSub.startDate);
+    let end: Date;
+    if (activeSub.plan?.durationDays) {
+      end = new Date(start.getTime() + Number(activeSub.plan.durationDays) * 24 * 60 * 60 * 1000);
+    } else if (activeSub.endDate) {
+      end = new Date(activeSub.endDate);
+    } else {
+      end = new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
+    }
+    return { start, end };
+  };
+
+  const { start: subStartDate, end: subEndDate } = getSubDates();
+  const startDateStr = subStartDate ? formatDate(subStartDate) : '--';
+  const endDateStr = subEndDate ? formatDate(subEndDate) : '--';
 
   // Calculate days left for active subscription warning
   let daysLeft: number | null = null;
-  if (isSubscriptionActive && activeSub?.endDate) {
-    const end = new Date(activeSub.endDate);
+  if (isSubscriptionActive && subEndDate) {
     const today = new Date();
+    const end = new Date(subEndDate);
     end.setHours(0, 0, 0, 0);
     today.setHours(0, 0, 0, 0);
     const diffTime = end.getTime() - today.getTime();
@@ -341,8 +370,142 @@ export default function ClientDashboardOverview() {
   const productTypeName = matchedClient?.productType?.name || matchedClient?.productTypeName || '';
   const isAlgo = !productTypeName || productTypeName.toLowerCase() === 'algo';
 
-  const clientPnlData = [12000, 24000, 18000, 31000, 42000, 48000, totalPnl];
-  const clientPnlLabels = ['13 May', '14 May', '15 May', '16 May', '17 May', '18 May', 'Today'];
+  const rawClientTrades = trades.filter(t => {
+    if (matchedClient) {
+      return t.clientId === matchedClient.id;
+    }
+    const name = t.client?.user?.name || t.clientName || '';
+    return name.toLowerCase().includes('aman') || t.clientId === 'c1';
+  });
+
+  const getRealPerformanceData = (clientTradesList: any[], period: string) => {
+    const now = new Date();
+
+    const sortedTrades = [...clientTradesList].sort((a, b) => {
+      const dateA = new Date(a.exitTime || a.entryTime || a.createdAt).getTime();
+      const dateB = new Date(b.exitTime || b.entryTime || b.createdAt).getTime();
+      return dateA - dateB;
+    });
+
+    // Helper for accurate month date range
+    const getMonthRange = (monthsAgo: number) => {
+      const dStart = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1, 0, 0, 0, 0);
+      const dEnd = new Date(now.getFullYear(), now.getMonth() - monthsAgo + 1, 1, 0, 0, 0, 0);
+      dEnd.setTime(dEnd.getTime() - 1);
+      return { dStart, dEnd };
+    };
+
+    // 1. Daily Granularity for 7D and 1M
+    if (period === '7D' || period === '1M') {
+      const daysLimit = period === '7D' ? 7 : 30;
+      const cutoffDate = new Date(now.getTime() - daysLimit * 24 * 60 * 60 * 1000);
+
+      const periodTrades = sortedTrades.filter(t => {
+        const tDate = new Date(t.exitTime || t.entryTime || t.createdAt);
+        return tDate >= cutoffDate;
+      });
+
+      const dateGroups: Record<string, { label: string; pnl: number; timestamp: number }> = {};
+      periodTrades.forEach(t => {
+        const tDate = new Date(t.exitTime || t.entryTime || t.createdAt);
+        const dateKey = tDate.toISOString().split('T')[0];
+        const isToday = tDate.toDateString() === now.toDateString();
+        const label = isToday ? 'Today' : tDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }).replace(/ /g, '-');
+
+        if (!dateGroups[dateKey]) {
+          dateGroups[dateKey] = { label, pnl: 0, timestamp: tDate.getTime() };
+        }
+        dateGroups[dateKey].pnl += Number(t.pnl || 0);
+      });
+
+      const sortedGroups = Object.values(dateGroups).sort((a, b) => a.timestamp - b.timestamp);
+      if (sortedGroups.length > 0) {
+        const maxItems = period === '7D' ? 7 : 10;
+        const displayed = sortedGroups.slice(-maxItems);
+        return {
+          labels: displayed.map(g => g.label),
+          values: displayed.map(g => Number(g.pnl.toFixed(1)))
+        };
+      }
+    }
+
+    // 2. Monthly Granularity for 3M and 6M
+    if (period === '3M' || period === '6M') {
+      const monthsCount = period === '3M' ? 3 : 6;
+      const labels: string[] = [];
+      const values: number[] = [];
+
+      for (let i = monthsCount - 1; i >= 0; i--) {
+        const { dStart, dEnd } = getMonthRange(i);
+        const monthLabel = dStart.toLocaleDateString('en-GB', { month: 'short' });
+        labels.push(monthLabel);
+
+        const tradesInMonth = sortedTrades.filter(t => {
+          const tDate = new Date(t.exitTime || t.entryTime || t.createdAt);
+          return tDate >= dStart && tDate <= dEnd;
+        });
+
+        const monthPnl = tradesInMonth.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
+        values.push(Number(monthPnl.toFixed(1)));
+      }
+
+      return { labels, values };
+    }
+
+    // 3. Monthly Granularity for 1Y (Last 12 Months)
+    if (period === '1Y') {
+      const labels: string[] = [];
+      const values: number[] = [];
+
+      for (let i = 11; i >= 0; i -= 2) {
+        const { dStart, dEnd } = getMonthRange(i);
+        const monthLabel = dStart.toLocaleDateString('en-GB', { month: 'short' });
+
+        const tradesInMonth = sortedTrades.filter(t => {
+          const tDate = new Date(t.exitTime || t.entryTime || t.createdAt);
+          return tDate >= dStart && tDate <= dEnd;
+        });
+
+        const monthPnl = tradesInMonth.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
+
+        labels.push(monthLabel);
+        values.push(Number(monthPnl.toFixed(1)));
+      }
+
+      return { labels, values };
+    }
+
+    // 4. ALL TIME (All Months with active trades)
+    const monthGroups: Record<string, { label: string; pnl: number; timestamp: number }> = {};
+    sortedTrades.forEach(t => {
+      const tDate = new Date(t.exitTime || t.entryTime || t.createdAt);
+      const monthKey = `${tDate.getFullYear()}-${String(tDate.getMonth() + 1).padStart(2, '0')}`;
+      const label = tDate.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+
+      if (!monthGroups[monthKey]) {
+        monthGroups[monthKey] = { label, pnl: 0, timestamp: tDate.getTime() };
+      }
+      monthGroups[monthKey].pnl += Number(t.pnl || 0);
+    });
+
+    const sortedMonthGroups = Object.values(monthGroups).sort((a, b) => a.timestamp - b.timestamp);
+
+    if (sortedMonthGroups.length === 0) {
+      return {
+        labels: [now.toLocaleDateString('en-GB', { month: 'short' })],
+        values: [0]
+      };
+    }
+
+    return {
+      labels: sortedMonthGroups.map(g => g.label),
+      values: sortedMonthGroups.map(g => Number(g.pnl.toFixed(1)))
+    };
+  };
+
+  const currentPerformance = getRealPerformanceData(rawClientTrades, performancePeriod);
+  const clientPnlData = currentPerformance.values;
+  const clientPnlLabels = currentPerformance.labels;
 
   const stats = [
     { name: 'Today P&L', value: totalPnl >= 0 ? `+₹${totalPnl.toFixed(2)}` : `-₹${Math.abs(totalPnl).toFixed(2)}`, color: totalPnl >= 0 ? colors.SUCCESS : colors.DANGER },
@@ -367,7 +530,7 @@ export default function ClientDashboardOverview() {
       }}>
         <div>
           <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', letterSpacing: '-0.5px' }}>
-            Welcome back, {matchedClient?.user?.name || matchedClient?.name || activeUser.name}
+            Welcome, {matchedClient?.user?.name || matchedClient?.name || activeUser.name}
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
             {isAlgo 
@@ -753,8 +916,8 @@ export default function ClientDashboardOverview() {
                 
                 {/* Performance Graph */}
                 <Card style={{ padding: '24px', borderRadius: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
-                    <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', gap: '16px' }}>
+                    <div style={{ flex: 1 }}>
                       <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', margin: 0 }}>
                         My Performance Curve
                       </h3>
@@ -762,17 +925,43 @@ export default function ClientDashboardOverview() {
                         Rolling equity growth generated by automated breakout strategies.
                       </p>
                     </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500, padding: '4px 10px', borderRadius: '99px', background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                      Last 7 Days
+
+                    {/* Time Period Dropdown Select */}
+                    <div style={{ width: 'auto', flexShrink: 0 }}>
+                      <select
+                        value={performancePeriod}
+                        onChange={(e) => setPerformancePeriod(e.target.value as any)}
+                        style={{
+                          width: 'auto',
+                          minWidth: '115px',
+                          maxWidth: '135px',
+                          fontSize: '12px',
+                          color: 'var(--text-secondary)',
+                          fontWeight: 600,
+                          padding: '5px 10px',
+                          borderRadius: '99px',
+                          background: 'var(--surface)',
+                          border: '1px solid var(--border)',
+                          outline: 'none',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        <option value="7D">Last 7 Days</option>
+                        <option value="1M">Last 1 Month</option>
+                        <option value="3M">Last 3 Months</option>
+                        <option value="6M">Last 6 Months</option>
+                        <option value="1Y">Last 1 Year</option>
+                        <option value="ALL">All Time</option>
+                      </select>
                     </div>
                   </div>
+
                   <div style={{ height: '300px', width: '100%' }}>
                     <PerformanceChart
                       data={clientPnlData}
                       labels={clientPnlLabels}
-                      strokeColor={colors.PRIMARY}
-                      fillColorStart={`${colors.PRIMARY}18`}
-                      fillColorEnd={`${colors.PRIMARY}00`}
+                      type="bar"
                     />
                   </div>
                 </Card>

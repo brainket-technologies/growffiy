@@ -160,6 +160,42 @@ class AlgoEngineService {
     }
   }
 
+  public async getMasterClient(): Promise<{ id: string; zerodhaApiKey: string; accessToken: string } | null> {
+    try {
+      const masterSetting = await prisma.appSettings.findUnique({
+        where: { settingKey: 'master_scanner_client_id' }
+      });
+      let masterClient = null;
+      if (masterSetting?.settingValue) {
+        masterClient = await prisma.client.findFirst({
+          where: {
+            OR: [
+              { id: masterSetting.settingValue },
+              { zerodhaClientId: masterSetting.settingValue }
+            ],
+            accessToken: { not: null },
+            zerodhaApiKey: { not: null }
+          }
+        });
+      }
+      if (!masterClient) {
+        masterClient = await prisma.client.findFirst({
+          where: { accessToken: { not: null }, zerodhaApiKey: { not: null } }
+        });
+      }
+      if (masterClient && masterClient.zerodhaApiKey && masterClient.accessToken) {
+        return {
+          id: masterClient.id,
+          zerodhaApiKey: masterClient.zerodhaApiKey,
+          accessToken: masterClient.accessToken
+        };
+      }
+    } catch (err) {
+      console.error('AlgoEngine: Error resolving Master Client credentials:', err);
+    }
+    return null;
+  }
+
   private async getFreshCircuitLimits(client: any, exchange: string, symbol: string, accessToken?: string): Promise<{ upper: number; lower: number } | null> {
     const token = accessToken || client.accessToken;
     if (!client.zerodhaApiKey || !token) return null;
@@ -676,7 +712,11 @@ class AlgoEngineService {
             }
 
             let candlePrice = candlePriceCache.get(candidateStock.symbol) || 0;
-            if (candlePrice === 0 && client.zerodhaApiKey && client.accessToken) {
+            const masterClientData = await this.getMasterClient();
+            const marketApiKey = masterClientData?.zerodhaApiKey || client.zerodhaApiKey;
+            const marketAccessToken = masterClientData?.accessToken || client.accessToken;
+
+            if (candlePrice === 0 && marketApiKey && marketAccessToken) {
               const instTokenStr = Object.entries(this.wsLive.instrumentToSymbol).find(([, sym]) => sym === candidateStock.symbol)?.[0];
               if (instTokenStr) {
                 try {
@@ -687,7 +727,7 @@ class AlgoEngineService {
 
                   console.log(`AlgoEngine: Fetching historical data for ${candidateStock.symbol} token=${instTokenStr} from=${from} to=${to}`);
                   const kiteInterval = mapTimeframeToKiteInterval(legTimeframe);
-                  const res = await KiteClient.getHistoricalData(client.zerodhaApiKey, client.accessToken, instTokenStr, kiteInterval, from, to);
+                  const res = await KiteClient.getHistoricalData(marketApiKey, marketAccessToken, instTokenStr, kiteInterval, from, to);
                   console.log(`AlgoEngine: Historical response for ${candidateStock.symbol}: status=${res.status}, candles=${res.data?.candles?.length ?? 0}`);
                   if (res.status === 'success' && Array.isArray(res.data?.candles) && res.data.candles.length > 0) {
                     const priceIdx: Record<string, number> = { open: 1, high: 2, low: 3, close: 4 };
@@ -1116,7 +1156,7 @@ class AlgoEngineService {
                 ...(orderTypeParam === 'MARKET' || orderTypeParam === 'SL-M' ? { market_protection: marketProtectionVal } : {})
               };
 
-              orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, orderParams);
+              orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, orderParams, client.dedicatedIp);
 
               if (orderRes && orderRes.status === 'error' &&
                 (orderRes.message?.includes('Trigger price') ||
@@ -1131,7 +1171,7 @@ class AlgoEngineService {
                   trigger_price: undefined,
                   ...(orderTypeParam === 'MARKET' || orderTypeParam === 'SL-M' ? { market_protection: marketProtectionVal } : {})
                 };
-                orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, fallbackParams);
+                orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, fallbackParams, client.dedicatedIp);
               }
 
               if (orderRes && orderRes.status === 'error' &&
@@ -1140,7 +1180,7 @@ class AlgoEngineService {
                   orderRes.message?.includes('closed') ||
                   orderRes.message?.includes('variety'))) {
                 console.log(`AlgoEngine: Retrying order as AMO (After Market Order) because market is closed.`);
-                orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, { ...orderParams, variety: 'amo' });
+                orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, { ...orderParams, variety: 'amo' }, client.dedicatedIp);
               }
 
               console.log('AlgoEngine: Kite order placement response:', orderRes);
@@ -1309,8 +1349,8 @@ class AlgoEngineService {
                       }
                     }
 
-                    // Small delay to ensure Zerodha processes opposite leg cancellation and frees up margin
-                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    // 5-second delay to ensure Zerodha processes opposite leg cancellation and frees up margin completely
+                    await new Promise(resolve => setTimeout(resolve, 5000));
 
                     try {
                       const slParams = {
@@ -1324,7 +1364,7 @@ class AlgoEngineService {
                         trigger_price: finalStopLoss,
                         market_protection: marketProtectionVal
                       };
-                      const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slParams);
+                      const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slParams, client.dedicatedIp);
                       if (slRes?.status === 'success' && slRes.data?.order_id) {
                         slOrderId = slRes.data.order_id;
                         console.log(`AlgoEngine: SL-M order placed: ${slOrderId} for ${targetStock.symbol} @ trigger ₹${finalStopLoss}`);
@@ -1349,7 +1389,7 @@ class AlgoEngineService {
                         validity: 'DAY' as const,
                         price: finalTarget
                       };
-                      const targetRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, targetParams);
+                      const targetRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, targetParams, client.dedicatedIp);
                       if (targetRes?.status === 'success' && targetRes.data?.order_id) {
                         targetOrderId = targetRes.data.order_id;
                         targetOrderStatusVal = 'OPEN';

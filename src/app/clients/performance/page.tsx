@@ -189,22 +189,38 @@ export default function ClientPerformancePage() {
   const worstTrade = losingTrades.length ? Math.min(...losingTrades.map(t => Number(t.pnl || 0))) : 0;
   const expectancy = totalTradesCount ? totalPnl / totalTradesCount : 0;
 
-  // Real equity curve calculation
-  let pnlHistoryData = [0];
-  let pnlHistoryLabels = ['Start'];
+  // Real equity curve calculation grouped by date for clean UI
+  let pnlHistoryData: number[] = [];
+  let pnlHistoryLabels: string[] = [];
+
   if (dateFilteredTrades.length > 0) {
-    let runningSum = 0;
-    const sortedTrades = [...dateFilteredTrades].sort((a, b) => new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime());
+    const dateGroups: Record<string, { label: string; pnl: number; timestamp: number }> = {};
+    const now = new Date();
+
+    const sortedTrades = [...dateFilteredTrades].sort((a, b) => 
+      new Date(a.createdAt || a.entryTime || '').getTime() - new Date(b.createdAt || b.entryTime || '').getTime()
+    );
+
     sortedTrades.forEach((t) => {
-      runningSum += Number(t.pnl || 0);
-      pnlHistoryData.push(runningSum);
-      
-      const date = t.createdAt ? new Date(t.createdAt) : new Date();
-      pnlHistoryLabels.push(date.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
+      const tDate = new Date(t.createdAt || t.entryTime || now);
+      const dateKey = tDate.toISOString().split('T')[0];
+      const isToday = tDate.toDateString() === now.toDateString();
+      const label = isToday ? 'Today' : tDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }).replace(/ /g, '-');
+
+      if (!dateGroups[dateKey]) {
+        dateGroups[dateKey] = { label, pnl: 0, timestamp: tDate.getTime() };
+      }
+      dateGroups[dateKey].pnl += Number(t.pnl || 0);
     });
+
+    const sortedGroups = Object.values(dateGroups).sort((a, b) => a.timestamp - b.timestamp);
+    const displayed = sortedGroups.slice(-10);
+
+    pnlHistoryData = displayed.map(g => Number(g.pnl.toFixed(1)));
+    pnlHistoryLabels = displayed.map(g => g.label);
   } else {
     pnlHistoryData = [0];
-    pnlHistoryLabels = ['Start'];
+    pnlHistoryLabels = ['No Trades'];
   }
 
   // Max Drawdown calculation from running equity curve relative to client capital
@@ -291,12 +307,19 @@ export default function ClientPerformancePage() {
     const matchesType = typeFilter === 'all' || txType === typeFilter.toUpperCase();
 
     const pnlVal = Number(t.pnl || 0);
+    const rawStatus = (t.status || '').toUpperCase();
+    const isProfit = pnlVal > 0 || rawStatus.includes('TARGET') || rawStatus === 'PROFIT';
+    const isLoss = pnlVal < 0 || rawStatus.includes('SL') || rawStatus === 'LOSS';
+    const isProfitOrLossTrade = isProfit || isLoss;
+
+    if (!isProfitOrLossTrade) return false;
+
     const matchesQuickFilter = 
       statusQuickFilter === 'all' 
         ? true 
         : statusQuickFilter === 'profit' 
-          ? pnlVal > 0 
-          : pnlVal < 0;
+          ? isProfit 
+          : isLoss;
 
     return matchesSearch && matchesStrategy && matchesType && matchesQuickFilter;
   });

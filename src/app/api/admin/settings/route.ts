@@ -329,6 +329,7 @@ export async function PUT(request: Request) {
       algo_token_refresh_time,
       google_sheet_url,
       google_credentials_json,
+      master_scanner_client_id: body.master_scanner_client_id,
       auto_trade_enabled: body.auto_trade_enabled,
       trading_days: body.trading_days,
       special_market_days: body.special_market_days,
