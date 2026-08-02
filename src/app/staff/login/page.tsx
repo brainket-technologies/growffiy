@@ -39,6 +39,14 @@ export default function StaffLoginPage() {
       setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffiy');
     };
     load();
+
+    api.get('/api/admin/settings').then((res: any) => {
+      if (res.success && res.settings && res.settings.app_name) {
+        setBrandName(res.settings.app_name);
+        if (typeof window !== 'undefined') localStorage.setItem('growffiy_brand_name', res.settings.app_name);
+      }
+    }).catch(() => {});
+
     window.addEventListener('branding-updated', load);
     return () => window.removeEventListener('branding-updated', load);
   }, []);

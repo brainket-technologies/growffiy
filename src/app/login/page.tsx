@@ -60,6 +60,14 @@ export default function LoginPage() {
       setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffiy');
     };
     load();
+
+    api.get(API_ENDPOINTS.SETTINGS).then((res: any) => {
+      if (res.success && res.settings && res.settings.app_name) {
+        setBrandName(res.settings.app_name);
+        if (typeof window !== 'undefined') localStorage.setItem('growffiy_brand_name', res.settings.app_name);
+      }
+    }).catch(() => {});
+
     window.addEventListener('branding-updated', load);
     return () => window.removeEventListener('branding-updated', load);
   }, []);

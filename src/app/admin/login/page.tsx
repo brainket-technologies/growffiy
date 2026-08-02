@@ -15,8 +15,16 @@ export default function AdminLoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
+  const [brandLogo, setBrandLogo] = useState('');
+  const [brandName, setBrandName] = useState('Growffiy');
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const storedName = localStorage.getItem('growffiy_brand_name');
+      const storedLogo = localStorage.getItem('growffiy_brand_logo');
+      if (storedName) setBrandName(storedName);
+      if (storedLogo) setBrandLogo(storedLogo);
+
       const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
       const activeUserRole = localStorage.getItem('growffiy_logged_in_user_role');
       if (activeUser) {
@@ -30,6 +38,19 @@ export default function AdminLoginPage() {
       }
       setCheckingAuth(false);
     }
+
+    api.get(API_ENDPOINTS.SETTINGS).then((res: any) => {
+      if (res.success && res.settings) {
+        if (res.settings.app_name) {
+          setBrandName(res.settings.app_name);
+          if (typeof window !== 'undefined') localStorage.setItem('growffiy_brand_name', res.settings.app_name);
+        }
+        if (res.settings.app_logo) {
+          setBrandLogo(res.settings.app_logo);
+          if (typeof window !== 'undefined') localStorage.setItem('growffiy_brand_logo', res.settings.app_logo);
+        }
+      }
+    }).catch(() => {});
   }, []);
 
   if (checkingAuth) {
@@ -156,7 +177,7 @@ export default function AdminLoginPage() {
               background: `linear-gradient(to right, ${THEME_COLORS.PRIMARY}, #818cf8)`,
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             }}>
-              GROWFFIY
+              {brandName.toUpperCase()}
             </span>
           </div>
           <div style={{
@@ -218,155 +239,136 @@ export default function AdminLoginPage() {
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {error && (
               <div style={{
-                padding: '12px 14px',
+                padding: '12px 16px',
                 borderRadius: 10,
-                backgroundColor: '#fef2f2',
-                border: '1.5px solid #fee2e2',
-                color: '#b91c1c',
-                fontSize: '13px',
-                fontWeight: 600,
-                lineHeight: 1.5,
-                textAlign: 'left'
+                background: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                color: '#dc2626',
+                fontSize: 13,
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
               }}>
-                ⚠️ {error}
+                <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+                <span>{error}</span>
               </div>
             )}
-            {/* Admin ID field */}
-            <div>
-              <label style={{
-                display: 'block', fontSize: 13, fontWeight: 600,
-                color: '#374151', marginBottom: 8,
-              }}>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>
                 Admin ID / Email
               </label>
               <div style={{ position: 'relative' }}>
-                <div style={{
-                  position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-                  color: focusedField === 'userId' ? THEME_COLORS.PRIMARY : '#9ca3af',
-                  transition: 'color 0.2s',
-                }}>
-                  <User size={16} />
-                </div>
+                <User size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: focusedField === 'userId' ? THEME_COLORS.PRIMARY : '#94a3b8', transition: 'color 0.2s' }} />
                 <input
                   type="text"
-                  required
                   placeholder="admin@growffiy.in"
                   value={userId}
-                  onChange={(e) => setUserId(e.target.value)}
                   onFocus={() => setFocusedField('userId')}
                   onBlur={() => setFocusedField(null)}
-                  autoComplete="off"
-                  autoCapitalize="none"
-                  autoCorrect="off"
+                  onChange={(e) => setUserId(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '13px 14px 13px 44px',
-                    borderRadius: 12,
+                    padding: '12px 16px 12px 42px',
+                    borderRadius: 10,
                     border: `1.5px solid ${focusedField === 'userId' ? THEME_COLORS.PRIMARY : '#e2e8f0'}`,
-                    background: 'white',
-                    color: '#0f172a',
                     fontSize: 14,
                     outline: 'none',
-                    boxShadow: focusedField === 'userId' ? '0 0 0 3px rgba(37,99,235,0.1)' : 'none',
+                    background: 'white',
+                    color: '#0f172a',
                     transition: 'all 0.2s',
-                    boxSizing: 'border-box',
+                    boxShadow: focusedField === 'userId' ? '0 0 0 3px rgba(37,99,235,0.1)' : 'none',
                   }}
+                  required
                 />
               </div>
             </div>
 
-            {/* Password field */}
-            <div>
-              <label style={{
-                display: 'block', fontSize: 13, fontWeight: 600,
-                color: '#374151', marginBottom: 8,
-              }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>
                 Password
               </label>
               <div style={{ position: 'relative' }}>
-                <div style={{
-                  position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-                  color: focusedField === 'password' ? THEME_COLORS.PRIMARY : '#9ca3af',
-                  transition: 'color 0.2s',
-                }}>
-                  <Lock size={16} />
-                </div>
+                <Lock size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: focusedField === 'password' ? THEME_COLORS.PRIMARY : '#94a3b8', transition: 'color 0.2s' }} />
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  required
-                  placeholder="••••••••••"
+                  placeholder="••••••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}
-                  autoComplete="new-password"
+                  onChange={(e) => setPassword(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '13px 44px 13px 44px',
-                    borderRadius: 12,
+                    padding: '12px 42px 12px 42px',
+                    borderRadius: 10,
                     border: `1.5px solid ${focusedField === 'password' ? THEME_COLORS.PRIMARY : '#e2e8f0'}`,
-                    background: 'white',
-                    color: '#0f172a',
                     fontSize: 14,
                     outline: 'none',
-                    boxShadow: focusedField === 'password' ? '0 0 0 3px rgba(37,99,235,0.1)' : 'none',
+                    background: 'white',
+                    color: '#0f172a',
                     transition: 'all 0.2s',
-                    boxSizing: 'border-box',
+                    boxShadow: focusedField === 'password' ? '0 0 0 3px rgba(37,99,235,0.1)' : 'none',
                   }}
+                  required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   style={{
-                    position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: '#9ca3af', padding: 0, display: 'flex',
+                    position: 'absolute',
+                    right: 14,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    padding: 0,
+                    display: 'flex',
                   }}
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
 
-            {/* Submit button */}
             <button
               type="submit"
               disabled={loading}
               style={{
                 width: '100%',
-                padding: '14px',
-                borderRadius: 12,
-                border: 'none',
-                background: loading
-                  ? `linear-gradient(135deg, ${THEME_COLORS.PRIMARY}, #1d4ed8)`
-                  : `linear-gradient(135deg, ${THEME_COLORS.PRIMARY}, #1d4ed8)`,
+                padding: '12px',
+                borderRadius: 10,
+                background: `linear-gradient(135deg, ${THEME_COLORS.PRIMARY}, #1252AB)`,
                 color: 'white',
-                fontSize: 15,
+                border: 'none',
+                fontSize: 14,
                 fontWeight: 700,
                 cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.85 : 1,
-                transition: 'all 0.2s',
+                boxShadow: '0 4px 12px rgba(37,99,235,0.25)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
-                letterSpacing: 0.3,
-                marginTop: 4,
+                marginTop: 8,
+                transition: 'all 0.2s',
+                opacity: loading ? 0.8 : 1,
               }}
             >
               {loading ? (
                 <>
                   <div style={{
-                    width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)',
-                    borderTopColor: 'white', borderRadius: '50%',
-                    animation: 'spin 0.7s linear infinite',
+                    width: 18, height: 18, borderRadius: '50%',
+                    border: '2px solid white', borderTopColor: 'transparent',
+                    animation: 'spin 0.8s linear infinite',
                   }} />
-                  Authenticating...
+                  <span>Authenticating...</span>
                 </>
               ) : (
                 <>
-                  <ShieldCheck size={16} />
-                  Sign In as Admin
+                  <ShieldCheck size={18} />
+                  <span>Sign In as Admin</span>
                 </>
               )}
             </button>
@@ -382,7 +384,7 @@ export default function AdminLoginPage() {
               🔒 All admin sessions are encrypted and logged
             </p>
             <p style={{ fontSize: 12, color: '#cbd5e1', marginTop: 6 }}>
-              © 2026 Growffiy Inc. — Restricted Access
+              © 2026 {brandName} Inc. — Restricted Access
             </p>
           </div>
         </div>
