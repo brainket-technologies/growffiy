@@ -16,8 +16,9 @@ export function middleware(request: NextRequest) {
     }
   } else {
     // Prevent direct access to /admin paths on the main domain; redirect to subdomain
-    // Bypass this for Vercel preview/default domains (*.vercel.app) and localhost since they don't support wildcard subdomains easily
-    const isVercelOrLocal = hostname.endsWith('.vercel.app') || hostname.includes('localhost') || hostname.includes('127.0.0.1') || hostname.includes('66.116.245.44') || hostname.includes('growffi.in') || hostname.includes('growffi.com');
+    // Bypass subdomain redirect for IPs, localhost, vercel, live domains where admin wildcard subdomain isn't configured
+    const isIpAddress = /^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/.test(hostname);
+    const isVercelOrLocal = isIpAddress || hostname.endsWith('.vercel.app') || hostname.includes('localhost') || hostname.includes('127.0.0.1') || hostname.includes('66.116.245.44') || hostname.includes('66.116.210.206') || hostname.includes('growffi.in') || hostname.includes('growffi.com') || hostname.includes('growffi.live');
     if (url.pathname.startsWith('/admin') && !isVercelOrLocal) {
       const redirectUrl = new URL(request.url);
       // Construct admin subdomain

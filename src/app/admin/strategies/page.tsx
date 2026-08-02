@@ -116,6 +116,7 @@ interface StrategyConfig {
 }
 
 const migrateLegacyConfig = (config: any): StrategyConfig => {
+  if (!config || typeof config !== 'object') return { ...INITIAL_CONFIG };
   // Convert old tradeAction + basicInfo timeframe/entryTime → legs[0]
   if (!config.legs && config.tradeAction) {
     config.legs = [{
@@ -129,7 +130,14 @@ const migrateLegacyConfig = (config: any): StrategyConfig => {
     delete config.basicInfo?.entryTime;
     delete config.basicInfo?.timeframe;
   }
-  return config as StrategyConfig;
+  return {
+    basicInfo: { ...INITIAL_CONFIG.basicInfo, ...(config.basicInfo || {}) },
+    legs: Array.isArray(config.legs) && config.legs.length > 0 ? config.legs : INITIAL_CONFIG.legs,
+    stoploss: { ...INITIAL_CONFIG.stoploss, ...(config.stoploss || {}) },
+    target: { ...INITIAL_CONFIG.target, ...(config.target || {}) },
+    riskManagement: { ...INITIAL_CONFIG.riskManagement, ...(config.riskManagement || {}) },
+    conditions: Array.isArray(config.conditions) ? config.conditions : INITIAL_CONFIG.conditions,
+  } as StrategyConfig;
 };
 
 const INDICATORS = [

@@ -4,6 +4,37 @@ import { NextResponse } from 'next/server';
 import { prisma } from '../../../../../database/db';
 import { inMemoryStrategies } from '../route';
 
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    let strategy: any;
+
+    try {
+      strategy = await prisma.strategy.findUnique({
+        where: { id },
+        include: { conditions: true, clients: { include: { user: true } }, trades: true }
+      });
+    } catch (e) {
+      strategy = inMemoryStrategies.find(s => s.id === id);
+    }
+
+    if (!strategy) {
+      strategy = inMemoryStrategies.find(s => s.id === id);
+    }
+
+    if (!strategy) {
+      return NextResponse.json({ success: false, error: 'Strategy not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, strategy });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  }
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
