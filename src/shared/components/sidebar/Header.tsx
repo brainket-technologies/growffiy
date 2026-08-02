@@ -188,11 +188,36 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
+  const [appName, setAppName] = useState<string>('Growffiy');
+
+  useEffect(() => {
+    const syncAppName = () => {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('growffiy_brand_name');
+        if (stored) setAppName(stored);
+      }
+    };
+    syncAppName();
+
+    api.get(API_ENDPOINTS.SETTINGS).then((res: any) => {
+      if (res.success && res.settings && res.settings.app_name) {
+        setAppName(res.settings.app_name);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('growffiy_brand_name', res.settings.app_name);
+        }
+      }
+    }).catch(() => {});
+
+    window.addEventListener('branding-updated', syncAppName);
+    return () => window.removeEventListener('branding-updated', syncAppName);
+  }, []);
+
   const userInitial = userName.charAt(0).toUpperCase();
 
   const renderBreadcrumb = () => {
-    if (!title.includes('|')) return <span className={styles.currentPage}>{title}</span>;
-    const parts = title.split('|').map(s => s.trim());
+    const dynamicTitle = title.replace(/Growffiy/gi, appName);
+    if (!dynamicTitle.includes('|')) return <span className={styles.currentPage}>{dynamicTitle}</span>;
+    const parts = dynamicTitle.split('|').map(s => s.trim());
     return (
       <>
         <span className={styles.breadcrumb}>
