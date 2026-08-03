@@ -747,21 +747,6 @@ class AlgoEngineService {
               console.log(`AlgoEngine: Using cached candle price for ${candidateStock.symbol}: ${candlePrice}`);
             }
 
-            if (candlePrice === 0 && client.zerodhaApiKey && client.accessToken) {
-              try {
-                console.log(`AlgoEngine: Fetching live quote for ${exchangeParam}:${candidateStock.symbol}`);
-                const quoteRes = await KiteClient.getQuotes(client.zerodhaApiKey, client.accessToken, [`${exchangeParam}:${candidateStock.symbol}`]);
-                if (quoteRes?.status === 'success' && quoteRes.data?.[`${exchangeParam}:${candidateStock.symbol}`]) {
-                  const q = quoteRes.data[`${exchangeParam}:${candidateStock.symbol}`];
-                  const livePrice = q.last_price || q.ohlc?.high || q.ohlc?.open || 0;
-                  if (livePrice > 0) {
-                    candlePrice = livePrice;
-                    console.log(`AlgoEngine: Using live quote price for ${candidateStock.symbol}: ${candlePrice}`);
-                  }
-                }
-              } catch { }
-            }
-
             if (candlePrice === 0) {
               const reason = `Candle data not fetched for ${candidateStock.symbol}`;
               console.log(`AlgoEngine: ${reason}. Logging FAILED trade for ${client.user.name}.`);
@@ -1047,32 +1032,20 @@ class AlgoEngineService {
               : entryPrice * (1 + legBufferPct / 100);
           }
 
-          // 2. Validate buffered price against Live Circuit Limits
+          // 2. Validate buffered price against Live Circuit Limits (Skip trade if Circuit limit hit at entry)
           let adjustedEntryPrice = calculatedBufferedEntry;
           const freshLimits = await this.getFreshCircuitLimits(client, exchangeParam, targetStock.symbol, activeAccessToken);
           if (freshLimits) {
             const { upper, lower } = freshLimits;
             if (upper > 0 && lower > 0) {
-              if (direction === 'LONG') {
-                if (calculatedBufferedEntry > upper) {
-                  adjustedEntryPrice = upper;
-                  console.log(`AlgoEngine: Buffered entry price (₹${calculatedBufferedEntry.toFixed(2)}) exceeded Upper Circuit (₹${upper}). Setting Entry Price to Upper Circuit: ₹${adjustedEntryPrice}`);
-                } else if (calculatedBufferedEntry < lower) {
-                  adjustedEntryPrice = lower;
-                  console.log(`AlgoEngine: Buffered entry price (₹${calculatedBufferedEntry.toFixed(2)}) fell below Lower Circuit (₹${lower}). Setting Entry Price to Lower Circuit: ₹${adjustedEntryPrice}`);
-                } else {
-                  console.log(`AlgoEngine: Buffered entry price (₹${calculatedBufferedEntry.toFixed(2)}) is within Circuit Limits (${lower} - ${upper}).`);
-                }
-              } else { // SHORT
-                if (calculatedBufferedEntry < lower) {
-                  adjustedEntryPrice = lower;
-                  console.log(`AlgoEngine: Buffered entry price (₹${calculatedBufferedEntry.toFixed(2)}) fell below Lower Circuit (₹${lower}). Setting Entry Price to Lower Circuit: ₹${adjustedEntryPrice}`);
-                } else if (calculatedBufferedEntry > upper) {
-                  adjustedEntryPrice = upper;
-                  console.log(`AlgoEngine: Buffered entry price (₹${calculatedBufferedEntry.toFixed(2)}) exceeded Upper Circuit (₹${upper}). Setting Entry Price to Upper Circuit: ₹${adjustedEntryPrice}`);
-                } else {
-                  console.log(`AlgoEngine: Buffered entry price (₹${calculatedBufferedEntry.toFixed(2)}) is within Circuit Limits (${lower} - ${upper}).`);
-                }
+              if (calculatedBufferedEntry >= upper || calculatedBufferedEntry <= lower) {
+                const circuitType = calculatedBufferedEntry >= upper ? 'Upper Circuit' : 'Lower Circuit';
+                const reason = `Entry skipped: Stock ${targetStock.symbol} hit ${circuitType} (Entry: ₹${calculatedBufferedEntry.toFixed(2)}, Circuit Range: ${lower} - ${upper})`;
+                console.log(`AlgoEngine: ${reason} for ${client.user.name}. Skipping trade.`);
+                await this.logFailedTrade(client, strategy, targetStock.symbol, productParam, calculatedBufferedEntry, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
+                return;
+              } else {
+                console.log(`AlgoEngine: Buffered entry price (₹${calculatedBufferedEntry.toFixed(2)}) is within Circuit Limits (${lower} - ${upper}).`);
               }
             }
           }

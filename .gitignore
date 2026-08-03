@@ -53,3 +53,6 @@ stock-scanner/credentials.json
 stock-scanner/indicators_cache.json
 stock-scanner/.env
 
+# Large backup/zip files — do not push to git
+database/*.sql
+*.zip

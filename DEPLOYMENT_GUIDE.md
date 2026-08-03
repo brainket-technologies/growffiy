@@ -6,11 +6,40 @@ Iss document mein har client setup, unke server infrastructure, database, aur de
 
 ## 📌 Overview Table
 
-| Client Name | Hosting Type / Provider | Server IP / Domain | SSH User & Pass / Access | Database Type / Connection URL | Code Path / Location | Update Method |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Janvi** | Hostinger | Web Hosting | Panel Access (File Manager) | Neon Cloud PostgreSQL (`postgresql://neondb_owner:npg_Qtok2RmWK4uT@ep-purple-frost-aimotyfv-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require`) | `/public_html` | ZIP Upload / Web Portal |
-| **Ashutosh** | GlobeHost VPS | `66.116.245.44` (`growffi.in`) | `root` / `2hA@QAydr#r%pD` | Local VPS PostgreSQL (`postgresql://growffiy:growffiy123@127.0.0.1:5432/growffiy_db`) | `/var/www/growffiy` | SSH Script / Commands |
-| **Anand Kumar Sharma** | VPS | `66.116.210.206` (`growffi.live`) | `root` / `Q}K)H~l8i@=XwC` | Local VPS PostgreSQL (`postgresql://growffiy_user:AnandSecureDBPass2026%21@127.0.0.1:5432/growffiy_anand_db`) | `/var/www/growffiy` | SSH Script / Commands |
+| Client Name | Environment | Hosting Type / Provider | Server IP / Domain | SSH User & Pass / Access | Database Type / Connection URL | Code Path / Location | Update Method |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Janvi** | 🧪 **TESTING** | Hostinger | Web Hosting (`growffi.com`) | Panel Access (File Manager) | Neon Cloud PostgreSQL (`postgresql://neondb_owner:...`) | `/public_html` | ZIP Upload / Web Portal |
+| **Ashutosh** | 🔴 **PRODUCTION** | GlobeHost VPS | `66.116.245.44` (`growffi.in`) | `root` / `2hA@QAydr#r%pD` | Local VPS PostgreSQL (`postgresql://growffiy:...`) | `/var/www/growffiy` | SSH Script / Commands |
+| **Anand Kumar Sharma** | 🔴 **PRODUCTION** | VPS | `66.116.210.206` (`growffi.live`) | `root` / `Q}K)H~l8i@=XwC` | Local VPS PostgreSQL (`postgresql://growffiy_user:...`) | `/var/www/growffiy` | SSH Script / Commands |
+
+---
+
+## ⚠️ Critical Rules for AI & Developers
+
+1. 🧪 **Janvi Server (`growffi.com`) = TESTING ENVIRONMENT**
+   - Ye server sirf **Testing & Verification** ke liye hai.
+   - Naye UI changes, strategy configurations, aur features pehle yahan test aur verify honge.
+
+2. 🔴 **Ashutosh (`growffi.in`) & Anand (`growffi.live`) = PRODUCTION ENVIRONMENTS**
+   - Ye servers **REAL LIVE TRADING / PRODUCTION** ke liye hain.
+   - 🚫 **STRICT RULE:** Production servers (66.116.245.44 aur 66.116.210.206) ke code, configuration, ya database (DB) me **bina explicit user instruction/approval ke koi bhi change, deployment, ya query execute NAHI karni hai**.
+   - Production server pe modification sirf tabhi hoga jab User explicitly specific approval de.
+   - 🔐 **DOUBLE CONFIRMATION MANDATORY** — Production pe kuch bhi karne se pehle:
+     - **Pehle:** AI clearly batayega: *"Main [SERVER NAME/IP] pe ye karne wala hoon: [EXACT DESCRIPTION]"*
+     - **Pehli Permission lo** — User se confirm karo
+     - **Phir se clearly batao** — exactly kya command/change execute hoga
+     - **Doosri Final Permission lo** — tabhi execute karo
+   - Koi bhi shortcut ya assumption nahi — dono approvals mandatory hain
+
+3. 🗄️ **New Server Deployment — Database Restore**
+   - Jab bhi **koi naya server setup karna ho**, toh database seed ya fresh migration **mat karo**.
+   - **HAMESHA** `database/janvi_db_backup.sql` file use karo — yahi **master backup hai jo Janvi ke current DB ka full snapshot hai**.
+   - Iss file ko restore karke naye server ka DB setup hoga:
+     ```bash
+     # Naye server pe DB restore karne ka command:
+     psql <NEW_DB_CONNECTION_URL> < database/janvi_db_backup.sql
+     ```
+   - 🚫 **Kabhi bhi `npx prisma db seed` ya koi aur seed script mat chalao** jab tak user explicitly na bole.
 
 ---
 
@@ -21,6 +50,7 @@ Iss document mein har client setup, unke server infrastructure, database, aur de
 - **Database**: Neon PostgreSQL (`serverless`)
 - **Database URL**: `postgresql://neondb_owner:npg_Qtok2RmWK4uT@ep-purple-frost-aimotyfv-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require`
 - **Deployment Type**: Manual Zip Update
+- **🗄️ DB Backup Location**: `database/janvi_db_backup.sql` *(Full DB snapshot — use this for any new server restore)*
 
 ### 🚀 Update & Deployment Procedure
 1. Local codebase update karein aur clean build verify karein:
