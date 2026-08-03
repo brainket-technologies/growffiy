@@ -582,7 +582,7 @@ class AlgoEngineService {
           const legOrderType = currentLeg.tradeAction?.orderType || 'SL-Market';
 
           const enabledLegs = (config.legs || []).filter((l: any) => l.enabled);
-          const finalDualLegGroupId = enabledLegs.length > 1 ? `oco_${client.id}_${strategy.id}_${todayStart.toISOString().split('T')[0]}` : null;
+          const finalDualLegGroupId = dualLegGroupId || (enabledLegs.length > 1 ? `oco_${client.id}_${strategy.id}_${todayStart.toISOString().split('T')[0]}` : null);
 
           if (!config.basicInfo?.exchange || !config.basicInfo?.tradeType || !config.basicInfo?.preSelectTime) {
             console.log(`AlgoEngine: Strategy config missing exchange/tradeType/preSelectTime for client ${client.user.name}. Skipping.`);
@@ -1039,26 +1039,39 @@ class AlgoEngineService {
             : 0.05;
 
            // Fetch fresh circuit limits first to adjust entry price
-          let adjustedEntryPrice = entryPrice;
+          // 1. Calculate entry price WITH leg buffer percentage applied first
+          let calculatedBufferedEntry = entryPrice;
+          if (legBufferPct !== undefined && legBufferPct !== null && legBufferPct !== -1 && legBufferPct > 0) {
+            calculatedBufferedEntry = isShortTrade
+              ? entryPrice * (1 - legBufferPct / 100)
+              : entryPrice * (1 + legBufferPct / 100);
+          }
+
+          // 2. Validate buffered price against Live Circuit Limits
+          let adjustedEntryPrice = calculatedBufferedEntry;
           const freshLimits = await this.getFreshCircuitLimits(client, exchangeParam, targetStock.symbol, activeAccessToken);
           if (freshLimits) {
             const { upper, lower } = freshLimits;
             if (upper > 0 && lower > 0) {
               if (direction === 'LONG') {
-                if (adjustedEntryPrice > upper) {
+                if (calculatedBufferedEntry > upper) {
                   adjustedEntryPrice = upper;
-                  console.log(`AlgoEngine: Capped entry price to Upper Circuit for ${targetStock.symbol} LONG: ₹${adjustedEntryPrice}`);
-                } else if (adjustedEntryPrice < lower) {
+                  console.log(`AlgoEngine: Buffered entry price (₹${calculatedBufferedEntry.toFixed(2)}) exceeded Upper Circuit (₹${upper}). Setting Entry Price to Upper Circuit: ₹${adjustedEntryPrice}`);
+                } else if (calculatedBufferedEntry < lower) {
                   adjustedEntryPrice = lower;
-                  console.log(`AlgoEngine: Raised entry price to Lower Circuit for ${targetStock.symbol} LONG: ₹${adjustedEntryPrice}`);
+                  console.log(`AlgoEngine: Buffered entry price (₹${calculatedBufferedEntry.toFixed(2)}) fell below Lower Circuit (₹${lower}). Setting Entry Price to Lower Circuit: ₹${adjustedEntryPrice}`);
+                } else {
+                  console.log(`AlgoEngine: Buffered entry price (₹${calculatedBufferedEntry.toFixed(2)}) is within Circuit Limits (${lower} - ${upper}).`);
                 }
-              } else {
-                if (adjustedEntryPrice < lower) {
+              } else { // SHORT
+                if (calculatedBufferedEntry < lower) {
                   adjustedEntryPrice = lower;
-                  console.log(`AlgoEngine: Raised entry price to Lower Circuit for ${targetStock.symbol} SHORT: ₹${adjustedEntryPrice}`);
-                } else if (adjustedEntryPrice > upper) {
+                  console.log(`AlgoEngine: Buffered entry price (₹${calculatedBufferedEntry.toFixed(2)}) fell below Lower Circuit (₹${lower}). Setting Entry Price to Lower Circuit: ₹${adjustedEntryPrice}`);
+                } else if (calculatedBufferedEntry > upper) {
                   adjustedEntryPrice = upper;
-                  console.log(`AlgoEngine: Capped entry price to Upper Circuit for ${targetStock.symbol} SHORT: ₹${adjustedEntryPrice}`);
+                  console.log(`AlgoEngine: Buffered entry price (₹${calculatedBufferedEntry.toFixed(2)}) exceeded Upper Circuit (₹${upper}). Setting Entry Price to Upper Circuit: ₹${adjustedEntryPrice}`);
+                } else {
+                  console.log(`AlgoEngine: Buffered entry price (₹${calculatedBufferedEntry.toFixed(2)}) is within Circuit Limits (${lower} - ${upper}).`);
                 }
               }
             }
@@ -1068,7 +1081,7 @@ class AlgoEngineService {
             adjustedEntryPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, exchangeParam, targetStock.symbol, adjustedEntryPrice);
           }
 
-          const stopLoss = isShortTrade ? adjustedEntryPrice + slPoints : adjustedEntryPrice - slPoints;
+          let stopLoss = isShortTrade ? adjustedEntryPrice + slPoints : adjustedEntryPrice - slPoints;
 
           if (!config?.target?.type) {
             console.log(`AlgoEngine: target.type not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
@@ -1085,6 +1098,30 @@ class AlgoEngineService {
             target = isShortTrade ? adjustedEntryPrice - (slPoints * rr) : adjustedEntryPrice + (slPoints * rr);
           } else {
             target = isShortTrade ? adjustedEntryPrice * (1 - targetPercent / 100) : adjustedEntryPrice * (1 + targetPercent / 100);
+          }
+
+          // Validate Stop-Loss and Target prices against Circuit Limits if fetched
+          if (freshLimits) {
+            const { upper, lower } = freshLimits;
+            if (upper > 0 && lower > 0) {
+              // Stop-Loss Circuit Check
+              if (stopLoss < lower) {
+                console.log(`AlgoEngine: Stop Loss (₹${stopLoss.toFixed(2)}) fell below Lower Circuit (₹${lower}). Capping SL to Lower Circuit.`);
+                stopLoss = lower;
+              } else if (stopLoss > upper) {
+                console.log(`AlgoEngine: Stop Loss (₹${stopLoss.toFixed(2)}) exceeded Upper Circuit (₹${upper}). Capping SL to Upper Circuit.`);
+                stopLoss = upper;
+              }
+
+              // Target Circuit Check
+              if (target < lower) {
+                console.log(`AlgoEngine: Target (₹${target.toFixed(2)}) fell below Lower Circuit (₹${lower}). Capping Target to Lower Circuit.`);
+                target = lower;
+              } else if (target > upper) {
+                console.log(`AlgoEngine: Target (₹${target.toFixed(2)}) exceeded Upper Circuit (₹${upper}). Capping Target to Upper Circuit.`);
+                target = upper;
+              }
+            }
           }
 
           // Keep original calculated values
@@ -1115,18 +1152,7 @@ class AlgoEngineService {
           } else if (configOrderType === 'SL-Limit') {
             orderTypeParam = 'SL';
             triggerPriceParam = finalEntryPrice;
-            if (legBufferPct === undefined || legBufferPct === null || legBufferPct === -1) {
-              console.log(`AlgoEngine: legBufferPct not configured for leg "${currentLeg.name}". Skipping trade for ${client.user.name}.`);
-              return;
-            }
-            const rawLimitPrice = isShortTrade
-              ? entryPrice * (1 - legBufferPct / 100)
-              : entryPrice * (1 + legBufferPct / 100);
-            if (client.zerodhaApiKey && activeAccessToken) {
-              priceParam = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, exchangeParam, targetStock.symbol, rawLimitPrice);
-            } else {
-              priceParam = Number(rawLimitPrice.toFixed(2));
-            }
+            priceParam = finalEntryPrice;
           } else if (configOrderType === 'SL-Market') {
             orderTypeParam = 'SL-M';
             triggerPriceParam = finalEntryPrice;
@@ -1349,8 +1375,9 @@ class AlgoEngineService {
                       }
                     }
 
-                    // 5-second delay to ensure Zerodha processes opposite leg cancellation and frees up margin completely
-                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    // 10-second delay after cancelling opposite leg order to ensure Zerodha margin is completely freed
+                    console.log(`AlgoEngine OCO: Waiting 10 seconds after opposite leg cancellation before placing Stop-Loss order for ${client.user.name}...`);
+                    await new Promise(resolve => setTimeout(resolve, 10000));
 
                     try {
                       const slParams = {
@@ -1375,8 +1402,9 @@ class AlgoEngineService {
                       console.error(`AlgoEngine: Error placing SL-M order:`, slErr);
                     }
 
-                    // 2-second gap after SL placement before placing Target LIMIT order
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    // 5-second delay after SL placement before placing Target LIMIT order
+                    console.log(`AlgoEngine OCO: Waiting 5 seconds after Stop-Loss order before placing Target order for ${client.user.name}...`);
+                    await new Promise(resolve => setTimeout(resolve, 5000));
 
                     try {
                       const targetParams = {
