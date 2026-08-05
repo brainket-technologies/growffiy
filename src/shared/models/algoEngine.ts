@@ -1394,7 +1394,7 @@ class AlgoEngineService {
                       if (targetRes?.status === 'success' && targetRes.data?.order_id) {
                         targetOrderId = targetRes.data.order_id;
                         targetOrderStatusVal = 'OPEN';
-                        console.log(`AlgoEngine: Target LIMIT order placed: ${targetOrderId} for ${targetStock.symbol} @ ₹${finalTarget}`);
+                        console.log(`AlgoEngine: Target LIMIT order placed on Zerodha: ${targetOrderId} for ${targetStock.symbol} @ ₹${finalTarget}`);
                       } else {
                         targetOrderStatusVal = 'VIRTUAL_PENDING';
                         const errMsg = targetRes?.message || 'unknown';

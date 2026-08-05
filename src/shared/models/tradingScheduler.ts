@@ -522,6 +522,20 @@ export class TradingScheduler {
                 } catch (e) { console.warn(`AlgoEngine Monitor: Target order status check failed for ${trade.symbol}:`, e); }
               }
 
+              // Virtual SL monitoring check (if SL order failed/rejected on Zerodha)
+              if (!exitTriggered && !slComplete && (!trade.slOrderId || trade.slOrderStatus === 'VIRTUAL_PENDING' || trade.slOrderStatus === 'REJECTED')) {
+                const liveLtp = this.wsLive.getStockLtp(trade.symbol);
+                if (liveLtp > 0 && trade.stopLoss) {
+                  const slVal = Number(trade.stopLoss);
+                  const isSlHit = isShortTrade ? (liveLtp >= slVal) : (liveLtp <= slVal);
+                  if (isSlHit) {
+                    slComplete = true;
+                    slAvgPrice = liveLtp;
+                    console.log(`AlgoEngine Monitor: Virtual Stop-Loss Hit for ${trade.symbol} @ LTP ₹${liveLtp} (SL: ₹${slVal})`);
+                  }
+                }
+              }
+
               // Virtual Target monitoring check (if Target order failed/rejected on Zerodha)
               if (!exitTriggered && !slComplete && (!trade.targetOrderId || trade.targetOrderStatus === 'VIRTUAL_PENDING' || trade.targetOrderStatus === 'REJECTED')) {
                 const liveLtp = this.wsLive.getStockLtp(trade.symbol);
@@ -687,6 +701,10 @@ export class TradingScheduler {
                   if (client.zerodhaApiKey && client.accessToken) {
                     if (!trade.slOrderId || trade.slOrderId === '' || trade.slOrderId === 'REJECTED') {
                       try {
+                        // 10-second delay after opposite leg cancellation / entry fill to ensure Zerodha margin is freed up
+                        console.log(`AlgoEngine Monitor: Waiting 10 seconds before placing Stop-Loss order for ${trade.symbol}...`);
+                        await new Promise(resolve => setTimeout(resolve, 10000));
+
                         const slParams = {
                           exchange: exchangeParam, tradingsymbol: trade.symbol,
                           transaction_type: isShortTrade ? 'BUY' as const : 'SELL' as const, quantity: Number(trade.quantity),
@@ -699,6 +717,7 @@ export class TradingScheduler {
                         if (slRes?.status === 'success' && slRes.data?.order_id) {
                           newSlOrderId = slRes.data.order_id;
                           await prisma.trade.update({ where: { id: trade.id }, data: { slOrderStatus: 'OPEN', slKiteResponse: slRes } });
+                          console.log(`AlgoEngine Monitor: SL-M order placed on Zerodha: ${newSlOrderId} for ${trade.symbol} @ trigger ₹${finalSlTrigger}`);
                         } else if (slRes?.status === 'error') {
                           newSlOrderId = 'REJECTED';
                           await prisma.trade.update({ where: { id: trade.id }, data: { slOrderStatus: 'REJECTED', slKiteResponse: slRes } });
@@ -715,8 +734,9 @@ export class TradingScheduler {
 
                     if (!trade.targetOrderId || trade.targetOrderId === '' || trade.targetOrderId === 'REJECTED') {
                       try {
-                        // Add 2-second delay to let Zerodha process the SL order before sending Target order
-                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        // 5-second delay after SL order before sending Target LIMIT order to Zerodha
+                        console.log(`AlgoEngine Monitor: Waiting 5 seconds after Stop-Loss order before placing Target order for ${trade.symbol}...`);
+                        await new Promise(resolve => setTimeout(resolve, 5000));
 
                         const targetParams = {
                           exchange: exchangeParam, tradingsymbol: trade.symbol,
@@ -729,6 +749,7 @@ export class TradingScheduler {
                         if (tgtRes?.status === 'success' && tgtRes.data?.order_id) {
                           newTargetOrderId = tgtRes.data.order_id;
                           await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: 'OPEN', targetKiteResponse: tgtRes } });
+                          console.log(`AlgoEngine Monitor: Target LIMIT order placed on Zerodha: ${newTargetOrderId} for ${trade.symbol} @ ₹${finalTarget}`);
                         } else if (tgtRes?.status === 'error') {
                           newTargetOrderId = null;
                           await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: 'VIRTUAL_PENDING', targetKiteResponse: tgtRes } });
@@ -740,7 +761,11 @@ export class TradingScheduler {
                             newValue: errMsg
                           });
                         }
-                      } catch (tgtErr) { console.warn(`AlgoEngine Monitor: Target placement failed for ${trade.symbol}:`, tgtErr); }
+                      } catch (tgtErr) {
+                        newTargetOrderId = null;
+                        await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: 'VIRTUAL_PENDING' } });
+                        console.warn(`AlgoEngine Monitor: Target placement failed for ${trade.symbol}, using VIRTUAL target monitoring:`, tgtErr);
+                      }
                     }
                   } // Closes if (client.zerodhaApiKey && client.accessToken)
 
