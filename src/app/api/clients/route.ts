@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../database/db';
 import { sendClientWelcomeEmail } from '../../../shared/services/mail';
+import { KiteClient } from '../../../shared/services/kite';
 
 // In-memory fallback array to guarantee immediate functionality without live DB
 let inMemoryClients: any[] = [
@@ -54,7 +55,29 @@ export async function GET() {
     const isDbConfigured = !!process.env.DATABASE_URL;
     const finalClients = isDbConfigured ? dbClients : inMemoryClients;
 
-    return NextResponse.json({ success: true, clients: finalClients });
+    // Fetch live margins in parallel for clients with connected Zerodha session
+    const enrichedClients = await Promise.all(
+      finalClients.map(async (c: any) => {
+        let liveMargin = null;
+        if (c.accessToken && c.zerodhaApiKey) {
+          try {
+            const mRes = await KiteClient.getMargins(c.zerodhaApiKey, c.accessToken, undefined, c.dedicatedIp);
+            if (mRes.status === 'success' && mRes.data?.equity) {
+              const eq = mRes.data.equity;
+              liveMargin = eq.net ?? eq.available?.live_balance ?? eq.available?.cash ?? null;
+            }
+          } catch (err) {
+            // Ignore margin fetch error
+          }
+        }
+        return {
+          ...c,
+          liveMargin
+        };
+      })
+    );
+
+    return NextResponse.json({ success: true, clients: enrichedClients });
   } catch (error) {
     // Fallback to in-memory store if DB is not configured
     const isDbConfigured = !!process.env.DATABASE_URL;

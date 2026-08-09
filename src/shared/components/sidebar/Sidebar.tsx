@@ -27,6 +27,7 @@ import {
   BarChart3,
   MessageSquare,
   PlusCircle,
+  Star,
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { useAppViewModel } from '../../viewmodels/AppContext';
@@ -65,6 +66,7 @@ const adminGroups: MenuGroup[] = [
       { name: 'Clients', path: '/admin/clients', icon: Users, badge: 12 },
       { name: 'Subscription Plans', path: '/admin/plans', icon: CreditCard },
       { name: 'Enquiries', path: '/admin/enquiries', icon: MessageSquare },
+      { name: 'Testimonials', path: '/admin/testimonials', icon: Star },
     ],
   },
   {

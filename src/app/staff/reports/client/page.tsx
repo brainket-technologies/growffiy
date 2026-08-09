@@ -150,7 +150,7 @@ export default function ClientReportPage() {
               <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Total Clients</p>
               <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>{clientStats.length}</h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>
-                {activeClients.length} active, {subscribedClients.length} subscribed
+                {activeClients.length} active, {subscribedClients.length} subscription
               </p>
             </div>
             <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>

@@ -65,7 +65,7 @@ export default function AdminDashboard() {
     loading: globalLoading,
   } = useAppViewModel();
 
-  const [pnlPeriod, setPnlPeriod] = useState('Daily');
+  const [pnlPeriod, setPnlPeriod] = useState('Weekly');
 
   // Calendar settings for trading days display
   const [autoTradeEnabled, setAutoTradeEnabled] = useState(true);
@@ -502,7 +502,7 @@ export default function AdminDashboard() {
 
         <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--accent)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Subscribed</span>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Subscription</span>
             <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--accent-light)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Users size={18} />
             </div>
@@ -592,11 +592,9 @@ export default function AdminDashboard() {
                 boxShadow: 'var(--shadow-sm)'
               }}
             >
-              <option value="Daily">Daily</option>
               <option value="Weekly">Weekly</option>
               <option value="Monthly">Monthly</option>
               <option value="Yearly">Yearly</option>
-              <option value="Cumulative">Cumulative</option>
             </select>
           </div>
           <PerformanceChart

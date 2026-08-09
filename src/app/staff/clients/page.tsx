@@ -487,13 +487,12 @@ export default function ClientsPage() {
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Email</th>
                 <th>Zerodha Client ID</th>
                 <th>Product Type</th>
                 <th>Strategy</th>
-                <th>Capital (INR)</th>
+                <th>Live Margin (INR)</th>
                 <th>Kite Session</th>
-                <th>Subscribed</th>
+                <th>Subscription</th>
                 <th>Trading Status</th>
                 <th style={{ textAlign: 'right', minWidth: '120px' }}>Actions</th>
               </tr>
@@ -501,7 +500,7 @@ export default function ClientsPage() {
             <tbody>
               {currentClients.length === 0 ? (
                 <tr>
-                  <td colSpan={10} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                     No client accounts match the search or filter criteria.
                   </td>
                 </tr>
@@ -511,7 +510,6 @@ export default function ClientsPage() {
                   return (
                     <tr key={client.id}>
                       <td style={{ fontWeight: 600 }}>{client.user?.name || client.name}</td>
-                      <td>{client.user?.email || client.email}</td>
                       <td style={{ fontFamily: 'monospace', fontWeight: 500 }}>{client.zerodhaClientId || '--'}</td>
                       <td>
                         {client.productType?.name ? (
@@ -565,7 +563,17 @@ export default function ClientsPage() {
                           </span>
                         )}
                       </td>
-                      <td style={{ fontWeight: 600, color: Number(client.capital) === -1 ? '#10b981' : 'inherit' }}>{Number(client.capital) === -1 ? 'Live Balance' : `₹${Number(client.capital).toLocaleString()}`}</td>
+                      <td>
+                        {client.accessToken && client.liveMargin != null ? (
+                          <span style={{ fontWeight: 700, color: '#10b981' }}>
+                            ₹{Number(client.liveMargin).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        ) : (
+                          <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>
+                            N/A
+                          </span>
+                        )}
+                      </td>
                       <td>
                         {client.accessToken ? (
                           <span className="badge badge-green">Connected</span>

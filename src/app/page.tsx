@@ -8,7 +8,8 @@ import {
   Activity, ShieldCheck, Zap, ArrowRight, Sparkles,
   ChevronDown, ChevronUp, Menu, X,
   BarChart2, Lock, Bell, Target, Cpu,
-  Check, Phone, Mail, MapPin, User, MessageSquare, HelpCircle
+  Check, Phone, Mail, MapPin, User, MessageSquare, HelpCircle, Star,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { API_ENDPOINTS } from '../core/constants';
 
@@ -57,6 +58,99 @@ export default function GrowffiyLanding() {
   const [brandName, setBrandName] = useState('Growffiy');
   const [heroTitle, setHeroTitle] = useState('Automate Your<br /><span class="text-gradient">Stock Market</span><br />Trades Smarter');
   const [heroSubtitle, setHeroSubtitle] = useState('Growffiy connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.');
+
+  // Dynamic Testimonials List & Auto-Scroll Logic
+  const [testimonials, setTestimonials] = useState<any[]>([
+    {
+      name: 'Rajesh Verma',
+      role: 'Intraday Trader',
+      location: 'Delhi',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&h=120&q=80',
+      rating: 5,
+      stat: '+38.4% PnL',
+      text: 'Growffiy has completely transformed my trading discipline. The pre-open momentum strategy connects directly with my Zerodha Kite API and executes breakout trades in milliseconds without emotional bias.'
+    },
+    {
+      name: 'Ananya Deshmukh',
+      role: 'F&O System Trader',
+      location: 'Mumbai',
+      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&h=120&q=80',
+      rating: 5,
+      stat: 'Zero Slippage',
+      text: 'The automated stop-loss and 1% risk management engine is top-notch. I used to miss target exits while working, but Growffiy manages position sizing and square-off automatically at 3:15 PM.'
+    },
+    {
+      name: 'Vikram Patel',
+      role: 'Full-Time Trader',
+      location: 'Ahmedabad',
+      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&h=120&q=80',
+      rating: 5,
+      stat: '99.9% Uptime',
+      text: 'Operating client accounts with dedicated static proxy IPs was complex before Growffiy. Now everything runs smoothly with live logs, instant order signals, and absolute peace of mind.'
+    }
+  ]);
+
+  // Fetch dynamic testimonials from DB API
+  useEffect(() => {
+    fetch('/api/testimonials')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.testimonials && data.testimonials.length > 0) {
+          setTestimonials(data.testimonials);
+        }
+      })
+      .catch((err) => console.log('Using default testimonials:', err));
+  }, []);
+
+  const [testimonialIndex, setTestimonialIndex] = useState(0);
+  const [isTestimonialsPaused, setIsTestimonialsPaused] = useState(false);
+  const testimonialScrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll loop effect (Every 3.5 seconds)
+  useEffect(() => {
+    if (isTestimonialsPaused) return;
+    const interval = setInterval(() => {
+      setTestimonialIndex((prev) => {
+        const nextIndex = (prev + 1) % testimonials.length;
+        if (testimonialScrollRef.current) {
+          const cardWidth = 384;
+          testimonialScrollRef.current.scrollTo({
+            left: nextIndex * cardWidth,
+            behavior: 'smooth'
+          });
+        }
+        return nextIndex;
+      });
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, [isTestimonialsPaused, testimonials.length]);
+
+  const scrollTestimonials = (direction: 'left' | 'right') => {
+    const nextIndex = direction === 'left'
+      ? (testimonialIndex - 1 + testimonials.length) % testimonials.length
+      : (testimonialIndex + 1) % testimonials.length;
+    
+    setTestimonialIndex(nextIndex);
+    if (testimonialScrollRef.current) {
+      const cardWidth = 384;
+      testimonialScrollRef.current.scrollTo({
+        left: nextIndex * cardWidth,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const jumpToTestimonial = (index: number) => {
+    setTestimonialIndex(index);
+    if (testimonialScrollRef.current) {
+      const cardWidth = 384;
+      testimonialScrollRef.current.scrollTo({
+        left: index * cardWidth,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   // Consultation Modal States
   const [showConsultationModal, setShowConsultationModal] = useState(false);
@@ -1375,6 +1469,96 @@ export default function GrowffiyLanding() {
                   </button>
                 </Link>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════
+          WHAT OUR CLIENTS SAY (HORIZONTAL SLIDER)
+      ════════════════════════════════════════ */}
+      <section id="testimonials" className="section testimonials-section">
+        <div className="section-inner">
+          <div className="text-center">
+            <div className="section-tag">Client Reviews</div>
+            <h2 className="section-title">What Our <span className="text-gradient">Clients Say</span></h2>
+            <p className="section-sub">Real feedback and experiences from active traders using Growffiy automated strategy execution.</p>
+          </div>
+
+          <div
+            className="testimonials-slider-wrapper"
+            onMouseEnter={() => setIsTestimonialsPaused(true)}
+            onMouseLeave={() => setIsTestimonialsPaused(false)}
+          >
+            {/* Left Side Scroll Arrow */}
+            <button
+              className="scroll-nav-btn scroll-nav-prev"
+              onClick={() => scrollTestimonials('left')}
+              title="Scroll Left"
+              aria-label="Previous Testimonial"
+            >
+              <ChevronLeft size={22} />
+            </button>
+
+            {/* Right Side Scroll Arrow */}
+            <button
+              className="scroll-nav-btn scroll-nav-next"
+              onClick={() => scrollTestimonials('right')}
+              title="Scroll Right"
+              aria-label="Next Testimonial"
+            >
+              <ChevronRight size={22} />
+            </button>
+
+            <div className="testimonials-scroll-row" ref={testimonialScrollRef}>
+              {testimonials.map((item, index) => (
+                <div key={index} className="testimonial-card">
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <div className="testimonial-stars">
+                        {[...Array(item.rating)].map((_, i) => (
+                          <Star key={i} size={16} fill="#F59E0B" color="#F59E0B" />
+                        ))}
+                      </div>
+                      <span className="testimonial-badge">{item.stat}</span>
+                    </div>
+                    <p className="testimonial-text">"{item.text}"</p>
+                  </div>
+
+                  <div className="testimonial-footer">
+                    <img src={item.avatar} alt={item.name} className="testimonial-avatar" />
+                    <div className="testimonial-info">
+                      <div className="testimonial-name">
+                        {item.name}
+                        <span style={{ color: '#10B981', display: 'inline-flex', alignItems: 'center' }} title="Verified Trader">
+                          <Check size={14} style={{ background: 'rgba(16, 185, 129, 0.15)', borderRadius: '50%', padding: '2px' }} />
+                        </span>
+                      </div>
+                      <div className="testimonial-role">{item.role} • {item.location}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Active Dot Indicators */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
+              {testimonials.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => jumpToTestimonial(i)}
+                  style={{
+                    width: testimonialIndex === i ? '24px' : '8px',
+                    height: '8px',
+                    borderRadius: '9999px',
+                    background: testimonialIndex === i ? '#1E88FF' : 'var(--border)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                  }}
+                  aria-label={`Jump to review ${i + 1}`}
+                />
+              ))}
             </div>
           </div>
         </div>

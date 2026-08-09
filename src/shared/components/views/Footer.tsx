@@ -191,7 +191,7 @@ export default function Footer() {
               <Link href="/pricing" className="footer-link">Pricing</Link>
               <Link href="/about" className="footer-link">About Us</Link>
               <Link href="/login" className="footer-link">Client Portal</Link>
-              <Link href="/staff/login" className="footer-link">Staff Login</Link>
+              <Link href="/staff/login" className="footer-link">Channel Partner</Link>
             </div>
 
             {/* Legal */}

@@ -198,9 +198,11 @@ export default function LiveTradeTransactionsPage() {
     const solo: any[] = [];
     for (const t of trades) {
       if (t.dualLegGroupId) {
-        const arr = ocoMap.get(t.dualLegGroupId) || [];
+        const clientId = t.clientId || t.client?.id || t.clientName || 'default';
+        const key = `${clientId}_${t.dualLegGroupId}`;
+        const arr = ocoMap.get(key) || [];
         arr.push(t);
-        ocoMap.set(t.dualLegGroupId, arr);
+        ocoMap.set(key, arr);
       } else {
         solo.push(t);
       }
@@ -550,7 +552,7 @@ export default function LiveTradeTransactionsPage() {
                     const totalPnl = (row.legs || []).reduce((sum: number, l: any) => sum + Number(l.pnl || 0), 0);
                     const activeLeg = (row.legs || []).find((l: any) => (l.entryOrderStatus || '').toLowerCase() === 'filled');
                     return (
-                      <tr key={row.dualLegGroupId}
+                      <tr key={`${row.client?.id || row.clientId || row.clientName}_${row.dualLegGroupId}`}
                         onClick={() => { setSelectedTrade(row); }}
                         style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
                         onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'}

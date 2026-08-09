@@ -16,10 +16,18 @@ export async function GET(request: Request) {
     const startFilter = startDateStr ? new Date(`${startDateStr}T00:00:00.000`) : defaultStartDate;
     const endFilter = endDateStr ? new Date(`${endDateStr}T23:59:59.999`) : defaultEndDate;
 
-    // 1. Client counts
+    // 1. Client & Subscription counts
     const totalClients = await prisma.client.count();
     const activeClients = await prisma.client.count({ where: { tradingStatus: 'active' } });
     const inactiveClients = totalClients - activeClients;
+    const activeSubscriptions = await prisma.client.count({
+      where: {
+        OR: [
+          { subscriptionStatus: 'active' },
+          { tradingStatus: 'active' }
+        ]
+      }
+    });
 
     const helperCalcPnl = (t: any) => {
       const status = (t.status || '').toLowerCase();
@@ -133,6 +141,7 @@ export async function GET(request: Request) {
       totalClients,
       activeClients,
       inactiveClients,
+      activeSubscriptions,
       activeStrategies,
       winningStrategies,
       losingStrategies,

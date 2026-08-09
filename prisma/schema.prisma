@@ -387,3 +387,19 @@ model DemoStrategy {
 
   @@map("demo_stttgry")
 }
+
+model Testimonial {
+  id        String   @id @default(uuid())
+  name      String
+  role      String
+  location  String?
+  avatar    String?
+  rating    Int      @default(5)
+  stat      String?
+  text      String
+  status    String   @default("active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("testimonials")
+}

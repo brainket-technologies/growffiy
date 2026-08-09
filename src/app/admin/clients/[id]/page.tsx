@@ -1315,6 +1315,26 @@ export default function ClientDetailsPage() {
                   <Shield size={18} color="var(--primary)" /> Client Dedicated Static Outbound IP (Permanent / Fixed)
                 </h4>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const randByte = () => Math.floor(Math.random() * 254) + 1;
+                      const newIp = `82.112.${randByte()}.${randByte()}`;
+                      setDedicatedIp(newIp);
+                    }}
+                    style={{
+                      fontSize: '11.5px',
+                      fontWeight: 600,
+                      padding: '5px 10px',
+                      borderRadius: '6px',
+                      backgroundColor: 'var(--surface)',
+                      color: 'var(--color-success, #10b981)',
+                      border: '1px solid var(--border-light)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🎲 Generate Unique IP
+                  </button>
                   {serverIp && (
                     <button
                       type="button"
