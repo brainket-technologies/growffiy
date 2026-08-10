@@ -552,24 +552,102 @@ export class TradingScheduler {
 
               if (slComplete) {
                 exitTriggered = true;
-                exitPrice = slAvgPrice > 0 ? slAvgPrice : Number(trade.stopLoss || (isShortTrade ? entryPrice * (1 + slPercent / 100) : entryPrice * (1 - slPercent / 100)));
                 exitReason = 'SL Hit';
-                if (trade.targetOrderId) {
+
+                if (trade.targetOrderId && trade.targetOrderId !== 'REJECTED') {
                   try {
                     await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.targetOrderId);
                     console.log(`AlgoEngine Monitor: Cancelled target order ${trade.targetOrderId} (SL hit first)`);
                   } catch (e) { console.warn(`AlgoEngine Monitor: Failed to cancel target order ${trade.targetOrderId}:`, e); }
                 }
+
+                let realFilledPrice = 0;
+                // If SL was VIRTUAL (not placed on Zerodha), place a real MARKET exit order on Zerodha FIRST
+                if (!trade.slOrderId || trade.slOrderStatus === 'VIRTUAL_PENDING' || trade.slOrderStatus === 'REJECTED') {
+                  if (client.zerodhaApiKey && client.accessToken) {
+                    try {
+                      console.log(`AlgoEngine Monitor: Executing real MARKET exit order on Zerodha FIRST for Virtual SL Hit (${trade.symbol})...`);
+                      let productParam = 'MIS';
+                      const validProducts = ['MIS', 'CNC', 'NRML'];
+                      if (validProducts.includes(trade.orderType)) productParam = trade.orderType;
+                      const exitRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, {
+                        exchange: exchangeParam,
+                        tradingsymbol: trade.symbol,
+                        transaction_type: isShortTrade ? 'BUY' : 'SELL',
+                        quantity: Number(trade.quantity),
+                        order_type: 'MARKET',
+                        product: productParam as any,
+                        validity: 'DAY'
+                      }, client.dedicatedIp);
+
+                      if (exitRes?.status === 'success' && exitRes.data?.order_id) {
+                        console.log(`AlgoEngine Monitor: Virtual SL Market exit order placed on Zerodha: ${exitRes.data.order_id}. Waiting for fill...`);
+                        await new Promise(r => setTimeout(r, 2000));
+                        const fillData = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, exitRes.data.order_id, client.dedicatedIp);
+                        const fillOrder = getLatestOrderState(fillData?.data);
+                        realFilledPrice = Number(fillOrder?.average_price || fillOrder?.filled_price || 0);
+                        if (realFilledPrice > 0) {
+                          console.log(`AlgoEngine Monitor: Virtual SL real Zerodha fill price: ₹${realFilledPrice}`);
+                        }
+                      } else {
+                        console.warn(`AlgoEngine Monitor: Virtual SL Market exit failed on Zerodha: ${exitRes?.message}`);
+                      }
+                    } catch (mktErr) {
+                      console.error(`AlgoEngine Monitor: Failed to place Market exit order on Zerodha for Virtual SL:`, mktErr);
+                    }
+                  }
+                }
+
+                exitPrice = realFilledPrice > 0 ? realFilledPrice : (slAvgPrice > 0 ? slAvgPrice : Number(trade.stopLoss || (isShortTrade ? entryPrice * (1 + slPercent / 100) : entryPrice * (1 - slPercent / 100))));
               } else if (targetComplete) {
                 exitTriggered = true;
-                exitPrice = targetAvgPrice > 0 ? targetAvgPrice : Number(trade.target || (isShortTrade ? entryPrice * (1 - targetPercent / 100) : entryPrice * (1 + targetPercent / 100)));
                 exitReason = 'Target Hit';
-                if (trade.slOrderId) {
+
+                if (trade.slOrderId && trade.slOrderId !== 'REJECTED') {
                   try {
                     await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.slOrderId);
                     console.log(`AlgoEngine Monitor: Cancelled SL order ${trade.slOrderId} (Target hit first)`);
                   } catch (e) { console.warn(`AlgoEngine Monitor: Failed to cancel SL order ${trade.slOrderId}:`, e); }
                 }
+
+                let realFilledPrice = 0;
+                // If Target was VIRTUAL (not placed on Zerodha), place a real MARKET exit order on Zerodha FIRST
+                if (!trade.targetOrderId || trade.targetOrderStatus === 'VIRTUAL_PENDING' || trade.targetOrderStatus === 'REJECTED') {
+                  if (client.zerodhaApiKey && client.accessToken) {
+                    try {
+                      console.log(`AlgoEngine Monitor: Executing real MARKET exit order on Zerodha FIRST for Virtual Target Hit (${trade.symbol})...`);
+                      let productParam = 'MIS';
+                      const validProducts = ['MIS', 'CNC', 'NRML'];
+                      if (validProducts.includes(trade.orderType)) productParam = trade.orderType;
+                      const exitRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, {
+                        exchange: exchangeParam,
+                        tradingsymbol: trade.symbol,
+                        transaction_type: isShortTrade ? 'BUY' : 'SELL',
+                        quantity: Number(trade.quantity),
+                        order_type: 'MARKET',
+                        product: productParam as any,
+                        validity: 'DAY'
+                      }, client.dedicatedIp);
+
+                      if (exitRes?.status === 'success' && exitRes.data?.order_id) {
+                        console.log(`AlgoEngine Monitor: Virtual Target Market exit order placed on Zerodha: ${exitRes.data.order_id}. Waiting for fill...`);
+                        await new Promise(r => setTimeout(r, 2000));
+                        const fillData = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, exitRes.data.order_id, client.dedicatedIp);
+                        const fillOrder = getLatestOrderState(fillData?.data);
+                        realFilledPrice = Number(fillOrder?.average_price || fillOrder?.filled_price || 0);
+                        if (realFilledPrice > 0) {
+                          console.log(`AlgoEngine Monitor: Virtual Target real Zerodha fill price: ₹${realFilledPrice}`);
+                        }
+                      } else {
+                        console.warn(`AlgoEngine Monitor: Virtual Target Market exit failed on Zerodha: ${exitRes?.message}`);
+                      }
+                    } catch (mktErr) {
+                      console.error(`AlgoEngine Monitor: Failed to place Market exit order on Zerodha for Virtual Target:`, mktErr);
+                    }
+                  }
+                }
+
+                exitPrice = realFilledPrice > 0 ? realFilledPrice : (targetAvgPrice > 0 ? targetAvgPrice : Number(trade.target || (isShortTrade ? entryPrice * (1 - targetPercent / 100) : entryPrice * (1 + targetPercent / 100))));
               }
 
               // --- Trailing SL ---
