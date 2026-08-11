@@ -1155,7 +1155,7 @@ class AlgoEngineService {
                 ...(orderTypeParam === 'MARKET' || orderTypeParam === 'SL-M' ? { market_protection: marketProtectionVal } : {})
               };
 
-              orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, orderParams, client.dedicatedIp);
+              orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, orderParams, (client.proxyUrl || client.dedicatedIp));
 
               if (orderRes && orderRes.status === 'error' &&
                 (orderRes.message?.includes('Trigger price') ||
@@ -1170,7 +1170,7 @@ class AlgoEngineService {
                   trigger_price: undefined,
                   ...(orderTypeParam === 'MARKET' || orderTypeParam === 'SL-M' ? { market_protection: marketProtectionVal } : {})
                 };
-                orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, fallbackParams, client.dedicatedIp);
+                orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, fallbackParams, (client.proxyUrl || client.dedicatedIp));
               }
 
               if (orderRes && orderRes.status === 'error' &&
@@ -1179,7 +1179,7 @@ class AlgoEngineService {
                   orderRes.message?.includes('closed') ||
                   orderRes.message?.includes('variety'))) {
                 console.log(`AlgoEngine: Retrying order as AMO (After Market Order) because market is closed.`);
-                orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, { ...orderParams, variety: 'amo' }, client.dedicatedIp);
+                orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, { ...orderParams, variety: 'amo' }, (client.proxyUrl || client.dedicatedIp));
               }
 
               console.log('AlgoEngine: Kite order placement response:', orderRes);
@@ -1364,7 +1364,7 @@ class AlgoEngineService {
                         trigger_price: finalStopLoss,
                         market_protection: marketProtectionVal
                       };
-                      const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slParams, client.dedicatedIp);
+                      const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slParams, (client.proxyUrl || client.dedicatedIp));
                       if (slRes?.status === 'success' && slRes.data?.order_id) {
                         slOrderId = slRes.data.order_id;
                         console.log(`AlgoEngine: SL-M order placed: ${slOrderId} for ${targetStock.symbol} @ trigger ₹${finalStopLoss}`);
@@ -1390,7 +1390,7 @@ class AlgoEngineService {
                         validity: 'DAY' as const,
                         price: finalTarget
                       };
-                      const targetRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, targetParams, client.dedicatedIp);
+                      const targetRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, targetParams, (client.proxyUrl || client.dedicatedIp));
                       if (targetRes?.status === 'success' && targetRes.data?.order_id) {
                         targetOrderId = targetRes.data.order_id;
                         targetOrderStatusVal = 'OPEN';

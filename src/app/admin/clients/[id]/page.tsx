@@ -67,6 +67,125 @@ export default function ClientDetailsPage() {
   const [serverIp, setServerIp] = useState('');
   const [copiedIp, setCopiedIp] = useState(false);
 
+  // Test Stock Buy Modal States
+  const [testOrderModalOpen, setTestOrderModalOpen] = useState(false);
+  const [testSymbol, setTestSymbol] = useState('360ONE');
+  const [testQty, setTestQty] = useState('1');
+  const [testPrice, setTestPrice] = useState('');
+  const [testOrderType, setTestOrderType] = useState<'MARKET' | 'LIMIT'>('MARKET');
+  const [testTransactionType, setTestTransactionType] = useState<'BUY' | 'SELL'>('BUY');
+  const [testProduct, setTestProduct] = useState<'MIS' | 'CNC'>('MIS');
+  const [testExchange, setTestExchange] = useState('NSE');
+  const [isSendingTestOrder, setIsSendingTestOrder] = useState(false);
+  
+  // Stock Search & Price Calculation States
+  const [stockSuggestions, setStockSuggestions] = useState<string[]>([]);
+  const [allStocksList, setAllStocksList] = useState<string[]>([]);
+  const [showStockDropdown, setShowStockDropdown] = useState(false);
+  const [liveLtp, setLiveLtp] = useState<number | null>(null);
+  const [isFetchingLtp, setIsFetchingLtp] = useState(false);
+
+  // Fetch stocks list on mount or when modal opens
+  useEffect(() => {
+    const fetchStockList = async () => {
+      try {
+        const res = await fetch('/api/stocks');
+        const data = await res.json();
+        if (data.stocks && Array.isArray(data.stocks)) {
+          const syms = data.stocks.map((s: any) => s.symbol || s.tradingsymbol).filter(Boolean);
+          setAllStocksList(Array.from(new Set(syms)));
+        }
+      } catch (e) { }
+    };
+    fetchStockList();
+  }, []);
+
+  // Fetch live LTP when testSymbol changes
+  useEffect(() => {
+    if (!testSymbol || !id || !testOrderModalOpen) return;
+    const timer = setTimeout(async () => {
+      try {
+        setIsFetchingLtp(true);
+        const res = await fetch(`/api/clients/${id}/test-order?symbol=${encodeURIComponent(testSymbol.trim())}&exchange=${testExchange}`);
+        const data = await res.json();
+        if (data.success && data.lastPrice) {
+          setLiveLtp(data.lastPrice);
+          if (testOrderType === 'MARKET' || !testPrice) {
+            setTestPrice(String(data.lastPrice));
+          }
+        } else {
+          setLiveLtp(null);
+        }
+      } catch (e) {
+        setLiveLtp(null);
+      } finally {
+        setIsFetchingLtp(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [testSymbol, testExchange, id, testOrderModalOpen]);
+
+  const handleSymbolInputChange = (val: string) => {
+    const upper = val.toUpperCase();
+    setTestSymbol(upper);
+    if (upper.trim()) {
+      const filtered = allStocksList.filter(s => s.toUpperCase().includes(upper.trim())).slice(0, 8);
+      setStockSuggestions(filtered);
+      setShowStockDropdown(true);
+    } else {
+      setStockSuggestions([]);
+      setShowStockDropdown(false);
+    }
+  };
+
+  const handleSelectStock = (sym: string) => {
+    setTestSymbol(sym);
+    setShowStockDropdown(false);
+  };
+
+  const handleSendTestOrder = async () => {
+    if (!testSymbol || !testQty || Number(testQty) <= 0) {
+      alert('Please enter valid symbol and quantity');
+      return;
+    }
+    try {
+      setIsSendingTestOrder(true);
+      const response = await fetch(`/api/clients/${id}/test-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradingsymbol: testSymbol.trim().toUpperCase(),
+          quantity: Number(testQty),
+          transaction_type: testTransactionType,
+          order_type: testOrderType,
+          price: testPrice ? Number(testPrice) : undefined,
+          product: testProduct,
+          exchange: testExchange,
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setTestOrderModalOpen(false);
+        setAlertModal({
+          title: '✅ Order Placed Successfully',
+          message: `Order ID: ${data.orderId}\nZerodha response: ${data.message || 'Order executed/sent'}`
+        });
+      } else {
+        setAlertModal({
+          title: '❌ Order Failed',
+          message: data.error || 'Failed to place test order'
+        });
+      }
+    } catch (err: any) {
+      setAlertModal({
+        title: '❌ Order Error',
+        message: err.message || 'Something went wrong while placing test order'
+      });
+    } finally {
+      setIsSendingTestOrder(false);
+    }
+  };
+
   // TOTP Display
   const [totpCode, setTotpCode] = useState('------');
   const [totpCountdown, setTotpCountdown] = useState(30);
@@ -1315,30 +1434,14 @@ export default function ClientDetailsPage() {
                   <Shield size={18} color="var(--primary)" /> Client Dedicated Static Outbound IP (Permanent / Fixed)
                 </h4>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const randByte = () => Math.floor(Math.random() * 254) + 1;
-                      const newIp = `82.112.${randByte()}.${randByte()}`;
-                      setDedicatedIp(newIp);
-                    }}
-                    style={{
-                      fontSize: '11.5px',
-                      fontWeight: 600,
-                      padding: '5px 10px',
-                      borderRadius: '6px',
-                      backgroundColor: 'var(--surface)',
-                      color: 'var(--color-success, #10b981)',
-                      border: '1px solid var(--border-light)',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    🎲 Generate Unique IP
-                  </button>
+
                   {serverIp && (
                     <button
                       type="button"
-                      onClick={() => setDedicatedIp(serverIp)}
+                      onClick={() => {
+                        setDedicatedIp(serverIp);
+                        setProxyUrl('');
+                      }}
                       style={{
                         fontSize: '11.5px',
                         fontWeight: 600,
@@ -1353,30 +1456,362 @@ export default function ClientDetailsPage() {
                       Use Server IP ({serverIp})
                     </button>
                   )}
-                  {(dedicatedIp || serverIp) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(dedicatedIp || serverIp);
-                        setCopiedIp(true);
-                        setTimeout(() => setCopiedIp(false), 2000);
-                      }}
-                      style={{
-                        fontSize: '11.5px',
-                        fontWeight: 600,
-                        padding: '5px 12px',
-                        borderRadius: '6px',
-                        backgroundColor: copiedIp ? '#10b981' : 'var(--primary)',
-                        color: 'white',
-                        border: 'none',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {copiedIp ? '✓ Copied IP' : '📋 Copy Static IP'}
-                    </button>
-                  )}
+
+
+                  {/* Test Stock Buy Button */}
+                  <button
+                    type="button"
+                    onClick={() => setTestOrderModalOpen(true)}
+                    style={{
+                      fontSize: '11.5px',
+                      fontWeight: 600,
+                      padding: '5px 12px',
+                      borderRadius: '6px',
+                      backgroundColor: '#ec4899',
+                      color: 'white',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    ⚡ Test Stock Order
+                  </button>
                 </div>
               </div>
+
+              {/* Test Stock Order Modal Dialog */}
+              {testOrderModalOpen && (
+                <div style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(15, 23, 42, 0.65)',
+                  backdropFilter: 'blur(4px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 99999,
+                  padding: '20px'
+                }}>
+                  <div style={{
+                    backgroundColor: 'var(--surface-card, #ffffff)',
+                    borderRadius: '16px',
+                    width: '100%',
+                    maxWidth: '460px',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                    border: '1px solid var(--border-light, #e2e8f0)',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      padding: '20px 24px',
+                      background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                      color: 'white',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 700 }}>⚡ Place Test Order</h3>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94a3b8' }}>
+                          Client: <strong>{name}</strong> ({zerodhaClientId || 'Kite Client'})
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setTestOrderModalOpen(false)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#94a3b8',
+                          fontSize: '20px',
+                          cursor: 'pointer',
+                          lineHeight: 1
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                            Transaction Type
+                          </label>
+                          <select
+                            value={testTransactionType}
+                            onChange={(e: any) => setTestTransactionType(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '10px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--border-light)',
+                              backgroundColor: 'var(--surface)',
+                              fontSize: '13px',
+                              fontWeight: 700,
+                              color: testTransactionType === 'BUY' ? '#10b981' : '#ef4444'
+                            }}
+                          >
+                            <option value="BUY">🟢 BUY</option>
+                            <option value="SELL">🔴 SELL</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                            Product Type
+                          </label>
+                          <select
+                            value={testProduct}
+                            onChange={(e: any) => setTestProduct(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '10px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--border-light)',
+                              backgroundColor: 'var(--surface)',
+                              fontSize: '13px',
+                              fontWeight: 600
+                            }}
+                          >
+                            <option value="MIS">MIS (Intraday)</option>
+                            <option value="CNC">CNC (Delivery)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style={{ position: 'relative' }}>
+                        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                          <span>Stock Symbol (TradingSymbol) *</span>
+                          {isFetchingLtp && <span style={{ color: '#0ea5e9', fontSize: '11px' }}>🔄 Fetching LTP...</span>}
+                          {!isFetchingLtp && liveLtp !== null && (
+                            <span style={{ color: '#10b981', fontWeight: 700, fontSize: '12px' }}>
+                              LTP: ₹{liveLtp.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </span>
+                          )}
+                        </label>
+                        <input
+                          type="text"
+                          value={testSymbol}
+                          onChange={(e) => handleSymbolInputChange(e.target.value)}
+                          onFocus={() => {
+                            if (testSymbol.trim()) handleSymbolInputChange(testSymbol);
+                          }}
+                          placeholder="Type stock symbol (e.g. 360ONE, RELIANCE, TATAMOTORS)"
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-light)',
+                            backgroundColor: 'var(--surface)',
+                            fontSize: '14px',
+                            fontWeight: 700,
+                            letterSpacing: '0.5px'
+                          }}
+                        />
+
+                        {/* Stock Autocomplete Suggestions Dropdown */}
+                        {showStockDropdown && stockSuggestions.length > 0 && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: 0,
+                            right: 0,
+                            marginTop: '4px',
+                            backgroundColor: 'var(--surface-card, #ffffff)',
+                            border: '1px solid var(--border-light, #e2e8f0)',
+                            borderRadius: '10px',
+                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15)',
+                            zIndex: 100,
+                            maxHeight: '180px',
+                            overflowY: 'auto'
+                          }}>
+                            {stockSuggestions.map((sym) => (
+                              <div
+                                key={sym}
+                                onClick={() => handleSelectStock(sym)}
+                                style={{
+                                  padding: '10px 14px',
+                                  fontSize: '13px',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  borderBottom: '1px solid var(--border-light, #f1f5f9)',
+                                  display: 'flex',
+                                  justify: 'space-between',
+                                  alignItems: 'center'
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface, #f8fafc)')}
+                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                              >
+                                <span>{sym}</span>
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>NSE</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                            Quantity (Qty) *
+                          </label>
+                          <input
+                            type="number"
+                            value={testQty}
+                            onChange={(e) => setTestQty(e.target.value)}
+                            placeholder="Qty"
+                            min="1"
+                            style={{
+                              width: '100%',
+                              padding: '10px 12px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--border-light)',
+                              backgroundColor: 'var(--surface)',
+                              fontSize: '14px',
+                              fontWeight: 600
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                            Order Type
+                          </label>
+                          <select
+                            value={testOrderType}
+                            onChange={(e: any) => setTestOrderType(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '10px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--border-light)',
+                              backgroundColor: 'var(--surface)',
+                              fontSize: '13px',
+                              fontWeight: 600
+                            }}
+                          >
+                            <option value="MARKET">MARKET</option>
+                            <option value="LIMIT">LIMIT</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {testOrderType === 'LIMIT' && (
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                            Limit Price (₹) *
+                          </label>
+                          <input
+                            type="number"
+                            step="0.05"
+                            value={testPrice}
+                            onChange={(e) => setTestPrice(e.target.value)}
+                            placeholder="e.g. 1160.00"
+                            style={{
+                              width: '100%',
+                              padding: '10px 12px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--border-light)',
+                              backgroundColor: 'var(--surface)',
+                              fontSize: '14px',
+                              fontWeight: 600
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {/* Live Calculated Price / Margin Summary Card */}
+                      <div style={{
+                        padding: '14px 16px',
+                        borderRadius: '12px',
+                        backgroundColor: 'var(--surface, #f8fafc)',
+                        border: '1px solid var(--border-light, #e2e8f0)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', color: 'var(--text-muted)' }}>
+                          <span>Per Stock Price:</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-heading)' }}>
+                            ₹{testPrice ? Number(testPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : (liveLtp ? liveLtp.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00')}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', color: 'var(--text-muted)' }}>
+                          <span>Quantity:</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-heading)' }}>{testQty || '0'} Qty</span>
+                        </div>
+                        <div style={{ height: '1px', backgroundColor: 'var(--border-light)', margin: '2px 0' }} />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 700 }}>
+                          <span style={{ color: 'var(--text-heading)' }}>Total Estimated Price:</span>
+                          <span style={{ color: testTransactionType === 'BUY' ? '#10b981' : '#ef4444', fontSize: '15px' }}>
+                            ₹{((Number(testPrice || liveLtp || 0)) * (Number(testQty || 0))).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{
+                        marginTop: '8px',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        backgroundColor: '#fffbe6',
+                        border: '1px solid #ffe58f',
+                        fontSize: '11.5px',
+                        color: '#d48806'
+                      }}>
+                        ⚠️ <strong>Notice:</strong> Ye order client ke <strong>Zerodha Kite Account</strong> par direct execute hoga (configured dedicated proxy ke raste).
+                      </div>
+                    </div>
+
+                    <div style={{
+                      padding: '16px 24px',
+                      backgroundColor: 'var(--surface, #f8fafc)',
+                      borderTop: '1px solid var(--border-light, #e2e8f0)',
+                      display: 'flex',
+                      justify: 'flex-end',
+                      gap: '12px'
+                    }}>
+                      <button
+                        type="button"
+                        onClick={() => setTestOrderModalOpen(false)}
+                        style={{
+                          padding: '9px 18px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-light)',
+                          backgroundColor: 'white',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSendTestOrder}
+                        disabled={isSendingTestOrder}
+                        style={{
+                          padding: '9px 22px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          backgroundColor: testTransactionType === 'BUY' ? '#10b981' : '#ef4444',
+                          color: 'white',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        {isSendingTestOrder ? 'Sending to Kite...' : `Send ${testTransactionType} Order`}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 <div className="form-grid-2">
@@ -1433,33 +1868,69 @@ export default function ClientDetailsPage() {
                 </div>
 
                 <div style={{
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(14, 165, 233, 0.06)',
-                  border: '1px solid rgba(14, 165, 233, 0.15)',
+                  padding: '14px 18px',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(14, 165, 233, 0.07)',
+                  border: '1px solid rgba(14, 165, 233, 0.2)',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                  flexWrap: 'wrap'
+                  flexDirection: 'column',
+                  gap: '12px'
                 }}>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-                    👉 Add this specific IP address to client's <strong>developers.kite.trade</strong> -&gt; Profile -&gt; <strong>IP Whitelist</strong> so trade execution never encounters <i>PermissionException</i>.
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-heading)' }}>
+                      👉 <strong>Zerodha Developer Console IP Whitelist Box:</strong> Copy & paste these IPs into client's <a href="https://developers.kite.trade/profile" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>developers.kite.trade ↗</a> -&gt; Profile -&gt; <strong>IP Whitelist</strong>
+                    </div>
                   </div>
-                  <a
-                    href="https://developers.kite.trade/profile"
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      color: 'var(--primary)',
-                      textDecoration: 'underline',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    Open Kite Developer Console ↗
-                  </a>
+
+                  {/* Copy-paste ready block */}
+                  {dedicatedIp ? (
+                    <div style={{
+                      backgroundColor: 'var(--surface-card, #ffffff)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px'
+                    }}>
+                      <div style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-heading)', fontWeight: 600, whiteSpace: 'pre-line', lineHeight: '1.6' }}>
+                        {proxyUrl ? (
+                          `2401:c080:2400:16d5:16ca:88d9:5e98:7cf4\n49.36.214.143`
+                        ) : (
+                          dedicatedIp
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const textToCopy = proxyUrl 
+                            ? "2401:c080:2400:16d5:16ca:88d9:5e98:7cf4\n49.36.214.143" 
+                            : dedicatedIp;
+                          navigator.clipboard.writeText(textToCopy);
+                          setCopiedIp(true);
+                          setTimeout(() => setCopiedIp(false), 2000);
+                        }}
+                        style={{
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          padding: '6px 14px',
+                          borderRadius: '6px',
+                          backgroundColor: copiedIp ? '#10b981' : 'var(--primary)',
+                          color: 'white',
+                          border: 'none',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {copiedIp ? '✓ Whitelist IPs Copied!' : '📋 Copy All IPs to Whitelist'}
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Enter Dedicated IP or Proxy Gateway above to generate exact Zerodha Whitelist IPs.
+                    </div>
+                  )}
                 </div>
               </div>
             </Card>

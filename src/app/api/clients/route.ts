@@ -61,7 +61,8 @@ export async function GET() {
         let liveMargin = null;
         if (c.accessToken && c.zerodhaApiKey) {
           try {
-            const mRes = await KiteClient.getMargins(c.zerodhaApiKey, c.accessToken, undefined, c.dedicatedIp);
+            const proxyTarget = c.proxyUrl || c.dedicatedIp;
+            const mRes = await KiteClient.getMargins(c.zerodhaApiKey, c.accessToken, undefined, proxyTarget);
             if (mRes.status === 'success' && mRes.data?.equity) {
               const eq = mRes.data.equity;
               liveMargin = eq.net ?? eq.available?.live_balance ?? eq.available?.cash ?? null;

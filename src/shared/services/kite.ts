@@ -7,9 +7,63 @@ async function kiteFetch(url: string, options: any, dedicatedIp?: string | null)
   
   if (ip && ip !== 'null' && ip !== 'undefined' && ip !== '0.0.0.0') {
     try {
-      fetchOpts.agent = new https.Agent({ localAddress: ip, keepAlive: true });
+      if (typeof window === 'undefined') {
+        if (ip.startsWith('http://') || ip.startsWith('https://')) {
+          const { HttpsProxyAgent } = require('https-proxy-agent');
+          fetchOpts.agent = new HttpsProxyAgent(ip);
+        } else {
+          // Direct local IPv6/IPv4 address binding fallback
+          fetchOpts.agent = new https.Agent({ localAddress: ip, keepAlive: true });
+        }
+      }
     } catch (e) {
-      console.warn(`KiteFetch: Could not bind dedicated IP ${ip}, using default interface:`, e);
+      console.warn(`KiteFetch: Could not bind dedicated IP/Proxy (${ip}):`, e);
+    }
+  }
+
+  // Node 18+ native fetch (undici) ignores `agent` option! Use native https.request when agent is provided.
+  if (typeof window === 'undefined' && fetchOpts.agent) {
+    try {
+      const parsedUrl = new URL(url);
+      const postData = fetchOpts.body || '';
+      
+      const reqHeaders = { ...fetchOpts.headers };
+      if (postData) {
+        reqHeaders['Content-Length'] = Buffer.byteLength(postData);
+      }
+
+      return new Promise<any>((resolve, reject) => {
+        const req = https.request({
+          hostname: parsedUrl.hostname,
+          port: parsedUrl.port || 443,
+          path: parsedUrl.pathname + parsedUrl.search,
+          method: fetchOpts.method || 'GET',
+          agent: fetchOpts.agent,
+          headers: reqHeaders
+        }, (res) => {
+          let bodyStr = '';
+          res.on('data', chunk => bodyStr += chunk);
+          res.on('end', () => {
+            resolve({
+              ok: res.statusCode ? res.statusCode >= 200 && res.statusCode < 300 : false,
+              status: res.statusCode || 200,
+              json: async () => JSON.parse(bodyStr),
+              text: async () => bodyStr
+            });
+          });
+        });
+
+        req.on('error', (err) => {
+          console.warn(`KiteFetch: Proxy native https request error: ${err.message}. Retrying direct fetch...`);
+          delete fetchOpts.agent;
+          fetch(url, fetchOpts).then(resolve).catch(reject);
+        });
+
+        if (postData) req.write(postData);
+        req.end();
+      });
+    } catch (agentErr) {
+      console.warn(`KiteFetch: Native https request execution failed:`, agentErr);
     }
   }
 
@@ -17,9 +71,8 @@ async function kiteFetch(url: string, options: any, dedicatedIp?: string | null)
     const res = await fetch(url, fetchOpts);
     return res;
   } catch (err: any) {
-    // Fallback without agent if localAddress binding caused socket connection error (e.g. EADDRNOTAVAIL)
     if (fetchOpts.agent) {
-      console.warn(`KiteFetch: Direct IP socket failed (${err?.message}). Retrying without agent fallback...`);
+      console.warn(`KiteFetch: Primary Agent failed (${err?.message}). Retrying direct fetch...`);
       delete fetchOpts.agent;
       return fetch(url, fetchOpts);
     }
