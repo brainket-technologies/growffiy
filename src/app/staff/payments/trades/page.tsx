@@ -216,6 +216,7 @@ export default function LiveTradeTransactionsPage() {
       });
       const hasActive = group.some((t: any) => t.status === 'open');
       const filledLeg = sorted.find((l: any) => (l.entryOrderStatus || '').toLowerCase() === 'filled');
+      const allFailed = group.every((t: any) => (t.status || '').toLowerCase() === 'failed');
       merged.push({
         _isOcoMerged: true,
         dualLegGroupId: group[0].dualLegGroupId,
@@ -225,7 +226,7 @@ export default function LiveTradeTransactionsPage() {
         strategyName: group[0].strategy?.name || group[0].strategyName || 'Pre-Open Momentum',
         entryTime: sorted[0]?.entryTime || group[0].entryTime,
         createdAt: group[0].createdAt,
-        status: hasActive ? 'active' : (filledLeg ? filledLeg.status : 'cancelled'),
+        status: hasActive ? 'active' : (filledLeg ? filledLeg.status : (allFailed ? 'FAILED' : 'cancelled')),
         strategy: group[0].strategy,
         client: group[0].client,
       });
@@ -238,6 +239,7 @@ export default function LiveTradeTransactionsPage() {
     const filled = legs.filter((l: any) => (l.entryOrderStatus || '').toLowerCase() === 'filled');
     const pending = legs.filter((l: any) => (l.entryOrderStatus || '').toLowerCase() === 'pending');
     const cancelled = legs.filter((l: any) => (l.status || '').toLowerCase() === 'cancelled');
+    const failed = legs.filter((l: any) => (l.status || '').toLowerCase() === 'failed');
     if (filled.length === 1 && cancelled.length === legs.length - 1) {
       const activeLeg = filled[0];
       if ((activeLeg.status || '').toLowerCase() === 'open') {
@@ -253,6 +255,9 @@ export default function LiveTradeTransactionsPage() {
     }
     if (pending.length > 0) {
       return { label: `${pending.length} PENDING`, color: 'var(--warning)' };
+    }
+    if (failed.length > 0 && failed.length === legs.length) {
+      return { label: 'FAILED', color: 'var(--color-danger)' };
     }
     if (cancelled.length === legs.length && legs.length > 0) {
       return { label: 'ALL CANCELLED', color: 'var(--text-muted)' };

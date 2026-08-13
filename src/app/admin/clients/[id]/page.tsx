@@ -1640,7 +1640,7 @@ export default function ClientDetailsPage() {
                                   cursor: 'pointer',
                                   borderBottom: '1px solid var(--border-light, #f1f5f9)',
                                   display: 'flex',
-                                  justify: 'space-between',
+                                  justifyContent: 'space-between',
                                   alignItems: 'center'
                                 }}
                                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface, #f8fafc)')}
@@ -1770,7 +1770,7 @@ export default function ClientDetailsPage() {
                       backgroundColor: 'var(--surface, #f8fafc)',
                       borderTop: '1px solid var(--border-light, #e2e8f0)',
                       display: 'flex',
-                      justify: 'flex-end',
+                      justifyContent: 'flex-end',
                       gap: '12px'
                     }}>
                       <button

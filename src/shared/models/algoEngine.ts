@@ -969,19 +969,15 @@ class AlgoEngineService {
             const errMsg = `Skipped: Calculated quantity is 0 (capitalAtRisk ₹${capitalAtRisk.toFixed(2)} / slPoints ₹${slPoints.toFixed(2)} = 0).`;
             console.log(`AlgoEngine: Calculated quantity is 0 for client ${client.user.name} (CapitalAtRisk: ₹${capitalAtRisk.toFixed(2)}, SL Points: ₹${slPoints.toFixed(2)}). Skipping trade.`);
 
-            await prisma.trade.create({
-              data: {
-                clientId: client.id, strategyId: strategy.id,
-                symbol: targetStock.symbol, orderType: productParam,
-                entryPrice: entryPrice, quantity: 0,
-                status: 'FAILED', entryTime: new Date(),
-                kiteResponse: { message: errMsg }
-              }
-            });
-
-            await prisma.strategyLog.create({
-              data: { strategyId: strategy.id, message: errMsg, logType: 'error' }
-            });
+            await this.logFailedTrade(
+              client,
+              strategy,
+              targetStock.symbol,
+              productParam,
+              entryPrice,
+              errMsg,
+              { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId }
+            );
             return;
           }
 
