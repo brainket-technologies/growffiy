@@ -141,6 +141,7 @@ export async function POST(request: Request) {
           dedicatedIp: dedicatedIp ? dedicatedIp.trim() : null,
           proxyUrl: proxyUrl ? proxyUrl.trim() : null,
           capital: Math.max(-1, Number(capital)),
+          perDayTradeAmount: body.perDayTradeAmount ? Number(body.perDayTradeAmount) : 0,
           strategyId,
           productTypeId,
           tradingStatus: 'inactive',

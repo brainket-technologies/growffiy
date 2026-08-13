@@ -33,6 +33,7 @@ model Client {
   zerodhaClientId    String?              @map("zerodha_client_id")
   accessToken        String?              @map("access_token")
   capital            Decimal              @db.Decimal(12, 2)
+  perDayTradeAmount  Decimal?             @default(0) @db.Decimal(12, 2) @map("per_day_trade_amount")
   strategyId         String?              @map("strategy_id")
   tradingStatus      String               @default("inactive") @map("trading_status")
   subscriptionStatus String               @default("pending") @map("subscription_status")

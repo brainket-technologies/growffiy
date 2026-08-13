@@ -362,3 +362,74 @@ Jo pehle fill ho:
 31-Jul: Leg 1 LONG  INFY fill       → Leg 2 SHORT cancel ✅
 ```
 
+---
+
+## ⚙️ Algo Engine — Capital & Per Day Trade Amount Logic (Code Implementation)
+
+### 1. Pre-Trade Client & Account Checks
+Pehle code yeh verify karta hai:
+- Client ka `tradingStatus === 'active'` (Active status)
+- Valid Zerodha `accessToken` present
+- Kite API se Zerodha **Live Net Equity Margin** (`marginOrApi`) fetch hoti hai.
+
+---
+
+### 2. Per Day Trade Amount Validation Rules
+
+System `perDayTradeAmount` Column (DB) ko check karta hai:
+
+#### 🔴 **Case A: `perDayTradeAmount > 0` AND `Live Margin < perDayTradeAmount`**
+- **Condition:** Client ke Zerodha Live Margin par required Per Day Trade Amount se KAM balance hai.
+- **System Action:**
+  - Trade **IMMEDIATELY CANCEL / SKIP** hoti hai.
+  - Database (`trades` table) mein `status = 'FAILED'` entry create hoti hai.
+  - Reason stored in `kiteResponse.message`:
+    > `"Skipped: Insufficient Live Margin (₹30,000) for configured Per Day Trade Amount (₹50,000)"`
+  - `strategy_logs` table mein warning log write hota hai.
+
+#### 🟢 **Case B: `perDayTradeAmount > 0` AND `Live Margin >= perDayTradeAmount`**
+- **Condition:** Live Margin required amount se BARAABAR ya ZYADA hai.
+- **System Action:**
+  - Validation Pass!
+  - `clientCapital = perDayTradeAmount` set hota hai.
+
+#### 🔄 **Case C: `perDayTradeAmount` is 0, null, or unset**
+- **Condition:** Field empty hai ya 0 hai.
+- **System Action (Fallback % Logic):**
+  - Agar DB `capital === -1` (Live Balance mode): `clientCapital = Live Margin`
+  - Agar DB `capital > 0`: `clientCapital = min(Live Margin, DB Capital)`
+
+---
+
+### 3. Position Sizing & Quantity Formulas
+
+1. **Capital at Risk:**
+   $$\text{capitalAtRisk} = \text{clientCapital} \times \left( \frac{\text{riskPerTrade\%}}{100} \right)$$
+
+2. **Stop Loss Points:**
+   $$\text{slPoints} = \text{EntryPrice} \times \left( \frac{\text{SL\%}}{100} \right)$$
+
+3. **Calculated Quantity:**
+   $$\text{quantity} = \text{floor}\left( \frac{\text{capitalAtRisk}}{\text{slPoints}} \right)$$
+
+4. **MIS Buying Power Cap Check:**
+   $$\text{qtyByBuyingPower} = \text{floor}\left( \frac{\text{clientCapital}}{\text{EntryPrice} \times \text{misMarginRate}} \right)$$
+   $$\text{Final Quantity} = \min(\text{quantity}, \text{qtyByBuyingPower})$$
+
+---
+
+### 4. Failed Trade Record in DB
+
+If `quantity == 0` or Live Margin is insufficient:
+```json
+{
+  "symbol": "RELIANCE",
+  "status": "FAILED",
+  "entryPrice": 500,
+  "quantity": 0,
+  "kiteResponse": {
+    "message": "Skipped: Insufficient Live Margin (₹30,000) for configured Per Day Trade Amount (₹50,000)"
+  }
+}
+```
+

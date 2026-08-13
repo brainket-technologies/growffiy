@@ -167,6 +167,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
            strategyId: strategyId !== undefined ? strategyId : undefined,
            productTypeId: productTypeId !== undefined ? productTypeId : undefined,
            capital: capital ? Math.max(-1, Number(capital)) : undefined,
+           perDayTradeAmount: body.perDayTradeAmount !== undefined ? (body.perDayTradeAmount !== null && body.perDayTradeAmount !== '' && Number(body.perDayTradeAmount) > 0 ? Number(body.perDayTradeAmount) : null) : undefined,
            accessToken: (tradingStatus === 'inactive' || accessToken === null) ? null : (accessToken !== undefined ? accessToken : undefined),
            zerodhaSession: (tradingStatus === 'inactive' || accessToken === null) ? null : undefined,
            panNumber: panNumber !== undefined ? panNumber : undefined,

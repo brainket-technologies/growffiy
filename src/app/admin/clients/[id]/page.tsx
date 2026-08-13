@@ -51,6 +51,7 @@ export default function ClientDetailsPage() {
   const [zerodhaPassword, setZerodhaPassword] = useState('');
   const [zerodhaTotpSecret, setZerodhaTotpSecret] = useState('');
   const [capital, setCapital] = useState('');
+  const [perDayTradeAmount, setPerDayTradeAmount] = useState('');
   const [tradingStatus, setTradingStatus] = useState('inactive');
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -218,6 +219,7 @@ export default function ClientDetailsPage() {
           setDedicatedIp(c.dedicatedIp || c.dedicated_ip || '');
           setProxyUrl(c.proxyUrl || c.proxy_url || '');
           setCapital(String(c.capital));
+          setPerDayTradeAmount(c.perDayTradeAmount !== null && c.perDayTradeAmount !== undefined && Number(c.perDayTradeAmount) > 0 ? String(c.perDayTradeAmount) : '');
           setTradingStatus(c.tradingStatus);
           setAccessToken(c.accessToken || null);
           setProfile(res.profile || null);
@@ -341,6 +343,7 @@ export default function ClientDetailsPage() {
         dedicatedIp: dedicatedIp ? dedicatedIp.trim() : null,
         proxyUrl: proxyUrl ? proxyUrl.trim() : null,
         capital: Number(capital),
+        perDayTradeAmount: perDayTradeAmount && Number(perDayTradeAmount) > 0 ? Number(perDayTradeAmount) : null,
         tradingStatus,
         panNumber,
         aadhaarNumber,
@@ -963,6 +966,13 @@ export default function ClientDetailsPage() {
                 </div>
 
                 <div className="info-pill">
+                  <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Per Day Trade Amount</span>
+                  <span style={{ fontWeight: 600, fontSize: '12px', color: perDayTradeAmount && Number(perDayTradeAmount) > 0 ? 'var(--primary)' : 'var(--text-muted)' }}>
+                    {perDayTradeAmount && Number(perDayTradeAmount) > 0 ? `₹${Number(perDayTradeAmount).toLocaleString('en-IN')}` : 'Not Set'}
+                  </span>
+                </div>
+
+                <div className="info-pill">
                   <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>API Status</span>
                   <span style={{ fontWeight: 600, fontSize: '12px', color: accessToken ? 'var(--accent)' : 'var(--danger)' }}>
                     {accessToken ? 'Connected' : 'Disconnected'}
@@ -1368,6 +1378,44 @@ export default function ClientDetailsPage() {
                     </div>
                   </div>
                   
+                  <div className="form-group">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                      <label className="form-label" style={{ marginBottom: 0 }}>Per Day Trade Amount (INR)</label>
+                      <button
+                        type="button"
+                        onClick={() => setAlertModal({
+                          title: 'ℹ️ Per Day Trade Amount',
+                          message: 'Per Day Trade Amount sets the daily trade allocation limit for this client.'
+                        })}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: 0,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          color: 'var(--primary)',
+                          borderRadius: '50%'
+                        }}
+                        title="What is Per Day Trade Amount?"
+                      >
+                        <Info size={15} />
+                      </button>
+                    </div>
+                    <div className="premium-input-wrapper">
+                      <Coins size={15} className="premium-input-icon" />
+                      <input 
+                        type="number" 
+                        value={perDayTradeAmount} 
+                        onChange={(e) => setPerDayTradeAmount(e.target.value)} 
+                        placeholder="e.g. 50000"
+                        className="premium-input"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="form-grid-2">
                   <div className="form-group">
                     <label className="form-label">Trading Status</label>
                     <div className="premium-input-wrapper">

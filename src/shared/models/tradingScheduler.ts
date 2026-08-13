@@ -255,7 +255,7 @@ export class TradingScheduler {
                 const legEntryMinutes = legH * 60 + legM;
                 const currentMinutes = hours * 60 + minutes;
                 const minutesToEntry = legEntryMinutes - currentMinutes;
-                if (minutesToEntry <= 5) {
+                if (minutesToEntry >= 0 && minutesToEntry <= 5) {
                   console.log(`AlgoEngine Scheduler: Leg ${li + 1} skip for "${strategy.name}" (now=${currentTimeStr}, legEntry=${legEntryTime}, lastEntry=${lastEntryByStrategy.get(legKey) || '-'})`);
                 }
               }
@@ -441,6 +441,37 @@ export class TradingScheduler {
               return;
             }
 
+            // Auto-recovery: If trade is OPEN but slOrderId is missing, attempt to place SL-M order now
+            if (!trade.slOrderId && trade.entryOrderStatus === 'filled' && Number(trade.stopLoss) > 0 && Number(trade.quantity) > 0) {
+              try {
+                const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
+                const exchangeParam = config?.basicInfo?.exchange || 'NSE';
+                const isShortTrade = (trade.direction === 'SHORT');
+                const slParams = {
+                  exchange: exchangeParam,
+                  tradingsymbol: trade.symbol,
+                  transaction_type: isShortTrade ? 'BUY' as const : 'SELL' as const,
+                  quantity: Number(trade.quantity),
+                  order_type: 'SL-M' as const,
+                  product: (trade.orderType || 'MIS') as any,
+                  validity: 'DAY' as const,
+                  trigger_price: Number(trade.stopLoss)
+                };
+                console.log(`AlgoEngine Monitor: Auto-recovering missing SL order for ${client.user?.name} (${trade.symbol})...`);
+                const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, slParams, (client.proxyUrl || client.dedicatedIp));
+                if (slRes?.status === 'success' && slRes.data?.order_id) {
+                  trade.slOrderId = slRes.data.order_id;
+                  await prisma.trade.update({
+                    where: { id: trade.id },
+                    data: { slOrderId: slRes.data.order_id, slOrderStatus: 'TRIGGER PENDING', slTriggerPrice: Number(trade.stopLoss) }
+                  });
+                  console.log(`AlgoEngine Monitor: Successfully auto-recovered SL order ${slRes.data.order_id} for ${client.user?.name}`);
+                }
+              } catch (recErr) {
+                console.error(`AlgoEngine Monitor: Auto-recovery of SL order failed for trade ${trade.id}:`, recErr);
+              }
+            }
+
             const instrumentTokenStr = Object.entries(this.wsLive.instrumentToSymbol).find(([token, sym]) => sym === trade.symbol)?.[0];
             if (!instrumentTokenStr) {
               console.warn(`AlgoEngine Monitor: Could not find instrument token for symbol ${trade.symbol}. Fallback historical check will be disabled.`);
@@ -486,7 +517,7 @@ export class TradingScheduler {
               let slAvgPrice = 0;
               let targetAvgPrice = 0;
 
-              if (trade.slOrderId && trade.slOrderId !== 'REJECTED') {
+              if (trade.slOrderId && trade.slOrderId !== 'REJECTED' && trade.slOrderStatus !== 'CANCELLED' && trade.slOrderStatus !== 'REJECTED' && trade.slOrderStatus !== 'VIRTUAL_PENDING') {
                 try {
                   const slStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.slOrderId);
                   const slData = getLatestOrderState(slStatus?.data);
@@ -504,7 +535,7 @@ export class TradingScheduler {
                 } catch (e) { console.warn(`AlgoEngine Monitor: SL order status check failed for ${trade.symbol}:`, e); }
               }
 
-              if (trade.targetOrderId && trade.targetOrderId !== 'REJECTED') {
+              if (trade.targetOrderId && trade.targetOrderId !== 'REJECTED' && trade.targetOrderStatus !== 'VIRTUAL_PENDING' && trade.targetOrderStatus !== 'filled') {
                 try {
                   const tgtStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.targetOrderId);
                   const tgtData = getLatestOrderState(tgtStatus?.data);
@@ -1043,21 +1074,32 @@ export class TradingScheduler {
                 });
               } else {
                 console.error(`AlgoEngine Monitor: Failed to place exit order for ${trade.symbol}:`, sellRes?.message);
+                const fallbackExitPrice = exitPrice > 0 ? exitPrice : Number(trade.entryPrice);
+                const fallbackPnl = isShortTrade ? (entryPrice - fallbackExitPrice) * trade.quantity : (fallbackExitPrice - entryPrice) * trade.quantity;
                 await prisma.trade.update({
                   where: { id: trade.id },
-                  data: { status: 'FAILED', exitTime: new Date(), exitReason: `Exit failed: ${sellRes?.message || 'Unknown'}`, kiteResponse: sellRes }
+                  data: {
+                    status: 'FAILED',
+                    exitPrice: fallbackExitPrice,
+                    exitTime: new Date(),
+                    exitReason: `Exit failed: ${sellRes?.message || 'Unknown'}`,
+                    pnl: fallbackPnl,
+                    targetOrderStatus: 'CANCELLED',
+                    slOrderStatus: trade.slOrderId ? 'CANCELLED' : trade.slOrderStatus,
+                    kiteResponse: sellRes
+                  }
                 });
                 await prisma.strategyLog.create({
                   data: {
                     strategyId: strategy.id,
-                    message: `Exit failed for ${client.user.name} (${trade.symbol}): ${sellRes?.message || 'Unknown'}. Trade marked FAILED.`,
+                    message: `Exit failed for ${client.user.name} (${trade.symbol}): ${sellRes?.message || 'Unknown'}. Calculated Virtual P&L: ₹${fallbackPnl.toFixed(2)}.`,
                     logType: 'error'
                   }
                 });
                 await logSystemEvent({
                   action: 'AUTO TRADE EXIT FAILED',
                   oldValue: `Trade ID: ${trade.id}`,
-                  newValue: `Failed exit for ${client.user.name} (${trade.symbol}) | Error: ${sellRes?.message || 'Unknown'}`
+                  newValue: `Failed exit for ${client.user.name} (${trade.symbol}) | Error: ${sellRes?.message || 'Unknown'} | Fallback P&L: ₹${fallbackPnl.toFixed(2)}`
                 });
               }
             }

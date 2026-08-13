@@ -197,10 +197,13 @@ class AlgoEngineService {
   }
 
   private async getFreshCircuitLimits(client: any, exchange: string, symbol: string, accessToken?: string): Promise<{ upper: number; lower: number } | null> {
-    const token = accessToken || client.accessToken;
-    if (!client.zerodhaApiKey || !token) return null;
     try {
-      const quoteRes = await KiteClient.getQuotes(client.zerodhaApiKey, token, [`${exchange}:${symbol}`]);
+      const masterClientData = await this.getMasterClient();
+      const apiKey = masterClientData?.zerodhaApiKey || client.zerodhaApiKey;
+      const token = masterClientData?.accessToken || accessToken || client.accessToken;
+      if (!apiKey || !token) return null;
+
+      const quoteRes = await KiteClient.getQuotes(apiKey, token, [`${exchange}:${symbol}`]);
       if (quoteRes?.status === 'success' && quoteRes.data?.[`${exchange}:${symbol}`]) {
         const q = quoteRes.data[`${exchange}:${symbol}`];
         if (q.upper_circuit_limit !== undefined && q.lower_circuit_limit !== undefined) {
@@ -906,11 +909,28 @@ class AlgoEngineService {
             }
           }
 
-          // Pick the LOWER of (marginCache/live-API value) and (DB capital)
-          // This ensures we never risk more than the DB record allows.
-          // If DB capital is -1, DB is disabled — use only live margin.
-          let clientCapital = dbDisabled ? marginOrApi : Math.min(marginOrApi, dbCapital);
-          console.log(`AlgoEngine: Final clientCapital for ${client.user.name} = ${dbDisabled ? 'live-only' : `min(margin=${marginOrApi}, db=${dbCapital})`} = ₹${clientCapital}`);
+          // Per Day Trade Amount Validation
+          const perDayTradeAmount = client.perDayTradeAmount ? Number(client.perDayTradeAmount) : 0;
+          if (perDayTradeAmount > 0) {
+            if (marginOrApi < perDayTradeAmount) {
+              const errMsg = `Skipped: Insufficient Live Margin (₹${marginOrApi.toLocaleString('en-IN')}) for configured Per Day Trade Amount (₹${perDayTradeAmount.toLocaleString('en-IN')})`;
+              console.warn(`AlgoEngine: ${errMsg} for client ${client.user?.name || client.id}. Skipping trade.`);
+              await this.logFailedTrade(
+                client,
+                strategy,
+                targetStock.symbol,
+                productParam,
+                entryPrice,
+                errMsg,
+                { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId }
+              );
+              return;
+            }
+          }
+
+          // Pick capital: if perDayTradeAmount > 0 use it, else pick lower of margin & dbCapital
+          let clientCapital = perDayTradeAmount > 0 ? perDayTradeAmount : (dbDisabled ? marginOrApi : Math.min(marginOrApi, dbCapital));
+          console.log(`AlgoEngine: Final clientCapital for ${client.user.name} = ${perDayTradeAmount > 0 ? `perDayTradeAmount=₹${perDayTradeAmount}` : (dbDisabled ? 'live-only' : `min(margin=${marginOrApi}, db=${dbCapital})`)} = ₹${clientCapital}`);
 
           const configRisk = config?.riskManagement?.riskPerTrade;
           if (!configRisk || configRisk <= 0) {
@@ -1348,57 +1368,75 @@ class AlgoEngineService {
                     console.log(`AlgoEngine OCO: Waiting 10 seconds after opposite leg cancellation before placing Stop-Loss order for ${client.user.name}...`);
                     await new Promise(resolve => setTimeout(resolve, 10000));
 
-                    try {
-                      const slParams = {
-                        exchange: exchangeParam,
-                        tradingsymbol: targetStock.symbol,
-                        transaction_type: isShortTrade ? 'BUY' as const : 'SELL' as const,
-                        quantity: quantity,
-                        order_type: 'SL-M' as const,
-                        product: productParam as any,
-                        validity: 'DAY' as const,
-                        trigger_price: finalStopLoss,
-                        market_protection: marketProtectionVal
-                      };
-                      const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slParams, (client.proxyUrl || client.dedicatedIp));
-                      if (slRes?.status === 'success' && slRes.data?.order_id) {
-                        slOrderId = slRes.data.order_id;
-                        console.log(`AlgoEngine: SL-M order placed: ${slOrderId} for ${targetStock.symbol} @ trigger ₹${finalStopLoss}`);
-                      } else {
-                        console.warn(`AlgoEngine: SL-M order failed: ${slRes?.message || 'unknown'}`);
+                    const slParams = {
+                      exchange: exchangeParam,
+                      tradingsymbol: targetStock.symbol,
+                      transaction_type: isShortTrade ? 'BUY' as const : 'SELL' as const,
+                      quantity: quantity,
+                      order_type: 'SL-M' as const,
+                      product: productParam as any,
+                      validity: 'DAY' as const,
+                      trigger_price: finalStopLoss,
+                      market_protection: marketProtectionVal
+                    };
+                    for (let slAttempt = 1; slAttempt <= 3; slAttempt++) {
+                      try {
+                        const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slParams, (client.proxyUrl || client.dedicatedIp));
+                        if (slRes?.status === 'success' && slRes.data?.order_id) {
+                          slOrderId = slRes.data.order_id;
+                          console.log(`AlgoEngine: SL-M order placed: ${slOrderId} for ${targetStock.symbol} @ trigger ₹${finalStopLoss} (attempt ${slAttempt})`);
+                          break;
+                        } else {
+                          console.warn(`AlgoEngine: SL-M order failed (attempt ${slAttempt}/3): ${slRes?.message || 'unknown'}`);
+                          if (slAttempt < 3) await new Promise(r => setTimeout(r, 1000));
+                        }
+                      } catch (slErr) {
+                        console.error(`AlgoEngine: Error placing SL-M order (attempt ${slAttempt}/3):`, slErr);
+                        if (slAttempt < 3) await new Promise(r => setTimeout(r, 1000));
                       }
-                    } catch (slErr) {
-                      console.error(`AlgoEngine: Error placing SL-M order:`, slErr);
                     }
 
                     // 5-second delay after SL placement before placing Target LIMIT order
                     console.log(`AlgoEngine OCO: Waiting 5 seconds after Stop-Loss order before placing Target order for ${client.user.name}...`);
                     await new Promise(resolve => setTimeout(resolve, 5000));
 
-                    try {
-                      const targetParams = {
-                        exchange: exchangeParam,
-                        tradingsymbol: targetStock.symbol,
-                        transaction_type: isShortTrade ? 'BUY' as const : 'SELL' as const,
-                        quantity: quantity,
-                        order_type: 'LIMIT' as const,
-                        product: productParam as any,
-                        validity: 'DAY' as const,
-                        price: finalTarget
-                      };
-                      const targetRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, targetParams, (client.proxyUrl || client.dedicatedIp));
-                      if (targetRes?.status === 'success' && targetRes.data?.order_id) {
-                        targetOrderId = targetRes.data.order_id;
-                        targetOrderStatusVal = 'OPEN';
-                        console.log(`AlgoEngine: Target LIMIT order placed on Zerodha: ${targetOrderId} for ${targetStock.symbol} @ ₹${finalTarget}`);
-                      } else {
-                        targetOrderStatusVal = 'VIRTUAL_PENDING';
-                        const errMsg = targetRes?.message || 'unknown';
-                        console.warn(`AlgoEngine: Target LIMIT order failed/rejected on Zerodha: ${errMsg}. Transitioned to VIRTUAL target monitoring.`);
+                    const targetParams = {
+                      exchange: exchangeParam,
+                      tradingsymbol: targetStock.symbol,
+                      transaction_type: isShortTrade ? 'BUY' as const : 'SELL' as const,
+                      quantity: quantity,
+                      order_type: 'LIMIT' as const,
+                      product: productParam as any,
+                      validity: 'DAY' as const,
+                      price: finalTarget
+                    };
+
+                    for (let tgtAttempt = 1; tgtAttempt <= 3; tgtAttempt++) {
+                      try {
+                        const targetRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, targetParams, (client.proxyUrl || client.dedicatedIp));
+                        if (targetRes?.status === 'success' && targetRes.data?.order_id) {
+                          targetOrderId = targetRes.data.order_id;
+                          targetOrderStatusVal = 'OPEN';
+                          console.log(`AlgoEngine: Target LIMIT order placed on Zerodha: ${targetOrderId} for ${targetStock.symbol} @ ₹${finalTarget} (attempt ${tgtAttempt})`);
+                          break;
+                        } else {
+                          const errMsg = targetRes?.message || 'unknown';
+                          console.warn(`AlgoEngine: Target LIMIT order failed/rejected on Zerodha (attempt ${tgtAttempt}/3): ${errMsg}`);
+                          if (tgtAttempt === 3) {
+                            targetOrderStatusVal = 'VIRTUAL_PENDING';
+                            console.warn(`AlgoEngine: All 3 Target LIMIT order attempts failed/rejected on Zerodha for ${client.user.name}. Transitioned to VIRTUAL target monitoring.`);
+                          } else {
+                            await new Promise(r => setTimeout(r, 1000));
+                          }
+                        }
+                      } catch (tgtErr: any) {
+                        console.error(`AlgoEngine: Error placing Target LIMIT order (attempt ${tgtAttempt}/3):`, tgtErr);
+                        if (tgtAttempt === 3) {
+                          targetOrderStatusVal = 'VIRTUAL_PENDING';
+                        } else {
+                          await new Promise(r => setTimeout(r, 1000));
+                        }
                       }
-                    } catch (tgtErr: any) {
-                      targetOrderStatusVal = 'VIRTUAL_PENDING';
-                      console.error(`AlgoEngine: Error placing Target LIMIT order:`, tgtErr);
                     }
                   }
                   break;

@@ -28,11 +28,11 @@ Neon DB Config → Scheduler → Algo Engine → Kite API (place orders)
 
 ## 2. Strategy Config — DB Structure
 
-### Full Strategy Config (from DB `Strategy.configJson`)
+### Full Strategy Config (from DB `Strategy.configJson` — Live Neon PostgreSQL)
 ```json
 {
   "basicInfo": {
-    "name": "Pre-Open Momentum Breakout",
+    "name": "Pre-Open Gapdown ",
     "status": "active",
     "segment": "NSE F&O",
     "exchange": "NSE",
@@ -41,7 +41,8 @@ Neon DB Config → Scheduler → Algo Engine → Kite API (place orders)
     "tradeType": "Intraday",
     "checkIntervalSec": 60,
     "description": "Pre-Open Momentum Breakout Strategy",
-    "exitTime": "15:15:00"
+    "exitTime": "15:10:00",
+    "stockSelectionType": "Gapdown (Losers)"
   },
   "stoploss": {
     "type": "Fixed %",
@@ -59,7 +60,7 @@ Neon DB Config → Scheduler → Algo Engine → Kite API (place orders)
     "trailingTarget": -1
   },
   "riskManagement": {
-    "riskPerTrade": 1,
+    "riskPerTrade": 3,
     "killSwitch": false,
     "maxOpenPositions": 3,
     "maxDailyLoss": -1,
@@ -91,7 +92,7 @@ Neon DB Config → Scheduler → Algo Engine → Kite API (place orders)
     {
       "name": "Leg 2",
       "enabled": true,
-      "entryTime": "09:30:00",
+      "entryTime": "09:30:30",
       "timeframe": "15m",
       "tradeAction": {
         "action": "Short",
@@ -104,10 +105,17 @@ Neon DB Config → Scheduler → Algo Engine → Kite API (place orders)
 }
 ```
 
-### Config Rules
-| Key | Value | Rule |
-|-----|-------|------|
-| `riskPerTrade` | 1% | **COMMON** across all legs |
+### Live Neon Config Rules & Parameters
+| Key | Live Neon Value | Purpose & Engine Implementation |
+|-----|-----------------|---------------------------------|
+| `basicInfo.stockSelectionType` | `Gapdown (Losers)` | Pre-open NSE F&O candidates sorted by lowest change % first |
+| `riskManagement.riskPerTrade` | `3%` | Risk percentage per trade used to calculate `capitalAtRisk` |
+| `riskManagement.capitalAllocation` | `-1` | Cap on capital per trade (`-1` = disabled, uses full margin/capital) |
+| `riskManagement.misMarginRate` | `-1` | MIS leverage rate requirement (`-1` = standard 5x / 20% margin) |
+| `riskManagement.maxDailyLoss` | `-1` | Max daily loss limit (`-1` = disabled) |
+| `riskManagement.maxDailyProfit` | `-1` | Max daily profit limit (`-1` = disabled) |
+| `riskManagement.maxOpenPositions` | `3` | Max active open positions allowed for strategy |
+| `riskManagement.killSwitch` | `false` | Emergency kill switch (`false` = normal trading active) |
 | `stoploss.fixedPercent` | 1% | **COMMON** %, but ₹ value **PER LEG** (entry alag → ₹ alag) |
 | `stoploss.trailingSL` | -1 | **DISABLED** — no trailing SL |
 | `target.type` | Trailing Target | Name only; `trailingTarget: -1` → actually disabled |
@@ -116,21 +124,24 @@ Neon DB Config → Scheduler → Algo Engine → Kite API (place orders)
 | `maxOpenPositions` | 3 | Max 3 simultaneous trades per client |
 | `misMarginRate` | -1 | **DISABLED** — no MIS margin cap on quantity |
 | `conditions` | `Pre Open Change % > -10` | Sirf 1 condition — stocks below -10% skip |
-| `legs[].entryTime` | Per leg | Leg 1: 09:20:30, Leg 2: 09:30:00 |
+| `legs[].entryTime` | Per leg | Leg 1: 09:20:30, Leg 2: 09:30:30 |
 | `legs[].tradeAction.action` | Per leg | Leg 1: Long/BUY, Leg 2: Short/SELL |
 | `legs[].tradeAction.candlePriceType` | Per leg | Leg 1: high, Leg 2: low |
 
 ---
 
-## 3. Client & Wallet — Real Numbers
+## 3. Client & Wallet — Real Neon DB Numbers (Janvi Sharma)
 
-### Client Data (from DB)
+### Client Data (from Live Neon DB)
 | Field | Value | Source |
 |-------|-------|--------|
-| Client Name | Vikash Sharma | `Client.user.name` |
+| Client Name | Janvi Sharma | `Client.user.name` |
 | Client ID | `b364d72f-e2e2-4dbc-bbef-3286c75e1875` | DB |
-| Capital (DB) | ₹5,00,000 | `Client.capital` |
-| Strategy | Pre-Open Momentum Breakout | `Client.strategyId` |
+| Zerodha Client ID | `RZJ500` | `Client.zerodhaClientId` |
+| Capital (DB) | ₹1,00,000 | `Client.capital` |
+| Per Day Trade Amount (DB) | ₹50,000 (or null/0) | `Client.perDayTradeAmount` |
+| Trading Status | `active` | `Client.tradingStatus` |
+| Strategy | Pre-Open Gapdown | `Client.strategyId` |
 | Strategy ID | `c7bafa89-3403-44c3-bcd0-199602c878e1` | DB |
 
 ### Wallet Data (from Kite API)
@@ -140,19 +151,92 @@ Neon DB Config → Scheduler → Algo Engine → Kite API (place orders)
 | Zerodha equity.available | ₹11,791.70 | Live API |
 | Zerodha equity.used | ₹0.00 | Live API |
 
-### Capital Calculation (Step by Step)
-```
-Inputs:
-  marginOrApi = wallet (equity.net) = ₹11,791.70
-  dbCapital  = DB capital         = ₹5,00,000
-  dbDisabled = (dbCapital === -1) = false
+### All Capital & Margin Scenarios (Detailed Calculations & Breakdown)
 
-Decision:
-  dbDisabled? → No → use Math.min(wallet, DB)
-  clientCapital = Math.min(11,791.70, 5,00,000)
-               = ₹11,791.70
-```
-**Result:** System uses wallet value (₹11,791.70) because it's lower than DB capital.
+> **Standard Test Params:** Stock = RELIANCE | Entry Price = ₹500.00 | Risk Per Trade = 2% | SL = 2% (₹10.00) | Target = 4% (₹20.00)
+
+---
+
+#### 🟢 **Scenario 1: Per Day Trade Amount Configured & Margin Sufficient**
+- **Inputs:** `perDayTradeAmount = ₹50,000`, `Live Margin = ₹80,000`
+- **Condition Check:** `Live Margin (80,000) >= Per Day Trade Amount (50,000)` $\rightarrow$ **PASS ✅**
+- **Approved Capital:** `clientCapital = ₹50,000`
+- **Calculations:**
+  - **Capital at Risk:** `₹50,000 × 2% = ₹1,000`
+  - **Entry Price:** **`₹500.00`**
+  - **Stop Loss (2%):** `₹500 - (₹500 × 2%) =` **`₹490.00`** *(SL Points = ₹10.00)*
+  - **Target (4%):** `₹500 + (₹500 × 4%) =` **`₹520.00`** *(Target Points = ₹20.00)*
+  - **Quantity:** `floor(₹1,000 / ₹10) =` **`100 Shares`**
+- **Outcome:** **TRADE EXECUTED** | BUY 100 Shares @ ₹500 | SL @ ₹490 | Target @ ₹520 | Position Size: ₹50,000
+
+---
+
+#### 🔴 **Scenario 2: Per Day Trade Amount Configured & Margin Insufficient**
+- **Inputs:** `perDayTradeAmount = ₹50,000`, `Live Margin = ₹30,000`
+- **Condition Check:** `Live Margin (30,000) < Per Day Trade Amount (50,000)` $\rightarrow$ **FAIL ❌**
+- **Calculations:**
+  - **Entry Price:** **`₹500.00`**
+  - **Stop Loss:** **`N/A`**
+  - **Target:** **`N/A`**
+  - **Quantity:** **`0 Shares`**
+- **Outcome:** **TRADE SKIPPED / CANCELLED**. System logs row in DB `trades` table with `status = 'FAILED'`:
+  > `"Skipped: Insufficient Live Margin (₹30,000) for configured Per Day Trade Amount (₹50,000)"`
+
+---
+
+#### 🔵 **Scenario 3: Per Day Amount Unset, Live Margin Lower Than DB Capital**
+- **Inputs:** `perDayTradeAmount = null / 0`, `DB Capital = ₹5,00,000`, `Live Margin = ₹11,791.70`
+- **Condition Check:** `perDayTradeAmount` unset $\rightarrow$ Fallback to `%` logic.
+- **Approved Capital:** `clientCapital = Math.min(11,791.70, 5,00,000) = ₹11,791.70`
+- **Calculations:**
+  - **Capital at Risk:** `₹11,791.70 × 2% = ₹235.83`
+  - **Entry Price:** **`₹500.00`**
+  - **Stop Loss (2%):** **`₹490.00`** *(SL Points = ₹10.00)*
+  - **Target (4%):** **`₹520.00`** *(Target Points = ₹20.00)*
+  - **Quantity:** `floor(₹235.83 / ₹10) =` **`23 Shares`**
+- **Outcome:** **TRADE EXECUTED** | BUY 23 Shares @ ₹500 | SL @ ₹490 | Target @ ₹520 | Position Size: ₹11,500
+
+---
+
+#### 🔵 **Scenario 4: Per Day Amount Unset, Live Margin Higher Than DB Capital**
+- **Inputs:** `perDayTradeAmount = null / 0`, `DB Capital = ₹50,000`, `Live Margin = ₹1,50,000`
+- **Condition Check:** `perDayTradeAmount` unset $\rightarrow$ Fallback to `%` logic.
+- **Approved Capital:** `clientCapital = Math.min(1,50,000, 50,000) = ₹50,000`
+- **Calculations:**
+  - **Capital at Risk:** `₹50,000 × 2% = ₹1,000`
+  - **Entry Price:** **`₹500.00`**
+  - **Stop Loss (2%):** **`₹490.00`**
+  - **Target (4%):** **`₹520.00`**
+  - **Quantity:** `floor(₹1,000 / ₹10) =` **`100 Shares`**
+- **Outcome:** **TRADE EXECUTED** | BUY 100 Shares @ ₹500 | SL @ ₹490 | Target @ ₹520 | Position Size: ₹50,000
+
+---
+
+#### ⚡ **Scenario 5: Per Day Amount Unset, DB Capital Disabled (`-1` Live Mode)**
+- **Inputs:** `perDayTradeAmount = null / 0`, `DB Capital = -1`, `Live Margin = ₹1,50,000`
+- **Condition Check:** DB Capital is `-1` $\rightarrow$ DB safety cap disabled.
+- **Approved Capital:** `clientCapital = Live Margin = ₹1,50,000`
+- **Calculations:**
+  - **Capital at Risk:** `₹1,50,000 × 2% = ₹3,000`
+  - **Entry Price:** **`₹500.00`**
+  - **Stop Loss (2%):** **`₹490.00`**
+  - **Target (4%):** **`₹520.00`**
+  - **Quantity:** `floor(₹3,000 / ₹10) =` **`300 Shares`**
+- **Outcome:** **TRADE EXECUTED** | BUY 300 Shares @ ₹500 | SL @ ₹490 | Target @ ₹520 | Position Size: ₹1,50,000
+
+---
+
+#### ⚠️ **Scenario 6: Zerodha API Margin Fetch Error / Disconnected Token**
+- **Inputs:** `perDayTradeAmount = null`, `DB Capital = ₹1,00,000`, Live API Returns Error
+- **Fallback:** `marginOrApi = DB Capital = ₹1,00,000`
+- **Approved Capital:** `clientCapital = ₹1,00,000`
+- **Calculations:**
+  - **Capital at Risk:** `₹1,00,000 × 2% = ₹2,000`
+  - **Entry Price:** **`₹500.00`**
+  - **Stop Loss (2%):** **`₹490.00`**
+  - **Target (4%):** **`₹520.00`**
+  - **Quantity:** `floor(₹2,000 / ₹10) =` **`200 Shares`**
+- **Outcome:** **TRADE EXECUTED USING DB FALLBACK** | BUY 200 Shares @ ₹500 | SL @ ₹490 | Target @ ₹520 | Position Size: ₹1,00,000
 
 ---
 
@@ -390,7 +474,7 @@ Result: Target at ₹916.35 (SELL order)
 
 ### Step 9: Place Orders on Kite
 ```
-Client: Vikash Sharma
+Client: Janvi Sharma
 Symbol: JSW STEEL (NSE)
 Product: MIS
 
@@ -1401,13 +1485,48 @@ CANBK          +3.2%     YES       ✓ PASS, Rank #3
 
 ---
 
+## 18.1. Circuit Limit Check & Price Adjustment Rules (Code Logic)
+
+### 1. Entry Price Buffer & Circuit Validation (`getFreshCircuitLimits`)
+Before placing an entry order on Zerodha, AlgoEngine executes the following checks:
+1. **Leg Buffer Application:**
+   $$\text{calculatedBufferedEntry} = \begin{cases} 
+   \text{entryPrice} \times \left(1 - \frac{\text{legBufferPct}}{100}\right) & \text{if SHORT} \\[6pt]
+   \text{entryPrice} \times \left(1 + \frac{\text{legBufferPct}}{100}\right) & \text{if LONG}
+   \end{cases}$$
+
+2. **Live Circuit Range Check (`lower` to `upper`):**
+   - System fetches real-time upper & lower circuit limits via Zerodha API.
+   - 🔴 **If `calculatedBufferedEntry >= upper` OR `<= lower`**: Trade **SKIPS / FAILS IMMEDIATELY**.
+   - Database record created in `trades` table:
+     - `status`: `'FAILED'`
+     - `reason`: `"Entry skipped: Stock <SYMBOL> hit Upper/Lower Circuit (Entry: ₹X, Circuit Range: L - U)"`
+   - 🟢 **If price is within circuit range (`lower < price < upper`)**: Trade proceeds to tick size rounding (`getTickSizeAndRound`).
+
+---
+
+### 2. Stop-Loss & Target Circuit Price Adjustments
+Right before placing SL and Target orders on Zerodha, fresh circuit limits are re-verified:
+
+#### **LONG Direction Trades:**
+- **Stop Loss:** If $\text{finalStopLoss} < \text{lower circuit}$, adjust to $\text{lower} + 0.05$ (prevent trigger below lower circuit).
+- **Target:** If $\text{finalTarget} > \text{upper circuit}$, adjust to $\text{upper circuit}$ (cap target at upper circuit).
+
+#### **SHORT Direction Trades:**
+- **Stop Loss:** If $\text{finalStopLoss} > \text{upper circuit}$, adjust to $\text{upper} - 0.05$ (prevent trigger above upper circuit).
+- **Target:** If $\text{finalTarget} < \text{lower circuit}$, adjust to $\text{lower circuit}$ (cap target at lower circuit).
+
+> All adjusted prices are re-rounded to the exchange `tickSize` (e.g. ₹0.05 steps).
+
+---
+
 ## 19. UI — How Data Displays
 
 ### Merged OCO Row in Table
 ```
 | Date/Time    | Client       | Strategy | Symbol   | Type   | Leg 1 (LONG)                 | Leg 2 (SHORT)                | Exit Reason | Exit Price | Exit Time    | OCO Status     | P&L       |
 |--------------|-------------|----------|----------|--------|------------------------------|------------------------------|-------------|------------|--------------|----------------|-----------|
-| 25 Jun, 9:20 | Vikash      | Pre-Open | JSWSTEEL | BUY    | LONG | Qty:13                      | SHORT | Qty:13                     | --          | --         | --           | LEG 1 ACTIVE   | +₹233.35  |
+| 25 Jun, 9:20 | Janvi       | Pre-Open | JSWSTEEL | BUY    | LONG | Qty:13                      | SHORT | Qty:13                     | --          | --         | --           | LEG 1 ACTIVE   | +₹233.35  |
 |              | Sharma      | Momentum |          | SELL   | Entry:₹898.40                | Entry:₹891.10                |             |            |              |                |           |
 |              |             |          |          |        | SL:₹889.40 | Tgt:₹916.35    | SL:₹900.00 | Tgt:₹873.30    |             |            |              |                |           |
 |              |             |          |          |        | E:FILL SL:PDNG T:PDNG       | E:CNCL SL:CNCL T:CNCL      |             |            |              |                |           |
@@ -1431,7 +1550,7 @@ CANBK          +3.2%     YES       ✓ PASS, Rank #3
 │  OCO Trade Details — All Legs                       │
 │                                                     │
 │  Symbol: JSWSTEEL  │  Strategy: Pre-Open Momentum    │
-│  Client: Vikash    │  OCO Group: a1b2c3d4-...        │
+│  Client: Janvi     │  OCO Group: a1b2c3d4-...        │
 ├─────────────────────────────────────────────────────┤
 │                                                     │
 │  ┌── Leg 1 (LONG/BUY) ──────────────────────┐       │
@@ -1462,3 +1581,44 @@ CANBK          +3.2%     YES       ✓ PASS, Rank #3
 │  [Close]                                            │
 └─────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 20. Neon Database (PostgreSQL) Schema & Engine Resilience Features
+
+### Neon Database Key Models & Fields
+- **`clients` Table:**
+  - `capital`: Decimal (12,2) — Allocated Capital cap (or `-1` for live balance mode).
+  - `per_day_trade_amount`: Decimal (12,2) — Optional per-day trade allocation limit.
+  - `trading_status`: `'active'` | `'inactive'`
+  - `access_token`: Active Zerodha session token.
+
+- **`trades` Table:**
+  - `status`: `'open'` | `'closed'` | `'sl_hit'` | `'target_hit'` | `'FAILED'` | `'CANCELLED'`
+  - `entry_order_status`: `'filled'` | `'cancelled'` | `'rejected'` | `'pending'`
+  - `sl_order_status`: `'TRIGGER PENDING'` | `'CANCELLED'` | `'REJECTED'` | `'VIRTUAL_PENDING'`
+  - `target_order_status`: `'OPEN'` | `'CANCELLED'` | `'REJECTED'` | `'VIRTUAL_PENDING'`
+  - `kite_response`: JSON field storing broker API responses & failed trade reasons.
+
+- **`strategy_logs` Table:**
+  - `strategy_id`, `message`, `log_type` (`'info'` | `'warning'` | `'error'`)
+
+---
+
+### Advanced Engine Resilience & Recovery Features
+
+1. **Per Day Trade Amount Validation (`per_day_trade_amount`):**
+   - Check if `perDayTradeAmount > 0`
+   - If Zerodha Live Margin < `perDayTradeAmount`: Trade skipped, DB `trades` table logs `status = 'FAILED'`, and reason recorded in `kiteResponse.message`:
+     > `"Skipped: Insufficient Live Margin (₹X) for configured Per Day Trade Amount (₹Y)"`
+
+2. **Target LIMIT Order Retry & `VIRTUAL_PENDING` Fallback:**
+   - If Zerodha rejects a Target LIMIT order, AlgoEngine retries up to 3 times (1-sec delay).
+   - If all 3 attempts fail, DB sets `targetOrderStatus = 'VIRTUAL_PENDING'` and switches to real-time LTP/WebSocket target monitoring.
+
+3. **Automatic SL Order Recovery:**
+   - If a trade is `open` / `filled` but `slOrderId` is missing, `tradingScheduler` auto-detects it and places the missing `SL-M` order on Zerodha, setting `slOrderStatus = 'TRIGGER PENDING'`.
+
+4. **Virtual Exit & Fallback P&L Calculation:**
+   - If exit order placement fails on broker API, system calculates fallback virtual P&L, records it in DB `trades` table, and sets `status = 'FAILED'`.
+
