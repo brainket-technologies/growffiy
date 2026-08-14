@@ -519,7 +519,7 @@ export class TradingScheduler {
 
               if (trade.slOrderId && trade.slOrderId !== 'REJECTED' && trade.slOrderStatus !== 'CANCELLED' && trade.slOrderStatus !== 'REJECTED' && trade.slOrderStatus !== 'VIRTUAL_PENDING') {
                 try {
-                  const slStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.slOrderId);
+                  const slStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.slOrderId, (client.proxyUrl || client.dedicatedIp));
                   const slData = getLatestOrderState(slStatus?.data);
                   if (slStatus?.status === 'success' && slData) {
                     await prisma.trade.update({ where: { id: trade.id }, data: { slOrderStatus: slData.status === 'COMPLETE' ? 'filled' : slData.status } });
@@ -537,7 +537,7 @@ export class TradingScheduler {
 
               if (trade.targetOrderId && trade.targetOrderId !== 'REJECTED' && trade.targetOrderStatus !== 'VIRTUAL_PENDING' && trade.targetOrderStatus !== 'filled') {
                 try {
-                  const tgtStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.targetOrderId);
+                  const tgtStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.targetOrderId, (client.proxyUrl || client.dedicatedIp));
                   const tgtData = getLatestOrderState(tgtStatus?.data);
                   if (tgtStatus?.status === 'success' && tgtData) {
                     await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: tgtData.status === 'COMPLETE' ? 'filled' : tgtData.status } });
@@ -587,7 +587,7 @@ export class TradingScheduler {
 
                 if (trade.targetOrderId && trade.targetOrderId !== 'REJECTED') {
                   try {
-                    await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.targetOrderId);
+                    await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.targetOrderId, 'regular', (client.proxyUrl || client.dedicatedIp));
                     console.log(`AlgoEngine Monitor: Cancelled target order ${trade.targetOrderId} (SL hit first)`);
                   } catch (e) { console.warn(`AlgoEngine Monitor: Failed to cancel target order ${trade.targetOrderId}:`, e); }
                 }
@@ -609,12 +609,12 @@ export class TradingScheduler {
                         order_type: 'MARKET',
                         product: productParam as any,
                         validity: 'DAY'
-                      }, client.dedicatedIp);
+                      }, (client.proxyUrl || client.dedicatedIp));
 
                       if (exitRes?.status === 'success' && exitRes.data?.order_id) {
                         console.log(`AlgoEngine Monitor: Virtual SL Market exit order placed on Zerodha: ${exitRes.data.order_id}. Waiting for fill...`);
                         await new Promise(r => setTimeout(r, 2000));
-                        const fillData = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, exitRes.data.order_id, client.dedicatedIp);
+                        const fillData = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, exitRes.data.order_id, (client.proxyUrl || client.dedicatedIp));
                         const fillOrder = getLatestOrderState(fillData?.data);
                         realFilledPrice = Number(fillOrder?.average_price || fillOrder?.filled_price || 0);
                         if (realFilledPrice > 0) {
@@ -636,7 +636,7 @@ export class TradingScheduler {
 
                 if (trade.slOrderId && trade.slOrderId !== 'REJECTED') {
                   try {
-                    await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.slOrderId);
+                    await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.slOrderId, 'regular', (client.proxyUrl || client.dedicatedIp));
                     console.log(`AlgoEngine Monitor: Cancelled SL order ${trade.slOrderId} (Target hit first)`);
                   } catch (e) { console.warn(`AlgoEngine Monitor: Failed to cancel SL order ${trade.slOrderId}:`, e); }
                 }
@@ -658,12 +658,12 @@ export class TradingScheduler {
                         order_type: 'MARKET',
                         product: productParam as any,
                         validity: 'DAY'
-                      }, client.dedicatedIp);
+                      }, (client.proxyUrl || client.dedicatedIp));
 
                       if (exitRes?.status === 'success' && exitRes.data?.order_id) {
                         console.log(`AlgoEngine Monitor: Virtual Target Market exit order placed on Zerodha: ${exitRes.data.order_id}. Waiting for fill...`);
                         await new Promise(r => setTimeout(r, 2000));
-                        const fillData = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, exitRes.data.order_id, client.dedicatedIp);
+                        const fillData = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, exitRes.data.order_id, (client.proxyUrl || client.dedicatedIp));
                         const fillOrder = getLatestOrderState(fillData?.data);
                         realFilledPrice = Number(fillOrder?.average_price || fillOrder?.filled_price || 0);
                         if (realFilledPrice > 0) {
@@ -702,7 +702,7 @@ export class TradingScheduler {
                         const finalSlTrigger = await getTickSizeAndRound(client.zerodhaApiKey, client.accessToken, exchangeParam, trade.symbol, newSlTrigger);
                         const modRes = await KiteClient.modifyOrder(client.zerodhaApiKey, client.accessToken, trade.slOrderId, {
                           trigger_price: finalSlTrigger
-                        });
+                        }, (client.proxyUrl || client.dedicatedIp));
                         if (modRes?.status === 'success') {
                           await prisma.trade.update({
                             where: { id: trade.id },
@@ -737,7 +737,7 @@ export class TradingScheduler {
                         const finalTarget = await getTickSizeAndRound(client.zerodhaApiKey, client.accessToken, exchangeParam, trade.symbol, newTarget);
                         const modRes = await KiteClient.modifyOrder(client.zerodhaApiKey, client.accessToken, trade.targetOrderId, {
                           price: finalTarget
-                        });
+                        }, (client.proxyUrl || client.dedicatedIp));
                         if (modRes?.status === 'success') {
                           await prisma.trade.update({
                             where: { id: trade.id },
@@ -755,7 +755,7 @@ export class TradingScheduler {
             // --- Priority 1.5: Check entry order for cancellation/rejection ---
             if (!exitTriggered && trade.entryOrderId) {
               try {
-                const orderData = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.entryOrderId);
+                const orderData = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.entryOrderId, (client.proxyUrl || client.dedicatedIp));
                 const latestOrder = getLatestOrderState(orderData?.data);
                 const orderStatus = latestOrder?.status;
                 if (orderStatus === 'CANCELLED' || orderStatus === 'REJECTED') {
@@ -774,7 +774,7 @@ export class TradingScheduler {
             // --- Priority 2: Entry placed but SL/Target not yet set ---
             if (!exitTriggered && !trade.slOrderId && !trade.targetOrderId && trade.entryOrderId && trade.slOrderStatus !== 'REJECTED' && trade.targetOrderStatus !== 'REJECTED' && trade.targetOrderStatus !== 'VIRTUAL_PENDING') {
               try {
-                const entryStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.entryOrderId);
+                const entryStatus = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, trade.entryOrderId, (client.proxyUrl || client.dedicatedIp));
                 const latestEntryOrder = getLatestOrderState(entryStatus?.data);
                 if (entryStatus?.status === 'success' && latestEntryOrder) {
                   await prisma.trade.update({ where: { id: trade.id }, data: { entryOrderStatus: latestEntryOrder.status === 'COMPLETE' ? 'filled' : latestEntryOrder.status } });
@@ -822,7 +822,7 @@ export class TradingScheduler {
                           trigger_price: finalSlTrigger,
                           market_protection: marketProtectionVal
                         };
-                        const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, slParams, client.dedicatedIp);
+                        const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, slParams, (client.proxyUrl || client.dedicatedIp));
                         if (slRes?.status === 'success' && slRes.data?.order_id) {
                           newSlOrderId = slRes.data.order_id;
                           await prisma.trade.update({ where: { id: trade.id }, data: { slOrderStatus: 'OPEN', slKiteResponse: slRes } });
@@ -854,7 +854,7 @@ export class TradingScheduler {
                           validity: 'DAY' as const,
                           price: finalTarget
                         };
-                        const tgtRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, targetParams, client.dedicatedIp);
+                        const tgtRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, targetParams, (client.proxyUrl || client.dedicatedIp));
                         if (tgtRes?.status === 'success' && tgtRes.data?.order_id) {
                           newTargetOrderId = tgtRes.data.order_id;
                           await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: 'OPEN', targetKiteResponse: tgtRes } });
@@ -893,9 +893,25 @@ export class TradingScheduler {
                   return; // next cycle monitor karega SL/Target
                 } // Closes if (latestEntryOrder.status === 'COMPLETE')
 
-                if (latestEntryOrder.status === 'CANCELLED' || latestEntryOrder.status === 'REJECTED') {
-                  await prisma.trade.update({ where: { id: trade.id }, data: { status: 'FAILED' } });
-                  console.warn(`AlgoEngine Monitor: Entry order ${trade.entryOrderId} ${latestEntryOrder.status}. Trade ${trade.id} marked FAILED.`);
+                if (latestEntryOrder.status !== 'COMPLETE') {
+                  if (latestEntryOrder.status === 'CANCELLED' || latestEntryOrder.status === 'REJECTED') {
+                    await prisma.trade.update({ where: { id: trade.id }, data: { status: 'FAILED' } });
+                    console.warn(`AlgoEngine Monitor: Entry order ${trade.entryOrderId} ${latestEntryOrder.status}. Trade ${trade.id} marked FAILED.`);
+                  } else {
+                    const istTimeStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
+                    if (config.basicInfo?.exitTime && istTimeStr >= config.basicInfo.exitTime) {
+                      console.log(`AlgoEngine Monitor: Entry order ${trade.entryOrderId} for ${trade.symbol} is still ${latestEntryOrder.status} at market close. Cancelling entry order...`);
+                      try {
+                        await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.entryOrderId, 'regular', (client.proxyUrl || client.dedicatedIp));
+                      } catch (err) {
+                        console.error(`AlgoEngine Monitor: Failed to cancel entry order ${trade.entryOrderId} at market close:`, err);
+                      }
+                      await prisma.trade.update({
+                        where: { id: trade.id },
+                        data: { status: 'FAILED', entryOrderStatus: latestEntryOrder.status }
+                      });
+                    }
+                  }
                   return;
                 }
               } // Closes if (entryStatus?.status === 'success' && latestEntryOrder)
@@ -916,7 +932,7 @@ export class TradingScheduler {
                 else if (tf === '60m' || tf === '60minute' || tf === 'hour') intervalParam = '60minute';
                 else if (tf === '1d' || tf === 'day') intervalParam = 'day';
 
-                const res = await KiteClient.getHistoricalData(client.zerodhaApiKey, client.accessToken, instrumentTokenStr, intervalParam, fromDateStr, toDateStr);
+                const res = await KiteClient.getHistoricalData(client.zerodhaApiKey, client.accessToken, instrumentTokenStr, intervalParam, fromDateStr, toDateStr, (client.proxyUrl || client.dedicatedIp));
                 if (res.status === 'success' && Array.isArray(res.data?.candles) && res.data.candles.length > 0) {
                   const latestCandle = res.data.candles[res.data.candles.length - 1];
                   const currentClosePrice = Number(latestCandle[4]);
@@ -969,10 +985,10 @@ export class TradingScheduler {
 
                 // Cancel pending orders before exiting
                 if (trade.slOrderId) {
-                  try { await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.slOrderId); } catch (e) { }
+                  try { await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.slOrderId, 'regular', (client.proxyUrl || client.dedicatedIp)); } catch (e) { }
                 }
                 if (trade.targetOrderId) {
-                  try { await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.targetOrderId); } catch (e) { }
+                  try { await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.targetOrderId, 'regular', (client.proxyUrl || client.dedicatedIp)); } catch (e) { }
                 }
               }
             }
@@ -1006,13 +1022,13 @@ export class TradingScheduler {
                   market_protection: marketProtectionVal
                 };
 
-                sellRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, sellParams, client.dedicatedIp);
+                sellRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, sellParams, (client.proxyUrl || client.dedicatedIp));
 
                 // Actual fill price fetch karo (2.5 sec wait karo fill hone do)
                 if (sellRes?.status === 'success' && sellRes?.data?.order_id) {
                   try {
                     await new Promise(r => setTimeout(r, 2500));
-                    const fillData = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, sellRes.data.order_id, client.dedicatedIp);
+                    const fillData = await KiteClient.getOrderById(client.zerodhaApiKey, client.accessToken, sellRes.data.order_id, (client.proxyUrl || client.dedicatedIp));
                     const fillOrder = getLatestOrderState(fillData?.data);
                     const actualFillPrice = Number(fillOrder?.average_price || 0);
                     if (actualFillPrice > 0) {
@@ -1146,19 +1162,19 @@ export class TradingScheduler {
                   // Cancel entry order
                   if (loser.entryOrderId) {
                     try {
-                      await KiteClient.cancelOrder(clientCred.zerodhaApiKey, clientCred.accessToken, loser.entryOrderId);
+                      await KiteClient.cancelOrder(clientCred.zerodhaApiKey, clientCred.accessToken, loser.entryOrderId, 'regular', (clientCred.proxyUrl || clientCred.dedicatedIp));
                     } catch (e) { console.warn(`OCO: Failed to cancel entry ${loser.entryOrderId}:`, e); }
                   }
                   // Cancel SL order
                   if (loser.slOrderId) {
                     try {
-                      await KiteClient.cancelOrder(clientCred.zerodhaApiKey, clientCred.accessToken, loser.slOrderId);
+                      await KiteClient.cancelOrder(clientCred.zerodhaApiKey, clientCred.accessToken, loser.slOrderId, 'regular', (clientCred.proxyUrl || clientCred.dedicatedIp));
                     } catch (e) { console.warn(`OCO: Failed to cancel SL ${loser.slOrderId}:`, e); }
                   }
                   // Cancel Target order
                   if (loser.targetOrderId) {
                     try {
-                      await KiteClient.cancelOrder(clientCred.zerodhaApiKey, clientCred.accessToken, loser.targetOrderId);
+                      await KiteClient.cancelOrder(clientCred.zerodhaApiKey, clientCred.accessToken, loser.targetOrderId, 'regular', (clientCred.proxyUrl || clientCred.dedicatedIp));
                     } catch (e) { console.warn(`OCO: Failed to cancel Target ${loser.targetOrderId}:`, e); }
                   }
                 }
