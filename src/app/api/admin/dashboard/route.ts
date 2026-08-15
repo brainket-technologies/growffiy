@@ -75,7 +75,19 @@ export async function GET(request: Request) {
     });
 
     // 3. Trade metrics calculations
-    const allDbTrades = await prisma.trade.findMany();
+    const allDbTrades = await prisma.trade.findMany({
+      include: {
+        client: {
+          include: {
+            user: true
+          }
+        },
+        strategy: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
 
     // Date-filtered trades strictly matching startFilter and endFilter
     const filteredTrades = allDbTrades.filter(t => {
@@ -84,6 +96,13 @@ export async function GET(request: Request) {
       const d = new Date(dStr);
       return d >= startFilter && d <= endFilter;
     });
+
+    const sanitizedTrades = filteredTrades.map(t => ({
+      ...t,
+      clientName: t.client?.user?.name || t.client?.clientCode || (t.clientId ? `Client #${t.clientId.slice(-4)}` : 'Client'),
+      clientCode: t.client?.clientCode || (t.clientId ? `CLI-${t.clientId.slice(-4).toUpperCase()}` : undefined),
+      strategyName: t.strategy?.name || t.symbol
+    }));
 
     let totalPnl = 0;
     let totalExposure = 0;
@@ -159,7 +178,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      stats: statsResult
+      stats: statsResult,
+      trades: sanitizedTrades
     });
   } catch (error: any) {
     console.error('Dashboard API Error:', error);

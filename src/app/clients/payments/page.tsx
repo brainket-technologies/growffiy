@@ -28,8 +28,9 @@ export default function ClientPaymentHistory() {
     fetch(`${API_ENDPOINTS.PAYMENTS_HISTORY}?userId=${activeUser.id}`)
       .then(res => res.json())
       .then(data => {
-        if (data.success) {
-          setPayments(data.payments);
+        if (data.success && Array.isArray(data.payments)) {
+          const successPayments = data.payments.filter((p: any) => (p.status || '').toLowerCase() === 'success');
+          setPayments(successPayments);
         }
       })
       .catch(err => console.error('Failed to load transaction history:', err))

@@ -22,7 +22,9 @@ import {
   BarChart3,
   Activity,
   Zap,
-  Layers
+  Layers,
+  ArrowUpRight,
+  X
 } from 'lucide-react';
 
 const formatDateTime = (timeStr: string | Date | null) => {
@@ -66,6 +68,11 @@ export default function AdminDashboard() {
   } = useAppViewModel();
 
   const [pnlPeriod, setPnlPeriod] = useState('Weekly');
+  const [cardPnlFilter, setCardPnlFilter] = useState<'today' | 'week' | 'month' | 'year'>('today');
+  const [selectedBarModal, setSelectedBarModal] = useState<{ label: string; index: number } | null>(null);
+  const [modalTrades, setModalTrades] = useState<any[]>([]);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalViewMode, setModalViewMode] = useState<'list' | 'grouped'>('list');
 
   // Calendar settings for trading days display
   const [autoTradeEnabled, setAutoTradeEnabled] = useState(true);
@@ -226,64 +233,356 @@ export default function AdminDashboard() {
   const realizedPnl = stats?.realizedPnl || 0;
   const openPositionsCount = stats?.openTrades || 0;
 
-  // Dynamic P&L History calculation based on selected pnlPeriod (Daily, Weekly, Monthly, Yearly, Cumulative)
-  const { pnlHistoryData, pnlHistoryLabels } = useMemo(() => {
-    const closedList = trades
-      .filter(t => t.status && t.status.toLowerCase() !== 'open')
-      .sort((a, b) => new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime());
-
-    if (closedList.length === 0) {
-      return {
-        pnlHistoryData: stats?.pnlHistoryData || [0, 0],
-        pnlHistoryLabels: stats?.pnlHistoryLabels || ['Start', 'Today']
-      };
+  // Helper function to calculate P&L for a trade
+  const getTradePnl = (t: any) => {
+    const status = (t.status || '').toLowerCase();
+    if (status === 'cancelled' || status === 'failed' || status === 'rejected' || status === 'open') {
+      return 0;
     }
+    let val = Number(t.pnl || 0);
+    if ((t.pnl === null || t.pnl === undefined || val === 0) && t.entryPrice && t.exitPrice && Number(t.quantity) > 0) {
+      const isShort = (t.direction || '').toLowerCase() === 'short';
+      const entry = Number(t.entryPrice);
+      const exit = Number(t.exitPrice);
+      const qty = Number(t.quantity);
+      val = isShort ? (entry - exit) * qty : (exit - entry) * qty;
+    }
+    return val;
+  };
 
-    if (pnlPeriod === 'Cumulative') {
-      let runSum = 0;
-      const data: number[] = [0];
-      const labels: string[] = ['Start'];
-      closedList.forEach(t => {
-        runSum += Number(t.pnl || 0);
-        data.push(runSum);
-        const d = new Date(t.createdAt);
-        labels.push(d.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
+  // Dynamic P&L History calculation for Chart (Weekly = Mon-Sun 7 days, Monthly = Weeks of Month, Yearly = 12 months)
+  const { pnlHistoryData, pnlHistoryLabels } = useMemo(() => {
+    const now = new Date();
+
+    if (pnlPeriod === 'Weekly') {
+      // 7 Days of current week (Mon to Sun) with exact dates
+      const data = [0, 0, 0, 0, 0, 0, 0];
+      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+      // Calculate Monday of current week
+      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const dayIndex = startOfWeek.getDay();
+      const diffToMon = startOfWeek.getDate() - dayIndex + (dayIndex === 0 ? -6 : 1);
+      startOfWeek.setDate(diffToMon);
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      const labels: string[] = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(startOfWeek);
+        d.setDate(startOfWeek.getDate() + i);
+        const dayStr = String(d.getDate()).padStart(2, '0');
+        labels.push(`${dayNames[i]} ${dayStr}`);
+      }
+
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      endOfWeek.setHours(23, 59, 59, 999);
+
+      trades.forEach(t => {
+        const dStr = t.createdAt || t.entryTime;
+        if (!dStr) return;
+        const d = new Date(dStr);
+        if (d >= startOfWeek && d <= endOfWeek) {
+          const day = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+          const targetIdx = day === 0 ? 6 : day - 1; // Mon=0 ... Sun=6
+          data[targetIdx] += getTradePnl(t);
+        }
       });
+
       return { pnlHistoryData: data, pnlHistoryLabels: labels };
     }
 
-    // Grouping by Period
-    const map = new Map<string, number>();
-    closedList.forEach(t => {
-      const d = new Date(t.createdAt);
-      let key = '';
-      if (pnlPeriod === 'Weekly') {
-        const firstDayOfYear = new Date(d.getFullYear(), 0, 1);
-        const pastDaysOfYear = (d.getTime() - firstDayOfYear.getTime()) / 86400000;
-        const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-        key = `W${weekNum} '${String(d.getFullYear()).slice(2)}`;
-      } else if (pnlPeriod === 'Monthly') {
-        key = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      } else if (pnlPeriod === 'Yearly') {
-        key = String(d.getFullYear());
-      } else {
-        // Daily
-        key = d.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
-      }
-      map.set(key, (map.get(key) || 0) + Number(t.pnl || 0));
-    });
+    if (pnlPeriod === 'Monthly') {
+      // Date ranges for weeks of current month (01-07, 08-14, 15-21, 22-28, 29-31)
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    const labels = Array.from(map.keys());
-    const data = Array.from(map.values());
+      const labels = [
+        '01-07',
+        '08-14',
+        '15-21',
+        '22-28',
+        `29-${daysInMonth}`
+      ];
+      const data = [0, 0, 0, 0, 0];
 
-    if (data.length === 1) {
-      return { pnlHistoryData: [0, data[0]], pnlHistoryLabels: ['Start', labels[0]] };
+      trades.forEach(t => {
+        const dStr = t.createdAt || t.entryTime;
+        if (!dStr) return;
+        const d = new Date(dStr);
+        if (d.getFullYear() === year && d.getMonth() === month) {
+          const dateNum = d.getDate();
+          let wIdx = 0;
+          if (dateNum <= 7) wIdx = 0;
+          else if (dateNum <= 14) wIdx = 1;
+          else if (dateNum <= 21) wIdx = 2;
+          else if (dateNum <= 28) wIdx = 3;
+          else wIdx = 4;
+
+          data[wIdx] += getTradePnl(t);
+        }
+      });
+
+      return { pnlHistoryData: data, pnlHistoryLabels: labels };
     }
 
-    return { pnlHistoryData: data, pnlHistoryLabels: labels };
+    if (pnlPeriod === 'Yearly') {
+      // 12 Months of current year with year suffix (Jan '26, Feb '26...)
+      const year = now.getFullYear();
+      const yrSuffix = String(year).slice(2);
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const labels = monthNames.map(m => `${m} '${yrSuffix}`);
+      const data = Array(12).fill(0);
+
+      trades.forEach(t => {
+        const dStr = t.createdAt || t.entryTime;
+        if (!dStr) return;
+        const d = new Date(dStr);
+        if (d.getFullYear() === year) {
+          const m = d.getMonth();
+          if (m >= 0 && m < 12) {
+            data[m] += getTradePnl(t);
+          }
+        }
+      });
+
+      return { pnlHistoryData: data, pnlHistoryLabels: labels };
+    }
+
+    // Default Fallback
+    return {
+      pnlHistoryData: stats?.pnlHistoryData || [0, 0],
+      pnlHistoryLabels: stats?.pnlHistoryLabels || ['Start', 'Today']
+    };
   }, [trades, pnlPeriod, stats]);
 
+  // Filtered P&L calculation for the single right-side P&L Card (Today, Week, Month, Year)
+  const cardFilteredPnl = useMemo(() => {
+    const now = new Date();
+
+    // Start of Today (00:00:00)
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+
+    // Cutoff date based on filter
+    let cutoff = startOfDay;
+    if (cardPnlFilter === 'week') {
+      cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // Past 7 days
+    } else if (cardPnlFilter === 'month') {
+      cutoff = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0); // Start of current month
+    } else if (cardPnlFilter === 'year') {
+      cutoff = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0); // Start of current year
+    }
+
+    const filtered = trades.filter(t => {
+      const dStr = t.createdAt || t.entryTime;
+      if (!dStr) return false;
+      const d = new Date(dStr);
+      return d >= cutoff;
+    });
+
+    let sumPnl = filtered.reduce((acc, t) => acc + getTradePnl(t), 0);
+    let totalCount = filtered.length;
+    let winCount = filtered.filter(t => getTradePnl(t) > 0).length;
+    let lossCount = filtered.filter(t => getTradePnl(t) < 0).length;
+
+    // Fallback if no trades match filter in local array (e.g. for month/year when trades are fetched via stats API):
+    if ((totalCount === 0 || sumPnl === 0) && cardPnlFilter !== 'today' && realizedPnl !== 0) {
+      sumPnl = realizedPnl;
+      totalCount = stats?.closedTrades || trades.length || 0;
+      winCount = stats?.winningStrategies || (sumPnl > 0 ? 1 : 0);
+      lossCount = stats?.losingStrategies || (sumPnl < 0 ? 1 : 0);
+    }
+
+    return {
+      pnlVal: sumPnl,
+      totalCount,
+      winCount,
+      lossCount,
+    };
+  }, [trades, cardPnlFilter, realizedPnl, stats]);
+
   const dateRangeStr = `${startDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+
+  // Dynamic Date Range Subtitle for P&L Overview Chart (Weekly, Monthly, Yearly)
+  const chartDateRangeStr = useMemo(() => {
+    const now = new Date();
+    const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+
+    if (pnlPeriod === 'Weekly') {
+      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const dayIndex = startOfWeek.getDay();
+      const diffToMon = startOfWeek.getDate() - dayIndex + (dayIndex === 0 ? -6 : 1);
+      startOfWeek.setDate(diffToMon);
+
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      return `${fmt(startOfWeek)} - ${fmt(endOfWeek)}`;
+    }
+    if (pnlPeriod === 'Monthly') {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      return `${fmt(startOfMonth)} - ${fmt(endOfMonth)}`;
+    }
+    if (pnlPeriod === 'Yearly') {
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      const endOfYear = new Date(now.getFullYear(), 11, 31);
+      return `${fmt(startOfYear)} - ${fmt(endOfYear)}`;
+    }
+    return dateRangeStr;
+  }, [pnlPeriod, dateRangeStr]);
+
+  // Selected Chart Bar Trade Transactions filter for Popup Window
+  const selectedBarTrades = useMemo(() => {
+    if (!selectedBarModal) return [];
+    const now = new Date();
+    const { index } = selectedBarModal;
+
+    if (pnlPeriod === 'Weekly') {
+      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const dayIndex = startOfWeek.getDay();
+      const diffToMon = startOfWeek.getDate() - dayIndex + (dayIndex === 0 ? -6 : 1);
+      startOfWeek.setDate(diffToMon + index);
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(startOfWeek);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      return trades.filter(t => {
+        const dStr = t.createdAt || t.entryTime;
+        if (!dStr) return false;
+        const d = new Date(dStr);
+        return d >= startOfWeek && d <= endOfDay;
+      });
+    }
+
+    if (pnlPeriod === 'Monthly') {
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      let minDay = 1;
+      let maxDay = 7;
+      if (index === 1) { minDay = 8; maxDay = 14; }
+      else if (index === 2) { minDay = 15; maxDay = 21; }
+      else if (index === 3) { minDay = 22; maxDay = 28; }
+      else if (index === 4) { minDay = 29; maxDay = daysInMonth; }
+
+      return trades.filter(t => {
+        const dStr = t.createdAt || t.entryTime;
+        if (!dStr) return false;
+        const d = new Date(dStr);
+        if (d.getFullYear() === year && d.getMonth() === month) {
+          const dateNum = d.getDate();
+          return dateNum >= minDay && dateNum <= maxDay;
+        }
+        return false;
+      });
+    }
+
+    if (pnlPeriod === 'Yearly') {
+      const year = now.getFullYear();
+      return trades.filter(t => {
+        const dStr = t.createdAt || t.entryTime;
+        if (!dStr) return false;
+        const d = new Date(dStr);
+        return d.getFullYear() === year && d.getMonth() === index;
+      });
+    }
+
+    return trades;
+  }, [trades, selectedBarModal, pnlPeriod]);
+
+  // Fetch full trades for selected chart bar period (enables viewing full historical month/year trades)
+  useEffect(() => {
+    if (!selectedBarModal) {
+      setModalTrades([]);
+      return;
+    }
+
+    const fetchBarTrades = async () => {
+      setModalLoading(true);
+      const now = new Date();
+      const { index } = selectedBarModal;
+      let start = startDate;
+      let end = endDate;
+
+      if (pnlPeriod === 'Weekly') {
+        const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const dayIndex = startOfWeek.getDay();
+        const diffToMon = startOfWeek.getDate() - dayIndex + (dayIndex === 0 ? -6 : 1);
+        startOfWeek.setDate(diffToMon + index);
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(startOfWeek);
+        endOfDay.setHours(23, 59, 59, 999);
+        start = startOfWeek;
+        end = endOfDay;
+      } else if (pnlPeriod === 'Monthly') {
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        let minDay = 1;
+        let maxDay = 7;
+        if (index === 1) { minDay = 8; maxDay = 14; }
+        else if (index === 2) { minDay = 15; maxDay = 21; }
+        else if (index === 3) { minDay = 22; maxDay = 28; }
+        else if (index === 4) { minDay = 29; maxDay = daysInMonth; }
+
+        start = new Date(year, month, minDay, 0, 0, 0, 0);
+        end = new Date(year, month, maxDay, 23, 59, 59, 999);
+      } else if (pnlPeriod === 'Yearly') {
+        const year = now.getFullYear();
+        start = new Date(year, index, 1, 0, 0, 0, 0);
+        end = new Date(year, index + 1, 0, 23, 59, 59, 999);
+      }
+
+      try {
+        const startStr = formatDateToLocalYMD(start);
+        const endStr = formatDateToLocalYMD(end);
+        const res = await api.get(`${API_ENDPOINTS.DASHBOARD}?startDate=${startStr}&endDate=${endStr}`);
+        if (res.success && res.trades && res.trades.length > 0) {
+          setModalTrades(res.trades);
+        } else {
+          setModalTrades(selectedBarTrades);
+        }
+      } catch (err) {
+        console.error('Error fetching bar trades:', err);
+        setModalTrades(selectedBarTrades);
+      } finally {
+        setModalLoading(false);
+      }
+    };
+
+    fetchBarTrades();
+  }, [selectedBarModal, pnlPeriod]);
+
+  const activeBarTrades = modalTrades.length > 0 ? modalTrades : selectedBarTrades;
+
+  // Filter out 0 P&L trades (showing strictly + or - P&L executed trades)
+  const displayBarTrades = useMemo(() => {
+    return activeBarTrades.filter(t => Math.abs(getTradePnl(t)) > 0.001);
+  }, [activeBarTrades]);
+
+  // Group trade transactions by execution (dualLegGroupId or symbol + date/time + client)
+  const groupedBarTrades = useMemo(() => {
+    if (displayBarTrades.length === 0) return [];
+
+    const map = new Map<string, any[]>();
+    displayBarTrades.forEach((t: any) => {
+      const d = new Date(t.createdAt || t.entryTime);
+      const timeKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}_${d.getHours()}:${d.getMinutes()}`;
+      const groupKey = t.dualLegGroupId || `${t.strategyName || t.symbol || 'Trade'}_${timeKey}_${t.clientName || t.clientCode || 'Client'}`;
+
+      if (!map.has(groupKey)) {
+        map.set(groupKey, []);
+      }
+      map.get(groupKey)!.push(t);
+    });
+
+    return Array.from(map.values());
+  }, [displayBarTrades]);
 
   // Smart display trades logic for Live Strategy table:
   // 1. Prioritize open/active trades currently running
@@ -485,7 +784,7 @@ export default function AdminDashboard() {
 
       {/* 5 Top KPI Cards Grid */}
       <div className="kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '18px' }}>
-        <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--primary)' }}>
+        <Card hoverable onClick={() => router.push('/admin/clients')} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--primary)', cursor: 'pointer' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total Clients</span>
             <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -500,7 +799,7 @@ export default function AdminDashboard() {
           </span>
         </Card>
 
-        <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--accent)' }}>
+        <Card hoverable onClick={() => router.push('/admin/payments/subscriptions')} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--accent)', cursor: 'pointer' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Subscription</span>
             <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--accent-light)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -515,7 +814,7 @@ export default function AdminDashboard() {
           </span>
         </Card>
 
-        <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--purple)' }}>
+        <Card hoverable onClick={() => router.push('/admin/strategies')} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--purple)', cursor: 'pointer' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Active Strategies</span>
             <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--purple-light)', color: 'var(--purple)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -530,7 +829,7 @@ export default function AdminDashboard() {
           </span>
         </Card>
 
-        <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--accent)' }}>
+        <Card hoverable onClick={() => router.push('/admin/clients')} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--accent)', cursor: 'pointer' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Live Accounts</span>
             <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--accent-light)', color: 'var(--accent-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -545,7 +844,7 @@ export default function AdminDashboard() {
           </span>
         </Card>
 
-        <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--warning)' }}>
+        <Card hoverable onClick={() => router.push('/admin/reports/client')} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--warning)', cursor: 'pointer' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total P&L (₹)</span>
             <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '16px' }}>
@@ -571,12 +870,32 @@ export default function AdminDashboard() {
                 P&L Overview
               </h4>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
-                {dateRangeStr}
+                {chartDateRangeStr}
               </span>
             </div>
             <select 
               value={pnlPeriod} 
-              onChange={(e) => setPnlPeriod(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setPnlPeriod(val);
+                const n = new Date();
+                if (val === 'Weekly') {
+                  const startOfWeek = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+                  const dayIndex = startOfWeek.getDay();
+                  const diffToMon = startOfWeek.getDate() - dayIndex + (dayIndex === 0 ? -6 : 1);
+                  startOfWeek.setDate(diffToMon);
+                  const endOfWeek = new Date(startOfWeek);
+                  endOfWeek.setDate(startOfWeek.getDate() + 6);
+                  setStartDate(startOfWeek);
+                  setEndDate(endOfWeek);
+                } else if (val === 'Monthly') {
+                  setStartDate(new Date(n.getFullYear(), n.getMonth(), 1));
+                  setEndDate(new Date(n.getFullYear(), n.getMonth() + 1, 0));
+                } else if (val === 'Yearly') {
+                  setStartDate(new Date(n.getFullYear(), 0, 1));
+                  setEndDate(new Date(n.getFullYear(), 11, 31));
+                }
+              }}
               style={{
                 width: '120px',
                 padding: '6px 12px',
@@ -604,11 +923,12 @@ export default function AdminDashboard() {
             fillColorStart="rgba(18, 82, 171, 0.12)"
             fillColorEnd="rgba(18, 82, 171, 0)"
             height={280}
+            onBarClick={(idx, label) => setSelectedBarModal({ index: idx, label })}
           />
         </Card>
 
         {/* Right: Strategies Performance Donut Chart */}
-        <Card style={{ padding: '24px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)' }}>
+        <Card hoverable onClick={() => router.push('/admin/reports/strategy')} style={{ padding: '24px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)', cursor: 'pointer' }}>
           <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', marginBottom: '20px' }}>
             Strategies Performance
           </h4>
@@ -755,62 +1075,566 @@ export default function AdminDashboard() {
           </div>
         </Card>
 
-        {/* Right: Exposure & Positions metrics in a 2x2 grid */}
-        <div className="exposure-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', height: 'fit-content' }}>
-          {/* Card: Total Exposure */}
-          <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)' }}>Total Exposure (₹)</span>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Wallet size={15} />
+        {/* Right: Single P&L Summary Card with Filter (Today, Week, Month, Year) */}
+        <Card style={{ padding: '20px', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '14px', justifyContent: 'flex-start' }}>
+          {/* Card Header & Filter Pills */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '8px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <TrendingUp size={16} />
               </div>
-            </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, marginTop: '10px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-              ₹ {totalExposure.toLocaleString('en-IN')}
-            </h3>
-          </Card>
+              P&L Summary
+            </h4>
+            <select
+              value={cardPnlFilter}
+              onChange={(e) => setCardPnlFilter(e.target.value as any)}
+              style={{
+                width: 'auto',
+                minWidth: '100px',
+                fontSize: '12px',
+                color: 'var(--text-heading)',
+                fontWeight: 600,
+                padding: '5px 10px',
+                borderRadius: '8px',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="today">Today</option>
+              <option value="week">Week</option>
+              <option value="month">Month</option>
+              <option value="year">Year</option>
+            </select>
+          </div>
 
-          {/* Card: Unrealized P&L */}
-          <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)' }}>Unrealized P&L (₹)</span>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'var(--purple-light)', color: 'var(--purple)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <TrendingUp size={15} />
-              </div>
-            </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, marginTop: '10px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-              ₹ {unrealizedPnl.toLocaleString('en-IN')}
-            </h3>
-          </Card>
+          {/* Hero P&L Display Banner */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.04) 0%, rgba(16, 185, 129, 0.05) 100%)',
+            padding: '16px 18px',
+            borderRadius: '12px',
+            border: '1px solid rgba(37, 99, 235, 0.1)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px'
+          }}>
+            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+              {cardPnlFilter.toUpperCase()} REALIZED P&L
+            </span>
+            <h2 style={{ fontSize: '26px', fontWeight: 800, color: cardFilteredPnl.pnlVal >= 0 ? 'var(--color-success)' : 'var(--color-danger)', fontFamily: 'var(--font-title)', margin: '2px 0 0 0' }}>
+              {cardFilteredPnl.pnlVal >= 0 ? '+₹' : '-₹'}{Math.abs(cardFilteredPnl.pnlVal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </h2>
 
-          {/* Card: Realized P&L */}
-          <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)' }}>Realized P&L (₹)</span>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'var(--accent-light)', color: 'var(--accent-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Clock size={15} />
+            {/* Micro Badge Row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+              <div style={{ padding: '3px 8px', borderRadius: '6px', backgroundColor: 'var(--surface)', border: '1px solid var(--border)', fontSize: '11px', color: 'var(--text-body)', fontWeight: 500 }}>
+                Trades: <strong style={{ color: 'var(--text-heading)' }}>{cardFilteredPnl.totalCount}</strong>
+              </div>
+              <div style={{ padding: '3px 8px', borderRadius: '6px', backgroundColor: 'rgba(16, 185, 129, 0.1)', fontSize: '11px', color: 'var(--color-success)', fontWeight: 600 }}>
+                Win: {cardFilteredPnl.winCount}
+              </div>
+              <div style={{ padding: '3px 8px', borderRadius: '6px', backgroundColor: 'rgba(239, 68, 68, 0.1)', fontSize: '11px', color: 'var(--color-danger)', fontWeight: 600 }}>
+                Loss: {cardFilteredPnl.lossCount}
               </div>
             </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, marginTop: '10px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-              ₹ {realizedPnl.toLocaleString('en-IN')}
-            </h3>
-          </Card>
+          </div>
 
-          {/* Card: Open Positions */}
-          <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', borderRadius: '12px', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)' }}>Open Positions</span>
-              <div style={{ width: '28px', height: '28px', borderRadius: '6px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <FileText size={14} />
+          {/* 2x2 Metric Cards Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div 
+              onClick={() => router.push('/admin/payments/trades')}
+              style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '4px', cursor: 'pointer', transition: 'transform 0.15s ease, border-color 0.15s ease' }}
+              className="clickable-subbox"
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Exposure</span>
+                <Wallet size={13} style={{ color: 'var(--primary)' }} />
+              </div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)' }}>
+                ₹ {totalExposure.toLocaleString('en-IN')}
               </div>
             </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, marginTop: '10px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-              {openPositionsCount}
-            </h3>
-          </Card>
-        </div>
+
+            <div 
+              onClick={() => router.push('/admin/reports/client')}
+              style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '4px', cursor: 'pointer', transition: 'transform 0.15s ease, border-color 0.15s ease' }}
+              className="clickable-subbox"
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Unrealized P&L</span>
+                <TrendingUp size={13} style={{ color: 'var(--purple)' }} />
+              </div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)' }}>
+                ₹ {unrealizedPnl.toLocaleString('en-IN')}
+              </div>
+            </div>
+
+            <div 
+              onClick={() => router.push('/admin/payments/trades')}
+              style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '4px', cursor: 'pointer', transition: 'transform 0.15s ease, border-color 0.15s ease' }}
+              className="clickable-subbox"
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Realized P&L</span>
+                <Clock size={13} style={{ color: 'var(--accent)' }} />
+              </div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: realizedPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                ₹ {realizedPnl.toLocaleString('en-IN')}
+              </div>
+            </div>
+
+            <div 
+              onClick={() => router.push('/admin/payments/trades')}
+              style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '4px', cursor: 'pointer', transition: 'transform 0.15s ease, border-color 0.15s ease' }}
+              className="clickable-subbox"
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Open Positions</span>
+                <Layers size={13} style={{ color: 'var(--warning)' }} />
+              </div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)' }}>
+                {openPositionsCount}
+              </div>
+            </div>
+          </div>
+
+          {/* Win Accuracy Bar */}
+          <div style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
+              <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Period Win Accuracy</span>
+              <strong style={{ color: cardFilteredPnl.totalCount > 0 ? 'var(--accent, #10b981)' : 'var(--text-muted)' }}>
+                {cardFilteredPnl.totalCount > 0 
+                  ? `${((cardFilteredPnl.winCount / cardFilteredPnl.totalCount) * 100).toFixed(1)}%`
+                  : '0.0%'}
+              </strong>
+            </div>
+            <div style={{ width: '100%', height: '8px', backgroundColor: 'rgba(0,0,0,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${cardFilteredPnl.totalCount > 0 ? Math.min(100, Math.max(0, (cardFilteredPnl.winCount / cardFilteredPnl.totalCount) * 100)) : 0}%`,
+                background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
+                borderRadius: '4px',
+                transition: 'width 0.4s ease'
+              }} />
+            </div>
+          </div>
+
+          {/* Quick Action Shortcuts */}
+          <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
+            <button
+              onClick={() => router.push('/admin/reports/client')}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                fontSize: '11px',
+                fontWeight: 600,
+                borderRadius: '8px',
+                border: '1px solid var(--border)',
+                backgroundColor: 'var(--surface)',
+                color: 'var(--text-heading)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justify: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <FileText size={13} style={{ color: 'var(--primary)' }} />
+              Client Report
+            </button>
+
+            <button
+              onClick={() => router.push('/admin/payments/trades')}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                fontSize: '11px',
+                fontWeight: 600,
+                borderRadius: '8px',
+                border: '1px solid var(--border)',
+                backgroundColor: 'var(--surface)',
+                color: 'var(--text-heading)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justify: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Activity size={13} style={{ color: 'var(--accent)' }} />
+              Trade Txns
+            </button>
+          </div>
+        </Card>
       </div>
     </div>
+      {/* Modal Popup Window for Chart Bar Trade Transactions */}
+      {selectedBarModal && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px'
+          }}
+          onClick={() => setSelectedBarModal(null)}
+        >
+          <div 
+            style={{
+              backgroundColor: 'var(--surface, #ffffff)',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '850px',
+              maxHeight: '85vh',
+              overflow: 'hidden',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{
+              padding: '18px 24px',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: 'linear-gradient(135deg, rgba(37,99,235,0.05), rgba(16,185,129,0.04))',
+              gap: '12px',
+              flexWrap: 'wrap'
+            }}>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <TrendingUp size={20} color="var(--primary)" />
+                  Trade Transactions — {selectedBarModal.label}
+                </h3>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
+                  Showing {displayBarTrades.length} executed trades during this period
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {/* View Mode Toggle Switch */}
+                <div style={{ display: 'flex', backgroundColor: 'rgba(0,0,0,0.06)', padding: '3px', borderRadius: '8px', gap: '2px' }}>
+                  <button
+                    onClick={() => setModalViewMode('list')}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      backgroundColor: modalViewMode === 'list' ? 'var(--surface)' : 'transparent',
+                      color: modalViewMode === 'list' ? 'var(--primary)' : 'var(--text-muted)',
+                      boxShadow: modalViewMode === 'list' ? 'var(--shadow-sm)' : 'none'
+                    }}
+                  >
+                    📋 All Trades List
+                  </button>
+                  <button
+                    onClick={() => setModalViewMode('grouped')}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      backgroundColor: modalViewMode === 'grouped' ? 'var(--surface)' : 'transparent',
+                      color: modalViewMode === 'grouped' ? 'var(--primary)' : 'var(--text-muted)',
+                      boxShadow: modalViewMode === 'grouped' ? 'var(--shadow-sm)' : 'none'
+                    }}
+                  >
+                    🧩 Grouped Executions
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => setSelectedBarModal(null)}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    border: 'none',
+                    backgroundColor: 'rgba(0,0,0,0.06)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--text-muted)',
+                    fontSize: '16px',
+                    fontWeight: 700
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1, minHeight: '300px' }}>
+              {modalLoading ? (
+                <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+                  <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 12px auto', color: 'var(--primary)' }} />
+                  <p style={{ fontSize: '13px', fontWeight: 600 }}>Loading trade transactions for {selectedBarModal.label}...</p>
+                </div>
+              ) : displayBarTrades.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+                  <p style={{ fontSize: '14px', fontWeight: 500 }}>No executed P&L trade transactions recorded for {selectedBarModal.label}.</p>
+                </div>
+              ) : modalViewMode === 'list' ? (
+                /* Uncompressed All Trades List Table */
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1.5px solid var(--border)', textAlign: 'left', color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle)' }}>
+                      <th style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>Client</th>
+                      <th style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>Strategy / Symbol</th>
+                      <th style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>Direction</th>
+                      <th style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>Qty</th>
+                      <th style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>Entry</th>
+                      <th style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>Exit</th>
+                      <th style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>P&L (₹)</th>
+                      <th style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayBarTrades.map((t: any, idx: number) => {
+                      const pnlVal = getTradePnl(t);
+                      const isPos = pnlVal >= 0;
+                      const clientDisplayName = t.clientName || t.client?.user?.name || t.client?.name || t.clientCode || (t.clientId ? `Client #${t.clientId.slice(-4)}` : 'Client Account');
+                      const isShort = (t.direction || 'LONG').toUpperCase() === 'SHORT';
+
+                      return (
+                        <tr key={t.id || idx} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.15s ease' }}>
+                          <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text-heading)', whiteSpace: 'nowrap' }}>
+                            {clientDisplayName}
+                            {t.clientCode && (
+                              <span style={{ display: 'block', fontSize: '11px', fontWeight: 400, color: 'var(--text-muted)' }}>
+                                {t.clientCode}
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text-heading)', whiteSpace: 'nowrap' }}>
+                            {t.strategyName || t.symbol || 'NIFTY Option'}
+                            <span style={{ display: 'block', fontSize: '11px', fontWeight: 400, color: 'var(--text-muted)' }}>
+                              ⏰ {new Date(t.createdAt || t.entryTime).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}, {new Date(t.createdAt || t.entryTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
+                            <span style={{
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              backgroundColor: isShort ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                              color: isShort ? '#ef4444' : '#10b981'
+                            }}>
+                              {isShort ? 'SELL / SHORT' : 'BUY / LONG'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 14px', fontWeight: 600, whiteSpace: 'nowrap' }}>{t.quantity || 1}</td>
+                          <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>₹{Number(t.entryPrice || 0).toFixed(2)}</td>
+                          <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>₹{Number(t.exitPrice || 0).toFixed(2)}</td>
+                          <td style={{ padding: '12px 14px', fontWeight: 700, color: isPos ? '#10b981' : '#ef4444', whiteSpace: 'nowrap' }}>
+                            {isPos ? `+₹${pnlVal.toFixed(2)}` : `-₹${Math.abs(pnlVal).toFixed(2)}`}
+                          </td>
+                          <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
+                            <span style={{
+                              padding: '3px 8px',
+                              borderRadius: '12px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              backgroundColor: isPos ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                              color: isPos ? '#10b981' : '#ef4444'
+                            }}>
+                              {isPos ? 'PROFIT' : 'LOSS'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              ) : (
+                /* Grouped Trades View */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {groupedBarTrades.map((group: any[], gIdx: number) => {
+                    const firstTrade = group[0];
+                    const groupPnl = group.reduce((acc, t) => acc + getTradePnl(t), 0);
+                    const isGroupPos = groupPnl >= 0;
+                    const clientDisplayName = firstTrade.clientName || firstTrade.client?.user?.name || firstTrade.client?.name || firstTrade.clientCode || (firstTrade.clientId ? `Client #${firstTrade.clientId.slice(-4)}` : 'Client Account');
+                    const tDate = new Date(firstTrade.createdAt || firstTrade.entryTime);
+                    const dateTimeStr = `${tDate.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}, ${tDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+                    return (
+                      <div 
+                        key={gIdx} 
+                        style={{
+                          borderRadius: '12px',
+                          border: '1px solid var(--border)',
+                          backgroundColor: 'var(--surface)',
+                          overflow: 'hidden',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                        }}
+                      >
+                        {/* Group Header */}
+                        <div style={{
+                          padding: '12px 16px',
+                          backgroundColor: 'var(--bg-subtle, #f8fafc)',
+                          borderBottom: '1px solid var(--border)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '8px'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-heading)' }}>
+                              {firstTrade.strategyName || firstTrade.symbol || 'NIFTY Strategy'}
+                            </span>
+                            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                              Client: <strong style={{ color: 'var(--text-heading)' }}>{clientDisplayName}</strong>
+                            </span>
+                            <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', backgroundColor: 'rgba(0,0,0,0.05)', color: 'var(--text-muted)', fontWeight: 600 }}>
+                              ⏰ {dateTimeStr}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>Execution Net P&L:</span>
+                            <span style={{
+                              fontSize: '12px',
+                              fontWeight: 800,
+                              padding: '3px 10px',
+                              borderRadius: '6px',
+                              backgroundColor: isGroupPos ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                              color: isGroupPos ? '#10b981' : '#ef4444',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {isGroupPos ? `+₹${groupPnl.toFixed(2)}` : `-₹${Math.abs(groupPnl).toFixed(2)}`}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Legs Table inside Group */}
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-muted)', backgroundColor: 'rgba(0,0,0,0.01)' }}>
+                              <th style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>Leg / Direction</th>
+                              <th style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>Qty</th>
+                              <th style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>Entry Price</th>
+                              <th style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>Exit Price</th>
+                              <th style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>Leg P&L</th>
+                              <th style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {group.map((t: any, tIdx: number) => {
+                              const pnlVal = getTradePnl(t);
+                              const isLegPos = pnlVal >= 0;
+                              const isShort = (t.direction || 'LONG').toUpperCase() === 'SHORT';
+                              return (
+                                <tr key={t.id || tIdx} style={{ borderBottom: tIdx === group.length - 1 ? 'none' : '1px solid var(--border)' }}>
+                                  <td style={{ padding: '10px 16px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                    <span style={{
+                                      padding: '3px 8px',
+                                      borderRadius: '4px',
+                                      fontSize: '11px',
+                                      fontWeight: 700,
+                                      backgroundColor: isShort ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                                      color: isShort ? '#ef4444' : '#10b981',
+                                      marginRight: '8px'
+                                    }}>
+                                      {isShort ? 'SELL / SHORT' : 'BUY / LONG'}
+                                    </span>
+                                    {t.legName && <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>({t.legName})</span>}
+                                  </td>
+                                  <td style={{ padding: '10px 16px', fontWeight: 600, whiteSpace: 'nowrap' }}>{t.quantity || 1}</td>
+                                  <td style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>₹{Number(t.entryPrice || 0).toFixed(2)}</td>
+                                  <td style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>₹{Number(t.exitPrice || 0).toFixed(2)}</td>
+                                  <td style={{ padding: '10px 16px', fontWeight: 700, color: isLegPos ? '#10b981' : '#ef4444', whiteSpace: 'nowrap' }}>
+                                    {isLegPos ? `+₹${pnlVal.toFixed(2)}` : `-₹${Math.abs(pnlVal).toFixed(2)}`}
+                                  </td>
+                                  <td style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>
+                                    <span style={{
+                                      padding: '2px 8px',
+                                      borderRadius: '10px',
+                                      fontSize: '10px',
+                                      fontWeight: 700,
+                                      backgroundColor: isLegPos ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                                      color: isLegPos ? '#10b981' : '#ef4444'
+                                    }}>
+                                      {isLegPos ? 'PROFIT' : 'LOSS'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '16px 24px',
+              borderTop: '1px solid var(--border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: 'var(--bg-subtle, #f8fafc)'
+            }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)' }}>
+                Total P&L: {' '}
+                <span style={{ color: displayBarTrades.reduce((acc, t) => acc + getTradePnl(t), 0) >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                  ₹{displayBarTrades.reduce((acc, t) => acc + getTradePnl(t), 0).toFixed(2)}
+                </span>
+              </span>
+
+              <button
+                onClick={() => {
+                  setSelectedBarModal(null);
+                  router.push('/admin/payments/trades');
+                }}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: 'var(--primary)',
+                  color: '#ffffff',
+                  fontWeight: 600,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                View All Trade Txns <ArrowUpRight size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     <style>{`
       @media (max-width: 1024px) {
         .kpi-grid { grid-template-columns: repeat(3, 1fr) !important; }
