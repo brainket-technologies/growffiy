@@ -462,10 +462,9 @@ export default function ClientDashboardOverview() {
 
     if (performancePeriod === 'Yearly') {
       const year = now.getFullYear();
-      const yrSuffix = String(year).slice(-2);
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const monthsData = new Array(12).fill(0);
-      const monthsLabels = monthNames.map(m => `${m} '${yrSuffix}`);
+      const monthsLabels = monthNames;
 
       rawClientTrades.forEach(t => {
         const dStr = t.createdAt || t.entryTime || t.exitTime;

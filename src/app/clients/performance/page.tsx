@@ -266,9 +266,8 @@ export default function ClientPerformancePage() {
 
     if (pnlPeriod === 'Yearly') {
       const year = now.getFullYear();
-      const yrSuffix = String(year).slice(2);
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const labels = monthNames.map((m) => `${m} '${yrSuffix}`);
+      const labels = [...monthNames];
       const data = Array(12).fill(0);
 
       dateFilteredTrades.forEach((t) => {

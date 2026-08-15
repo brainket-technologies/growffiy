@@ -328,11 +328,10 @@ export default function AdminDashboard() {
     }
 
     if (pnlPeriod === 'Yearly') {
-      // 12 Months of current year with year suffix (Jan '26, Feb '26...)
+      // 12 Months of current year (Jan, Feb, Mar ... Dec)
       const year = now.getFullYear();
-      const yrSuffix = String(year).slice(2);
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const labels = monthNames.map(m => `${m} '${yrSuffix}`);
+      const labels = [...monthNames];
       const data = Array(12).fill(0);
 
       trades.forEach(t => {
