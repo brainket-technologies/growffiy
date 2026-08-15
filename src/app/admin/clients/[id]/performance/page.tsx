@@ -280,19 +280,6 @@ export default function ClientPerformancePage() {
     setTimeout(() => setCopySuccess(false), 2000);
   };
 
-  // Filter trades by date range if specified
-  const dateFilteredTrades = clientTrades.filter(t => {
-    if (!t.createdAt) return false;
-    const tDate = new Date(t.createdAt);
-    if (startDate && tDate < startDate) return false;
-    if (endDate) {
-      const endOfDay = new Date(endDate);
-      endOfDay.setHours(23, 59, 59, 999);
-      if (tDate > endOfDay) return false;
-    }
-    return true;
-  });
-
   // Metric calculation
   const totalTradesCount = dateFilteredTrades.length;
   const closedTrades = dateFilteredTrades.filter(t => t.status.toLowerCase() !== 'open');
