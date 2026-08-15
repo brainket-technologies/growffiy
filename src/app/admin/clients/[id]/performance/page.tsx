@@ -68,6 +68,7 @@ export default function ClientPerformancePage() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusQuickFilter, setStatusQuickFilter] = useState<'all' | 'profit' | 'loss'>('all');
   const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
+  const [pnlPeriod, setPnlPeriod] = useState('Weekly');
   
   // Date filter states
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -200,8 +201,6 @@ export default function ClientPerformancePage() {
   const bestTrade = winningTrades.length ? Math.max(...winningTrades.map(t => Number(t.pnl || 0))) : 0;
   const worstTrade = losingTrades.length ? Math.min(...losingTrades.map(t => Number(t.pnl || 0))) : 0;
   const expectancy = totalTradesCount ? totalPnl / totalTradesCount : 0;
-
-  const [pnlPeriod, setPnlPeriod] = useState('Weekly');
 
   // Dynamic P&L History calculation for Chart (Weekly = Mon-Sun 7 days, Monthly = Weeks of Month, Yearly = 12 months)
   const { pnlHistoryData, pnlHistoryLabels, chartDateRangeStr } = useMemo(() => {
