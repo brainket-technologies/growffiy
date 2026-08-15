@@ -14,7 +14,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Growffiy | Institutional Algo Trading Platform",
   description: "Advanced automated algorithmic trading platform, client portfolio management, and strategy breakout executor connected with Zerodha Kite API.",
-  manifest: "/manifest.json",
+  manifest: "/api/manifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

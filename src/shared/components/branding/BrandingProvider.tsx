@@ -35,7 +35,10 @@ export default function BrandingProvider({ children }: { children: React.ReactNo
           const metaKw = document.querySelector('meta[name="keywords"]');
           if (metaKw) metaKw.setAttribute('content', keywords);
 
+          // Dynamic Favicon & Apple Touch Icon for Mobile/PWA
           let link = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
+          let appleLink = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement | null;
+          
           if (logo) {
             if (!link) {
               link = document.createElement('link');
@@ -43,6 +46,24 @@ export default function BrandingProvider({ children }: { children: React.ReactNo
               document.head.appendChild(link);
             }
             link.href = logo;
+
+            if (!appleLink) {
+              appleLink = document.createElement('link');
+              appleLink.rel = 'apple-touch-icon';
+              document.head.appendChild(appleLink);
+            }
+            appleLink.href = logo;
+          }
+
+          // Dynamic Apple Web App Title
+          let appleTitleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+          if (name) {
+            if (!appleTitleMeta) {
+              appleTitleMeta = document.createElement('meta');
+              appleTitleMeta.setAttribute('name', 'apple-mobile-web-app-title');
+              document.head.appendChild(appleTitleMeta);
+            }
+            appleTitleMeta.setAttribute('content', name);
           }
 
           if (gaId && !document.getElementById('growffiy-ga')) {
