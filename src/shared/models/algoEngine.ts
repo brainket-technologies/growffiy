@@ -933,14 +933,16 @@ class AlgoEngineService {
           console.log(`AlgoEngine: Final clientCapital for ${client.user.name} = ${perDayTradeAmount > 0 ? `perDayTradeAmount=₹${perDayTradeAmount}` : (dbDisabled ? 'live-only' : `min(margin=${marginOrApi}, db=${dbCapital})`)} = ₹${clientCapital}`);
 
           const configRisk = config?.riskManagement?.riskPerTrade;
-          if (!configRisk || configRisk <= 0) {
+          if (perDayTradeAmount <= 0 && (!configRisk || configRisk <= 0)) {
             console.log(`AlgoEngine: riskManagement.riskPerTrade not configured (or invalid) for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
             return;
           }
-          const riskPercent = configRisk;
+          const riskPercent = configRisk || 0;
           const marginRate = config?.riskManagement?.misMarginRate;
 
-          let capitalAtRisk = clientCapital * (riskPercent / 100);
+          // If perDayTradeAmount is explicitly configured (> 0), use it directly as capitalAtRisk (INR risk per trade).
+          // Otherwise, derive capitalAtRisk using strategy riskPerTrade %.
+          let capitalAtRisk = perDayTradeAmount > 0 ? perDayTradeAmount : clientCapital * (riskPercent / 100);
 
           const capitalAllocPct = config?.riskManagement?.capitalAllocation;
           if (capitalAllocPct !== undefined && capitalAllocPct !== null && capitalAllocPct > 0) {

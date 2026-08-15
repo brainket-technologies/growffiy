@@ -391,23 +391,27 @@ System `perDayTradeAmount` Column (DB) ko check karta hai:
 - **Condition:** Live Margin required amount se BARAABAR ya ZYADA hai.
 - **System Action:**
   - Validation Pass!
-  - `clientCapital = perDayTradeAmount` set hota hai.
+  - `perDayTradeAmount` directly serves as the **INR Risk Amount (`capitalAtRisk = perDayTradeAmount`)** for that trade.
 
 #### 🔄 **Case C: `perDayTradeAmount` is 0, null, or unset**
 - **Condition:** Field empty hai ya 0 hai.
 - **System Action (Fallback % Logic):**
   - Agar DB `capital === -1` (Live Balance mode): `clientCapital = Live Margin`
   - Agar DB `capital > 0`: `clientCapital = min(Live Margin, DB Capital)`
+  - Strategy `riskPerTrade %` is applied: `capitalAtRisk = clientCapital * (riskPerTrade % / 100)`
 
 ---
 
 ### 3. Position Sizing & Quantity Formulas
 
-1. **Capital at Risk:**
-   $$\text{capitalAtRisk} = \text{clientCapital} \times \left( \frac{\text{riskPerTrade\%}}{100} \right)$$
+1. **Capital at Risk (`capitalAtRisk`):**
+   - **When `perDayTradeAmount > 0`:**
+     $$\text{capitalAtRisk} = \text{perDayTradeAmount}$$
+   - **When `perDayTradeAmount` is 0/unset:**
+     $$\text{capitalAtRisk} = \text{clientCapital} \times \left( \frac{\text{riskPerTrade\%}}{100} \right)$$
 
 2. **Stop Loss Points:**
-   $$\text{slPoints} = \text{EntryPrice} \times \left( \frac{\text{SL\%}}{100} \right)$$
+   $$\text{slPoints} = \text{EntryPrice} \times \left( \frac{\text{SL\%}}{100} \right)\ \text{or}\ \text{Fixed Points}$$
 
 3. **Calculated Quantity:**
    $$\text{quantity} = \text{floor}\left( \frac{\text{capitalAtRisk}}{\text{slPoints}} \right)$$

@@ -158,16 +158,14 @@ Neon DB Config → Scheduler → Algo Engine → Kite API (place orders)
 ---
 
 #### 🟢 **Scenario 1: Per Day Trade Amount Configured & Margin Sufficient**
-- **Inputs:** `perDayTradeAmount = ₹50,000`, `Live Margin = ₹80,000`
-- **Condition Check:** `Live Margin (80,000) >= Per Day Trade Amount (50,000)` $\rightarrow$ **PASS ✅**
-- **Approved Capital:** `clientCapital = ₹50,000`
+- **Inputs:** `perDayTradeAmount = ₹400`, `Live Margin = ₹80,000`
+- **Condition Check:** `Live Margin (80,000) >= Per Day Trade Amount (400)` $\rightarrow$ **PASS ✅**
+- **Capital at Risk:** `capitalAtRisk = perDayTradeAmount = ₹400` *(Direct INR risk allocation per trade)*
 - **Calculations:**
-  - **Capital at Risk:** `₹50,000 × 2% = ₹1,000`
-  - **Entry Price:** **`₹500.00`**
-  - **Stop Loss (2%):** `₹500 - (₹500 × 2%) =` **`₹490.00`** *(SL Points = ₹10.00)*
-  - **Target (4%):** `₹500 + (₹500 × 4%) =` **`₹520.00`** *(Target Points = ₹20.00)*
-  - **Quantity:** `floor(₹1,000 / ₹10) =` **`100 Shares`**
-- **Outcome:** **TRADE EXECUTED** | BUY 100 Shares @ ₹500 | SL @ ₹490 | Target @ ₹520 | Position Size: ₹50,000
+  - **Entry Price:** **`₹338.45`**
+  - **Stop Loss:** **`₹335.05`** *(SL Points = ₹3.40)*
+  - **Quantity:** `floor(₹400 / ₹3.40) =` **`117 Shares`**
+- **Outcome:** **TRADE EXECUTED** | BUY 117 Shares @ ₹338.45 | SL @ ₹335.05
 
 ---
 
