@@ -296,18 +296,18 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
                       filter={isHovered ? (isNegative ? 'url(#barGlowRed)' : 'url(#barGlowGreen)') : undefined}
                     />
 
-                    {/* Reference Floating Tooltip / Callout Pill Badge — rendered for NON-ZERO values */}
-                    {!isZero && (
-                      <g style={{ transition: 'transform 0.2s ease' }}>
-                        {/* White Pill Background */}
+                    {/* Reference Floating Tooltip / Callout Pill Badge — rendered on hover or when hoveredIdx is null and pointsCount <= 12 */}
+                    {!isZero && (isHovered || (hoveredIdx === null && (pointsCount <= 10 || idx === pointsCount - 1))) && (
+                      <g style={{ transition: 'transform 0.2s ease', pointerEvents: 'none' }}>
+                        {/* Pill Background */}
                         <rect
                           x={badgeX}
                           y={badgeY}
                           width={badgeWidth}
                           height={badgeHeight}
                           rx="6"
-                          fill={isHovered ? (isNegative ? '#fff1f2' : '#f0fdfa') : '#ffffff'}
-                          stroke={isHovered ? (isNegative ? '#e11d48' : '#0d9488') : isNegative ? 'rgba(225, 29, 72, 0.25)' : 'rgba(13, 148, 136, 0.25)'}
+                          fill={isHovered ? (isNegative ? '#fff1f2' : '#f0fdfa') : 'var(--bg-white, #ffffff)'}
+                          stroke={isHovered ? (isNegative ? '#e11d48' : '#0d9488') : isNegative ? 'rgba(225, 29, 72, 0.35)' : 'rgba(13, 148, 136, 0.35)'}
                           strokeWidth={isHovered ? '1.5' : '1'}
                           filter="url(#badgeShadow)"
                         />
@@ -318,7 +318,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
                               ? `${xCenter - 4},${badgeY} ${xCenter + 4},${badgeY} ${xCenter},${badgeY - 4}`
                               : `${xCenter - 4},${badgeY + badgeHeight} ${xCenter + 4},${badgeY + badgeHeight} ${xCenter},${badgeY + badgeHeight + 4}`
                           }
-                          fill={isHovered ? (isNegative ? '#fff1f2' : '#f0fdfa') : '#ffffff'}
+                          fill={isHovered ? (isNegative ? '#fff1f2' : '#f0fdfa') : 'var(--bg-white, #ffffff)'}
                         />
                         {/* Value Text */}
                         <text
