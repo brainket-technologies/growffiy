@@ -201,23 +201,112 @@ export default function ClientPerformancePage() {
   const worstTrade = losingTrades.length ? Math.min(...losingTrades.map(t => Number(t.pnl || 0))) : 0;
   const expectancy = totalTradesCount ? totalPnl / totalTradesCount : 0;
 
-  // Real equity curve calculation
-  let pnlHistoryData = [0];
-  let pnlHistoryLabels = ['Start'];
-  if (dateFilteredTrades.length > 0) {
-    let runningSum = 0;
-    const sortedTrades = [...dateFilteredTrades].sort((a, b) => new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime());
-    sortedTrades.forEach((t) => {
-      runningSum += Number(t.pnl || 0);
-      pnlHistoryData.push(runningSum);
-      
-      const date = t.createdAt ? new Date(t.createdAt) : new Date();
-      pnlHistoryLabels.push(date.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
-    });
-  } else {
-    pnlHistoryData = [0];
-    pnlHistoryLabels = ['Start'];
-  }
+  const [pnlPeriod, setPnlPeriod] = useState('Weekly');
+
+  // Dynamic P&L History calculation for Chart (Weekly = Mon-Sun 7 days, Monthly = Weeks of Month, Yearly = 12 months)
+  const { pnlHistoryData, pnlHistoryLabels, chartDateRangeStr } = useMemo(() => {
+    const now = new Date();
+    const getTradePnl = (t: any) => Number(t.pnl || 0);
+
+    if (pnlPeriod === 'Weekly') {
+      const data = [0, 0, 0, 0, 0, 0, 0];
+      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const dayIndex = startOfWeek.getDay();
+      const diffToMon = startOfWeek.getDate() - dayIndex + (dayIndex === 0 ? -6 : 1);
+      startOfWeek.setDate(diffToMon);
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      const labels: string[] = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(startOfWeek);
+        d.setDate(startOfWeek.getDate() + i);
+        const dayStr = String(d.getDate()).padStart(2, '0');
+        labels.push(`${dayNames[i]} ${dayStr}`);
+      }
+
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      endOfWeek.setHours(23, 59, 59, 999);
+
+      dateFilteredTrades.forEach((t) => {
+        const dStr = t.createdAt || t.entryTime;
+        if (!dStr) return;
+        const d = new Date(dStr);
+        if (d >= startOfWeek && d <= endOfWeek) {
+          const day = d.getDay();
+          const targetIdx = day === 0 ? 6 : day - 1;
+          data[targetIdx] += getTradePnl(t);
+        }
+      });
+
+      const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+      return { pnlHistoryData: data, pnlHistoryLabels: labels, chartDateRangeStr: `${fmt(startOfWeek)} - ${fmt(endOfWeek)}` };
+    }
+
+    if (pnlPeriod === 'Monthly') {
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      const labels = ['01-07', '08-14', '15-21', '22-28', `29-${daysInMonth}`];
+      const data = [0, 0, 0, 0, 0];
+
+      dateFilteredTrades.forEach((t) => {
+        const dStr = t.createdAt || t.entryTime;
+        if (!dStr) return;
+        const d = new Date(dStr);
+        if (d.getFullYear() === year && d.getMonth() === month) {
+          const dateNum = d.getDate();
+          let wIdx = 0;
+          if (dateNum <= 7) wIdx = 0;
+          else if (dateNum <= 14) wIdx = 1;
+          else if (dateNum <= 21) wIdx = 2;
+          else if (dateNum <= 28) wIdx = 3;
+          else wIdx = 4;
+
+          data[wIdx] += getTradePnl(t);
+        }
+      });
+
+      const startOfMonth = new Date(year, month, 1);
+      const endOfMonth = new Date(year, month + 1, 0);
+      const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+      return { pnlHistoryData: data, pnlHistoryLabels: labels, chartDateRangeStr: `${fmt(startOfMonth)} - ${fmt(endOfMonth)}` };
+    }
+
+    if (pnlPeriod === 'Yearly') {
+      const year = now.getFullYear();
+      const yrSuffix = String(year).slice(2);
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const labels = monthNames.map((m) => `${m} '${yrSuffix}`);
+      const data = Array(12).fill(0);
+
+      dateFilteredTrades.forEach((t) => {
+        const dStr = t.createdAt || t.entryTime;
+        if (!dStr) return;
+        const d = new Date(dStr);
+        if (d.getFullYear() === year) {
+          const m = d.getMonth();
+          if (m >= 0 && m < 12) {
+            data[m] += getTradePnl(t);
+          }
+        }
+      });
+
+      const startOfYear = new Date(year, 0, 1);
+      const endOfYear = new Date(year, 11, 31);
+      const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+      return { pnlHistoryData: data, pnlHistoryLabels: labels, chartDateRangeStr: `${fmt(startOfYear)} - ${fmt(endOfYear)}` };
+    }
+
+    return {
+      pnlHistoryData: [0, 0],
+      pnlHistoryLabels: ['Start', 'Today'],
+      chartDateRangeStr: ''
+    };
+  }, [dateFilteredTrades, pnlPeriod]);
 
   // Max Drawdown calculation from running equity curve relative to client capital
   let maxDrawdownValue = 0;
@@ -918,18 +1007,25 @@ export default function ClientPerformancePage() {
       {/* Charts & Summary Row */}
       <div className="perf-charts-row" style={{ display: 'grid', gridTemplateColumns: '4.5fr 3.5fr 3fr', gap: '20px' }}>
         {/* P&L Overview (chart) */}
-        <Card style={{ padding: '20px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-md)' }}>
+        <Card style={{ padding: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-md)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-              P&L Overview
-            </h4>
+            <div>
+              <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
+                P&L Overview
+              </h4>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
+                {chartDateRangeStr}
+              </span>
+            </div>
             <select
+              value={pnlPeriod}
+              onChange={(e) => setPnlPeriod(e.target.value)}
               style={{
                 width: '120px',
                 padding: '6px 12px',
                 borderRadius: '8px',
                 border: '1px solid var(--border-color)',
-                fontSize: '11px',
+                fontSize: '12px',
                 fontWeight: 600,
                 outline: 'none',
                 background: 'var(--bg-white)',
@@ -939,8 +1035,9 @@ export default function ClientPerformancePage() {
                 boxShadow: 'var(--shadow-sm)'
               }}
             >
-              <option value="Daily">Daily</option>
-              <option value="Cumulative">Cumulative</option>
+              <option value="Weekly">Weekly</option>
+              <option value="Monthly">Monthly</option>
+              <option value="Yearly">Yearly</option>
             </select>
           </div>
           <PerformanceChart 
@@ -949,7 +1046,7 @@ export default function ClientPerformancePage() {
             strokeColor="var(--primary)"
             fillColorStart="rgba(18, 82, 171, 0.12)"
             fillColorEnd="rgba(18, 82, 171, 0)"
-            height={200}
+            height={280}
           />
         </Card>
 
