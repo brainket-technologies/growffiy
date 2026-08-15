@@ -267,6 +267,35 @@ export default function ClientPerformancePage() {
     setTimeout(() => setCopySuccess(false), 2000);
   };
 
+  // Metric calculation
+  const totalTradesCount = dateFilteredTrades.length;
+  const closedTrades = dateFilteredTrades.filter(t => t.status.toLowerCase() !== 'open');
+  const openTradesCount = dateFilteredTrades.filter(t => t.status.toLowerCase() === 'open').length;
+  
+  const winningTrades = closedTrades.filter(t => Number(t.pnl || 0) > 0);
+  const losingTrades = closedTrades.filter(t => Number(t.pnl || 0) < 0);
+  const breakevenTrades = closedTrades.filter(t => Number(t.pnl || 0) === 0);
+ 
+  const winCount = winningTrades.length;
+  const lossCount = losingTrades.length;
+  const drawCount = breakevenTrades.length + openTradesCount;
+
+  const winRate = closedTrades.length ? (winCount / closedTrades.length) * 100 : 0;
+  const lossRate = closedTrades.length ? (lossCount / closedTrades.length) * 100 : 0;
+  const drawRate = totalTradesCount ? (drawCount / totalTradesCount) * 100 : 0;
+ 
+  const totalPnl = dateFilteredTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
+  const netProfit = winningTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
+  const netLoss = Math.abs(losingTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0));
+
+  const avgProfit = winCount ? netProfit / winCount : 0;
+  const avgLoss = lossCount ? netLoss / lossCount : 0;
+  const profitFactor = netLoss ? netProfit / netLoss : netProfit ? 99.9 : 0;
+
+  const bestTrade = winningTrades.length ? Math.max(...winningTrades.map(t => Number(t.pnl || 0))) : 0;
+  const worstTrade = losingTrades.length ? Math.min(...losingTrades.map(t => Number(t.pnl || 0))) : 0;
+  const expectancy = totalTradesCount ? totalPnl / totalTradesCount : 0;
+
   // Max Drawdown calculation from running equity curve relative to client capital
   let maxDrawdownValue = 0;
   let maxDrawdownPercent = 0;
