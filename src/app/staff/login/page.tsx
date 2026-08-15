@@ -21,7 +21,7 @@ export default function StaffLoginPage() {
       const storedId = localStorage.getItem('growffiy_logged_in_user_id');
       const storedRole = localStorage.getItem('growffiy_logged_in_user_role');
       if (storedId && storedRole === 'staff') {
-        window.location.href = '/staff';
+        window.location.replace('/staff');
         return;
       }
       setCheckingAuth(false);

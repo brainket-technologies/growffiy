@@ -33,13 +33,16 @@ export default function LoginPage() {
       const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
       const activeUserRole = localStorage.getItem('growffiy_logged_in_user_role');
       
-      // If user is logged in, auto navigate to their correct portal dashboard
+      // If user is logged in, auto navigate to their correct portal dashboard without adding login to history stack
       if (activeUser) {
         if (activeUserRole === 'admin') {
-          window.location.href = '/admin';
+          window.location.replace('/admin');
+          return;
+        } else if (activeUserRole === 'staff') {
+          window.location.replace('/staff');
           return;
         } else if (activeUserRole === 'client') {
-          window.location.href = '/clients';
+          window.location.replace('/clients');
           return;
         }
       }
@@ -116,7 +119,7 @@ export default function LoginPage() {
       }
       
       setTimeout(() => {
-        window.location.href = '/clients';
+        window.location.replace('/clients');
       }, 500);
     } catch (err: any) {
       setError(err.message || 'Server error occurred during login');

@@ -29,10 +29,13 @@ export default function AdminLoginPage() {
       const activeUserRole = localStorage.getItem('growffiy_logged_in_user_role');
       if (activeUser) {
         if (activeUserRole === 'admin') {
-          window.location.href = '/admin';
+          window.location.replace('/admin');
+          return;
+        } else if (activeUserRole === 'staff') {
+          window.location.replace('/staff');
           return;
         } else if (activeUserRole === 'client') {
-          window.location.href = '/clients';
+          window.location.replace('/clients');
           return;
         }
       }
@@ -83,7 +86,7 @@ export default function AdminLoginPage() {
       }
       
       setTimeout(() => {
-        window.location.href = '/admin';
+        window.location.replace('/admin');
       }, 500);
     } catch (err: any) {
       setError(err.message || 'Server error occurred during admin login');
