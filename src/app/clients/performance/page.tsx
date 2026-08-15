@@ -111,89 +111,24 @@ export default function ClientPerformancePage() {
     setLoading(false);
   }, [matchedClient?.id, trades, appLoading, activeUser]);
 
-  if (loading || appLoading) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', gap: '16px' }}>
-        <div className="live-dot" style={{ width: '16px', height: '16px', backgroundColor: 'var(--primary)' }}></div>
-        <div style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Loading performance metrics...</div>
-      </div>
-    );
-  }
-
-  if (error || !client) {
-    return (
-      <div style={{ padding: '48px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
-        <div style={{ padding: '16px', borderRadius: '50%', backgroundColor: 'var(--danger-light)', color: 'var(--danger)' }}>
-          <TrendingDown size={36} />
-        </div>
-        <div>
-          <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '8px' }}>Performance Data Unavailable</h3>
-          <p style={{ color: 'var(--text-secondary)', maxWidth: '400px', margin: '0 auto' }}>{error || 'Client details could not be found.'}</p>
-        </div>
-        <Button onClick={() => router.push('/clients')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ArrowLeft size={16} /> Back to Dashboard
-        </Button>
-      </div>
-    );
-  }
-
-  const clientName = client.user?.name || client.name || activeUser?.name || 'Client';
-  const clientEmail = client.user?.email || client.email || activeUser?.email || '--';
-  const clientPhone = client.user?.mobile || '--';
-  const clientCode = client.zerodhaClientId || 'RZJ500';
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(clientCode);
-    setCopySuccess(true);
-    setTimeout(() => setCopySuccess(false), 2000);
-  };
-
   // Filter trades by date range if specified
-  const dateFilteredTrades = clientTrades.filter(t => {
-    if (!t.createdAt) return false;
-    const tDate = new Date(t.createdAt);
-    if (startDate && tDate < startDate) return false;
-    if (endDate) {
-      const endOfDay = new Date(endDate);
-      endOfDay.setHours(23, 59, 59, 999);
-      if (tDate > endOfDay) return false;
-    }
-    return true;
-  });
-
-  // Metric calculation
-  const totalTradesCount = dateFilteredTrades.length;
-  const closedTrades = dateFilteredTrades.filter(t => t.status.toLowerCase() !== 'open');
-  const openTradesCount = dateFilteredTrades.filter(t => t.status.toLowerCase() === 'open').length;
-  
-  const winningTrades = closedTrades.filter(t => Number(t.pnl || 0) > 0);
-  const losingTrades = closedTrades.filter(t => Number(t.pnl || 0) < 0);
-  const breakevenTrades = closedTrades.filter(t => Number(t.pnl || 0) === 0);
- 
-  const winCount = winningTrades.length;
-  const lossCount = losingTrades.length;
-  const drawCount = breakevenTrades.length + openTradesCount;
-
-  const winRate = closedTrades.length ? (winCount / closedTrades.length) * 100 : 0;
-  const lossRate = closedTrades.length ? (lossCount / closedTrades.length) * 100 : 0;
-  const drawRate = totalTradesCount ? (drawCount / totalTradesCount) * 100 : 0;
- 
-  const totalPnl = dateFilteredTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
-  const netProfit = winningTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
-  const netLoss = Math.abs(losingTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0));
-
-  const avgProfit = winCount ? netProfit / winCount : 0;
-  const avgLoss = lossCount ? netLoss / lossCount : 0;
-  const profitFactor = netLoss ? netProfit / netLoss : netProfit ? 99.9 : 0;
-
-  const bestTrade = winningTrades.length ? Math.max(...winningTrades.map(t => Number(t.pnl || 0))) : 0;
-  const worstTrade = losingTrades.length ? Math.min(...losingTrades.map(t => Number(t.pnl || 0))) : 0;
-  const expectancy = totalTradesCount ? totalPnl / totalTradesCount : 0;
+  const dateFilteredTrades = useMemo(() => {
+    return clientTrades.filter(t => {
+      if (!t.createdAt) return false;
+      const tDate = new Date(t.createdAt);
+      if (startDate && tDate < startDate) return false;
+      if (endDate) {
+        const endOfDay = new Date(endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        if (tDate > endOfDay) return false;
+      }
+      return true;
+    });
+  }, [clientTrades, startDate, endDate]);
 
   // Dynamic P&L History calculation for Chart (Weekly = Mon-Sun 7 days, Monthly = Weeks of Month, Yearly = 12 months)
   const { pnlHistoryData, pnlHistoryLabels, chartDateRangeStr } = useMemo(() => {
     const now = new Date();
-
     const getTradePnl = (t: any) => Number(t.pnl || 0);
 
     if (pnlPeriod === 'Weekly') {
@@ -294,6 +229,43 @@ export default function ClientPerformancePage() {
       chartDateRangeStr: ''
     };
   }, [dateFilteredTrades, pnlPeriod]);
+
+  if (loading || appLoading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', gap: '16px' }}>
+        <div className="live-dot" style={{ width: '16px', height: '16px', backgroundColor: 'var(--primary)' }}></div>
+        <div style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Loading performance metrics...</div>
+      </div>
+    );
+  }
+
+  if (error || !client) {
+    return (
+      <div style={{ padding: '48px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+        <div style={{ padding: '16px', borderRadius: '50%', backgroundColor: 'var(--danger-light)', color: 'var(--danger)' }}>
+          <TrendingDown size={36} />
+        </div>
+        <div>
+          <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '8px' }}>Performance Data Unavailable</h3>
+          <p style={{ color: 'var(--text-secondary)', maxWidth: '400px', margin: '0 auto' }}>{error || 'Client details could not be found.'}</p>
+        </div>
+        <Button onClick={() => router.push('/clients')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ArrowLeft size={16} /> Back to Dashboard
+        </Button>
+      </div>
+    );
+  }
+
+  const clientName = client.user?.name || client.name || activeUser?.name || 'Client';
+  const clientEmail = client.user?.email || client.email || activeUser?.email || '--';
+  const clientPhone = client.user?.mobile || '--';
+  const clientCode = client.zerodhaClientId || 'RZJ500';
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(clientCode);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 2000);
+  };
 
   // Max Drawdown calculation from running equity curve relative to client capital
   let maxDrawdownValue = 0;
