@@ -296,8 +296,8 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
                       filter={isHovered ? (isNegative ? 'url(#barGlowRed)' : 'url(#barGlowGreen)') : undefined}
                     />
 
-                    {/* Reference Floating Tooltip / Callout Pill Badge — rendered on hover or when hoveredIdx is null and pointsCount <= 12 */}
-                    {!isZero && (isHovered || (hoveredIdx === null && (pointsCount <= 10 || idx === pointsCount - 1))) && (
+                    {/* Reference Floating Tooltip / Callout Pill Badge — rendered ONLY when bar is hovered */}
+                    {!isZero && isHovered && (
                       <g style={{ transition: 'transform 0.2s ease', pointerEvents: 'none' }}>
                         {/* Pill Background */}
                         <rect
