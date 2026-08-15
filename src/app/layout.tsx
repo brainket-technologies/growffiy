@@ -1,10 +1,25 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import BrandingProvider from "../shared/components/branding/BrandingProvider";
+import PwaRegister from "../shared/components/PwaRegister";
+
+export const viewport: Viewport = {
+  themeColor: "#090d16",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 export const metadata: Metadata = {
   title: "Growffiy | Institutional Algo Trading Platform",
   description: "Advanced automated algorithmic trading platform, client portfolio management, and strategy breakout executor connected with Zerodha Kite API.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Growffiy",
+  },
   icons: {
     icon: "/favicon.ico",
     apple: "/logo.png",
@@ -24,7 +39,10 @@ export default function RootLayout({
         }} />
       </head>
       <body>
-        <BrandingProvider>{children}</BrandingProvider>
+        <BrandingProvider>
+          <PwaRegister />
+          {children}
+        </BrandingProvider>
       </body>
     </html>
   );
