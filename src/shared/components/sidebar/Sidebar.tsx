@@ -715,12 +715,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true, staffPermissio
       >
         {/* Brand */}
         <div className={styles.brand}>
-          <Link href={isAdmin ? '/admin' : staffPermissions ? '/staff' : '/clients'} style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none', color: 'inherit', flex: 1, minWidth: 0 }}>
-            <div className={styles.brandLogo}>
-              {brandLogo ? <img src={brandLogo} alt={brandName} /> : <img src="/logo.png" alt={brandName} style={{ filter: 'brightness(0) invert(1)' }} />}
-            </div>
-            <span className={styles.brandText}>{brandName.toUpperCase()}</span>
-          </Link>
+          <div className={styles.brandLogo}>
+            {brandLogo ? <img src={brandLogo} alt={brandName} /> : <img src="/logo.png" alt={brandName} style={{ filter: 'brightness(0) invert(1)' }} />}
+          </div>
+          <span className={styles.brandText}>{brandName.toUpperCase()}</span>
           {!isMobile && (
             <button
               onClick={toggleCollapsed}
