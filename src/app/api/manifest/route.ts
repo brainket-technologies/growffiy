@@ -18,6 +18,8 @@ export async function GET() {
       short_name: appName,
       description: map.meta_description || 'Advanced automated algorithmic trading platform, client portfolio management, and strategy executor.',
       start_url: '/',
+      scope: '/',
+      id: '/',
       display: 'standalone',
       background_color: '#090d16',
       theme_color: '#090d16',

@@ -3,6 +3,8 @@
   "short_name": "Growffiy",
   "description": "Advanced automated algorithmic trading platform, client portfolio management, and strategy executor.",
   "start_url": "/",
+  "scope": "/",
+  "id": "/",
   "display": "standalone",
   "background_color": "#090d16",
   "theme_color": "#090d16",
