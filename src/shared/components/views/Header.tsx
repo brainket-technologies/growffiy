@@ -100,10 +100,14 @@ export const Header: React.FC<HeaderProps> = ({
       const activeRole = localStorage.getItem('growffiy_logged_in_user_role');
       localStorage.removeItem('growffiy_logged_in_user_id');
       localStorage.removeItem('growffiy_logged_in_user_role');
+      localStorage.removeItem('growffiy_logged_in_user_name');
+      localStorage.removeItem('growffiy_staff_permissions');
       if (activeRole === 'admin') {
-        window.location.href = '/admin/login';
+        window.location.replace('/admin/login');
+      } else if (activeRole === 'staff') {
+        window.location.replace('/staff/login');
       } else {
-        window.location.href = '/login';
+        window.location.replace('/login');
       }
     }
   };

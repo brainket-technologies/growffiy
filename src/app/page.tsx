@@ -27,6 +27,23 @@ interface Stock {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function GrowffiyLanding() {
+  // Auto redirect to user's dashboard if session exists
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
+      const activeUserRole = localStorage.getItem('growffiy_logged_in_user_role');
+      if (activeUser) {
+        if (activeUserRole === 'admin') {
+          window.location.replace('/admin');
+        } else if (activeUserRole === 'staff') {
+          window.location.replace('/staff');
+        } else if (activeUserRole === 'client') {
+          window.location.replace('/clients');
+        }
+      }
+    }
+  }, []);
+
   // Live stock state
   const [stocks, setStocks] = useState<Stock[]>([
     { symbol: 'RELIANCE',   name: 'Reliance Industries', ltp: 2432.85, change: 2.35, chgAmt: 55.80, high: 2450.00, low: 2410.00, volume: '2.5M' },

@@ -571,7 +571,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true, staffPermissio
       localStorage.removeItem('growffiy_logged_in_user_role');
       localStorage.removeItem('growffiy_logged_in_user_name');
       localStorage.removeItem('growffiy_staff_permissions');
-      window.location.href = isAdmin ? '/admin/login' : staffPermissions ? '/staff/login' : '/login';
+      window.location.replace(isAdmin ? '/admin/login' : staffPermissions ? '/staff/login' : '/login');
     }
   }, [isAdmin, staffPermissions]);
   const groups = React.useMemo(() => {
@@ -715,10 +715,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true, staffPermissio
       >
         {/* Brand */}
         <div className={styles.brand}>
-          <div className={styles.brandLogo}>
-            {brandLogo ? <img src={brandLogo} alt={brandName} /> : <img src="/logo.png" alt={brandName} style={{ filter: 'brightness(0) invert(1)' }} />}
-          </div>
-          <span className={styles.brandText}>{brandName.toUpperCase()}</span>
+          <Link href={isAdmin ? '/admin' : staffPermissions ? '/staff' : '/clients'} style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none', color: 'inherit', flex: 1, minWidth: 0 }}>
+            <div className={styles.brandLogo}>
+              {brandLogo ? <img src={brandLogo} alt={brandName} /> : <img src="/logo.png" alt={brandName} style={{ filter: 'brightness(0) invert(1)' }} />}
+            </div>
+            <span className={styles.brandText}>{brandName.toUpperCase()}</span>
+          </Link>
           {!isMobile && (
             <button
               onClick={toggleCollapsed}
