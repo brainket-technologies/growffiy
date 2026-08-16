@@ -398,69 +398,45 @@ export default function ClientDashboardOverview() {
     const now = new Date();
 
     if (performancePeriod === 'Weekly') {
-      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const dayIndex = startOfWeek.getDay();
-      const diffToMon = startOfWeek.getDate() - dayIndex + (dayIndex === 0 ? -6 : 1);
-      startOfWeek.setDate(diffToMon);
-      startOfWeek.setHours(0, 0, 0, 0);
+      const data = [0, 0, 0, 0, 0, 0, 0];
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const labels: string[] = [];
 
-      const daysData: number[] = [0, 0, 0, 0, 0, 0, 0];
-      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      const daysLabels: string[] = [];
-
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(startOfWeek);
-        d.setDate(startOfWeek.getDate() + i);
-        daysLabels.push(`${dayNames[i]} ${d.getDate()}`);
+      const dates: Date[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        d.setHours(0, 0, 0, 0);
+        dates.push(d);
+        const dayName = dayNames[d.getDay()];
+        const dayNum = String(d.getDate()).padStart(2, '0');
+        labels.push(`${dayName} ${dayNum}`);
       }
 
       rawClientTrades.forEach(t => {
         const dStr = t.createdAt || t.entryTime || t.exitTime;
         if (!dStr) return;
         const d = new Date(dStr);
-        if (d >= startOfWeek) {
-          const diffDays = Math.floor((d.getTime() - startOfWeek.getTime()) / (1000 * 60 * 60 * 24));
-          if (diffDays >= 0 && diffDays < 7) {
-            daysData[diffDays] += getTradePnl(t);
-          }
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const dateYMD = `${year}-${month}-${day}`;
+
+        const idx = dates.findIndex(dt => {
+          const dtY = dt.getFullYear();
+          const dtM = String(dt.getMonth() + 1).padStart(2, '0');
+          const dtD = String(dt.getDate()).padStart(2, '0');
+          return `${dtY}-${dtM}-${dtD}` === dateYMD;
+        });
+        if (idx !== -1) {
+          data[idx] += getTradePnl(t);
         }
       });
 
-      return { clientPnlData: daysData, clientPnlLabels: daysLabels };
+      return { clientPnlData: data, clientPnlLabels: labels };
     }
 
     if (performancePeriod === 'Monthly') {
-      const year = now.getFullYear();
-      const month = now.getMonth();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-      const weeksData = [0, 0, 0, 0, 0];
-      const weeksLabels = [
-        '01-07',
-        '08-14',
-        '15-21',
-        '22-28',
-        `29-${daysInMonth}`
-      ];
-
-      rawClientTrades.forEach(t => {
-        const dStr = t.createdAt || t.entryTime || t.exitTime;
-        if (!dStr) return;
-        const d = new Date(dStr);
-        if (d.getFullYear() === year && d.getMonth() === month) {
-          const dateNum = d.getDate();
-          if (dateNum >= 1 && dateNum <= 7) weeksData[0] += getTradePnl(t);
-          else if (dateNum >= 8 && dateNum <= 14) weeksData[1] += getTradePnl(t);
-          else if (dateNum >= 15 && dateNum <= 21) weeksData[2] += getTradePnl(t);
-          else if (dateNum >= 22 && dateNum <= 28) weeksData[3] += getTradePnl(t);
-          else if (dateNum >= 29) weeksData[4] += getTradePnl(t);
-        }
-      });
-
-      return { clientPnlData: weeksData, clientPnlLabels: weeksLabels };
-    }
-
-    if (performancePeriod === 'Yearly') {
       const year = now.getFullYear();
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const monthsData = new Array(12).fill(0);
@@ -479,6 +455,25 @@ export default function ClientDashboardOverview() {
       return { clientPnlData: monthsData, clientPnlLabels: monthsLabels };
     }
 
+    if (performancePeriod === 'Yearly') {
+      const years = [2024, 2025, 2026];
+      const labels = years.map(String);
+      const data = Array(years.length).fill(0);
+
+      rawClientTrades.forEach(t => {
+        const dStr = t.createdAt || t.entryTime || t.exitTime;
+        if (!dStr) return;
+        const d = new Date(dStr);
+        const y = d.getFullYear();
+        const yIdx = years.indexOf(y);
+        if (yIdx !== -1) {
+          data[yIdx] += getTradePnl(t);
+        }
+      });
+
+      return { clientPnlData: data, clientPnlLabels: labels };
+    }
+
     return { clientPnlData: [0], clientPnlLabels: ['Start'] };
   }, [rawClientTrades, performancePeriod]);
 
@@ -488,23 +483,22 @@ export default function ClientDashboardOverview() {
     const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 
     if (performancePeriod === 'Weekly') {
-      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const dayIndex = startOfWeek.getDay();
-      const diffToMon = startOfWeek.getDate() - dayIndex + (dayIndex === 0 ? -6 : 1);
-      startOfWeek.setDate(diffToMon);
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6);
-      return `${fmt(startOfWeek)} - ${fmt(endOfWeek)}`;
+      const dates: Date[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        dates.push(d);
+      }
+      return `${fmt(dates[0])} - ${fmt(dates[6])}`;
     }
     if (performancePeriod === 'Monthly') {
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      return `${fmt(startOfMonth)} - ${fmt(endOfMonth)}`;
+      const year = now.getFullYear();
+      const startOfYear = new Date(year, 0, 1);
+      const endOfYear = new Date(year, 11, 31);
+      return `${fmt(startOfYear)} - ${fmt(endOfYear)}`;
     }
     if (performancePeriod === 'Yearly') {
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
-      const endOfYear = new Date(now.getFullYear(), 11, 31);
-      return `${fmt(startOfYear)} - ${fmt(endOfYear)}`;
+      return '2024 - 2026';
     }
     return '';
   }, [performancePeriod]);
@@ -515,54 +509,46 @@ export default function ClientDashboardOverview() {
     const { index } = selectedBarModal;
 
     if (performancePeriod === 'Weekly') {
-      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const dayIndex = startOfWeek.getDay();
-      const diffToMon = startOfWeek.getDate() - dayIndex + (dayIndex === 0 ? -6 : 1);
-      startOfWeek.setDate(diffToMon + index);
-      startOfWeek.setHours(0, 0, 0, 0);
+      const dates: Date[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        d.setHours(0, 0, 0, 0);
+        dates.push(d);
+      }
+      const targetDate = dates[index];
+      if (!targetDate) return [];
 
-      const endOfDay = new Date(startOfWeek);
+      const startOfDay = new Date(targetDate);
+      const endOfDay = new Date(targetDate);
       endOfDay.setHours(23, 59, 59, 999);
 
       return rawClientTrades.filter(t => {
         const dStr = t.createdAt || t.entryTime || t.exitTime;
         if (!dStr) return false;
         const d = new Date(dStr);
-        return d >= startOfWeek && d <= endOfDay;
+        return d >= startOfDay && d <= endOfDay;
       });
     }
 
     if (performancePeriod === 'Monthly') {
-      const year = now.getFullYear();
-      const month = now.getMonth();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-      let minDay = 1;
-      let maxDay = 7;
-      if (index === 1) { minDay = 8; maxDay = 14; }
-      else if (index === 2) { minDay = 15; maxDay = 21; }
-      else if (index === 3) { minDay = 22; maxDay = 28; }
-      else if (index === 4) { minDay = 29; maxDay = daysInMonth; }
-
-      return rawClientTrades.filter(t => {
-        const dStr = t.createdAt || t.entryTime || t.exitTime;
-        if (!dStr) return false;
-        const d = new Date(dStr);
-        if (d.getFullYear() === year && d.getMonth() === month) {
-          const dateNum = d.getDate();
-          return dateNum >= minDay && dateNum <= maxDay;
-        }
-        return false;
-      });
-    }
-
-    if (performancePeriod === 'Yearly') {
       const year = now.getFullYear();
       return rawClientTrades.filter(t => {
         const dStr = t.createdAt || t.entryTime || t.exitTime;
         if (!dStr) return false;
         const d = new Date(dStr);
         return d.getFullYear() === year && d.getMonth() === index;
+      });
+    }
+
+    if (performancePeriod === 'Yearly') {
+      const years = [2024, 2025, 2026];
+      const targetYear = years[index];
+      return rawClientTrades.filter(t => {
+        const dStr = t.createdAt || t.entryTime || t.exitTime;
+        if (!dStr) return false;
+        const d = new Date(dStr);
+        return d.getFullYear() === targetYear;
       });
     }
 

@@ -250,42 +250,35 @@ export default function AdminDashboard() {
     return val;
   };
 
-  // Dynamic P&L History calculation for Chart (Weekly = Mon-Sun 7 days, Monthly = Weeks of Month, Yearly = 12 months)
+  // Dynamic P&L History calculation for Chart (Weekly = Last 7 Days, Monthly = 12 Months Jan-Dec, Yearly = 2024-2026)
   const { pnlHistoryData, pnlHistoryLabels } = useMemo(() => {
     const now = new Date();
 
     if (pnlPeriod === 'Weekly') {
-      // 7 Days of current week (Mon to Sun) with exact dates
+      // Last 7 days including today
       const data = [0, 0, 0, 0, 0, 0, 0];
-      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-      // Calculate Monday of current week
-      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const dayIndex = startOfWeek.getDay();
-      const diffToMon = startOfWeek.getDate() - dayIndex + (dayIndex === 0 ? -6 : 1);
-      startOfWeek.setDate(diffToMon);
-      startOfWeek.setHours(0, 0, 0, 0);
-
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       const labels: string[] = [];
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(startOfWeek);
-        d.setDate(startOfWeek.getDate() + i);
-        const dayStr = String(d.getDate()).padStart(2, '0');
-        labels.push(`${dayNames[i]} ${dayStr}`);
-      }
 
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6);
-      endOfWeek.setHours(23, 59, 59, 999);
+      const dates: Date[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        d.setHours(0, 0, 0, 0);
+        dates.push(d);
+        const dayName = dayNames[d.getDay()];
+        const dayNum = String(d.getDate()).padStart(2, '0');
+        labels.push(`${dayName} ${dayNum}`);
+      }
 
       trades.forEach(t => {
         const dStr = t.createdAt || t.entryTime;
         if (!dStr) return;
         const d = new Date(dStr);
-        if (d >= startOfWeek && d <= endOfWeek) {
-          const day = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-          const targetIdx = day === 0 ? 6 : day - 1; // Mon=0 ... Sun=6
-          data[targetIdx] += getTradePnl(t);
+        const dateYMD = formatDateToLocalYMD(d);
+        const idx = dates.findIndex(dt => formatDateToLocalYMD(dt) === dateYMD);
+        if (idx !== -1) {
+          data[idx] += getTradePnl(t);
         }
       });
 
@@ -293,41 +286,6 @@ export default function AdminDashboard() {
     }
 
     if (pnlPeriod === 'Monthly') {
-      // Date ranges for weeks of current month (01-07, 08-14, 15-21, 22-28, 29-31)
-      const year = now.getFullYear();
-      const month = now.getMonth();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-      const labels = [
-        '01-07',
-        '08-14',
-        '15-21',
-        '22-28',
-        `29-${daysInMonth}`
-      ];
-      const data = [0, 0, 0, 0, 0];
-
-      trades.forEach(t => {
-        const dStr = t.createdAt || t.entryTime;
-        if (!dStr) return;
-        const d = new Date(dStr);
-        if (d.getFullYear() === year && d.getMonth() === month) {
-          const dateNum = d.getDate();
-          let wIdx = 0;
-          if (dateNum <= 7) wIdx = 0;
-          else if (dateNum <= 14) wIdx = 1;
-          else if (dateNum <= 21) wIdx = 2;
-          else if (dateNum <= 28) wIdx = 3;
-          else wIdx = 4;
-
-          data[wIdx] += getTradePnl(t);
-        }
-      });
-
-      return { pnlHistoryData: data, pnlHistoryLabels: labels };
-    }
-
-    if (pnlPeriod === 'Yearly') {
       // 12 Months of current year (Jan, Feb, Mar ... Dec)
       const year = now.getFullYear();
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -343,6 +301,26 @@ export default function AdminDashboard() {
           if (m >= 0 && m < 12) {
             data[m] += getTradePnl(t);
           }
+        }
+      });
+
+      return { pnlHistoryData: data, pnlHistoryLabels: labels };
+    }
+
+    if (pnlPeriod === 'Yearly') {
+      // Years representation e.g. 2024, 2025, 2026
+      const years = [2024, 2025, 2026];
+      const labels = years.map(String);
+      const data = Array(years.length).fill(0);
+
+      trades.forEach(t => {
+        const dStr = t.createdAt || t.entryTime;
+        if (!dStr) return;
+        const d = new Date(dStr);
+        const y = d.getFullYear();
+        const yIdx = years.indexOf(y);
+        if (yIdx !== -1) {
+          data[yIdx] += getTradePnl(t);
         }
       });
 

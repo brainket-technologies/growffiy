@@ -222,8 +222,8 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
                 let barH: number;
 
                 if (isZero) {
-                  yPos = yZero - 1;
-                  barH = 2;
+                  yPos = yZero - 8;
+                  barH = 16;
                 } else if (isNegative) {
                   yPos = yZero;
                   barH = Math.max(getY(val) - yZero, 6);
@@ -233,31 +233,65 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
                   barH = Math.max(yZero - yVal, 6);
                 }
 
-                const barFill = isZero ? 'var(--border-color, #cbd5e1)' : isNegative ? 'url(#barGradientRed)' : 'url(#barGradientGreen)';
-                const labelColor = isNegative ? '#e11d48' : '#0d9488';
+                // Detect if label indicates a Weekend / Market Off day (Sat or Sun)
+                const currentLabel = labels[idx] || '';
+                const isMarketOff = currentLabel.startsWith('Sat') || currentLabel.startsWith('Sun');
+
+                // Color Coding Matrix:
+                // 1. Profit (> 0): Vibrant Teal Green (#0d9488)
+                // 2. Loss (< 0): Coral Rose Red (#e11d48)
+                // 3. Market Off (Weekend): Soft Lavender Purple (#c084fc / #faf5ff)
+                // 4. No Trade (Weekday): Warm Amber Orange (#f59e0b / #fffbeb)
+                const barFill = isZero 
+                  ? (isMarketOff 
+                      ? (isHovered ? 'rgba(168, 85, 247, 0.35)' : 'rgba(243, 232, 255, 0.95)') 
+                      : (isHovered ? 'rgba(245, 158, 11, 0.35)' : 'rgba(254, 243, 199, 0.95)'))
+                  : isNegative ? 'url(#barGradientRed)' : 'url(#barGradientGreen)';
                 
-                const valText = val > 0 ? `+${val.toFixed(2)}` : val.toFixed(2);
-                const badgeWidth = Math.max(valText.length * 7.5 + 14, 48);
+                const barStroke = isZero 
+                  ? (isMarketOff 
+                      ? (isHovered ? '#a855f7' : '#c084fc') 
+                      : (isHovered ? '#d97706' : '#fcd34d')) 
+                  : undefined;
+                
+                const labelColor = isZero 
+                  ? (isMarketOff ? '#9333ea' : '#b45309') 
+                  : isNegative ? '#e11d48' : '#0d9488';
+                
+                const valText = isZero 
+                  ? (isMarketOff ? 'Market Closed' : 'No Trade Executed') 
+                  : val > 0 ? `+₹${val.toFixed(2)}` : `-₹${Math.abs(val).toFixed(2)}`;
+                
+                const badgeWidth = Math.max(valText.length * 7 + 14, 54);
                 const badgeHeight = 22;
                 const badgeX = xCenter - badgeWidth / 2;
-                const badgeY = isNegative ? yZero + barH + 7 : yPos - 28;
-                const textY = isNegative ? yZero + barH + 22 : yPos - 13;
+                const badgeY = isZero ? yZero - 32 : isNegative ? yZero + barH + 7 : yPos - 28;
+                const textY = isZero ? yZero - 17 : isNegative ? yZero + barH + 22 : yPos - 13;
 
                 const shouldShowDateLabel = idx % labelStep === 0 || idx === pointsCount - 1 || isHovered;
 
                 let barOpacity = 1;
-                if (isZero) barOpacity = 0.3;
+                if (isZero) barOpacity = isHovered ? 1 : 0.85;
                 else if (hoveredIdx !== null && !isHovered) barOpacity = 0.55;
 
                 // Radius R: max 6px
-                const R = Math.min(6, Math.max(barH / 2, 2));
+                const R = isZero ? 4 : Math.min(6, Math.max(barH / 2, 2));
 
-                // SVG Path for asymmetric rounding (Flat at 0 baseline):
-                // Positive bar: top rounded, bottom flat at yZero
-                // Negative bar: top flat at yZero, bottom rounded
                 let barPath: string;
                 if (isZero) {
-                  barPath = `M ${xPos} ${yZero - 1} L ${xPos + barWidth} ${yZero - 1} L ${xPos + barWidth} ${yZero + 1} L ${xPos} ${yZero + 1} Z`;
+                  // Neutral rounded dash pillar for zero trade day
+                  barPath = `
+                    M ${xPos + R} ${yZero - 8}
+                    L ${xPos + barWidth - R} ${yZero - 8}
+                    Q ${xPos + barWidth} ${yZero - 8} ${xPos + barWidth} ${yZero - 8 + R}
+                    L ${xPos + barWidth} ${yZero + 8 - R}
+                    Q ${xPos + barWidth} ${yZero + 8} ${xPos + barWidth - R} ${yZero + 8}
+                    L ${xPos + R} ${yZero + 8}
+                    Q ${xPos} ${yZero + 8} ${xPos} ${yZero + 8 - R}
+                    L ${xPos} ${yZero - 8 + R}
+                    Q ${xPos} ${yZero - 8} ${xPos + R} ${yZero - 8}
+                    Z
+                  `;
                 } else if (isNegative) {
                   barPath = `
                     M ${xPos} ${yZero}
@@ -283,21 +317,24 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
                 return (
                   <g
                     key={idx}
-                    style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
+                    style={{ cursor: isZero ? 'default' : 'pointer', transition: 'all 0.2s ease' }}
                     onMouseEnter={() => setHoveredIdx(idx)}
                     onMouseLeave={() => setHoveredIdx(null)}
-                    onClick={() => onBarClick && onBarClick(idx, labels[idx] || '')}
+                    onClick={() => !isZero && onBarClick && onBarClick(idx, labels[idx] || '')}
                   >
-                    {/* Bar path with flat 0 baseline and rounded cap (Top for green, Bottom for red) */}
+                    {/* Bar path with flat 0 baseline and rounded cap */}
                     <path
                       d={barPath}
                       fill={barFill}
+                      stroke={barStroke}
+                      strokeWidth={isZero ? "1.5" : undefined}
+                      strokeDasharray={isZero ? "3 2" : undefined}
                       opacity={barOpacity}
-                      filter={isHovered ? (isNegative ? 'url(#barGlowRed)' : 'url(#barGlowGreen)') : undefined}
+                      filter={isHovered ? (isZero ? undefined : isNegative ? 'url(#barGlowRed)' : 'url(#barGlowGreen)') : undefined}
                     />
 
-                    {/* Reference Floating Tooltip / Callout Pill Badge — rendered ONLY when bar is hovered */}
-                    {!isZero && isHovered && (
+                    {/* Reference Floating Tooltip / Callout Pill Badge — rendered when bar is hovered */}
+                    {isHovered && (
                       <g style={{ transition: 'transform 0.2s ease', pointerEvents: 'none' }}>
                         {/* Pill Background */}
                         <rect
@@ -306,25 +343,25 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
                           width={badgeWidth}
                           height={badgeHeight}
                           rx="6"
-                          fill={isHovered ? (isNegative ? '#fff1f2' : '#f0fdfa') : 'var(--bg-white, #ffffff)'}
-                          stroke={isHovered ? (isNegative ? '#e11d48' : '#0d9488') : isNegative ? 'rgba(225, 29, 72, 0.35)' : 'rgba(13, 148, 136, 0.35)'}
-                          strokeWidth={isHovered ? '1.5' : '1'}
+                          fill={isZero ? (isMarketOff ? '#faf5ff' : '#fffbeb') : isNegative ? '#fff1f2' : '#f0fdfa'}
+                          stroke={isZero ? (isMarketOff ? '#c084fc' : '#fcd34d') : isNegative ? '#e11d48' : '#0d9488'}
+                          strokeWidth="1.5"
                           filter="url(#badgeShadow)"
                         />
                         {/* Callout Arrow pointer */}
                         <polygon
                           points={
-                            isNegative
-                              ? `${xCenter - 4},${badgeY} ${xCenter + 4},${badgeY} ${xCenter},${badgeY - 4}`
-                              : `${xCenter - 4},${badgeY + badgeHeight} ${xCenter + 4},${badgeY + badgeHeight} ${xCenter},${badgeY + badgeHeight + 4}`
+                            isZero || !isNegative
+                              ? `${xCenter - 4},${badgeY + badgeHeight} ${xCenter + 4},${badgeY + badgeHeight} ${xCenter},${badgeY + badgeHeight + 4}`
+                              : `${xCenter - 4},${badgeY} ${xCenter + 4},${badgeY} ${xCenter},${badgeY - 4}`
                           }
-                          fill={isHovered ? (isNegative ? '#fff1f2' : '#f0fdfa') : 'var(--bg-white, #ffffff)'}
+                          fill={isZero ? (isMarketOff ? '#faf5ff' : '#fffbeb') : isNegative ? '#fff1f2' : '#f0fdfa'}
                         />
                         {/* Value Text */}
                         <text
                           x={xCenter}
                           y={textY}
-                          fontSize={isHovered ? '11' : '10'}
+                          fontSize="10.5"
                           fontWeight="700"
                           fill={labelColor}
                           textAnchor="middle"

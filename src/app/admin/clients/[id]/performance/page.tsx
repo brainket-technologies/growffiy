@@ -61,6 +61,8 @@ export default function ClientPerformancePage() {
   const [error, setError] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState<any | null>(null);
+  const [selectedBarModal, setSelectedBarModal] = useState<{ label: string; index: number } | null>(null);
+  const [modalViewMode, setModalViewMode] = useState<'list' | 'grouped'>('list');
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -145,74 +147,47 @@ export default function ClientPerformancePage() {
 
     if (pnlPeriod === 'Weekly') {
       const data = [0, 0, 0, 0, 0, 0, 0];
-      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const dayIndex = startOfWeek.getDay();
-      const diffToMon = startOfWeek.getDate() - dayIndex + (dayIndex === 0 ? -6 : 1);
-      startOfWeek.setDate(diffToMon);
-      startOfWeek.setHours(0, 0, 0, 0);
-
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       const labels: string[] = [];
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(startOfWeek);
-        d.setDate(startOfWeek.getDate() + i);
-        const dayStr = String(d.getDate()).padStart(2, '0');
-        labels.push(`${dayNames[i]} ${dayStr}`);
-      }
 
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6);
-      endOfWeek.setHours(23, 59, 59, 999);
+      const dates: Date[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        d.setHours(0, 0, 0, 0);
+        dates.push(d);
+        const dayName = dayNames[d.getDay()];
+        const dayNum = String(d.getDate()).padStart(2, '0');
+        labels.push(`${dayName} ${dayNum}`);
+      }
 
       dateFilteredTrades.forEach((t) => {
         const dStr = t.createdAt || t.entryTime;
         if (!dStr) return;
         const d = new Date(dStr);
-        if (d >= startOfWeek && d <= endOfWeek) {
-          const day = d.getDay();
-          const targetIdx = day === 0 ? 6 : day - 1;
-          data[targetIdx] += getTradePnl(t);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const dateYMD = `${year}-${month}-${day}`;
+        
+        const idx = dates.findIndex(dt => {
+          const dtY = dt.getFullYear();
+          const dtM = String(dt.getMonth() + 1).padStart(2, '0');
+          const dtD = String(dt.getDate()).padStart(2, '0');
+          return `${dtY}-${dtM}-${dtD}` === dateYMD;
+        });
+        if (idx !== -1) {
+          data[idx] += getTradePnl(t);
         }
       });
 
       const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-      return { pnlHistoryData: data, pnlHistoryLabels: labels, chartDateRangeStr: `${fmt(startOfWeek)} - ${fmt(endOfWeek)}` };
+      return { pnlHistoryData: data, pnlHistoryLabels: labels, chartDateRangeStr: `${fmt(dates[0])} - ${fmt(dates[6])}` };
     }
 
     if (pnlPeriod === 'Monthly') {
       const year = now.getFullYear();
       const month = now.getMonth();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-      const labels = ['01-07', '08-14', '15-21', '22-28', `29-${daysInMonth}`];
-      const data = [0, 0, 0, 0, 0];
-
-      dateFilteredTrades.forEach((t) => {
-        const dStr = t.createdAt || t.entryTime;
-        if (!dStr) return;
-        const d = new Date(dStr);
-        if (d.getFullYear() === year && d.getMonth() === month) {
-          const dateNum = d.getDate();
-          let wIdx = 0;
-          if (dateNum <= 7) wIdx = 0;
-          else if (dateNum <= 14) wIdx = 1;
-          else if (dateNum <= 21) wIdx = 2;
-          else if (dateNum <= 28) wIdx = 3;
-          else wIdx = 4;
-
-          data[wIdx] += getTradePnl(t);
-        }
-      });
-
-      const startOfMonth = new Date(year, month, 1);
-      const endOfMonth = new Date(year, month + 1, 0);
-      const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-      return { pnlHistoryData: data, pnlHistoryLabels: labels, chartDateRangeStr: `${fmt(startOfMonth)} - ${fmt(endOfMonth)}` };
-    }
-
-    if (pnlPeriod === 'Yearly') {
-      const year = now.getFullYear();
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const labels = [...monthNames];
       const data = Array(12).fill(0);
@@ -233,6 +208,25 @@ export default function ClientPerformancePage() {
       const endOfYear = new Date(year, 11, 31);
       const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
       return { pnlHistoryData: data, pnlHistoryLabels: labels, chartDateRangeStr: `${fmt(startOfYear)} - ${fmt(endOfYear)}` };
+    }
+
+    if (pnlPeriod === 'Yearly') {
+      const years = [2024, 2025, 2026];
+      const labels = years.map(String);
+      const data = Array(years.length).fill(0);
+
+      dateFilteredTrades.forEach((t) => {
+        const dStr = t.createdAt || t.entryTime;
+        if (!dStr) return;
+        const d = new Date(dStr);
+        const y = d.getFullYear();
+        const yIdx = years.indexOf(y);
+        if (yIdx !== -1) {
+          data[yIdx] += getTradePnl(t);
+        }
+      });
+
+      return { pnlHistoryData: data, pnlHistoryLabels: labels, chartDateRangeStr: '2024 - 2026' };
     }
 
     return {
@@ -1047,6 +1041,7 @@ export default function ClientPerformancePage() {
             fillColorStart="rgba(18, 82, 171, 0.12)"
             fillColorEnd="rgba(18, 82, 171, 0)"
             height={280}
+            onBarClick={(index, label) => setSelectedBarModal({ index, label })}
           />
         </Card>
 
@@ -1432,6 +1427,243 @@ export default function ClientPerformancePage() {
           </div>
         </div>
       </Card>
+
+      {/* Trade Details / Order Execution Modal */}
+      {selectedTrade && (
+        <Modal 
+          isOpen={!!selectedTrade} 
+          onClose={() => setSelectedTrade(null)} 
+          title="Order Execution details"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            <div className="trade-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Symbol</span>
+                <strong style={{ fontSize: '15px' }}>{selectedTrade.symbol}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Strategy</span>
+                <strong style={{ fontSize: '13px' }}>{selectedTrade.strategy?.name || selectedTrade.strategyName || 'Pre-Open Momentum'}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Price</span>
+                <strong>₹{Number(selectedTrade.entryPrice || 0).toFixed(2)}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Exit Price</span>
+                <strong>{selectedTrade.exitPrice ? `₹${Number(selectedTrade.exitPrice).toFixed(2)}` : '--'}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Quantity</span>
+                <strong>{selectedTrade.quantity || 0}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>P&L</span>
+                <strong style={{ color: Number(selectedTrade.pnl || 0) >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                  {Number(selectedTrade.pnl || 0) >= 0 ? `+₹${Number(selectedTrade.pnl || 0).toFixed(2)}` : `-₹${Math.abs(Number(selectedTrade.pnl || 0)).toFixed(2)}`}
+                </strong>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button onClick={() => setSelectedTrade(null)}>Close</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Bar Click Trade Breakdown Modal */}
+      {selectedBarModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.45)',
+          backdropFilter: 'blur(5px)',
+          WebkitBackdropFilter: 'blur(5px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1100,
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div style={{
+            backgroundColor: 'var(--bg-card, #ffffff)',
+            borderRadius: '16px',
+            width: '92%',
+            maxWidth: '850px',
+            maxHeight: '85vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: 'var(--shadow-xl)',
+            border: '1px solid var(--border)',
+            overflow: 'hidden'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '18px 24px',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: 'var(--surface)'
+            }}>
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
+                  📊 Trade Executions for {selectedBarModal.label}
+                </h3>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Showing executed trade legs and P&L details for selected bar period.
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  onClick={() => setSelectedBarModal(null)}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    border: 'none',
+                    backgroundColor: 'rgba(0,0,0,0.06)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--text-muted)',
+                    fontSize: '16px',
+                    fontWeight: 700
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1, minHeight: '300px' }}>
+              {(() => {
+                const now = new Date();
+                const { index } = selectedBarModal;
+                let filtered: any[] = [];
+
+                if (pnlPeriod === 'Weekly') {
+                  const dates: Date[] = [];
+                  for (let i = 6; i >= 0; i--) {
+                    const d = new Date(now);
+                    d.setDate(now.getDate() - i);
+                    d.setHours(0, 0, 0, 0);
+                    dates.push(d);
+                  }
+                  const targetDate = dates[index];
+                  if (targetDate) {
+                    const startOfDay = new Date(targetDate);
+                    const endOfDay = new Date(targetDate);
+                    endOfDay.setHours(23, 59, 59, 999);
+                    filtered = dateFilteredTrades.filter(t => {
+                      const dStr = t.createdAt || t.entryTime;
+                      if (!dStr) return false;
+                      const d = new Date(dStr);
+                      return d >= startOfDay && d <= endOfDay;
+                    });
+                  }
+                } else if (pnlPeriod === 'Monthly') {
+                  const year = now.getFullYear();
+                  filtered = dateFilteredTrades.filter(t => {
+                    const dStr = t.createdAt || t.entryTime;
+                    if (!dStr) return false;
+                    const d = new Date(dStr);
+                    return d.getFullYear() === year && d.getMonth() === index;
+                  });
+                } else if (pnlPeriod === 'Yearly') {
+                  const years = [2024, 2025, 2026];
+                  const targetYear = years[index];
+                  filtered = dateFilteredTrades.filter(t => {
+                    const dStr = t.createdAt || t.entryTime;
+                    if (!dStr) return false;
+                    const d = new Date(dStr);
+                    return d.getFullYear() === targetYear;
+                  });
+                }
+
+                if (filtered.length === 0) {
+                  return (
+                    <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+                      <p style={{ fontSize: '14px', fontWeight: 500 }}>No executed trade transactions recorded for {selectedBarModal.label}.</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1.5px solid var(--border)', textAlign: 'left', color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle)' }}>
+                        <th style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>Strategy / Symbol</th>
+                        <th style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>Direction</th>
+                        <th style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>Qty</th>
+                        <th style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>Entry</th>
+                        <th style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>Exit</th>
+                        <th style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>P&L (₹)</th>
+                        <th style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map((t: any, idx: number) => {
+                        const pnlVal = Number(t.pnl || 0);
+                        const isPos = pnlVal >= 0;
+                        const isShort = (t.direction || 'LONG').toUpperCase() === 'SHORT';
+
+                        return (
+                          <tr key={t.id || idx} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.15s ease' }}>
+                            <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text-heading)', whiteSpace: 'nowrap' }}>
+                              {t.strategy?.name || t.strategyName || t.symbol || 'Strategy'}
+                              <span style={{ display: 'block', fontSize: '11px', fontWeight: 400, color: 'var(--text-muted)' }}>
+                                ⏰ {formatDateTime(t.createdAt || t.entryTime)}
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
+                              <span style={{
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                backgroundColor: isShort ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                                color: isShort ? '#ef4444' : '#10b981'
+                              }}>
+                                {isShort ? 'SELL / SHORT' : 'BUY / LONG'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px 14px', fontWeight: 600, whiteSpace: 'nowrap' }}>{t.quantity || 1}</td>
+                            <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>₹{Number(t.entryPrice || 0).toFixed(2)}</td>
+                            <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>₹{Number(t.exitPrice || 0).toFixed(2)}</td>
+                            <td style={{ padding: '12px 14px', fontWeight: 700, color: isPos ? '#10b981' : '#ef4444', whiteSpace: 'nowrap' }}>
+                              {isPos ? `+₹${pnlVal.toFixed(2)}` : `-₹${Math.abs(pnlVal).toFixed(2)}`}
+                            </td>
+                            <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
+                              <span style={{
+                                padding: '3px 8px',
+                                borderRadius: '12px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                backgroundColor: isPos ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                                color: isPos ? '#10b981' : '#ef4444'
+                              }}>
+                                {isPos ? 'PROFIT' : 'LOSS'}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Trade Details / Failure Reason Modal */}
       <Modal 
