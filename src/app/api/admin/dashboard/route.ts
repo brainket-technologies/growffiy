@@ -99,8 +99,8 @@ export async function GET(request: Request) {
 
     const sanitizedTrades = filteredTrades.map(t => ({
       ...t,
-      clientName: t.client?.user?.name || t.client?.clientCode || (t.clientId ? `Client #${t.clientId.slice(-4)}` : 'Client'),
-      clientCode: t.client?.clientCode || (t.clientId ? `CLI-${t.clientId.slice(-4).toUpperCase()}` : undefined),
+      clientName: t.client?.user?.name || (t.clientId ? `Client #${t.clientId.slice(-4)}` : 'Client'),
+      clientCode: t.clientId ? `CLI-${t.clientId.slice(-4).toUpperCase()}` : undefined,
       strategyName: t.strategy?.name || t.symbol
     }));
 

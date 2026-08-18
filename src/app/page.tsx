@@ -724,7 +724,7 @@ export default function GrowffiyLanding() {
         </div>
       </section>
 
-      {/* STATS STRIP BELOW HERO CONTENT */}
+      {/* STATS STRIP BELOW HERO CONTENT (COMMENTED OUT)
       <div style={{
         background: '#ffffff',
         padding: '50px 0',
@@ -740,7 +740,6 @@ export default function GrowffiyLanding() {
           gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
           gap: '24px'
         }}>
-          {/* Card 1 */}
           <div style={{
             background: '#ffffff',
             border: '1px solid rgba(226, 232, 240, 0.6)',
@@ -760,7 +759,6 @@ export default function GrowffiyLanding() {
             </div>
           </div>
 
-          {/* Card 2 */}
           <div style={{
             background: '#ffffff',
             border: '1px solid rgba(226, 232, 240, 0.6)',
@@ -780,7 +778,6 @@ export default function GrowffiyLanding() {
             </div>
           </div>
 
-          {/* Card 3 */}
           <div style={{
             background: '#ffffff',
             border: '1px solid rgba(226, 232, 240, 0.6)',
@@ -800,7 +797,6 @@ export default function GrowffiyLanding() {
             </div>
           </div>
 
-          {/* Card 4 */}
           <div style={{
             background: '#ffffff',
             border: '1px solid rgba(226, 232, 240, 0.6)',
@@ -821,6 +817,7 @@ export default function GrowffiyLanding() {
           </div>
         </div>
       </div>
+      */}
 
       {/* ════════════════════════════════════════
           FEATURES SECTION (OUR CORE FEATURES)

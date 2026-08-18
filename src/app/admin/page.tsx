@@ -416,20 +416,18 @@ export default function AdminDashboard() {
     const { index } = selectedBarModal;
 
     if (pnlPeriod === 'Weekly') {
-      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const dayIndex = startOfWeek.getDay();
-      const diffToMon = startOfWeek.getDate() - dayIndex + (dayIndex === 0 ? -6 : 1);
-      startOfWeek.setDate(diffToMon + index);
-      startOfWeek.setHours(0, 0, 0, 0);
+      const targetDate = new Date(now);
+      targetDate.setDate(now.getDate() - (6 - index));
+      targetDate.setHours(0, 0, 0, 0);
 
-      const endOfDay = new Date(startOfWeek);
+      const endOfDay = new Date(targetDate);
       endOfDay.setHours(23, 59, 59, 999);
 
       return trades.filter(t => {
         const dStr = t.createdAt || t.entryTime;
         if (!dStr) return false;
         const d = new Date(dStr);
-        return d >= startOfWeek && d <= endOfDay;
+        return d >= targetDate && d <= endOfDay;
       });
     }
 
@@ -485,15 +483,13 @@ export default function AdminDashboard() {
       let end = endDate;
 
       if (pnlPeriod === 'Weekly') {
-        const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const dayIndex = startOfWeek.getDay();
-        const diffToMon = startOfWeek.getDate() - dayIndex + (dayIndex === 0 ? -6 : 1);
-        startOfWeek.setDate(diffToMon + index);
-        startOfWeek.setHours(0, 0, 0, 0);
+        const targetDate = new Date(now);
+        targetDate.setDate(now.getDate() - (6 - index));
+        targetDate.setHours(0, 0, 0, 0);
 
-        const endOfDay = new Date(startOfWeek);
+        const endOfDay = new Date(targetDate);
         endOfDay.setHours(23, 59, 59, 999);
-        start = startOfWeek;
+        start = targetDate;
         end = endOfDay;
       } else if (pnlPeriod === 'Monthly') {
         const year = now.getFullYear();
@@ -1213,7 +1209,7 @@ export default function AdminDashboard() {
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                justify: 'center',
+                justifyContent: 'center',
                 gap: '6px',
                 transition: 'all 0.15s ease'
               }}
@@ -1236,7 +1232,7 @@ export default function AdminDashboard() {
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                justify: 'center',
+                justifyContent: 'center',
                 gap: '6px',
                 transition: 'all 0.15s ease'
               }}

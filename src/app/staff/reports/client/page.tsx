@@ -33,22 +33,38 @@ export default function ClientReportPage() {
   }, []);
 
   const clientStats = useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+
     return clients.map((client) => {
       const clientTrades = trades.filter((t) => t && (t.clientId === client.id || t.clientName === client.user?.name));
       const totalPnl = clientTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
+      const todayPnl = clientTrades.reduce((sum, t) => {
+        const dStr = t.createdAt || t.entryTime || t.exitTime;
+        if (!dStr) return sum;
+        const d = new Date(dStr);
+        if (d >= startOfToday) {
+          return sum + Number(t.pnl || 0);
+        }
+        return sum;
+      }, 0);
+      const capital = Number(client.capital || 0);
+      const totalPnlPercent = capital > 0 ? (totalPnl / capital) * 100 : 0;
       const openTrades = clientTrades.filter((t) => t.status?.toLowerCase() === 'open').length;
 
       return {
         id: client.id,
         name: client.user?.name || 'Unknown Client',
         email: client.user?.email || '',
-        capital: Number(client.capital || 0),
+        capital,
         strategyName: client.strategy?.name || 'None Assigned',
         tradingStatus: client.tradingStatus || 'inactive',
         subscriptionStatus: client.subscriptionStatus || 'pending',
         totalTrades: clientTrades.length,
         openTrades,
         totalPnl,
+        todayPnl,
+        totalPnlPercent,
       };
     });
   }, [clients, trades]);
@@ -70,6 +86,7 @@ export default function ClientReportPage() {
     list.sort((a, b) => {
       if (sortBy === 'name') return a.name.localeCompare(b.name);
       if (sortBy === 'capital') return b.capital - a.capital;
+      if (sortBy === 'todayPnl') return b.todayPnl - a.todayPnl;
       if (sortBy === 'pnl') return b.totalPnl - a.totalPnl;
       if (sortBy === 'trades') return b.totalTrades - a.totalTrades;
       return 0;
@@ -83,10 +100,10 @@ export default function ClientReportPage() {
   const paginatedList = filteredList.slice(startIndex, startIndex + pageSize);
 
   const handleExportCSV = () => {
-    const headers = ['Client Name', 'Email', 'Capital Deployed', 'Strategy', 'Total Trades', 'Active Trades', 'Net P&L (INR)', 'Trading Status', 'Subscription Status'];
+    const headers = ['Client Name', 'Email', 'Capital Deployed', 'Strategy', 'Total Trades', 'Active Trades', 'Today P&L (INR)', 'Net P&L (INR)', 'Trading Status', 'Subscription Status'];
     const rows = filteredList.map(c => [
       c.name, c.email, c.capital.toFixed(2), c.strategyName,
-      c.totalTrades, c.openTrades, c.totalPnl.toFixed(2),
+      c.totalTrades, c.openTrades, c.todayPnl.toFixed(2), c.totalPnl.toFixed(2),
       c.tradingStatus.toUpperCase(), c.subscriptionStatus.toUpperCase()
     ]);
     const csvContent = [headers.join(','), ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))].join('\n');
@@ -253,7 +270,8 @@ export default function ClientReportPage() {
             style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'var(--bg-white)', flex: '1 1 120px', minWidth: '100px' }}>
             <option value="name">Sort by Name</option>
             <option value="capital">Sort by Capital</option>
-            <option value="pnl">Sort by P&L</option>
+            <option value="todayPnl">Sort by Today P&L</option>
+            <option value="pnl">Sort by Net P&L</option>
             <option value="trades">Sort by Trades</option>
           </select>
         </div>
@@ -265,16 +283,18 @@ export default function ClientReportPage() {
                 <th>Client Name</th>
                 <th>Capital Deployed</th>
                 <th>Assigned Strategy</th>
-                <th>Total / Active Orders</th>
+                <th style={{ width: '110px', textAlign: 'center' }}>Orders (Tot/Act)</th>
                 <th>Status</th>
                 <th>Subscription</th>
+                <th>Today P&L (INR)</th>
                 <th>Net P&L (INR)</th>
+                <th>Net P&L (%)</th>
               </tr>
             </thead>
             <tbody>
               {paginatedList.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
                     {searchQuery || statusFilter !== 'all' || subscriptionFilter !== 'all'
                       ? 'No clients match the selected filters.'
                       : 'No client records found.'}
@@ -293,7 +313,7 @@ export default function ClientReportPage() {
                       ₹{c.capital.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
                     <td>{c.strategyName}</td>
-                    <td>{c.totalTrades} / {c.openTrades}</td>
+                    <td style={{ textAlign: 'center' }}>{c.totalTrades} / {c.openTrades}</td>
                     <td>
                       <span className={`badge ${c.tradingStatus === 'active' ? 'badge-success' : c.tradingStatus === 'suspended' ? 'badge-warning' : 'badge-danger'}`}>
                         {c.tradingStatus.toUpperCase()}
@@ -304,8 +324,20 @@ export default function ClientReportPage() {
                         {c.subscriptionStatus.toUpperCase()}
                       </span>
                     </td>
-                    <td style={{ fontWeight: 700, color: c.totalPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                      {c.totalPnl >= 0 ? '+' : ''}₹{c.totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    <td style={{ fontWeight: 700 }}>
+                      <span style={{ color: c.todayPnl > 0 ? '#16a34a' : c.todayPnl < 0 ? '#ef4444' : 'var(--text-secondary)', fontWeight: 700 }}>
+                        {c.todayPnl > 0 ? `+₹${c.todayPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : c.todayPnl < 0 ? `-₹${Math.abs(c.todayPnl).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : `+₹0.00`}
+                      </span>
+                    </td>
+                    <td style={{ fontWeight: 700 }}>
+                      <span style={{ color: c.totalPnl > 0 ? '#16a34a' : c.totalPnl < 0 ? '#ef4444' : 'var(--text-secondary)', fontWeight: 700 }}>
+                        {c.totalPnl > 0 ? `+₹${c.totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : c.totalPnl < 0 ? `-₹${Math.abs(c.totalPnl).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : `+₹0.00`}
+                      </span>
+                    </td>
+                    <td style={{ fontWeight: 700 }}>
+                      <span style={{ color: c.totalPnlPercent > 0 ? '#16a34a' : c.totalPnlPercent < 0 ? '#ef4444' : 'var(--text-secondary)', fontWeight: 700 }}>
+                        {c.totalPnlPercent > 0 ? `+${c.totalPnlPercent.toFixed(2)}%` : c.totalPnlPercent < 0 ? `${c.totalPnlPercent.toFixed(2)}%` : `0.00%`}
+                      </span>
                     </td>
                   </tr>
                 ))

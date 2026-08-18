@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '../../../shared/components/views/Card';
 import { Modal } from '../../../shared/components/views/Modal';
 import { Button } from '../../../shared/components/views/Button';
-import { Star, RefreshCw, Plus, Edit2, Trash2, CheckCircle, XCircle, Search, Filter, MessageSquare, Award } from 'lucide-react';
+import { Star, RefreshCw, Plus, Edit2, Trash2, CheckCircle, XCircle, Search, Filter, MessageSquare, Award, Upload } from 'lucide-react';
 import { api } from '../../../shared/services/api';
 
 interface Testimonial {
@@ -69,9 +69,9 @@ export default function AdminTestimonialsPage() {
     setName('');
     setRole('');
     setLocation('');
-    setAvatar('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&h=120&q=80');
+    setAvatar('');
     setRating(5);
-    setStat('+38.4% PnL');
+    setStat('');
     setText('');
     setStatus('active');
     setIsModalOpen(true);
@@ -545,10 +545,88 @@ export default function AdminTestimonialsPage() {
           </div>
 
           <div>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Avatar Image URL</label>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
+              Avatar Image (Upload File or Paste Image URL)
+            </label>
+
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '10px' }}>
+              {/* Avatar Preview */}
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                {avatar ? (
+                  <img src={avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <span style={{ fontSize: '18px', color: 'var(--text-subtle)' }}>👤</span>
+                )}
+              </div>
+
+              {/* Upload Button */}
+              <label style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '9px 14px',
+                borderRadius: '8px',
+                background: 'var(--primary)',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}>
+                <Upload size={14} />
+                Upload Image File
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (!file.type.startsWith('image/')) return;
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        if (reader.result) setAvatar(reader.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+              </label>
+
+              {avatar && (
+                <button
+                  type="button"
+                  onClick={() => setAvatar('')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--danger)',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: '4px 8px'
+                  }}
+                >
+                  Clear Image
+                </button>
+              )}
+            </div>
+
+            {/* Full-width Image URL input */}
             <input
               type="text"
-              placeholder="https://..."
+              placeholder="Or paste full image URL (https://...)"
               value={avatar}
               onChange={(e) => setAvatar(e.target.value)}
               style={{
@@ -557,7 +635,8 @@ export default function AdminTestimonialsPage() {
                 borderRadius: '8px',
                 border: '1px solid var(--border-color)',
                 outline: 'none',
-                fontSize: '13px',
+                fontSize: '12px',
+                fontFamily: 'monospace',
                 background: 'var(--bg-card)',
                 color: 'var(--text-primary)'
               }}

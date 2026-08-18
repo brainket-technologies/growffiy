@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [brandLogo, setBrandLogo] = useState('');
   const [brandName, setBrandName] = useState('Growffiy');
+  const [heroSubtitle, setHeroSubtitle] = useState('Connect your Zerodha Kite API and let our pre-open momentum engine execute disciplined, risk-managed trades while you focus on what matters.');
 
   // Forgot Password States
   const [view, setView] = useState<'login' | 'forgot'>('login');
@@ -61,13 +62,24 @@ export default function LoginPage() {
     const load = () => {
       setBrandLogo(localStorage.getItem('growffiy_brand_logo') || '');
       setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffiy');
+      setHeroSubtitle(localStorage.getItem('growffiy_hero_subtitle') || 'Connect your Zerodha Kite API and let our pre-open momentum engine execute disciplined, risk-managed trades while you focus on what matters.');
     };
     load();
 
-    api.get(API_ENDPOINTS.SETTINGS).then((res: any) => {
-      if (res.success && res.settings && res.settings.app_name) {
-        setBrandName(res.settings.app_name);
-        if (typeof window !== 'undefined') localStorage.setItem('growffiy_brand_name', res.settings.app_name);
+    fetch(API_ENDPOINTS.SETTINGS_PUBLIC).then(res => res.json()).then((data: any) => {
+      if (data && data.success) {
+        if (data.appName) {
+          setBrandName(data.appName);
+          if (typeof window !== 'undefined') localStorage.setItem('growffiy_brand_name', data.appName);
+        }
+        if (data.appLogo !== undefined) {
+          setBrandLogo(data.appLogo);
+          if (typeof window !== 'undefined') localStorage.setItem('growffiy_brand_logo', data.appLogo);
+        }
+        if (data.heroSubtitle) {
+          setHeroSubtitle(data.heroSubtitle);
+          if (typeof window !== 'undefined') localStorage.setItem('growffiy_hero_subtitle', data.heroSubtitle);
+        }
       }
     }).catch(() => {});
 
@@ -357,7 +369,7 @@ export default function LoginPage() {
             </h1>
 
             <p style={{ fontSize: 15, lineHeight: 1.7, color: '#94a3b8', maxWidth: 420, marginBottom: 40 }}>
-              Connect your Zerodha Kite API and let our pre-open momentum engine execute disciplined, risk-managed trades while you focus on what matters.
+              {heroSubtitle}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -451,7 +463,7 @@ export default function LoginPage() {
                     fontSize: 26, fontWeight: 800, color: 'var(--text-heading)',
                     fontFamily: 'Outfit, sans-serif', marginBottom: 8,
                   }}>
-                    Welcome to Growffiy
+                    Welcome to {brandName}
                   </h2>
                   <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                     Sign in to access your algorithmic trading dashboard.

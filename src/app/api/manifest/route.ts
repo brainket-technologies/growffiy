@@ -6,7 +6,7 @@ export async function GET() {
     const dbSettings = await prisma.appSettings.findMany();
     const map: Record<string, string> = {};
     dbSettings.forEach((s) => {
-      map[s.key] = s.value;
+      map[s.settingKey] = s.settingValue;
     });
 
     const appName = map.app_name || 'Growffiy';

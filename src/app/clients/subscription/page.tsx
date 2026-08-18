@@ -94,12 +94,15 @@ export default function ClientSubscriptionPlans() {
         throw new Error(orderData.error || 'Failed to initialize payment order.');
       }
 
-      // 3. Trigger Razorpay checkout form
+      const brandName = settingsData.appName || (typeof window !== 'undefined' ? localStorage.getItem('growffiy_brand_name') : null) || 'Growffiy';
+      const brandLogo = settingsData.appLogo || (typeof window !== 'undefined' ? localStorage.getItem('growffiy_brand_logo') : null) || undefined;
+
       const options = {
         key: settingsData.razorpayKeyId,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: 'Growffiy',
+        name: brandName,
+        image: brandLogo,
         description: `${plan.name} Subscription`,
         order_id: orderData.orderId,
         prefill: {
@@ -107,7 +110,7 @@ export default function ClientSubscriptionPlans() {
           email: activeUser.email || '',
         },
         theme: {
-          color: '#1E88FF' // Match primary color
+          color: '#1252AB'
         },
         handler: async function (response: any) {
           try {
