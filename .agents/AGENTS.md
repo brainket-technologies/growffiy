@@ -109,7 +109,7 @@ prisma/
 |--------|-------------|-------------------|---------|
 | **Janvi** | 🧪 TESTING | `growffi.com` (Hostinger) | Testing & verification only |
 | **Ashutosh** | 🔴 PRODUCTION | `66.116.245.44` (`growffi.in`) | Live trading — real clients |
-| **Anand Kumar Sharma** | 🔴 PRODUCTION | `66.116.210.206` (`growffi.live`) | Live trading — real clients |
+| **Growffi Main** | 🔴 PRODUCTION | `66.116.210.206` (`growffi.com` / `growffi.live`) | Live trading — real clients |
 
 ### Rules
 
@@ -117,7 +117,7 @@ prisma/
    - Sirf naye features, UI changes aur strategy configs yahan test karein
    - Koi bhi naya change pehle Janvi pe verify hoga
 
-2. 🔴 **Ashutosh (`growffi.in`) & Anand (`growffi.live`) = PRODUCTION**
+2. 🔴 **Ashutosh (`growffi.in`) & Growffi Main (`growffi.com`) = PRODUCTION**
    - **AI must NEVER** make any change (code, config, DB query, deployment, SSH command) on these servers without **explicit user approval**
    - Production servers pe bina permission ke SSH, DB query, restart — kuch bhi NAHI
    - 🔐 **DOUBLE CONFIRMATION RULE (MANDATORY)**:

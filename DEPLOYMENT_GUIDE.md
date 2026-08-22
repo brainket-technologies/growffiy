@@ -10,7 +10,7 @@ Iss document mein har client setup, unke server infrastructure, database, aur de
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Janvi** | 🧪 **TESTING** | Hostinger | Web Hosting (`growffi.com`) | Panel Access (File Manager) | Neon Cloud PostgreSQL (`postgresql://neondb_owner:...`) | `/public_html` | ZIP Upload / Web Portal |
 | **Ashutosh** (⚠️ **SUSPENDED ACCOUNT/SERVER**) | 🔴 **PRODUCTION** | GlobeHost VPS | `66.116.245.44` (`growffi.in`) | `root` / `2hA@QAydr#r%pD` | Local VPS PostgreSQL (`postgresql://growffiy:...`) | `/var/www/growffiy` | SSH Script / Commands |
-| **Anand Kumar Sharma** | 🔴 **PRODUCTION** | VPS | `66.116.210.206` (`growffi.live`) | `root` / `Q}K)H~l8i@=XwC` | Local VPS PostgreSQL (`postgresql://growffiy_user:...`) | `/var/www/growffiy` | SSH Script / Commands |
+| **Growffi Main** | 🔴 **PRODUCTION** | VPS | `66.116.210.206` (`growffi.com` / `growffi.live`) | `root` / `Q}K)H~l8i@=XwC` | Local VPS PostgreSQL (`postgresql://growffiy_user:growffiy_live_pass_2026@localhost:5432/growffiy_com_db`) | `/var/www/growffiy` | SSH Script / Commands |
 
 ---
 
@@ -105,17 +105,17 @@ sshpass -p '2hA@QAydr#r%pD' ssh root@66.116.245.44
 
 ---
 
-## 3. 🟣 Client 3: Anand Kumar Sharma Setup (growffi.live)
+## 3. 🟣 Client 3: Growffi Main Setup (growffi.com)
 
 ### ⚙️ Details & Credentials
-- **Client Name**: Anand Kumar Sharma
-- **Domain**: `growffi.live`
+- **Client Name**: Growffi Main
+- **Domain**: `growffi.com` (Backup alias: `growffi.live`)
 - **Server IP**: `66.116.210.206`
 - **SSH Port**: `22`
 - **User**: `root`
 - **Password**: `Q}K)H~l8i@=XwC` *(⚠️ Sensitive)*
 - **Demat Details**: User ID: `UTE055` | Password: `12345678`
-- **Database**: Fresh Local VPS PostgreSQL (Zero old clients/trades)
+- **Database**: Local VPS PostgreSQL (`growffiy_com_db` - Restored Neon Master backup copy)
 
 ### 🚀 Fresh Deployment & Clean DB Setup Steps
 
