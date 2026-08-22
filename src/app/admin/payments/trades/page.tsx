@@ -341,10 +341,19 @@ export default function LiveTradeTransactionsPage() {
     () => openTrades.reduce((sum, t) => sum + Number(t.entryPrice || 0) * Number(t.quantity || 0), 0),
     [openTrades]
   );
-  const closedPnl = useMemo(
-    () => closedTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0),
-    [closedTrades]
-  );
+  const closedPnl = useMemo(() => {
+    return closedTrades.reduce((sum, t) => {
+      let pnlVal = Number(t.pnl || 0);
+      if ((t.pnl === null || t.pnl === undefined || t.pnl === 0) && t.entryPrice && t.exitPrice) {
+        const isShort = (t.direction || '').toLowerCase() === 'short';
+        const entry = Number(t.entryPrice);
+        const exit = Number(t.exitPrice);
+        const qty = Number(t.quantity || 0);
+        pnlVal = isShort ? (entry - exit) * qty : (exit - entry) * qty;
+      }
+      return sum + pnlVal;
+    }, 0);
+  }, [closedTrades]);
 
   const totalPages = Math.ceil(filteredTrades.length / pageSize) || 1;
   const startIndex = (currentPage - 1) * pageSize;

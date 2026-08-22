@@ -99,6 +99,24 @@ export default function ClientDashboardOverview() {
 
   const hasAccessToken = !!(matchedClient?.accessToken);
 
+  const kycStatusLower = matchedClient?.kycStatus?.toLowerCase() || '';
+  const isKycApproved = kycStatusLower === 'approved' || kycStatusLower === 'verified';
+  const isKycSubmitted = kycStatusLower === 'submitted';
+  const isKycFailed = kycStatusLower === 'failed' || kycStatusLower === 'rejected';
+
+  const getTradePnl = (t: any) => {
+    if (!t) return 0;
+    if (t.pnl !== undefined && t.pnl !== null && Number(t.pnl) !== 0) return Number(t.pnl);
+    const entry = Number(t.entryPrice || 0);
+    const exit = Number(t.exitPrice || 0);
+    const qty = Number(t.quantity || 1);
+    if (entry > 0 && exit > 0) {
+      const isShort = (t.direction || 'LONG').toUpperCase() === 'SHORT';
+      return isShort ? (entry - exit) * qty : (exit - entry) * qty;
+    }
+    return 0;
+  };
+
   const handleSimulateConnection = async (connect: boolean) => {
     if (!matchedClient?.id) return;
 
@@ -270,7 +288,7 @@ export default function ClientDashboardOverview() {
 
   const pageSize = 10;
 
-  // Filter trades placed on behalf of this client dynamically (only PROFIT or LOSS trades)
+  // Filter trades placed on behalf of this client dynamically
   const clientTrades = trades.filter(t => {
     let belongsToClient = false;
     if (matchedClient) {
@@ -281,11 +299,9 @@ export default function ClientDashboardOverview() {
     }
     if (!belongsToClient) return false;
 
-    const pnlVal = Number(t.pnl || 0);
-    const rawStatus = (t.status || '').toUpperCase();
-    const isProfit = pnlVal > 0 || rawStatus.includes('TARGET') || rawStatus === 'PROFIT';
-    const isLoss = pnlVal < 0 || rawStatus.includes('SL') || rawStatus === 'LOSS';
-    return isProfit || isLoss;
+    const rawStatus = (t.status || '').toLowerCase();
+    const isClosed = rawStatus === 'closed' || rawStatus === 'success' || (Number(t.entryPrice || 0) > 0 && Number(t.exitPrice || 0) > 0);
+    return isClosed;
   });
 
   const totalTradesCount = clientTrades.length;
@@ -293,7 +309,7 @@ export default function ClientDashboardOverview() {
   const startIndex = (currentPage - 1) * pageSize;
   const paginatedTrades = clientTrades.slice(startIndex, startIndex + pageSize);
 
-  const totalPnl = clientTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
+  const totalPnl = clientTrades.reduce((sum, t) => sum + getTradePnl(t), 0);
   
   // Find the active subscription dynamically
   const now = new Date();
@@ -373,6 +389,390 @@ export default function ClientDashboardOverview() {
   const productTypeName = matchedClient?.productType?.name || matchedClient?.productTypeName || '';
   const isAlgo = !productTypeName || productTypeName.toLowerCase() === 'algo';
 
+  const completionPercentage = useMemo(() => {
+    const step1Done = !!matchedClient?.productTypeId;
+    if (!step1Done) return 10;
+
+    const step2Done = isSubscriptionActive;
+    const hasClientKyc = !isKycFailed && (isKycApproved || isKycSubmitted || (!!matchedClient?.panNumber && !!matchedClient?.aadhaarNumber && !!matchedClient?.dob));
+
+    if (isAlgo) {
+      let pct = 20; // Step 1 complete
+      if (step2Done) {
+        pct += 20; // Step 2 complete
+        const step3Done = !!matchedClient?.zerodhaClientId && !!matchedClient?.zerodhaPassword && !!matchedClient?.zerodhaTotpSecret;
+        if (step3Done) {
+          pct += 20; // Step 3 complete
+          const step4Done = !!matchedClient?.accessToken;
+          if (step4Done) {
+            pct += 20; // Step 4 complete
+            if (hasClientKyc) {
+              pct += 20; // Step 5 complete
+            }
+          }
+        }
+      }
+      return pct;
+    } else {
+      let pct = 30; // Step 1 complete
+      if (step2Done) {
+        pct += 35; // Step 2 complete
+        if (hasClientKyc) {
+          pct += 35; // Step 3 complete
+        }
+      }
+      return pct;
+    }
+  }, [isAlgo, isSubscriptionActive, matchedClient, isKycApproved, isKycSubmitted, isKycFailed]);
+
+  const activeStep = useMemo(() => {
+    const step1Done = !!matchedClient?.productTypeId;
+    if (!step1Done) return 1;
+
+    const step2Done = isSubscriptionActive;
+    if (!step2Done) return 2;
+
+    const hasKyc = !isKycFailed && (isKycApproved || isKycSubmitted || (!!matchedClient?.panNumber && !!matchedClient?.aadhaarNumber && !!matchedClient?.dob));
+
+    if (isAlgo) {
+      if (!matchedClient?.zerodhaClientId || !matchedClient?.zerodhaPassword || !matchedClient?.zerodhaTotpSecret) return 3; // Need to connect broker
+      if (!matchedClient?.accessToken) return 4; // Need to authorize Zerodha (Step 4)
+      if (!hasKyc) return 5; // Need to submit KYC
+      return 6; // All complete
+    } else {
+      if (!hasKyc) return 3; // Need to submit KYC
+      return 4; // All complete
+    }
+  }, [isAlgo, isSubscriptionActive, matchedClient, isKycApproved, isKycSubmitted, isKycFailed]);
+
+  const stepperSteps = useMemo(() => {
+    const step1Done = !!matchedClient?.productTypeId;
+    const step2Done = step1Done && isSubscriptionActive;
+    const hasClientKyc = !isKycFailed && (isKycApproved || isKycSubmitted || (!!matchedClient?.panNumber && !!matchedClient?.aadhaarNumber && !!matchedClient?.dob));
+
+    if (isAlgo) {
+      const step3Done = step2Done && !!matchedClient?.zerodhaClientId && !!matchedClient?.zerodhaPassword && !!matchedClient?.zerodhaTotpSecret;
+      const step4Done = step3Done && !!matchedClient?.accessToken;
+      const step5Done = step4Done && hasClientKyc;
+
+      return [
+        { id: 1, label: 'Platform Preferences', completed: step1Done },
+        { id: 2, label: 'Choose Plan', completed: step2Done },
+        { id: 3, label: 'Zerodha API', completed: step3Done },
+        { id: 4, label: 'Live Trading', completed: step4Done },
+        { id: 5, label: 'Submit KYC', completed: step5Done }
+      ];
+    } else {
+      const step3Done = step2Done && hasClientKyc;
+
+      return [
+        { id: 1, label: 'Platform Preferences', completed: step1Done },
+        { id: 2, label: 'Choose Plan', completed: step2Done },
+        { id: 3, label: 'Submit KYC', completed: step3Done }
+      ];
+    }
+  }, [isAlgo, isSubscriptionActive, matchedClient, isKycApproved, isKycSubmitted, isKycFailed]);
+
+  const [plans, setPlans] = useState<any[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [purchasingPlanId, setPurchasingPlanId] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
+  const [showZPassword, setShowZPassword] = useState(false);
+  const [showZSecret, setShowZSecret] = useState(false);
+  const [showZTotp, setShowZTotp] = useState(false);
+
+  useEffect(() => {
+    if (activeStep === 2) {
+      setLoadingPlans(true);
+      fetch(API_ENDPOINTS.PLANS)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            let activePlans = data.plans.filter((p: any) => p.status === 'active');
+            if (matchedClient?.productTypeId) {
+              activePlans = activePlans.filter((p: any) => p.productTypeId === matchedClient.productTypeId);
+            }
+            setPlans(activePlans);
+          }
+        })
+        .catch(err => console.error("Error loading plans:", err))
+        .finally(() => setLoadingPlans(false));
+
+      // Dynamic Razorpay script load
+      if (!(window as any).Razorpay) {
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        document.body.appendChild(script);
+      }
+    }
+  }, [activeStep, matchedClient?.productTypeId]);
+
+  const handlePurchasePlan = async (plan: any) => {
+    if (!activeUser) return;
+    setPurchasingPlanId(plan.id);
+    setPaymentError(null);
+    setPaymentSuccess(null);
+
+    try {
+      const settingsRes = await fetch(API_ENDPOINTS.SETTINGS_PUBLIC);
+      const settingsData = await settingsRes.json();
+      if (!settingsData.success || !settingsData.razorpayKeyId) {
+        throw new Error('Razorpay payment gateway not configured by Admin.');
+      }
+
+      const orderRes = await fetch(API_ENDPOINTS.PAYMENTS_ORDER, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planId: plan.id,
+          userId: activeUser.id
+        })
+      });
+      const orderData = await orderRes.json();
+
+      if (!orderRes.ok || !orderData.success) {
+        throw new Error(orderData.error || 'Failed to initialize payment order.');
+      }
+
+      const options = {
+        key: settingsData.razorpayKeyId,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: settingsData.appName || 'Growffi',
+        description: `${plan.name} Subscription`,
+        order_id: orderData.orderId,
+        prefill: {
+          name: activeUser.name || 'Client',
+          email: activeUser.email || '',
+        },
+        theme: {
+          color: '#2563eb'
+        },
+        handler: async function (response: any) {
+          try {
+            setLoadingPlans(true);
+            const verifyRes = await fetch(API_ENDPOINTS.PAYMENTS_VERIFY, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature
+              })
+            });
+            const verifyData = await verifyRes.json();
+
+            if (verifyRes.ok && verifyData.success) {
+              setPaymentSuccess('✓ Payment successful! Your subscription is now active.');
+              setTimeout(() => {
+                window.location.reload();
+              }, 2000);
+            } else {
+              throw new Error(verifyData.error || 'Payment signature verification failed.');
+            }
+          } catch (verifyErr: any) {
+            setPaymentError(verifyErr.message || 'Verification failed. Please contact support.');
+            setLoadingPlans(false);
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setPurchasingPlanId(null);
+          }
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      setPaymentError(err.message || 'Payment setup failed. Please try again.');
+      setPurchasingPlanId(null);
+    }
+  };
+
+  const showHelpModal = (field: string) => {
+    let title = '';
+    let message: React.ReactNode = null;
+
+    switch (field) {
+      case 'clientId':
+        title = 'Zerodha Client ID';
+        message = (
+          <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+            <p><strong>What is this:</strong> Your Zerodha Kite username / login ID.</p>
+            <p style={{ marginTop: '8px' }}><strong>Where to find it:</strong> Open your Kite App or visit <a href="https://kite.zerodha.com" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600 }}>kite.zerodha.com</a>.</p>
+          </div>
+        );
+        break;
+      case 'apiKey':
+        title = 'Kite API Key';
+        message = (
+          <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+            <p><strong>What is this:</strong> A unique API key from Zerodha Developer Console.</p>
+            <p style={{ marginTop: '8px' }}><strong>Where to find it:</strong> Login to <a href="https://developers.kite.trade/" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600 }}>developers.kite.trade</a>.</p>
+          </div>
+        );
+        break;
+      case 'totp':
+        title = 'Zerodha TOTP Secret';
+        message = (
+          <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+            <p><strong>What is this:</strong> The 2FA secret key that enables automated login without manual OTP entry.</p>
+            <p style={{ marginTop: '8px' }}><strong>Where to find it:</strong> Go to Kite &rarr; Profile &rarr; Password & Security &rarr; Enable 2FA TOTP &rarr; "Can't scan? Copy the key".</p>
+          </div>
+        );
+        break;
+      default:
+        break;
+    }
+    if (title) setAlertModal({ title, message });
+  };
+
+  const [personalModalOpen, setPersonalModalOpen] = useState(false);
+  const [nameVal, setNameVal] = useState('');
+  const [emailVal, setEmailVal] = useState('');
+  const [passVal, setPassVal] = useState('');
+  const [personalSubmitting, setPersonalSubmitting] = useState(false);
+
+  const handlePersonalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!matchedClient) return;
+    setPersonalSubmitting(true);
+    try {
+      const updateData: any = {
+        name: nameVal,
+        email: emailVal,
+      };
+      if (passVal) {
+        updateData.password = passVal;
+      }
+      const success = await updateClient(matchedClient.id, updateData);
+      if (success) {
+        setPersonalModalOpen(false);
+        setAlertModal({
+          title: 'Profile Updated',
+          message: 'Your personal details have been updated successfully!'
+        });
+      } else {
+        setAlertModal({
+          title: 'Error',
+          message: 'Failed to update personal details.'
+        });
+      }
+    } catch (err: any) {
+      setAlertModal({
+        title: 'Error',
+        message: err.message || 'An error occurred during update.'
+      });
+    } finally {
+      setPersonalSubmitting(false);
+    }
+  };
+
+  const [kycModalOpen, setKycModalOpen] = useState(false);
+  const [panVal, setPanVal] = useState('');
+  const [aadhaarVal, setAadhaarVal] = useState('');
+  const [dobVal, setDobVal] = useState('');
+  const [kycSubmitting, setKycSubmitting] = useState(false);
+
+  const handleKycSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!matchedClient) return;
+    setKycSubmitting(true);
+    try {
+      const success = await updateClient(matchedClient.id, {
+        panNumber: panVal,
+        aadhaarNumber: aadhaarVal,
+        dob: dobVal,
+        kycStatus: 'submitted'
+      });
+      if (success) {
+        setKycModalOpen(false);
+        setAlertModal({
+          title: 'KYC Submitted',
+          message: 'Your KYC verification request has been successfully submitted and is under review!'
+        });
+      } else {
+        setAlertModal({
+          title: 'Error',
+          message: 'Failed to submit KYC details.'
+        });
+      }
+    } catch (err: any) {
+      setAlertModal({
+        title: 'Error',
+        message: err.message || 'An error occurred during submission.'
+      });
+    } finally {
+      setKycSubmitting(false);
+    }
+  };
+
+  const [availableProductTypes, setAvailableProductTypes] = useState<any[]>([]);
+  const [availableStrategies, setAvailableStrategies] = useState<any[]>([]);
+  const [selectedProductType, setSelectedProductType] = useState('');
+  const [selectedStrategy, setSelectedStrategy] = useState('');
+  const [savingPreferences, setSavingPreferences] = useState(false);
+
+  useEffect(() => {
+    const fetchOnboardingData = async () => {
+      try {
+        const ptRes = await api.get('/api/admin/product-types');
+        if (ptRes.success) setAvailableProductTypes(ptRes.productTypes || []);
+        
+        const stRes = await api.get('/api/admin/strategies');
+        if (stRes.success) setAvailableStrategies(stRes.strategies || []);
+      } catch (err) {
+        console.error('Failed to load onboarding options:', err);
+      }
+    };
+    fetchOnboardingData();
+  }, []);
+
+  useEffect(() => {
+    if (matchedClient) {
+      setSelectedProductType(matchedClient.productTypeId || '');
+      setSelectedStrategy(matchedClient.strategyId || '');
+    }
+  }, [matchedClient]);
+
+  const handleSavePreferences = async () => {
+    if (!matchedClient) return;
+    setSavingPreferences(true);
+    try {
+      const selectedPtObj = availableProductTypes.find(pt => pt.id === selectedProductType);
+      const isAlgoSelection = selectedPtObj?.name?.toLowerCase() === 'algo';
+
+      const success = await updateClient(matchedClient.id, {
+        productTypeId: selectedProductType || null,
+        strategyId: isAlgoSelection ? (selectedStrategy || null) : null
+      });
+      if (success) {
+        setAlertModal({
+          title: 'Preferences Updated',
+          message: 'Your product type and trading strategy preference have been saved successfully!',
+          onConfirm: () => {
+            window.location.reload();
+          }
+        });
+      } else {
+        setAlertModal({
+          title: 'Error',
+          message: 'Failed to update preferences.'
+        });
+      }
+    } catch (err: any) {
+      setAlertModal({
+        title: 'Error',
+        message: err.message || 'An error occurred.'
+      });
+    } finally {
+      setSavingPreferences(false);
+    }
+  };
+
   const rawClientTrades = trades.filter(t => {
     if (matchedClient) {
       return t.clientId === matchedClient.id;
@@ -381,18 +781,7 @@ export default function ClientDashboardOverview() {
     return name.toLowerCase().includes('aman') || t.clientId === 'c1';
   });
 
-  const getTradePnl = (t: any) => {
-    if (!t) return 0;
-    if (t.pnl !== undefined && t.pnl !== null && Number(t.pnl) !== 0) return Number(t.pnl);
-    const entry = Number(t.entryPrice || 0);
-    const exit = Number(t.exitPrice || 0);
-    const qty = Number(t.quantity || 1);
-    if (entry > 0 && exit > 0) {
-      const isShort = (t.direction || 'LONG').toUpperCase() === 'SHORT';
-      return isShort ? (entry - exit) * qty : (exit - entry) * qty;
-    }
-    return 0;
-  };
+
 
   const { clientPnlData, clientPnlLabels } = useMemo(() => {
     const now = new Date();
@@ -675,6 +1064,7 @@ export default function ClientDashboardOverview() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          {/* Engine Status Badge */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -682,13 +1072,13 @@ export default function ClientDashboardOverview() {
             padding: '8px 16px',
             borderRadius: '99px',
             background: isSubscriptionActive ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-            border: `1px solid ${isSubscriptionActive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
+            border: isSubscriptionActive ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)'
           }}>
             <span style={{
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              backgroundColor: isSubscriptionActive ? 'var(--accent)' : 'var(--danger)',
+              backgroundColor: isSubscriptionActive ? '#22c55e' : '#ef4444',
               animation: isSubscriptionActive ? 'pulseDot 2.5s infinite' : 'none',
               display: 'inline-block'
             }} />
@@ -697,9 +1087,46 @@ export default function ClientDashboardOverview() {
               fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
-              color: isSubscriptionActive ? 'var(--accent-dark)' : 'var(--danger)'
+              color: isSubscriptionActive ? '#16a34a' : '#dc2626'
             }}>
-              {isSubscriptionActive ? 'Trading Engine Active' : 'Trading Engine Paused'}
+              Trading Engine {isSubscriptionActive ? 'Active' : 'Inactive'}
+            </span>
+          </div>
+
+          {/* KYC Status Badge */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 16px',
+            borderRadius: '99px',
+            background: isKycApproved 
+              ? 'rgba(34, 197, 94, 0.08)' 
+              : isKycSubmitted
+                ? 'rgba(245, 158, 11, 0.08)'
+                : 'rgba(239, 68, 68, 0.08)',
+            border: isKycApproved
+              ? '1px solid rgba(34, 197, 94, 0.2)'
+              : isKycSubmitted
+                ? '1px solid rgba(245, 158, 11, 0.2)'
+                : '1px solid rgba(239, 68, 68, 0.2)'
+          }}>
+            <span style={{
+              fontSize: '12px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: isKycApproved
+                ? '#16a34a'
+                : isKycSubmitted
+                  ? '#d97706'
+                  : '#dc2626'
+            }}>
+              {isKycApproved 
+                ? '✓ KYC Approved' 
+                : isKycSubmitted
+                  ? '⏳ KYC Verification'
+                  : '⚠ KYC Pending'}
             </span>
           </div>
 
@@ -745,53 +1172,7 @@ export default function ClientDashboardOverview() {
         </div>
       </div>
 
-      {/* Expiry alerts */}
-      {!isSubscriptionActive && (
-        <div style={{
-          padding: '20px',
-          borderRadius: '14px',
-          backgroundColor: '#fef2f2',
-          border: '1px solid #fecaca',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '16px',
-          flexWrap: 'wrap',
-          boxShadow: 'var(--shadow-sm)',
-          animation: 'slideUp 0.3s ease-out'
-        }}>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: '#fee2e2', color: '#ef4444' }}>
-              <AlertTriangle size={20} />
-            </div>
-            <div>
-              <h4 style={{ color: '#991b1b', fontSize: '15px', fontWeight: 700, marginBottom: '2px' }}>
-                Subscription Inactive or Expired
-              </h4>
-              <p style={{ color: '#7f1d1d', fontSize: '13.5px' }}>
-                You do not have an active subscription plan. Purchase a plan to enable automated trading breakout execution.
-              </p>
-            </div>
-          </div>
-          <a
-            href="/dashboard/subscription"
-            style={{
-              padding: '10px 20px',
-              borderRadius: '10px',
-              backgroundColor: 'var(--primary)',
-              color: 'white',
-              fontSize: '13px',
-              fontWeight: 700,
-              textDecoration: 'none',
-              whiteSpace: 'nowrap',
-              boxShadow: '0 4px 10px rgba(18, 82, 171, 0.2)',
-              transition: 'all 0.2s'
-            }}
-          >
-            Purchase Plan
-          </a>
-        </div>
-      )}
+
 
       {isSubscriptionActive && showExpiryWarning && (
         <div style={{
@@ -840,49 +1221,669 @@ export default function ClientDashboardOverview() {
         </div>
       )}
 
-      {/* Conditional Dashboard Rendering: Subscribed and non-Subscribed states */}
-      {!isSubscriptionActive ? (
-        // Unsubscribed layout
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '28px', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
-          <Card style={{ padding: '32px', borderRadius: '16px', textAlign: 'center' }}>
+      {((isAlgo && activeStep < 6) || (!isAlgo && activeStep < 4)) ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '28px', maxWidth: '780px', margin: '0 auto', width: '100%' }}>
+          
+          {/* Profile Completeness & Quick Actions Card */}
+          <Card style={{ padding: '30px', borderRadius: '20px', border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 8px 24px rgba(0, 0, 0, 0.02)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+              <div>
+                <h4 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '4px', fontFamily: 'Outfit, sans-serif' }}>
+                  Profile Onboarding Status
+                </h4>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  {isAlgo 
+                    ? 'Complete your verification, KYC, and broker details to enable automated executions.' 
+                    : 'Complete your verification and KYC to activate your strategy scanner.'}
+                </p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '24px', fontWeight: 900, color: '#2563eb', fontFamily: 'Outfit, sans-serif' }}>
+                  {completionPercentage}%
+                </span>
+                <span style={{ 
+                  fontSize: '12px', 
+                  fontWeight: 700, 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.5px', 
+                  color: completionPercentage === 100 ? '#15803d' : '#475569', 
+                  backgroundColor: completionPercentage === 100 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(71, 85, 105, 0.1)', 
+                  padding: '4px 10px', 
+                  borderRadius: '20px' 
+                }}>
+                  {completionPercentage === 100 ? 'Setup Ready' : 'Setup Incomplete'}
+                </span>
+              </div>
+            </div>
+
+            {/* Horizontal timeline stepper */}
             <div style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '50%',
-              backgroundColor: 'rgba(18, 82, 171, 0.08)',
-              color: 'var(--primary)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 20px'
-            }}>
-              <Shield size={32} />
+              justifyContent: 'space-between',
+              position: 'relative',
+              margin: '20px 0 36px',
+              padding: '0 10px',
+              flexWrap: 'wrap',
+              gap: '16px'
+            }} className="horizontal-stepper-wrap">
+              {/* Stepper progress background line */}
+              <div style={{
+                position: 'absolute',
+                top: '22px',
+                left: '50px',
+                right: '50px',
+                height: '3px',
+                backgroundColor: 'var(--border-light, #e2e8f0)',
+                zIndex: 1
+              }} className="stepper-bg-line" />
+
+              {stepperSteps.map((step) => {
+                const isActive = activeStep === step.id;
+                const isCompleted = step.completed;
+                
+                return (
+                  <div key={step.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', zIndex: 2, flex: 1, minWidth: '100px' }}>
+                    <div style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '50%',
+                      backgroundColor: isCompleted ? '#22c55e' : isActive ? '#2563eb' : '#94a3b8',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                      fontSize: '15px',
+                      border: '4px solid var(--surface, #fff)',
+                      boxShadow: isCompleted ? '0 4px 10px rgba(34, 197, 94, 0.2)' : isActive ? '0 4px 10px rgba(37, 99, 235, 0.2)' : 'none'
+                    }}>
+                      {isCompleted ? '✓' : step.id}
+                    </div>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: isCompleted ? '#166534' : isActive ? 'var(--text-heading)' : 'var(--text-secondary)', marginTop: '8px', opacity: (isActive || isCompleted) ? 1 : 0.6 }}>
+                      {step.id}. {step.label}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-            <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '8px' }}>
-              No Active Plan Found
-            </h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '14.5px', marginBottom: '24px', lineHeight: 1.6 }}>
-              Please purchase a plan to unlock live automated signals execution on your Zerodha account or view scanner dashboard metrics.
-            </p>
-            <a
-              href="/dashboard/subscription"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '12px 28px',
-                borderRadius: '10px',
-                backgroundColor: 'var(--primary)',
-                color: 'white',
-                fontSize: '14px',
-                fontWeight: 700,
-                textDecoration: 'none',
-                boxShadow: '0 4px 12px rgba(18, 82, 171, 0.25)',
-                transition: 'all 0.2s'
-              }}
-            >
-              Unlock Terminal Access
-            </a>
+
+            {/* Inline Dynamic Active Step Wizard Form Container */}
+            <div style={{ marginTop: '24px' }}>
+              
+              {/* Step 1: Preferences Selection Form */}
+              {activeStep === 1 && (
+                <div>
+                  <h5 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '18px', fontFamily: 'Outfit, sans-serif', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#2563eb', color: 'white', fontSize: '11px', fontWeight: 700 }}>1</span>
+                    Active Step: Configure Platform Preferences
+                  </h5>
+                  
+                  <div style={{ marginBottom: '24px' }}>
+                    {/* Product Type Selection */}
+                    <div style={{ marginBottom: '28px' }}>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Select Product Type
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '14px' }}>
+                        {availableProductTypes.map((pt) => {
+                          const isSelected = selectedProductType === pt.id;
+                          const displayName = pt.name === 'algo' ? 'Algo Trading Middleware' : pt.name === 'basic' ? 'Basic Algo Tool' : pt.name === 'scanner' ? 'Market Scanner Tool' : pt.name;
+                          const description = pt.name === 'algo' ? 'Automated API trading and order execution via connected brokers.' : 'Premium stock breakout gap scanner spreadsheet workspace.';
+                          
+                          return (
+                            <div
+                              key={pt.id}
+                              onClick={() => setSelectedProductType(pt.id)}
+                              style={{
+                                padding: '16px 20px',
+                                borderRadius: '14px',
+                                border: isSelected ? '2px solid #2563eb' : '1.5px solid var(--border)',
+                                backgroundColor: isSelected ? 'rgba(37, 99, 235, 0.02)' : 'var(--surface)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '6px',
+                                boxShadow: isSelected ? '0 8px 20px -6px rgba(37, 99, 235, 0.08)' : 'none',
+                                position: 'relative'
+                              }}
+                            >
+                              <div style={{
+                                position: 'absolute',
+                                top: '16px',
+                                right: '16px',
+                                width: '18px',
+                                height: '18px',
+                                borderRadius: '50%',
+                                border: isSelected ? '2px solid #2563eb' : '1.5px solid var(--border)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: 'var(--surface)',
+                                transition: 'all 0.2s ease'
+                              }}>
+                                {isSelected && (
+                                  <div style={{
+                                    width: '8px',
+                                    height: '8px',
+                                    borderRadius: '50%',
+                                    backgroundColor: '#2563eb'
+                                  }} />
+                                )}
+                              </div>
+                              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', paddingRight: '16px' }}>
+                                {displayName}
+                              </span>
+                              <span style={{ fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                                {description}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Strategy Card Grid Selector (Only active strategies) */}
+                    {availableProductTypes.find(pt => pt.id === selectedProductType)?.name?.toLowerCase() === 'algo' && (
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Choose Trading Strategy (Active Only)
+                        </label>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                          {availableStrategies.filter(s => s.status === 'active').map((s) => {
+                            const isSelected = selectedStrategy === s.id;
+                            
+                            // Strategy specific or default mock stats to display rich metrics
+                            const isPreOpen = s.name.toLowerCase().includes('pre-open') || s.id.toLowerCase().includes('pre-open');
+                            const winRate = isPreOpen ? '74%' : '68%';
+                            const lossRate = isPreOpen ? '26%' : '32%';
+                            const riskLevel = isPreOpen ? 'Moderate-High' : 'Moderate';
+                            const returnRate = isPreOpen ? '+8.5%' : '+6.2%';
+
+                            return (
+                              <div
+                                key={s.id}
+                                onClick={() => setSelectedStrategy(s.id)}
+                                style={{
+                                  padding: '20px',
+                                  borderRadius: '16px',
+                                  border: isSelected ? '2px solid #2563eb' : '1.5px solid var(--border)',
+                                  backgroundColor: isSelected ? 'rgba(37, 99, 235, 0.02)' : 'var(--surface)',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  boxShadow: isSelected ? '0 10px 25px -5px rgba(37, 99, 235, 0.1)' : 'var(--shadow-sm)',
+                                  position: 'relative'
+                                }}
+                              >
+                                <div style={{
+                                  position: 'absolute',
+                                  top: '16px',
+                                  right: '16px',
+                                  width: '18px',
+                                  height: '18px',
+                                  borderRadius: '50%',
+                                  border: isSelected ? '2px solid #2563eb' : '1.5px solid var(--border)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  backgroundColor: 'var(--surface)',
+                                  transition: 'all 0.2s ease'
+                                }}>
+                                  {isSelected && (
+                                    <div style={{
+                                      width: '8px',
+                                      height: '8px',
+                                      borderRadius: '50%',
+                                      backgroundColor: '#2563eb'
+                                    }} />
+                                  )}
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '20px', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', width: '100%' }}>
+                                  {/* Left details */}
+                                  <div style={{ flex: '1', minWidth: '220px' }}>
+                                    <h6 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '6px', paddingRight: '20px' }}>
+                                      {s.name}
+                                    </h6>
+                                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
+                                      {s.description || 'Scans and executes high-probability breakout setups automatically.'}
+                                    </p>
+                                  </div>
+
+                                  {/* Right metrics panel */}
+                                  <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: '1fr 1fr',
+                                    gap: '10px 14px',
+                                    minWidth: '180px',
+                                    paddingLeft: '16px',
+                                    borderLeft: '1px solid var(--border-light, #e2e8f0)',
+                                    alignSelf: 'stretch',
+                                    alignContent: 'center'
+                                  }} className="strategy-card-metrics">
+                                    <div>
+                                      <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Win Rate</span>
+                                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#166534' }}>{winRate}</span>
+                                    </div>
+                                    <div>
+                                      <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Loss Rate</span>
+                                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#991b1b' }}>{lossRate}</span>
+                                    </div>
+                                    <div>
+                                      <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Avg. Monthly</span>
+                                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#2563eb' }}>{returnRate}</span>
+                                    </div>
+                                    <div>
+                                      <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Risk Profile</span>
+                                      <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-heading)' }}>{riskLevel}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={handleSavePreferences}
+                      disabled={savingPreferences}
+                      style={{ padding: '10px 24px', borderRadius: '8px', fontSize: '13px', fontWeight: 700 }}
+                    >
+                      {savingPreferences ? 'Saving Settings...' : 'Save Preferences & Continue'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Choose Plan (Both Algo & Scanner) */}
+              {activeStep === 2 && (
+                <div>
+                  <h5 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '8px', fontFamily: 'Outfit, sans-serif', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#2563eb', color: 'white', fontSize: '11px', fontWeight: 700 }}>2</span>
+                    Active Step: Choose Pricing Subscription Plan
+                  </h5>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '20px' }}>
+                    Select and purchase an active pricing plan for your chosen product type to unlock the next steps.
+                  </p>
+
+                  {paymentError && (
+                    <div style={{ padding: '12px 16px', borderRadius: '8px', backgroundColor: '#fef2f2', color: '#ef4444', fontSize: '13px', fontWeight: 600, marginBottom: '16px' }}>
+                      ⚠️ {paymentError}
+                    </div>
+                  )}
+
+                  {paymentSuccess && (
+                    <div style={{ padding: '12px 16px', borderRadius: '8px', backgroundColor: '#ecfdf5', color: '#065f46', fontSize: '13px', fontWeight: 600, marginBottom: '16px' }}>
+                      {paymentSuccess}
+                    </div>
+                  )}
+
+                  {loadingPlans ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '32px' }}>
+                      <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Loading available plans...</span>
+                    </div>
+                  ) : plans.length === 0 ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '32px' }}>
+                      <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No active subscription plans configured for this product type.</span>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                      {plans.map((p) => (
+                        <div
+                          key={p.id}
+                          style={{
+                            padding: '24px',
+                            borderRadius: '16px',
+                            border: '1.5px solid var(--border)',
+                            backgroundColor: 'var(--surface)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            boxShadow: 'var(--shadow-sm)',
+                            position: 'relative'
+                          }}
+                        >
+                          <div>
+                            <h6 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '8px' }}>
+                              {p.name}
+                            </h6>
+                            <div style={{ fontSize: '26px', fontWeight: 900, color: '#2563eb', marginBottom: '12px', fontFamily: 'Outfit, sans-serif' }}>
+                              ₹{p.price}
+                              <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '4px' }}>
+                                / {p.durationDays === 30 ? 'month' : p.durationDays === 90 ? 'quarter' : `${p.durationDays} days`}
+                              </span>
+                            </div>
+                            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: '20px' }}>
+                              {p.description || 'Access strategy scanner tools, alerts and signals.'}
+                            </p>
+                          </div>
+                          
+                          <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <Button
+                              type="button"
+                              variant="primary"
+                              disabled={purchasingPlanId === p.id}
+                              onClick={() => handlePurchasePlan(p)}
+                              style={{ width: '100%', padding: '10px', borderRadius: '8px', fontSize: '13px', fontWeight: 700 }}
+                            >
+                              {purchasingPlanId === p.id ? 'Initializing Checkout...' : 'Purchase Plan Now'}
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Step 3 (Algo): Connect Broker API */}
+              {activeStep === 3 && isAlgo && (
+                <div>
+                  <h5 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '8px', fontFamily: 'Outfit, sans-serif', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#2563eb', color: 'white', fontSize: '11px', fontWeight: 700 }}>3</span>
+                    Active Step: Link Zerodha Kite API Credentials
+                  </h5>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+                    Provide your Zerodha broker account Client ID and API keys below to establish execution connectivity.
+                  </p>
+                  
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!matchedClient) return;
+                    const success = await updateClient(matchedClient.id, {
+                      zerodhaClientId: (e.currentTarget.elements.namedItem('zClientId') as HTMLInputElement).value,
+                      zerodhaApiKey: (e.currentTarget.elements.namedItem('zApiKey') as HTMLInputElement).value,
+                      zerodhaApiSecret: (e.currentTarget.elements.namedItem('zApiSecret') as HTMLInputElement).value,
+                      zerodhaPassword: (e.currentTarget.elements.namedItem('zPassword') as HTMLInputElement).value,
+                      zerodhaTotpSecret: (e.currentTarget.elements.namedItem('zTotpSecret') as HTMLInputElement).value
+                    });
+                    if (success) {
+                      setAlertModal({
+                        title: 'Zerodha API Connected',
+                        message: 'Your Zerodha Kite API configuration has been updated successfully! Moving to next step.',
+                        onConfirm: () => {
+                          window.location.reload();
+                        }
+                      });
+                    }
+                  }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    
+                    <div className="form-grid-2">
+                      
+                      {/* Client ID */}
+                      <div className="form-group">
+                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          Zerodha Client ID *
+                          <button
+                            type="button"
+                            onClick={() => showHelpModal('clientId')}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                          </button>
+                        </label>
+                        <div className="premium-input-wrapper">
+                          <span className="premium-input-icon">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                          </span>
+                          <input
+                            type="text"
+                            name="zClientId"
+                            required
+                            defaultValue={matchedClient?.zerodhaClientId || ''}
+                            placeholder="e.g. ABC123"
+                            className="premium-input"
+                          />
+                        </div>
+                      </div>
+
+                      {/* API Key */}
+                      <div className="form-group">
+                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          Kite API Key *
+                          <button
+                            type="button"
+                            onClick={() => showHelpModal('apiKey')}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                          </button>
+                        </label>
+                        <div className="premium-input-wrapper">
+                          <span className="premium-input-icon">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                          </span>
+                          <input
+                            type="text"
+                            name="zApiKey"
+                            required
+                            defaultValue={matchedClient?.zerodhaApiKey || ''}
+                            placeholder="Kite API Key"
+                            className="premium-input"
+                          />
+                        </div>
+                      </div>
+
+                      {/* API Secret */}
+                      <div className="form-group">
+                        <label className="form-label">
+                          Kite API Secret *
+                        </label>
+                        <div className="premium-input-wrapper">
+                          <span className="premium-input-icon">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                          </span>
+                          <input
+                            name="zApiSecret"
+                            required
+                            type={showZSecret ? 'text' : 'password'}
+                            defaultValue={matchedClient?.zerodhaApiSecret || ''}
+                            placeholder="Kite API Secret"
+                            className="premium-input"
+                            style={{ paddingRight: '42px' }}
+                          />
+                          <span
+                            onClick={() => setShowZSecret(!showZSecret)}
+                            style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                          >
+                            {showZSecret ? (
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            ) : (
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Password */}
+                      <div className="form-group">
+                        <label className="form-label">
+                          Zerodha Password (For Auto-Login) *
+                        </label>
+                        <div className="premium-input-wrapper">
+                          <span className="premium-input-icon">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                          </span>
+                          <input
+                            name="zPassword"
+                            required
+                            type={showZPassword ? 'text' : 'password'}
+                            defaultValue={matchedClient?.zerodhaPassword || ''}
+                            placeholder="Zerodha Password"
+                            className="premium-input"
+                            style={{ paddingRight: '42px' }}
+                          />
+                          <span
+                            onClick={() => setShowZPassword(!showZPassword)}
+                            style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                          >
+                            {showZPassword ? (
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            ) : (
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* TOTP Secret */}
+                      <div className="form-group form-span-2">
+                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          Zerodha TOTP Secret (For Auto-Login) *
+                          <button
+                            type="button"
+                            onClick={() => showHelpModal('totp')}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                          </button>
+                        </label>
+                        <div className="premium-input-wrapper">
+                          <span className="premium-input-icon">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                          </span>
+                          <input
+                            name="zTotpSecret"
+                            required
+                            type={showZTotp ? 'text' : 'password'}
+                            defaultValue={matchedClient?.zerodhaTotpSecret || ''}
+                            placeholder="e.g. JBSWY3DPEHPK3PXP"
+                            className="premium-input"
+                            style={{ paddingRight: '42px' }}
+                          />
+                          <span
+                            onClick={() => setShowZTotp(!showZTotp)}
+                            style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                          >
+                            {showZTotp ? (
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            ) : (
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+                      <Button type="submit" variant="primary" style={{ padding: '10px 24px', borderRadius: '8px', fontSize: '13px', fontWeight: 700 }}>
+                        Connect API Keys & Continue
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Step 4 (Algo): Connect Zerodha Account */}
+              {activeStep === 4 && isAlgo && (
+                <div>
+                  <h5 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '10px', fontFamily: 'Outfit, sans-serif', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#2563eb', color: 'white', fontSize: '11px', fontWeight: 700 }}>4</span>
+                    Active Step: Connect Zerodha Account
+                  </h5>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '14px' }}>
+                    To link your Zerodha account, you will be redirected to the secure **Zerodha Kite OAuth portal**:
+                  </p>
+                  <ul style={{ fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: 1.6, paddingLeft: '20px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <li>1. You will be redirected to Zerodha's official login page (<strong>kite.zerodha.com</strong>).</li>
+                    <li>2. Log in using your broker Client ID and Password.</li>
+                    <li>3. Enter your 2FA TOTP or mobile OTP key code to verify identity.</li>
+                    <li>4. Review and click the <strong>Authorize / Login</strong> button to grant terminal execution access.</li>
+                  </ul>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={() => handleSimulateConnection(true)}
+                      style={{ padding: '12px 28px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)' }}
+                    >
+                      Connect Zerodha Account ✓
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* KYC Verification Form (Step 5 for Algo, Step 3 for Scanner) */}
+              {((activeStep === 5 && isAlgo) || (activeStep === 3 && !isAlgo)) && (
+                <div>
+                  <h5 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '8px', fontFamily: 'Outfit, sans-serif', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#2563eb', color: 'white', fontSize: '11px', fontWeight: 700 }}>{activeStep}</span>
+                    Active Step: Submit KYC Verification Details
+                  </h5>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+                    Please submit your verification details below to finalize terminal registration.
+                  </p>
+
+                  {isKycFailed && (
+                    <div style={{
+                      backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                      marginBottom: '16px',
+                      color: '#b91c1c',
+                      fontSize: '12.5px',
+                      fontWeight: 500,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                      <span>Your previous KYC verification submission was rejected or failed. Please check and re-submit your correct verification details.</span>
+                    </div>
+                  )}
+                  
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!matchedClient) return;
+                    const success = await updateClient(matchedClient.id, {
+                      panNumber: (e.currentTarget.elements.namedItem('panNo') as HTMLInputElement).value.toUpperCase(),
+                      aadhaarNumber: (e.currentTarget.elements.namedItem('aadhaarNo') as HTMLInputElement).value,
+                      dob: (e.currentTarget.elements.namedItem('dobVal') as HTMLInputElement).value,
+                      kycStatus: 'submitted'
+                    });
+                    if (success) {
+                      setAlertModal({
+                        title: 'KYC Details Submitted',
+                        message: 'Your KYC credentials have been submitted successfully!',
+                        onConfirm: () => {
+                          window.location.reload();
+                        }
+                      });
+                    }
+                  }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>PAN Card Number *</label>
+                        <input name="panNo" required maxLength={10} placeholder="e.g. ABCDE1234F" defaultValue={matchedClient?.panNumber || ''} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px solid var(--border)', fontSize: '13px', backgroundColor: 'var(--surface)', color: 'var(--text-primary)' }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>Aadhaar Number *</label>
+                        <input name="aadhaarNo" required maxLength={12} placeholder="e.g. 123456789012" defaultValue={matchedClient?.aadhaarNumber || ''} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px solid var(--border)', fontSize: '13px', backgroundColor: 'var(--surface)', color: 'var(--text-primary)' }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>Date of Birth *</label>
+                        <input name="dobVal" type="date" required defaultValue={matchedClient?.dob ? (typeof matchedClient.dob === 'string' ? matchedClient.dob.split('T')[0] : new Date(matchedClient.dob).toISOString().split('T')[0]) : ''} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px solid var(--border)', fontSize: '13px', backgroundColor: 'var(--surface)', color: 'var(--text-primary)' }} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+                      <Button type="submit" variant="primary" style={{ padding: '10px 24px', borderRadius: '8px', fontSize: '13px', fontWeight: 700 }}>
+                        Submit KYC & Complete Profile
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+            </div>
           </Card>
         </div>
       ) : (
@@ -1591,6 +2592,196 @@ export default function ClientDashboardOverview() {
           )}
         </>
       )}
+      {personalModalOpen && (
+        <Modal
+          isOpen={personalModalOpen}
+          onClose={() => setPersonalModalOpen(false)}
+          title="Update Personal Profile Details"
+          footer={
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
+              <Button
+                variant="secondary"
+                onClick={() => setPersonalModalOpen(false)}
+                type="button"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handlePersonalSubmit}
+                disabled={personalSubmitting || !nameVal || !emailVal}
+                type="button"
+              >
+                {personalSubmitting ? 'Saving...' : 'Save Settings'}
+              </Button>
+            </div>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px 0' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', marginBottom: '6px' }}>
+                Full Name
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Enter your full name"
+                value={nameVal}
+                onChange={(e) => setNameVal(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1.5px solid var(--border)',
+                  fontSize: '14px',
+                  backgroundColor: 'var(--surface)',
+                  color: 'var(--text-primary)'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', marginBottom: '6px' }}>
+                Email Address
+              </label>
+              <input
+                type="email"
+                required
+                placeholder="Enter email address"
+                value={emailVal}
+                onChange={(e) => setEmailVal(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1.5px solid var(--border)',
+                  fontSize: '14px',
+                  backgroundColor: 'var(--surface)',
+                  color: 'var(--text-primary)'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', marginBottom: '6px' }}>
+                New Password (leave blank to keep unchanged)
+              </label>
+              <input
+                type="password"
+                placeholder="Enter new password (optional)"
+                value={passVal}
+                onChange={(e) => setPassVal(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1.5px solid var(--border)',
+                  fontSize: '14px',
+                  backgroundColor: 'var(--surface)',
+                  color: 'var(--text-primary)'
+                }}
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {kycModalOpen && (
+        <Modal
+          isOpen={kycModalOpen}
+          onClose={() => setKycModalOpen(false)}
+          title="Submit KYC Verification Request"
+          footer={
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
+              <Button
+                variant="secondary"
+                onClick={() => setKycModalOpen(false)}
+                type="button"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleKycSubmit}
+                disabled={kycSubmitting || !panVal || !aadhaarVal || !dobVal}
+                type="button"
+              >
+                {kycSubmitting ? 'Submitting...' : 'Submit KYC'}
+              </Button>
+            </div>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px 0' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', marginBottom: '6px' }}>
+                PAN Card Number
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Enter 10-digit PAN (e.g. ABCDE1234F)"
+                value={panVal}
+                onChange={(e) => setPanVal(e.target.value.toUpperCase())}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1.5px solid var(--border)',
+                  fontSize: '14px',
+                  backgroundColor: 'var(--surface)',
+                  color: 'var(--text-primary)'
+                }}
+                maxLength={10}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', marginBottom: '6px' }}>
+                Aadhaar Card Number
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Enter 12-digit Aadhaar Number"
+                value={aadhaarVal}
+                onChange={(e) => setAadhaarVal(e.target.value.replace(/\D/g, ''))}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1.5px solid var(--border)',
+                  fontSize: '14px',
+                  backgroundColor: 'var(--surface)',
+                  color: 'var(--text-primary)'
+                }}
+                maxLength={12}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', marginBottom: '6px' }}>
+                Date of Birth (DOB)
+              </label>
+              <input
+                type="date"
+                required
+                value={dobVal}
+                onChange={(e) => setDobVal(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1.5px solid var(--border)',
+                  fontSize: '14px',
+                  backgroundColor: 'var(--surface)',
+                  color: 'var(--text-primary)'
+                }}
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {alertModal && (
         <Modal
           isOpen={!!alertModal}
@@ -1948,6 +3139,65 @@ export default function ClientDashboardOverview() {
       )}
 
       <style>{`
+        .form-grid-2 {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+        }
+        .form-span-2 {
+          grid-column: span 2;
+        }
+        @media (max-width: 600px) {
+          .form-grid-2 { grid-template-columns: 1fr !important; gap: 16px !important; }
+          .form-span-2 { grid-column: span 1 !important; }
+        }
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .form-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .premium-input-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
+          width: 100%;
+        }
+        .premium-input-icon {
+          position: absolute;
+          left: 14px;
+          color: var(--text-muted);
+          pointer-events: none;
+          z-index: 2;
+          display: flex;
+          align-items: center;
+        }
+        .premium-input {
+          width: 100% !important;
+          height: 42px !important;
+          padding: 10px 14px 10px 42px !important;
+          border-radius: 8px !important;
+          border: 1px solid var(--border) !important;
+          background-color: var(--surface) !important;
+          color: var(--text-primary) !important;
+          font-size: 13.5px !important;
+          outline: none !important;
+          transition: all 0.2s ease !important;
+        }
+        .premium-input:focus {
+          border-color: var(--primary) !important;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+        }
+
         .client-dashboard { gap: 28px; }
         .client-grid-main { display: grid !important; }
 
@@ -1982,6 +3232,57 @@ export default function ClientDashboardOverview() {
           .client-dashboard table { font-size: 11px !important; }
           .client-dashboard table th,
           .client-dashboard table td { padding: 6px 4px !important; }
+          .client-dashboard [style*="gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))'"],
+          .client-dashboard [style*="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))"] {
+            grid-template-columns: 1fr !important;
+          }
+          .client-dashboard [style*="gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))'"],
+          .client-dashboard [style*="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr))"] {
+            grid-template-columns: 1fr !important;
+          }
+          .horizontal-stepper-wrap {
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 4px !important;
+            padding: 0 !important;
+          }
+          .horizontal-stepper-wrap > div {
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+            flex: 1 !important;
+            min-width: 0 !important;
+          }
+          .horizontal-stepper-wrap > div > div {
+            width: 32px !important;
+            height: 32px !important;
+            font-size: 11px !important;
+            border-width: 2px !important;
+            line-height: 28px !important;
+          }
+          .horizontal-stepper-wrap > div > span {
+            font-size: 8.5px !important;
+            margin-top: 4px !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            width: 100% !important;
+          }
+          .stepper-bg-line {
+            display: block !important;
+            top: 16px !important;
+            left: 20px !important;
+            right: 20px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .strategy-card-metrics {
+            border-left: none !important;
+            padding-left: 0 !important;
+            margin-top: 12px !important;
+            width: 100% !important;
+          }
         }
       `}</style>
     </div>

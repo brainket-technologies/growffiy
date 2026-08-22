@@ -104,7 +104,9 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({ testimonials });
+    const clientCount = await prisma.client.count();
+
+    return NextResponse.json({ testimonials, clientCount });
   } catch (error: any) {
     console.error('Error fetching public testimonials:', error);
     return NextResponse.json({ error: error.message || 'Failed to fetch testimonials' }, { status: 500 });

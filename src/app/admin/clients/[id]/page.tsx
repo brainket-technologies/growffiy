@@ -65,6 +65,8 @@ export default function ClientDetailsPage() {
   const [productTypes, setProductTypes] = useState<any[]>([]);
   const [dedicatedIp, setDedicatedIp] = useState('');
   const [proxyUrl, setProxyUrl] = useState('');
+  const [proxyOutboundIp, setProxyOutboundIp] = useState('');
+  const [isDetectingProxyIp, setIsDetectingProxyIp] = useState(false);
   const [serverIp, setServerIp] = useState('');
   const [copiedIp, setCopiedIp] = useState(false);
 
@@ -1943,19 +1945,12 @@ export default function ClientDetailsPage() {
                       gap: '12px'
                     }}>
                       <div style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-heading)', fontWeight: 600, whiteSpace: 'pre-line', lineHeight: '1.6' }}>
-                        {proxyUrl ? (
-                          `2401:c080:2400:16d5:16ca:88d9:5e98:7cf4\n49.36.214.143`
-                        ) : (
-                          dedicatedIp
-                        )}
+                        {dedicatedIp}
                       </div>
                       <button
                         type="button"
                         onClick={() => {
-                          const textToCopy = proxyUrl 
-                            ? "2401:c080:2400:16d5:16ca:88d9:5e98:7cf4\n49.36.214.143" 
-                            : dedicatedIp;
-                          navigator.clipboard.writeText(textToCopy);
+                          navigator.clipboard.writeText(dedicatedIp);
                           setCopiedIp(true);
                           setTimeout(() => setCopiedIp(false), 2000);
                         }}

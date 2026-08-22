@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Activity, Mail, Phone, MapPin, Percent, CalendarDays, DollarSign, ThumbsUp } from 'lucide-react';
+import { Activity, Mail, Phone, MapPin, Zap, RefreshCw, Shield, LayoutGrid } from 'lucide-react';
 
 export default function Footer() {
   const [brandLogo, setBrandLogo] = useState('');
@@ -25,58 +25,56 @@ export default function Footer() {
 
   useEffect(() => {
     const load = () => {
-      setBrandLogo(localStorage.getItem('growffiy_brand_logo') || '');
-      setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffiy');
-      setFooterText(localStorage.getItem('growffiy_footer_text') || '');
-      setFooterTagline(localStorage.getItem('growffiy_footer_tagline') || '');
-      setFooterDisclaimer(localStorage.getItem('growffiy_footer_disclaimer') || '');
-      setFooterBottomTagline(localStorage.getItem('growffiy_footer_bottom_tagline') || '');
-      setSupportEmail(localStorage.getItem('growffiy_support_email') || 'support@growffiy.com');
-      setSupportPhone(localStorage.getItem('growffiy_support_phone') || '+91 902666305');
-      setSupportWhatsapp(localStorage.getItem('growffiy_support_whatsapp') || '+91 902666305');
-      setSupportAddress(localStorage.getItem('growffiy_support_address') || 'Mumbai, India');
-      setSocialTelegram(localStorage.getItem('growffiy_social_telegram') !== null ? localStorage.getItem('growffiy_social_telegram')! : 'https://t.me/growffiy');
-      setSocialYoutube(localStorage.getItem('growffiy_social_youtube') !== null ? localStorage.getItem('growffiy_social_youtube')! : 'https://youtube.com/@growffiy');
-      setSocialTwitter(localStorage.getItem('growffiy_social_twitter') !== null ? localStorage.getItem('growffiy_social_twitter')! : 'https://x.com/growffiy');
-      setSocialInstagram(localStorage.getItem('growffiy_social_instagram') !== null ? localStorage.getItem('growffiy_social_instagram')! : 'https://instagram.com/growffiy');
-      setSocialFacebook(localStorage.getItem('growffiy_social_facebook') !== null ? localStorage.getItem('growffiy_social_facebook')! : 'https://facebook.com/growffiy');
-    };
-    load();
+      if (typeof window !== 'undefined') {
+        setBrandLogo(localStorage.getItem('brand_logo') || '');
+        setBrandName(localStorage.getItem('brand_name') || 'Growffiy');
+        setFooterText(localStorage.getItem('footer_text') || 'Advanced algorithmic trading middleware connecting directly with Zerodha Kite API. Built for mathematical discipline and speed.');
+        setFooterTagline(localStorage.getItem('footer_tagline') || 'Automate. Trade. Grow.');
+        setFooterDisclaimer(localStorage.getItem('footer_disclaimer') || '');
+        setFooterBottomTagline(localStorage.getItem('footer_bottom_tagline') || 'Growffi Fintech Private Limited. All rights reserved.');
+        setSupportEmail(localStorage.getItem('support_email') || 'growffi.official@gmail.com');
+        setSupportPhone(localStorage.getItem('support_phone') || '+91 8866182864');
+        setSupportWhatsapp(localStorage.getItem('support_whatsapp') || '+91 8866182864');
+        setSupportAddress(localStorage.getItem('support_address') || 'Lucknow');
 
-    // Also fetch dynamically to ensure public route syncs settings
+        setSocialTelegram(localStorage.getItem('social_telegram') || 'https://t.me/growffiy');
+        setSocialYoutube(localStorage.getItem('social_youtube') || 'https://youtube.com/@growffiy');
+        setSocialTwitter(localStorage.getItem('social_twitter') || 'https://x.com/growffiy');
+        setSocialInstagram(localStorage.getItem('social_instagram') || 'https://instagram.com/growffiy');
+        setSocialFacebook(localStorage.getItem('social_facebook') || 'https://facebook.com/growffiy');
+      }
+    };
+
     const fetchPublicSettings = async () => {
       try {
         const res = await fetch('/api/settings/public');
         const data = await res.json();
-        if (data.success) {
-          setSocialTelegram(data.socialTelegram || '');
-          localStorage.setItem('growffiy_social_telegram', data.socialTelegram || '');
-          
-          setSocialYoutube(data.socialYoutube || '');
-          localStorage.setItem('growffiy_social_youtube', data.socialYoutube || '');
-          
-          setSocialTwitter(data.socialTwitter || '');
-          localStorage.setItem('growffiy_social_twitter', data.socialTwitter || '');
-          
-          setSocialInstagram(data.socialInstagram || '');
-          localStorage.setItem('growffiy_social_instagram', data.socialInstagram || '');
-          
-          setSocialFacebook(data.socialFacebook || '');
-          localStorage.setItem('growffiy_social_facebook', data.socialFacebook || '');
+        if (data.success && data.settings) {
+          const s = data.settings;
+          localStorage.setItem('brand_logo', s.brand_logo || '');
+          localStorage.setItem('brand_name', s.brand_name || 'Growffiy');
+          localStorage.setItem('footer_text', s.footer_text || '');
+          localStorage.setItem('footer_tagline', s.footer_tagline || '');
+          localStorage.setItem('footer_disclaimer', s.footer_disclaimer || '');
+          localStorage.setItem('footer_bottom_tagline', s.footer_bottom_tagline || '');
+          localStorage.setItem('support_email', s.support_email || '');
+          localStorage.setItem('support_phone', s.support_phone || '');
+          localStorage.setItem('support_whatsapp', s.support_whatsapp || '');
+          localStorage.setItem('support_address', s.support_address || '');
 
-          if (data.supportPhone) {
-            setSupportPhone(data.supportPhone);
-            localStorage.setItem('growffiy_support_phone', data.supportPhone);
-          }
-          if (data.supportWhatsapp) {
-            setSupportWhatsapp(data.supportWhatsapp);
-            localStorage.setItem('growffiy_support_whatsapp', data.supportWhatsapp);
-          }
+          localStorage.setItem('social_telegram', s.social_telegram || '');
+          localStorage.setItem('social_youtube', s.social_youtube || '');
+          localStorage.setItem('social_twitter', s.social_twitter || '');
+          localStorage.setItem('social_instagram', s.social_instagram || '');
+          localStorage.setItem('social_facebook', s.social_facebook || '');
+          load();
         }
-      } catch (e) {
-        console.error('Failed to sync public social settings:', e);
+      } catch (err) {
+        console.error('Failed to fetch public settings in Footer:', err);
       }
     };
+
+    load();
     fetchPublicSettings();
 
     window.addEventListener('branding-updated', load);
@@ -86,45 +84,45 @@ export default function Footer() {
   return (
     <>
       {/* Trust Banner Section (placed above the footer) */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto 48px', padding: '0 24px' }}>
+      <div style={{ maxWidth: '1280px', margin: '0 auto 48px', padding: '0 32px' }}>
         <div className="footer-trust-banner" style={{ marginBottom: 0 }}>
           <div className="footer-trust-item">
             <div className="footer-trust-icon-wrapper">
-              <Percent size={18} />
+              <Zap size={18} />
             </div>
             <div className="footer-trust-text">
-              <span className="footer-trust-title">No Hidden Charges</span>
-              <span className="footer-trust-subtitle">Transparent Pricing</span>
+              <span className="footer-trust-title">Lightning Fast</span>
+              <span className="footer-trust-subtitle">Real-time data processing</span>
             </div>
           </div>
 
           <div className="footer-trust-item">
             <div className="footer-trust-icon-wrapper">
-              <CalendarDays size={18} />
+              <RefreshCw size={18} />
             </div>
             <div className="footer-trust-text">
-              <span className="footer-trust-title">Cancel Anytime</span>
-              <span className="footer-trust-subtitle">No Questions Asked</span>
+              <span className="footer-trust-title">99.9% Uptime</span>
+              <span className="footer-trust-subtitle">Reliable & Always On</span>
             </div>
           </div>
 
           <div className="footer-trust-item">
             <div className="footer-trust-icon-wrapper">
-              <DollarSign size={18} />
+              <Shield size={18} />
             </div>
             <div className="footer-trust-text">
-              <span className="footer-trust-title">7-Day Money Back</span>
-              <span className="footer-trust-subtitle">Risk Free Guarantee</span>
+              <span className="footer-trust-title">Secure & Safe</span>
+              <span className="footer-trust-subtitle">Bank-grade Security</span>
             </div>
           </div>
 
           <div className="footer-trust-item">
             <div className="footer-trust-icon-wrapper">
-              <ThumbsUp size={18} />
+              <LayoutGrid size={18} />
             </div>
             <div className="footer-trust-text">
-              <span className="footer-trust-title">Trusted by Thousands</span>
-              <span className="footer-trust-subtitle">Real Traders, Real Results</span>
+              <span className="footer-trust-title">Built for Traders</span>
+              <span className="footer-trust-subtitle">By Traders, For Traders</span>
             </div>
           </div>
         </div>

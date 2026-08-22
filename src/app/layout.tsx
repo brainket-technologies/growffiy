@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import BrandingProvider from "../shared/components/branding/BrandingProvider";
 import PwaRegister from "../shared/components/PwaRegister";
@@ -40,11 +41,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Growffiy" />
         <link rel="apple-touch-icon" href="/logo.png" />
-        <script dangerouslySetInnerHTML={{
-          __html: `(function(){try{var t=localStorage.getItem('growffiy_theme');if(!t){t=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){}})()`
-        }} />
       </head>
       <body>
+        <Script id="theme-initializer" src="/theme.js" strategy="afterInteractive" />
         <BrandingProvider>
           <PwaRegister />
           {children}

@@ -17,8 +17,8 @@ export default function LoginPage() {
   const [brandName, setBrandName] = useState('Growffiy');
   const [heroSubtitle, setHeroSubtitle] = useState('Connect your Zerodha Kite API and let our pre-open momentum engine execute disciplined, risk-managed trades while you focus on what matters.');
 
-  // Forgot Password States
-  const [view, setView] = useState<'login' | 'forgot'>('login');
+  // Forgot Password & Registration States
+  const [view, setView] = useState<'login' | 'forgot' | 'register'>('login');
   const [forgotStep, setForgotStep] = useState<1 | 2>(1);
   const [zerodhaClientId, setZerodhaClientId] = useState('');
   const [otp, setOtp] = useState('');
@@ -27,6 +27,14 @@ export default function LoginPage() {
   const [forgotMessage, setForgotMessage] = useState<string | null>(null);
   const [maskedEmail, setMaskedEmail] = useState('');
   const [isDark, setIsDark] = useState(true);
+
+  // Registration States
+  const [regName, setRegName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regUserId, setRegUserId] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regConfirmPassword, setRegConfirmPassword] = useState('');
+  const [regMessage, setRegMessage] = useState<string | null>(null);
 
   // Initialize and Sync Theme
   useEffect(() => {
@@ -135,6 +143,50 @@ export default function LoginPage() {
       }, 500);
     } catch (err: any) {
       setError(err.message || 'Server error occurred during login');
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (regPassword !== regConfirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setRegMessage(null);
+
+    try {
+      const res = await api.post('/api/auth/register', {
+        name: regName,
+        email: regEmail,
+        userId: regUserId,
+        password: regPassword
+      });
+
+      if (!res.success) {
+        setError(res.error || 'Registration failed');
+        setLoading(false);
+        return;
+      }
+
+      setRegMessage(res.message || 'Registration successful!');
+      setLoading(false);
+      
+      // Clear fields
+      setRegName('');
+      setRegEmail('');
+      setRegUserId('');
+      setRegPassword('');
+      setRegConfirmPassword('');
+
+      setTimeout(() => {
+        setView('login');
+        setRegMessage(null);
+      }, 2500);
+    } catch (err: any) {
+      setError(err.message || 'Server error occurred during registration');
       setLoading(false);
     }
   };
@@ -372,45 +424,7 @@ export default function LoginPage() {
               {heroSubtitle}
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {[
-                { icon: <TrendingUp size={16} />, text: 'Pre-Open Momentum Breakout Strategy', color: '#1E88FF' },
-                { icon: <Shield size={16} />, text: '1% Capital Risk Guard on Every Trade', color: '#10b981' },
-                { icon: <Zap size={16} />, text: 'Auto MIS Bracket Orders via Kite API', color: '#f59e0b' },
-                { icon: <BarChart2 size={16} />, text: 'Live P&L Dashboard & Telegram Alerts', color: '#818cf8' },
-              ].map((f, i) => (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  animation: `fadeInUp 0.5s ease ${0.2 + i * 0.1}s both`,
-                }}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: 8,
-                    background: `${f.color}15`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: f.color, flexShrink: 0,
-                  }}>
-                    {f.icon}
-                  </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#cbd5e1' }}>{f.text}</span>
-                </div>
-              ))}
-            </div>
 
-            <div className="login-left-stats" style={{
-              display: 'flex', gap: 32, marginTop: 48,
-              paddingTop: 32, borderTop: '1px solid rgba(255,255,255,0.08)',
-            }}>
-              {[
-                { val: '₹12.4Cr+', lbl: 'Capital Managed' },
-                { val: '1,200+', lbl: 'Trades Executed' },
-                { val: '68%', lbl: 'Win Rate' },
-              ].map((s, i) => (
-                <div key={i}>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#f1f5f9', fontFamily: 'Outfit, sans-serif' }}>{s.val}</div>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 2 }}>{s.lbl}</div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
 
@@ -589,6 +603,178 @@ export default function LoginPage() {
                     ) : (
                       <>Sign In <ArrowRight size={16} /></>
                     )}
+                  </button>
+                </form>
+
+                <div style={{ marginTop: 24, textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)' }}>
+                  Don't have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => { setView('register'); setError(null); setRegMessage(null); }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#1E88FF',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      padding: 0
+                    }}
+                  >
+                    Create Account
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* ═══ VIEW: REGISTRATION FORM ═══ */}
+            {view === 'register' && (
+              <>
+                <div style={{ marginBottom: 24 }}>
+                  <button 
+                    onClick={() => { setView('login'); setError(null); setRegMessage(null); }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      background: 'none',
+                      border: 'none',
+                      color: '#1E88FF',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      padding: 0,
+                      marginBottom: 16,
+                      fontFamily: 'Inter, sans-serif'
+                    }}
+                  >
+                    <ArrowLeft size={16} /> Back to Sign In
+                  </button>
+                  <h2 style={{
+                    fontSize: 26, fontWeight: 800, color: 'var(--text-heading)',
+                    fontFamily: 'Outfit, sans-serif', marginBottom: 8,
+                  }}>
+                    Create Account
+                  </h2>
+                  <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    Register now as a client to automate your trading.
+                  </p>
+                </div>
+
+                <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {error && (
+                    <div style={{
+                      padding: '12px 14px',
+                      borderRadius: 10,
+                      backgroundColor: 'rgba(239,68,68,0.08)',
+                      border: '1.5px solid var(--danger)',
+                      color: 'var(--danger)',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      lineHeight: 1.5,
+                    }}>
+                      ⚠️ {error}
+                    </div>
+                  )}
+
+                  {regMessage && (
+                    <div style={{
+                      padding: '12px 14px',
+                      borderRadius: 10,
+                      backgroundColor: 'rgba(16,185,129,0.08)',
+                      border: '1.5px solid #10b981',
+                      color: '#10b981',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      lineHeight: 1.5,
+                    }}>
+                      ✓ {regMessage}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="login-label">Full Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Enter your full name"
+                      value={regName}
+                      onChange={(e) => setRegName(e.target.value)}
+                      className="login-input"
+                      autoComplete="name"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="login-label">Email Address</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="name@example.com"
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                      className="login-input"
+                      autoComplete="email"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="login-label">Zerodha Client ID</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. AB1234"
+                      value={regUserId}
+                      onChange={(e) => setRegUserId(e.target.value.toUpperCase())}
+                      className="login-input"
+                      autoComplete="off"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="login-label">Password</label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Choose a strong password"
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      className="login-input"
+                      autoComplete="new-password"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="login-label">Confirm Password</label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Re-enter password"
+                      value={regConfirmPassword}
+                      onChange={(e) => setRegConfirmPassword(e.target.value)}
+                      className="login-input"
+                      autoComplete="new-password"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    style={{
+                      width: '100%', padding: '14px', borderRadius: 12,
+                      border: 'none', fontWeight: 700, fontSize: 15,
+                      cursor: loading ? 'wait' : 'pointer',
+                      background: 'linear-gradient(135deg, #1E88FF 0%, #1252AB 100%)',
+                      color: 'white',
+                      boxShadow: '0 6px 20px rgba(30,136,255,0.25)',
+                      transition: 'all 0.3s',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      opacity: loading ? 0.75 : 1,
+                      marginTop: 6,
+                      fontFamily: 'Inter, sans-serif',
+                    }}
+                  >
+                    {loading ? 'Creating Account...' : 'Register Account'}
                   </button>
                 </form>
               </>
@@ -789,20 +975,7 @@ export default function LoginPage() {
               </>
             )}
 
-            {/* Bottom info */}
-            <div style={{
-              marginTop: 28, paddingTop: 24,
-              borderTop: '1px solid var(--border)',
-              textAlign: 'center',
-            }}>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-                🔒 Protected by 256-bit SSL encryption.<br />
-                By signing in you agree to our{' '}
-                <a href="/vendor/terms" style={{ color: '#1E88FF', textDecoration: 'none', fontWeight: 600 }}>Terms</a>
-                {' & '}
-                <a href="/vendor/privacy" style={{ color: '#1E88FF', textDecoration: 'none', fontWeight: 600 }}>Privacy Policy</a>
-              </p>
-            </div>
+
           </div>
         </div>
       </div>

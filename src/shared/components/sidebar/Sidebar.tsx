@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Users,
   LineChart,
+  BarChart2,
   Activity,
   FileText,
   CreditCard,
@@ -89,6 +90,7 @@ const adminGroups: MenuGroup[] = [
     items: [
       { name: 'Plan Txns', path: '/admin/payments/subscriptions', icon: CreditCard },
       { name: 'Trade Txns', path: '/admin/payments/trades', icon: Activity },
+      { name: 'Trades', path: '/admin/payments/group-trades', icon: BarChart2 },
     ],
   },
   {

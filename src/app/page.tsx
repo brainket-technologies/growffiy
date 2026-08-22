@@ -90,6 +90,8 @@ export default function GrowffiyLanding() {
     }
   ]);
 
+  const [clientCount, setClientCount] = useState(100);
+
   // Fetch dynamic testimonials from DB API
   useEffect(() => {
     fetch('/api/testimonials')
@@ -97,6 +99,9 @@ export default function GrowffiyLanding() {
       .then((data) => {
         if (data && data.testimonials && data.testimonials.length > 0) {
           setTestimonials(data.testimonials);
+        }
+        if (data && typeof data.clientCount === 'number') {
+          setClientCount(data.clientCount);
         }
       })
       .catch((err) => console.log('Using default testimonials:', err));
@@ -350,15 +355,19 @@ export default function GrowffiyLanding() {
             // Sort by price ascending
             activePlans.sort((a: any, b: any) => Number(a.price) - Number(b.price));
             const mapped = activePlans.map((p: any) => {
-              // Extract product type: everything before Monthly/Quarterly/Yearly/Daily
               const typeMatch = p.name.match(/^(.+?)\s*(monthly|quarterly|yearly|daily|annual|half|weekly)/i);
-              const productType = typeMatch ? typeMatch[1].trim() : p.name.split(' ')[0];
+              const productType = p.productType?.name || (typeMatch ? typeMatch[1].trim() : p.name.split(' ')[0]);
+              
+              const isPro = p.name.toLowerCase().includes('pro') || p.name.toLowerCase().includes('quarterly');
+              const isEnterprise = p.name.toLowerCase().includes('enterprise') || p.name.toLowerCase().includes('yearly') || p.name.toLowerCase().includes('best');
+              const tag = isPro ? 'Most Popular' : isEnterprise ? 'Best Value' : 'Standard Access';
+              
               return {
-                tag: p.name.toLowerCase().includes('monthly') ? 'Standard Access' : p.name.toLowerCase().includes('quarterly') ? 'Most Popular' : 'Best Value',
+                tag,
                 name: p.name,
                 price: p.price,
                 per: `${p.durationDays} Days`,
-                popular: p.name.toLowerCase().includes('quarterly') || p.name.toLowerCase().includes('popular'),
+                popular: isPro,
                 features: p.features,
                 productType,
               };
@@ -401,81 +410,60 @@ export default function GrowffiyLanding() {
     <div data-theme="light" style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'var(--font-body)' }}>
 
       {/* ════════════════════════════════════════
-          LIVE STOCK TICKER STRIP
-      ════════════════════════════════════════ */}
-      <div style={{
-        background: '#0f172a',
-        color: '#fff',
-        padding: '7px 0',
-        overflow: 'hidden',
-        whiteSpace: 'nowrap',
-        position: 'relative',
-        zIndex: 1001,
-        borderBottom: '1px solid #1e293b',
-      }}>
-        <style>{`
-          @keyframes ticker-scroll {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-          .ticker-track {
-            display: inline-flex;
-            animation: ticker-scroll 30s linear infinite;
-          }
-          .ticker-track:hover { animation-play-state: paused; }
-        `}</style>
-        <div className="ticker-track">
-          {[...stocks, ...stocks].map((s, i) => (
-            <span key={i} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '0 28px',
-              borderRight: '1px solid rgba(255,255,255,0.08)',
-              fontSize: 12, fontWeight: 600,
-            }}>
-              <span style={{ color: '#94a3b8', fontWeight: 700, letterSpacing: '0.3px' }}>{s.symbol}</span>
-              <span style={{ color: '#f1f5f9', fontFamily: 'monospace', fontSize: 13 }}>₹{s.ltp.toFixed(2)}</span>
-              <span style={{
-                color: isUp(s.change) ? '#4ade80' : '#f87171',
-                fontSize: 11, fontWeight: 700,
-              }}>
-                {isUp(s.change) ? '▲' : '▼'} {Math.abs(s.change).toFixed(2)}%
-              </span>
-            </span>
-          ))}
-        </div>
-      </div>
-
-
-      {/* ════════════════════════════════════════
           NAVBAR
       ════════════════════════════════════════ */}
       <nav style={{
-        position: 'sticky', top: 0, left: 0, right: 0, zIndex: 1000,
-        background: scrolled || mobileMenuOpen
-          ? 'rgba(255,255,255,0.97)'
-          : 'rgba(255,255,255,0)',
-        backdropFilter: scrolled || mobileMenuOpen ? 'blur(20px)' : 'none',
-        WebkitBackdropFilter: scrolled || mobileMenuOpen ? 'blur(20px)' : 'none',
-        borderBottom: scrolled || mobileMenuOpen ? '1px solid rgba(226,232,240,0.8)' : '1px solid transparent',
-        boxShadow: scrolled || mobileMenuOpen ? '0 2px 20px rgba(0,0,0,0.06)' : 'none',
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
+        background: '#ffffff',
+        borderBottom: '1px solid rgba(226,232,240,0.8)',
+        boxShadow: '0 2px 20px rgba(0,0,0,0.06)',
         transition: 'all 0.35s ease',
       }}>
         <div className="navbar-inner">
           {/* Logo */}
-          <Link href="/" className="navbar-logo" onClick={() => setMobileMenuOpen(false)}>
-            <div className="navbar-logo-icon">
-              <img src={brandLogo || '/logo.png'} alt={brandName} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          <Link href="/" className="navbar-logo" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', background: 'none', WebkitTextFillColor: 'initial', color: 'initial' }}>
+            <div className="navbar-logo-icon" style={{ width: '48px', height: '48px' }}>
+              <img src="/logo.png" alt="Growffiy Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', transform: 'scale(1.25)' }} />
             </div>
-            {brandName.toUpperCase()}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', lineHeight: '1.15' }}>
+              <span style={{ fontSize: '22px', fontWeight: '900', color: '#2563eb', letterSpacing: '0.2px', fontFamily: 'var(--font-title)', textTransform: 'uppercase' }}>GROWFFI</span>
+              <span style={{ fontSize: '9px', color: '#334155', fontWeight: '700', letterSpacing: '-0.1px', whiteSpace: 'nowrap' }}>Automate. Trade. Grow.</span>
+            </div>
           </Link>
 
           {/* Desktop Nav links */}
-          <div className="navbar-nav">
-            <Link href="/" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`} style={{ color: '#1E88FF', fontWeight: 600 }}>Home</Link>
-            <Link href="/products" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Products</Link>
-            <Link href="/pricing" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Pricing</Link>
-            <Link href="/about" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>About Us</Link>
-            <button onClick={() => setShowConsultationModal(true)} className="btn-nav" style={{ border: 'none', cursor: 'pointer' }}>Get Started →</button>
+          <div className="navbar-nav" style={{ height: '100%', display: 'flex', alignItems: 'center' }}>
+            <Link href="/" className="nav-link" style={{ color: '#2563eb', fontWeight: 700, position: 'relative', background: 'none' }}>
+              Home
+              <span style={{
+                position: 'absolute',
+                bottom: '-18px',
+                left: '14px',
+                right: '14px',
+                height: '2px',
+                background: '#2563eb',
+                borderRadius: '99px'
+              }} />
+            </Link>
+            <Link href="/products" className="nav-link" style={{ color: '#334155', fontWeight: 600 }}>Products</Link>
+            <Link href="/pricing" className="nav-link" style={{ color: '#334155', fontWeight: 600 }}>Pricing</Link>
+            <Link href="/about" className="nav-link" style={{ color: '#334155', fontWeight: 600 }}>About Us</Link>
+            <Link href="/login" className="nav-link" style={{ color: '#334155', fontWeight: 600, marginLeft: '8px' }}>Client Portal</Link>
+            <button onClick={() => setShowConsultationModal(true)} style={{
+              marginLeft: '36px',
+              background: '#2563eb',
+              color: '#ffffff',
+              padding: '9px 22px',
+              borderRadius: '99px',
+              fontWeight: '700',
+              fontSize: '13px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}>Get Started →</button>
           </div>
 
           {/* Hamburger Button (mobile only) */}
@@ -484,7 +472,7 @@ export default function GrowffiyLanding() {
             onClick={() => setMobileMenuOpen(o => !o)}
             aria-label="Toggle menu"
           >
-            {mobileMenuOpen ? <X size={22} color="#0f172a" /> : <Menu size={22} color={scrolled ? '#0f172a' : '#0f172a'} />}
+            {mobileMenuOpen ? <X size={22} color="#0f172a" /> : <Menu size={22} color="#0f172a" />}
           </button>
         </div>
 
@@ -495,12 +483,80 @@ export default function GrowffiyLanding() {
             <Link href="/products" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Products</Link>
             <Link href="/pricing" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
             <Link href="/about" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>About Us</Link>
+            <Link href="/login" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)} style={{ color: '#2563eb', fontWeight: 700 }}>Client Portal</Link>
             <button className="mobile-nav-cta" onClick={() => { setShowConsultationModal(true); setMobileMenuOpen(false); }} style={{ border: 'none', textAlign: 'center', width: '100%', cursor: 'pointer' }}>
               Get Started →
             </button>
           </div>
         )}
       </nav>
+
+      {/* ════════════════════════════════════════
+          LIVE STOCK TICKER STRIP
+      ════════════════════════════════════════ */}
+      <div style={{
+        background: '#ffffff',
+        color: '#0f172a',
+        padding: '5px 0',
+        overflow: 'hidden',
+        whiteSpace: 'nowrap',
+        position: 'fixed',
+        top: '70px',
+        left: 0,
+        right: 0,
+        zIndex: 999,
+        borderBottom: '1px solid #e2e8f0',
+        borderTop: '1px solid #f1f5f9',
+        transform: scrolled ? 'translateY(-70px)' : 'translateY(0)',
+        opacity: scrolled ? 0 : 1,
+        transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease',
+        pointerEvents: scrolled ? 'none' : 'auto'
+      }}>
+        <style>{`
+          @keyframes ticker-scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+          .ticker-track {
+            display: inline-flex;
+            animation: ticker-scroll 30s linear infinite;
+            align-items: center;
+          }
+          .ticker-track:hover { animation-play-state: paused; }
+        `}</style>
+        <div className="ticker-track">
+          {[...stocks, ...stocks].map((s, i) => (
+            <span key={i} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '0 28px',
+              borderRight: '1px solid #e2e8f0',
+              fontSize: 11, fontWeight: 600,
+            }}>
+              <span style={{ color: '#475569', fontWeight: 700, letterSpacing: '0.3px' }}>{s.symbol === 'TATAMOTORS' ? 'TATA MOTORS' : s.symbol === 'ICICIBANK' ? 'ICICI BANK' : s.symbol === 'HDFCBANK' ? 'HDFC BANK' : s.symbol === 'SBIN' ? 'SBI' : s.symbol.replace('50', ' 50').replace('NIFTY', ' NIFTY').trim()}</span>
+              <span style={{ color: '#0f172a', fontFamily: 'var(--font-body)', fontWeight: 700 }}>{s.ltp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span style={{
+                color: isUp(s.change) ? '#10b981' : '#ef4444',
+                fontSize: 11, fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3
+              }}>
+                {isUp(s.change) ? '▲' : '▼'} {Math.abs(s.change).toFixed(2)}%
+              </span>
+            </span>
+          ))}
+          {/* Append Live Market Indicator */}
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '0 28px',
+            fontSize: 11, fontWeight: 700,
+            color: '#475569',
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block', animation: 'pulseDot 1.5s ease-in-out infinite' }} />
+            Live Market
+          </span>
+        </div>
+      </div>
 
       {/* ════════════════════════════════════════
           HERO SECTION
@@ -513,57 +569,100 @@ export default function GrowffiyLanding() {
         <div className="hero-inner">
           {/* LEFT */}
           <div className="hero-left">
+            {/* AI-Powered Badge */}
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              alignSelf: 'flex-start',
+              gap: '6px',
+              background: 'rgba(59, 130, 246, 0.08)',
+              border: '1px solid rgba(59, 130, 246, 0.2)',
+              borderRadius: '99px',
+              padding: '6px 16px',
+              fontSize: '11px',
+              fontWeight: '700',
+              color: '#2563eb',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              marginBottom: '10px'
+            }}>
+              <Sparkles size={12} style={{ color: '#3b82f6' }} />
+              AI-Powered • Rule-Based • Real-Time
+            </div>
 
             <h1 className="hero-h1" style={{
               fontFamily: 'var(--font-title)',
-              fontSize: 'clamp(34px, 5vw, 48px)',
+              fontSize: 'clamp(36px, 5.5vw, 54px)',
               fontWeight: '900',
-              lineHeight: '1.15',
+              lineHeight: '1.1',
               letterSpacing: '-1.5px',
               color: '#0f172a',
               textTransform: 'uppercase',
+              marginTop: '0px',
               marginBottom: '12px'
-            }} dangerouslySetInnerHTML={{ __html: heroTitle }} />
+            }}>
+              TRADE SMART.<br />
+              TRADE BETTER.<br />
+              <span style={{ color: '#2563eb' }}>GROW TOGETHER.</span>
+            </h1>
 
             <p className="hero-sub" style={{
-              fontSize: 'clamp(15px, 2vw, 17px)',
-              lineHeight: '1.45',
-              color: '#334155',
+              fontSize: 'clamp(15px, 2.2vw, 17px)',
+              lineHeight: '1.5',
+              color: '#475569',
+              marginTop: '0px',
               marginBottom: '20px',
               maxWidth: '540px'
-            }} dangerouslySetInnerHTML={{ __html: heroSubtitle }} />
+            }}>
+              Automate your trading with real-time scanners, powerful tools, and intelligent strategies designed to elevate your trading consistency.
+            </p>
 
-            <div className="hero-btns" style={{ display: 'flex', gap: '12px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="hero-btns" style={{ display: 'flex', gap: '12px', marginBottom: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
               <button onClick={() => setShowConsultationModal(true)} className="btn-primary" style={{
-                background: '#0052e0',
+                background: '#2563eb',
                 color: '#ffffff',
-                padding: '10px 20px',
-                borderRadius: '6px',
+                padding: '12px 24px',
+                borderRadius: '8px',
                 fontWeight: '600',
                 fontSize: '14px',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                boxShadow: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
               }}>
                 Start Trading Now <ArrowRight size={14} />
               </button>
               <a href="#strategy" className="btn-secondary" style={{
                 background: '#ffffff',
-                color: '#0052e0',
-                border: '1px solid #93c5fd',
-                padding: '10px 20px',
-                borderRadius: '6px',
+                color: '#2563eb',
+                border: '1px solid #bfdbfe',
+                padding: '12px 24px',
+                borderRadius: '8px',
                 fontWeight: '600',
                 fontSize: '14px',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                textDecoration: 'none'
               }}>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '18px',
+                  height: '18px',
+                  borderRadius: '50%',
+                  border: '1.5px solid #2563eb',
+                  marginRight: '2px'
+                }}>
+                  <svg viewBox="0 0 24 24" width="8" height="8" stroke="currentColor" strokeWidth="3" fill="currentColor" style={{ marginLeft: '1px' }}>
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                </span>
                 View Strategy
               </a>
             </div>
@@ -571,13 +670,7 @@ export default function GrowffiyLanding() {
             {/* Trust badge */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', position: 'relative' }}>
-                {[
-                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80',
-                  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100&q=80',
-                  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80',
-                  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100&q=80',
-                  'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&h=100&q=80'
-                ].map((src, i) => (
+                {testimonials.slice(0, 5).map((t, i) => (
                   <div
                     key={i}
                     style={{
@@ -591,13 +684,13 @@ export default function GrowffiyLanding() {
                       boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                     }}
                   >
-                    <img src={src} alt="User avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={t.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80'} alt={t.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                 ))}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', lineHeight: '1.2' }}>
-                  <span style={{ color: '#22c55e' }}>100+</span> Traders Trust Our Tools
+                  <span style={{ color: '#22c55e' }}>{clientCount}+</span> Traders Trust Our Tools
                 </span>
                 <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '500', marginTop: '1px' }}>
                   Built by Traders, For Traders
@@ -607,119 +700,25 @@ export default function GrowffiyLanding() {
           </div>
 
           {/* RIGHT */}
-          <div className="hero-right" style={{ position: 'relative' }}>
-            {/* Badge top-right */}
-            <div style={{
-              position: 'absolute', top: 80, right: -50, zIndex: 10,
-              background: 'var(--bg-card)', borderRadius: 16, padding: '14px 18px',
-              boxShadow: 'var(--shadow-lg)',
-              animation: 'floatCard2 6s ease-in-out infinite',
-            }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Today&apos;s P&amp;L</div>
-              <div style={{ fontFamily: 'var(--font-title)', fontSize: 20, fontWeight: 800, color: 'var(--accent)' }}>+₹{pnl.toLocaleString()}</div>
-              <div style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600, marginTop: 2 }}>▲ 3.24% today</div>
-            </div>
-
-            {/* Badge bottom-left */}
-            <div style={{
-              position: 'absolute', bottom: 150, left: -50, zIndex: 10,
-              background: 'var(--bg-card)', borderRadius: 16, padding: '14px 18px',
-              boxShadow: 'var(--shadow-lg)',
-              animation: 'floatCard1 5s ease-in-out infinite',
-            }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Risk Per Trade</div>
-              <div style={{ fontFamily: 'var(--font-title)', fontSize: 20, fontWeight: 800, color: 'var(--text-heading)' }}>1.00%</div>
-              <div style={{ fontSize: 11, color: 'var(--warning)', fontWeight: 600, marginTop: 2 }}>Capital Protected</div>
-            </div>
-
-            {/* Main Chart Card */}
-            <div style={{
-              background: 'var(--bg-card)', borderRadius: 24,
-              padding: '24px 24px 20px',
-              boxShadow: 'var(--shadow-xl)',
-              overflow: 'hidden', position: 'relative',
-            }}>
-              <div style={{
-                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-                background: isUp(stocks[0].change)
-                  ? 'linear-gradient(90deg,var(--accent),var(--primary))'
-                  : 'linear-gradient(90deg,var(--danger),var(--warning))',
-              }} />
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-heading)' }}>NSE: RELIANCE</div>
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 4,
-                      fontSize: 10, fontWeight: 700, color: '#059669',
-                      background: 'rgba(34,197,94,0.12)', borderRadius: 99, padding: '2px 8px',
-                    }}>
-                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', animation: 'pulseDot 1.5s ease-in-out infinite' }} />
-                      LIVE
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-subtle)', marginTop: 2 }}>Reliance Industries Ltd.</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'var(--font-title)', fontSize: 24, fontWeight: 800, color: 'var(--text-heading)', lineHeight: 1 }}>
-                    ₹{stocks[0].ltp.toFixed(2)}
-                  </div>
-                  <div style={{
-                    fontSize: 12, fontWeight: 700, marginTop: 4,
-                    color: isUp(stocks[0].change) ? 'var(--accent)' : 'var(--danger)',
-                    display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end',
-                  }}>
-                    <span style={{
-                      width: 7, height: 7, borderRadius: '50%',
-                      background: isUp(stocks[0].change) ? 'var(--accent)' : 'var(--danger)',
-                      display: 'inline-block', animation: 'pulseDot 1.5s ease-in-out infinite',
-                    }} />
-                    {isUp(stocks[0].change) ? '+' : ''}{stocks[0].change.toFixed(2)}%
-                  </div>
-                </div>
-              </div>
-
-              <PerformanceChart
-                data={heroData}
-                labels={heroLabels}
-                height={200}
-                strokeColor={isUp(stocks[0].change) ? '#10b981' : '#ef4444'}
-                fillColorStart={isUp(stocks[0].change) ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.10)'}
-                fillColorEnd="rgba(255,255,255,0)"
-              />
-
-              <div style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                borderTop: '1px solid var(--border-light)', paddingTop: 10, marginTop: 6, fontSize: 11,
-              }}>
-                <span style={{ color: 'var(--text-subtle)' }}>
-                  H: <strong style={{ color: 'var(--text-heading)' }}>₹{stocks[0].high}</strong>
-                  {'  '}L: <strong style={{ color: 'var(--text-heading)' }}>₹{stocks[0].low}</strong>
-                  {'  '}Vol: <strong style={{ color: 'var(--text-heading)' }}>{stocks[0].volume}</strong>
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--accent)', fontWeight: 700 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', animation: 'pulseDot 1.5s ease-in-out infinite' }} />
-                  Live · 2s ticks
-                </span>
-              </div>
-            </div>
-
-            {/* 3 mini quote chips */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginTop: 12 }}>
-              {stocks.slice(1, 4).map(s => (
-                <div key={s.symbol} style={{
-                  background: 'var(--bg-card)', borderRadius: 12, padding: '10px 12px',
-                  boxShadow: 'var(--shadow-sm)',
-                }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-subtle)', marginBottom: 3 }}>{s.symbol}</div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-heading)' }}>₹{s.ltp.toFixed(0)}</div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: isUp(s.change) ? 'var(--accent)' : 'var(--danger)', marginTop: 2 }}>
-                    {isUp(s.change) ? '▲' : '▼'} {Math.abs(s.change).toFixed(2)}%
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="hero-right" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <img
+              src="/hero_mockup.png"
+              alt="Growffiy Laptop and Mobile Mockup"
+              style={{
+                width: '115%',
+                maxWidth: 'none',
+                height: 'auto',
+                display: 'block',
+                transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                cursor: 'pointer'
+              }}
+              className="hover-scale-image"
+            />
+            <style>{`
+              .hover-scale-image:hover {
+                transform: translateY(-8px) scale(1.02);
+              }
+            `}</style>
           </div>
         </div>
       </section>
@@ -1394,44 +1393,11 @@ export default function GrowffiyLanding() {
           </div>
 
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: '48px',
-            alignItems: 'start',
-            marginTop: '48px'
-          }} className="faq-container-grid">
-            {/* Left Side: Premium Image with backdrop glow */}
-            <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }} className="faq-image-wrapper">
-              <div style={{
-                position: 'absolute',
-                top: '5%',
-                left: '5%',
-                width: '90%',
-                height: '90%',
-                background: 'radial-gradient(circle, rgba(30,136,255,0.18) 0%, rgba(255,255,255,0) 70%)',
-                filter: 'blur(40px)',
-                zIndex: 0,
-                pointerEvents: 'none'
-              }} />
-              <img
-                src="/faq_illustration.png"
-                alt="Frequently Asked Questions"
-                style={{
-                  width: '100%',
-                  maxWidth: '480px',
-                  height: 'auto',
-                  borderRadius: '20px',
-                  boxShadow: '0 25px 60px rgba(30,136,255,0.08)',
-                  border: '1px solid rgba(226, 232, 240, 0.8)',
-                  position: 'relative',
-                  zIndex: 1,
-                  transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
-                }}
-                className="faq-hero-img"
-              />
-            </div>
-
-            {/* Right Side: Accordion */}
+            maxWidth: '800px',
+            margin: '48px auto 0',
+            width: '100%'
+          }} className="faq-container-centered">
+            {/* Accordion */}
             <div className="faq-list" style={{ width: '100%' }}>
               {faqs.slice(0, 4).map((faq, i) => (
                 <div key={i} className={`faq-item${activeFaq === i ? ' open' : ''}`}>

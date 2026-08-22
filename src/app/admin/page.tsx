@@ -564,6 +564,10 @@ export default function AdminDashboard() {
   const openTradesList = trades.filter(t => (t.status || '').toLowerCase() === 'open');
 
   const filteredTrades = trades.filter(t => {
+    // Filter out CANCELLED or FAILED trades from appearing in this table
+    const status = (t.status || '').toLowerCase();
+    if (status === 'cancelled' || status === 'failed') return false;
+
     const dStr = t.createdAt || t.entryTime;
     if (!dStr) return true;
     const tradeDate = new Date(dStr);
