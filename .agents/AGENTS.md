@@ -107,13 +107,13 @@ prisma/
 
 | Client | Environment | Server IP / Domain | Purpose |
 |--------|-------------|-------------------|---------|
-| **Janvi** | 🧪 TESTING | `growffi.com` (Hostinger) | Testing & verification only |
+| **Janvi** | 🧪 TESTING | `growffi.live` (Hostinger) | Testing & verification only |
 | **Ashutosh** | 🔴 PRODUCTION | `66.116.245.44` (`growffi.in`) | Live trading — real clients |
-| **Growffi Main** | 🔴 PRODUCTION | `66.116.210.206` (`growffi.com` / `growffi.live`) | Live trading — real clients |
+| **Growffi Main** | 🔴 PRODUCTION | `66.116.210.206` (`growffi.com`) | Live trading — real clients |
 
 ### Rules
 
-1. 🧪 **Janvi (`growffi.com`) = TESTING ONLY**
+1. 🧪 **Janvi (`growffi.live`) = TESTING ONLY**
    - Sirf naye features, UI changes aur strategy configs yahan test karein
    - Koi bhi naya change pehle Janvi pe verify hoga
 

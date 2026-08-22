@@ -8,15 +8,15 @@ Iss document mein har client setup, unke server infrastructure, database, aur de
 
 | Client Name | Environment | Hosting Type / Provider | Server IP / Domain | SSH User & Pass / Access | Database Type / Connection URL | Code Path / Location | Update Method |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Janvi** | 🧪 **TESTING** | Hostinger | Web Hosting (`growffi.com`) | Panel Access (File Manager) | Neon Cloud PostgreSQL (`postgresql://neondb_owner:...`) | `/public_html` | ZIP Upload / Web Portal |
+| **Janvi** | 🧪 **TESTING** | Hostinger | Web Hosting (`growffi.live`) | Panel Access (File Manager) | Neon Cloud PostgreSQL (`postgresql://neondb_owner:...`) | `/public_html` | ZIP Upload / Web Portal |
 | **Ashutosh** (⚠️ **SUSPENDED ACCOUNT/SERVER**) | 🔴 **PRODUCTION** | GlobeHost VPS | `66.116.245.44` (`growffi.in`) | `root` / `2hA@QAydr#r%pD` | Local VPS PostgreSQL (`postgresql://growffiy:...`) | `/var/www/growffiy` | SSH Script / Commands |
-| **Growffi Main** | 🔴 **PRODUCTION** | VPS | `66.116.210.206` (`growffi.com` / `growffi.live`) | `root` / `Q}K)H~l8i@=XwC` | Local VPS PostgreSQL (`postgresql://growffiy_user:growffiy_live_pass_2026@localhost:5432/growffiy_com_db`) | `/var/www/growffiy` | SSH Script / Commands |
+| **Growffi Main** | 🔴 **PRODUCTION** | VPS | `66.116.210.206` (`growffi.com`) | `root` / `Q}K)H~l8i@=XwC` | Local VPS PostgreSQL (`postgresql://growffiy_user:growffiy_live_pass_2026@localhost:5432/growffiy_com_db`) | `/var/www/growffiy` | SSH Script / Commands |
 
 ---
 
 ## ⚠️ Critical Rules for AI & Developers
 
-1. 🧪 **Janvi Server (`growffi.com`) = TESTING ENVIRONMENT**
+1. 🧪 **Janvi Server (`growffi.live`) = TESTING ENVIRONMENT**
    - Ye server sirf **Testing & Verification** ke liye hai.
    - Naye UI changes, strategy configurations, aur features pehle yahan test aur verify honge.
 
@@ -46,6 +46,7 @@ Iss document mein har client setup, unke server infrastructure, database, aur de
 ## 1. 🟢 Client 1: Janvi Setup
 
 ### ⚙️ Details & Architecture
+- **Domain**: `growffi.live`
 - **Hosting**: Hostinger
 - **Database**: Neon PostgreSQL (`serverless`)
 - **Database URL**: `postgresql://neondb_owner:npg_Qtok2RmWK4uT@ep-purple-frost-aimotyfv-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require`
@@ -109,7 +110,7 @@ sshpass -p '2hA@QAydr#r%pD' ssh root@66.116.245.44
 
 ### ⚙️ Details & Credentials
 - **Client Name**: Growffi Main
-- **Domain**: `growffi.com` (Backup alias: `growffi.live`)
+- **Domain**: `growffi.com`
 - **Server IP**: `66.116.210.206`
 - **SSH Port**: `22`
 - **User**: `root`
