@@ -9,7 +9,7 @@ Iss document mein har client setup, unke server infrastructure, database, aur de
 | Client Name | Environment | Hosting Type / Provider | Server IP / Domain | SSH User & Pass / Access | Database Type / Connection URL | Code Path / Location | Update Method |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Janvi** | 🧪 **TESTING** | Hostinger | Web Hosting (`growffi.com`) | Panel Access (File Manager) | Neon Cloud PostgreSQL (`postgresql://neondb_owner:...`) | `/public_html` | ZIP Upload / Web Portal |
-| **Ashutosh** | 🔴 **PRODUCTION** | GlobeHost VPS | `66.116.245.44` (`growffi.in`) | `root` / `2hA@QAydr#r%pD` | Local VPS PostgreSQL (`postgresql://growffiy:...`) | `/var/www/growffiy` | SSH Script / Commands |
+| **Ashutosh** (⚠️ **SUSPENDED ACCOUNT/SERVER**) | 🔴 **PRODUCTION** | GlobeHost VPS | `66.116.245.44` (`growffi.in`) | `root` / `2hA@QAydr#r%pD` | Local VPS PostgreSQL (`postgresql://growffiy:...`) | `/var/www/growffiy` | SSH Script / Commands |
 | **Anand Kumar Sharma** | 🔴 **PRODUCTION** | VPS | `66.116.210.206` (`growffi.live`) | `root` / `Q}K)H~l8i@=XwC` | Local VPS PostgreSQL (`postgresql://growffiy_user:...`) | `/var/www/growffiy` | SSH Script / Commands |
 
 ---
@@ -66,7 +66,7 @@ Iss document mein har client setup, unke server infrastructure, database, aur de
 
 ---
 
-## 2. 🔵 Client 2: Ashutosh Setup
+## 2. 🔵 Client 2: Ashutosh Setup (⚠️ **SUSPENDED ACCOUNT/SERVER**)
 
 ### ⚙️ Details & Credentials
 - **Domain**: `growffi.in`
