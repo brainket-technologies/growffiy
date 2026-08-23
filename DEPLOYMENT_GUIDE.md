@@ -135,7 +135,20 @@ Naye server pe clean schema push karne ke liye (seed data/old clients mat run ka
 
 2. **Deploy / Update Code**:
    ```bash
-   sshpass -p 'Q}K)H~l8i@=XwC' ssh root@66.116.210.206 "cd /path/to/project && git pull origin main && npm install && npm run build && pm2 restart all"
+   sshpass -p 'Q}K)H~l8i@=XwC' ssh root@66.116.210.206 "cd /var/www/growffiy && git pull origin main && npm install && npm run build && pm2 restart growffiy"
+   ```
+
+3. **Stock Scanner (Python) Update / Restart**:
+   Python dependencies sync aur daemon process start/restart ke liye commands:
+   ```bash
+   # Dependencies installation
+   sshpass -p 'Q}K)H~l8i@=XwC' ssh root@66.116.210.206 "cd /var/www/growffiy/stock-scanner && pip3 install -r requirements.txt psycopg2-binary"
+
+   # Start stock-scanner service (First time only)
+   sshpass -p 'Q}K)H~l8i@=XwC' ssh root@66.116.210.206 "pm2 start \"python3 /var/www/growffiy/stock-scanner/src/kite_to_gspread.py\" --name stock-scanner"
+
+   # Restart stock-scanner service
+   sshpass -p 'Q}K)H~l8i@=XwC' ssh root@66.116.210.206 "pm2 restart stock-scanner"
    ```
 
 ---
