@@ -16,7 +16,6 @@ import { logFailedTrade } from '../utils/tradeLogger';
 import { getFreshCircuitLimits } from '../utils/circuitLimitHelper';
 import { matchesConditions } from '../utils/conditionEvaluator';
 import { PreOpenStrategy } from './algo/strategies/preOpenStrategy';
-import { getPreOpenStocks, fetchLivePreOpenFromNSE, fetchLivePreOpenFromKite, getCachedPreOpenStocks, getPreOpenDate } from '../utils/preOpenFetcher';
 
 
 export interface StockQuote {
@@ -182,7 +181,8 @@ class AlgoEngineService {
   }
 
   public async fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
-    return fetchLivePreOpenFromNSE();
+    const fetcher = require('../utils/preOpenFetcher');
+    return fetcher.fetchLivePreOpenFromNSE();
   }
 
   public async getPreOpenStocksByDate(dateStr: string): Promise<StockQuote[]> {
@@ -198,13 +198,15 @@ class AlgoEngineService {
   }
 
   public async fetchLivePreOpenFromKite(): Promise<StockQuote[]> {
-    return fetchLivePreOpenFromKite();
+    const fetcher = require('../utils/preOpenFetcher');
+    return fetcher.fetchLivePreOpenFromKite();
   }
 
   public async getPreOpenStocks(forceFetch = false): Promise<StockQuote[]> {
-    const stocks = await getPreOpenStocks(forceFetch);
-    this.preOpenCache = getCachedPreOpenStocks();
-    this.preOpenCacheDate = getPreOpenDate();
+    const fetcher = require('../utils/preOpenFetcher');
+    const stocks = await fetcher.getPreOpenStocks(forceFetch);
+    this.preOpenCache = fetcher.getCachedPreOpenStocks();
+    this.preOpenCacheDate = fetcher.getPreOpenDate();
     return stocks;
   }
 
