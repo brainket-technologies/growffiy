@@ -17,6 +17,7 @@ import { batchArray, concurrentMap } from '../../core/helpers';
 import { logSystemEvent } from '../services/auditLogger';
 import { getLatestOrderState } from '../utils/kiteHelper';
 import { calculateClientCapitalAndRisk } from '../utils/marginHelper';
+import { getMasterClient } from '../utils/masterClient';
 import { PreOpenStrategy } from './algo/strategies/preOpenStrategy';
 
 function mapTimeframeToKiteInterval(tf: string): string {
@@ -165,39 +166,7 @@ class AlgoEngineService {
   }
 
   public async getMasterClient(): Promise<{ id: string; zerodhaApiKey: string; accessToken: string } | null> {
-    try {
-      const masterSetting = await prisma.appSettings.findUnique({
-        where: { settingKey: 'master_scanner_client_id' }
-      });
-      let masterClient = null;
-      if (masterSetting?.settingValue) {
-        masterClient = await prisma.client.findFirst({
-          where: {
-            OR: [
-              { id: masterSetting.settingValue },
-              { zerodhaClientId: masterSetting.settingValue }
-            ],
-            accessToken: { not: null },
-            zerodhaApiKey: { not: null }
-          }
-        });
-      }
-      if (!masterClient) {
-        masterClient = await prisma.client.findFirst({
-          where: { accessToken: { not: null }, zerodhaApiKey: { not: null } }
-        });
-      }
-      if (masterClient && masterClient.zerodhaApiKey && masterClient.accessToken) {
-        return {
-          id: masterClient.id,
-          zerodhaApiKey: masterClient.zerodhaApiKey,
-          accessToken: masterClient.accessToken
-        };
-      }
-    } catch (err) {
-      console.error('AlgoEngine: Error resolving Master Client credentials:', err);
-    }
-    return null;
+    return getMasterClient();
   }
 
   private async getFreshCircuitLimits(client: any, exchange: string, symbol: string, accessToken?: string): Promise<{ upper: number; lower: number } | null> {

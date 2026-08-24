@@ -9,6 +9,7 @@ import { getLatestOrderState } from '../../../utils/kiteHelper';
 import { performKiteAutoLogin } from '../../../services/kiteAutoLogin';
 import { StockQuote } from '../../algoEngine';
 import { fetchEligibleClients, fetchClientsByStrategy } from '../clientSelector';
+import { getMasterClient } from '../../../utils/masterClient';
 
 function mapTimeframeToKiteInterval(tf: string): string {
   if (!tf) return '5minute';
@@ -365,7 +366,7 @@ export class PreOpenStrategy {
             }
 
             let candlePrice = candlePriceCache.get(cs.symbol) || 0;
-            const masterClientData = await this.engine.getMasterClient();
+            const masterClientData = await getMasterClient();
             const marketApiKey = masterClientData?.zerodhaApiKey || client.zerodhaApiKey;
             const marketAccessToken = masterClientData?.accessToken || client.accessToken;
 
