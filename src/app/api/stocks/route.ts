@@ -19,13 +19,14 @@ export async function GET(req: NextRequest) {
 
     const stocks = algoEngine.getStocks();
     let preOpenStocks;
-    let preOpenDate = algoEngine.getPreOpenDate();
+    const { getPreOpenStocks, getPreOpenDate } = require('../../../shared/utils/preOpenFetcher');
+    let preOpenDate = getPreOpenDate();
 
     if (dateParam) {
       preOpenStocks = await algoEngine.getPreOpenStocksByDate(dateParam);
       preOpenDate = dateParam;
     } else {
-      preOpenStocks = await algoEngine.getPreOpenStocks();
+      preOpenStocks = await getPreOpenStocks();
     }
 
     const isTradingActive = await algoEngine.getTradingStatus();

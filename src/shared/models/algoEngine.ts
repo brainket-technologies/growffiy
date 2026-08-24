@@ -204,10 +204,7 @@ class AlgoEngineService {
 
   public async getPreOpenStocks(forceFetch = false): Promise<StockQuote[]> {
     const fetcher = require('../utils/preOpenFetcher');
-    const stocks = await fetcher.getPreOpenStocks(forceFetch);
-    this.preOpenCache = fetcher.getCachedPreOpenStocks();
-    this.preOpenCacheDate = fetcher.getPreOpenDate();
-    return stocks;
+    return fetcher.getPreOpenStocks(forceFetch);
   }
 
   public async updateLiveQuotesFromKiteHTTP() {
