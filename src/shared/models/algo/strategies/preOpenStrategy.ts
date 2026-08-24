@@ -7,7 +7,7 @@ import { concurrentMap } from '../../../../core/helpers';
 import { getTickSizeAndRound } from '../../../utils/tickSizeUtil';
 import { getLatestOrderState } from '../../../utils/kiteHelper';
 import { performKiteAutoLogin } from '../../../services/kiteAutoLogin';
-import { StockQuote } from '../../algoEngine';
+import { StockQuote, getPreOpenStocks } from '../../../utils/preOpenFetcher';
 import { fetchEligibleClients, fetchClientsByStrategy } from '../clientSelector';
 import { getMasterClient } from '../../../utils/masterClient';
 import { logFailedTrade } from '../../../utils/tradeLogger';
@@ -44,9 +44,7 @@ export class PreOpenStrategy {
       console.error('AlgoEngine preSelect: Failed to clear old preselections from DB:', e);
     }
 
-    const preOpenStocks = this.engine.preOpenCache.length > 0
-      ? this.engine.preOpenCache
-      : await this.engine.getPreOpenStocks();
+    const preOpenStocks = await getPreOpenStocks();
 
     if (!preOpenStocks || preOpenStocks.length === 0) {
       console.log('AlgoEngine preSelect: No pre-open stocks available. Skipping.');
@@ -163,7 +161,7 @@ export class PreOpenStrategy {
     try {
       const preOpenStocks = mockStocks && mockStocks.length > 0
         ? mockStocks
-        : await this.engine.getPreOpenStocks();
+        : await getPreOpenStocks();
 
       if (!preOpenStocks || preOpenStocks.length === 0) {
         const msg = 'AlgoEngine: No pre-open stocks fetched from NSE. Aborting execution for today.';

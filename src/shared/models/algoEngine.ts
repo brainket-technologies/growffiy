@@ -180,177 +180,9 @@ class AlgoEngineService {
     return this.preOpenStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
   }
 
-
   public async fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
-    const headers = {
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': '*/*',
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Referer': API_ENDPOINTS.NSE_REFERER,
-    };
-
-    try {
-      console.log('Initiating pre-open fetch from official NSE India API...');
-      const homeRes = await fetch(API_ENDPOINTS.NSE_HOME, { headers });
-      const rawCookies = homeRes.headers.get('set-cookie') || '';
-      const cookies = rawCookies.split(',').map(c => c.split(';')[0]).join('; ');
-
-      const fetchIndexSymbols = async (key: string): Promise<string[]> => {
-        try {
-          const res = await fetch(`https://www.nseindia.com/api/market-data-pre-open?key=${key}`, {
-            headers: { ...headers, 'Cookie': cookies }
-          });
-          if (!res.ok) return [];
-          const json = await res.json();
-          if (json && Array.isArray(json.data)) {
-            return json.data.map((item: any) => item.metadata?.symbol).filter(Boolean);
-          }
-        } catch (e) {
-          console.error(`Failed to fetch symbols for index key ${key}:`, e);
-        }
-        return [];
-      };
-
-      const fetchWithRetry = async (key: string, retries = 3): Promise<string[]> => {
-        for (let i = 0; i < retries; i++) {
-          const result = await fetchIndexSymbols(key);
-          if (result.length > 0) return result;
-          if (i < retries - 1) {
-            const delay = 1000 * (i + 1);
-            console.log(`Retry ${i + 1}/${retries - 1} for key=${key} in ${delay}ms`);
-            await new Promise(r => setTimeout(r, delay));
-          }
-        }
-        return [];
-      };
-
-      const foSymbols = await fetchWithRetry('FO');
-
-      // Fetch Nifty 500 list from public NSE archives CSV (bulletproof way, bypasses Cloudflare/404 blocks)
-      const fetchNifty500Symbols = async (): Promise<string[]> => {
-        try {
-          const csvRes = await fetch('https://archives.nseindia.com/content/indices/ind_nifty500list.csv');
-          if (csvRes.ok) {
-            const csvText = await csvRes.text();
-            const lines = csvText.split('\n');
-            const symbols: string[] = [];
-            for (let i = 1; i < lines.length; i++) {
-              const cols = lines[i].split(',');
-              if (cols.length >= 3) {
-                const sym = cols[cols.length - 3];
-                if (sym) symbols.push(sym.trim());
-              }
-            }
-            return symbols;
-          }
-        } catch (e) {
-          console.error('Failed to fetch Nifty 500 symbols from archives:', e);
-        }
-        return [];
-      };
-
-      const [dataRes, niftySymbols, bankNiftySymbols, smeSymbols, nifty500Symbols] = await Promise.all([
-        fetch(API_ENDPOINTS.NSE_PRE_OPEN, { headers: { ...headers, 'Cookie': cookies } }),
-        fetchIndexSymbols('NIFTY'),
-        fetchIndexSymbols('BANKNIFTY'),
-        fetchIndexSymbols('SME'),
-        fetchNifty500Symbols()
-      ]);
-
-      if (!dataRes.ok) {
-        throw new Error(`NSE API responded with status ${dataRes.status}`);
-      }
-
-      const nseJson = await dataRes.json();
-      if (!nseJson || !Array.isArray(nseJson.data)) {
-        throw new Error('Invalid JSON format from NSE Pre-Open API');
-      }
-
-      console.log(`Successfully retrieved ${nseJson.data.length} pre-open quotes from NSE.`);
-
-      const freshStocks: StockQuote[] = nseJson.data
-        .filter((nseItem: any) => nseItem.metadata && nseItem.metadata.symbol)
-        .map((nseItem: any) => {
-          const symbol = nseItem.metadata.symbol;
-          const name = nseItem.metadata.companyName || symbol;
-          const prevClose = nseItem.metadata.previousClose || 100.0;
-          const iep = nseItem.metadata.iep || nseItem.metadata.lastPrice || prevClose;
-          const change = nseItem.metadata.change || 0;
-          const changePercent = nseItem.metadata.pChange || 0;
-          const ltp = iep;
-          const open = iep;
-          const high = nseItem.metadata.yearHigh || iep;
-          const low = nseItem.metadata.yearLow || iep;
-          const volume = nseItem.metadata.finalQuantity || nseItem.detail?.preOpenMarket?.totalTradedVolume || 0;
-          const ffmCap = ltp * 50.0;
-          const value = (nseItem.metadata.totalTurnover || (volume * ltp)) / 10000000;
-
-          return {
-            symbol, name, ltp, open, high, low, prevClose, volume, change, changePercent,
-            preOpenChangePercent: changePercent,
-            iep, final: ltp, finalQuantity: volume, value, ffmCap,
-            nm52wH: nseItem.metadata.yearHigh || parseFloat((prevClose * 1.25).toFixed(2)),
-            nm52wL: nseItem.metadata.yearLow || parseFloat((prevClose * 0.75).toFixed(2)),
-            isNifty50: niftySymbols.includes(symbol),
-            isNifty500: nifty500Symbols.includes(symbol),
-            isBankNifty: bankNiftySymbols.includes(symbol),
-            isFo: foSymbols.includes(symbol),
-            isSme: smeSymbols.includes(symbol)
-          };
-        });
-
-      let dateStr = new Date().toLocaleDateString('en-GB', {
-        day: '2-digit', month: 'short', year: 'numeric'
-      });
-
-      if (nseJson.timestamp) {
-        const parts = String(nseJson.timestamp).trim().split(' ');
-        if (parts[0]) {
-          const datePart = parts[0].replace(/-/g, ' ');
-          if (datePart.length >= 10 && datePart.length <= 12) {
-            dateStr = datePart;
-          }
-        }
-      }
-
-      this.preOpenCache = freshStocks;
-      this.preOpenCacheDate = dateStr;
-      this.lastPreOpenFetchTime = Date.now();
-
-      this.wsLive.resubscribeTopMovers(freshStocks);
-
-      // Async save to database without blocking the returned result
-      Promise.resolve().then(async () => {
-        for (const stock of freshStocks) {
-          try {
-            await prisma.historicalPreOpen.upsert({
-              where: {
-                date_symbol: {
-                  date: dateStr,
-                  symbol: stock.symbol
-                }
-              },
-              create: {
-                date: dateStr,
-                symbol: stock.symbol,
-                data: stock as any
-              },
-              update: {
-                data: stock as any
-              }
-            });
-          } catch (dbErr) {
-            console.error(`Failed to save historical pre-open for ${stock.symbol} on ${dateStr}:`, dbErr);
-          }
-        }
-        console.log(`Saved ${freshStocks.length} historical pre-open quotes for ${dateStr} to DB.`);
-      }).catch(err => console.error('Error in historical pre-open async saving:', err));
-
-      return freshStocks;
-    } catch (err) {
-      console.error('NSE API pre-open fetch failed:', err);
-      return this.preOpenCache;
-    }
+    const { fetchLivePreOpenFromNSE } = require('../utils/preOpenFetcher');
+    return fetchLivePreOpenFromNSE();
   }
 
   public async getPreOpenStocksByDate(dateStr: string): Promise<StockQuote[]> {
@@ -366,22 +198,17 @@ class AlgoEngineService {
   }
 
   public async fetchLivePreOpenFromKite(): Promise<StockQuote[]> {
-    return this.fetchLivePreOpenFromNSE();
+    const { fetchLivePreOpenFromKite } = require('../utils/preOpenFetcher');
+    return fetchLivePreOpenFromKite();
   }
 
   public async getPreOpenStocks(forceFetch = false): Promise<StockQuote[]> {
-    const todayDateStr = new Date().toLocaleDateString('en-GB', {
-      day: '2-digit', month: 'short', year: 'numeric'
-    });
-
-    const isCacheExpired = this.preOpenCacheDate !== todayDateStr;
-    const canRefetch = Date.now() - this.lastPreOpenFetchTime > 5 * 60 * 1000;
-
-    if (forceFetch || this.preOpenCache.length === 0 || (isCacheExpired && canRefetch)) {
-      console.log(`AlgoEngine: Fetching fresh official NSE pre-open data (forceFetch=${forceFetch})...`);
-      await this.fetchLivePreOpenFromNSE();
-    }
-    return this.preOpenCache;
+    const { getPreOpenStocks } = require('../utils/preOpenFetcher');
+    const stocks = await getPreOpenStocks(forceFetch);
+    const { getCachedPreOpenStocks, getPreOpenDate } = require('../utils/preOpenFetcher');
+    this.preOpenCache = getCachedPreOpenStocks();
+    this.preOpenCacheDate = getPreOpenDate();
+    return stocks;
   }
 
   public async updateLiveQuotesFromKiteHTTP() {
