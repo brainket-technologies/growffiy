@@ -73,7 +73,7 @@ const adminGroups: MenuGroup[] = [
   {
     label: 'Trade',
     items: [
-      { name: 'Live Market', path: '/admin/market-watch', icon: LineChart },
+      { name: 'Market watch', path: '/admin/market-watch', icon: LineChart },
       { name: 'Pre-Open', path: '/admin/scanner', icon: Search },
       { name: 'Strategies', path: '/admin/strategies', icon: TrendingUp },
     ],

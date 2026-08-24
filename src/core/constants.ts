@@ -112,7 +112,7 @@ export const STAFF_MODULE_DEFS: StaffModuleDef[] = [
   },
   {
     key: 'marketWatch',
-    label: 'Live Market',
+    label: 'Market watch',
     icon: 'LineChart',
     permissions: [
       { key: 'liveView',       label: 'Live View' },
