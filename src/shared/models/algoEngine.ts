@@ -371,6 +371,7 @@ class AlgoEngineService {
     const where: any = {
       tradingStatus: 'active',
       subscriptionStatus: 'active',
+      kycStatus: 'verified',
       productTypeId: algoType.id,
       strategyId: { not: null },
       accessToken: { not: null }
@@ -519,6 +520,7 @@ class AlgoEngineService {
       const where: any = {
         tradingStatus: 'active',
         subscriptionStatus: 'active',
+        kycStatus: 'verified',
         productTypeId: algoType.id,
         strategyId: { not: null }
       };

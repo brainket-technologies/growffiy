@@ -314,6 +314,7 @@ export class TradingScheduler {
           const clients = await prisma.client.findMany({
             where: {
               tradingStatus: 'active', subscriptionStatus: 'active',
+              kycStatus: 'verified',
               productTypeId: algoType.id,
               zerodhaClientId: { not: null },
               zerodhaApiKey: { not: null },
