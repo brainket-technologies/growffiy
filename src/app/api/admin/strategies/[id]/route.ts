@@ -15,7 +15,7 @@ export async function GET(
     try {
       strategy = await prisma.strategy.findUnique({
         where: { id },
-        include: { conditions: true, clients: { include: { user: true } }, trades: true }
+        include: { conditions: true, assignments: { include: { client: { include: { user: true } } } }, trades: true }
       });
     } catch (e) {
       strategy = inMemoryStrategies.find(s => s.id === id);
@@ -164,18 +164,14 @@ export async function DELETE(
   try {
     // Use a transaction to atomically delete all children then the strategy
     await prisma.$transaction(async (tx) => {
-      // 1. Unlink clients that reference this strategy
-      await tx.client.updateMany({
-        where: { strategyId: id },
-        data: { strategyId: null }
-      });
+      // 1. Delete strategy assignments
+      await tx.strategyAssignment.deleteMany({ where: { strategyId: id } });
 
       // 2. Delete trades
       await tx.trade.deleteMany({ where: { strategyId: id } });
 
       // 3. Delete child strategy records
       await tx.strategyCondition.deleteMany({ where: { strategyId: id } });
-      await tx.strategyAssignment.deleteMany({ where: { strategyId: id } });
       await tx.strategyLog.deleteMany({ where: { strategyId: id } });
       await tx.strategyBacktest.deleteMany({ where: { strategyId: id } });
 

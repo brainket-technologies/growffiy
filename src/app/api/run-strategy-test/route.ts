@@ -14,18 +14,19 @@ export async function GET() {
       where: {
         tradingStatus: 'active',
         subscriptionStatus: 'active',
-        strategyId: { not: null }
+        assignments: { some: { status: 'active' } }
       },
-      include: { strategy: true }
+      include: { assignments: { where: { status: 'active' }, include: { strategy: true } } }
     });
 
-    if (!activeClient || !activeClient.strategy) {
+    if (!activeClient || activeClient.assignments.length === 0 || !activeClient.assignments[0].strategy) {
       throw new Error("No active clients with assigned strategies found in database.");
     }
 
-    const config = activeClient.strategy.configJson ? JSON.parse(activeClient.strategy.configJson) : null;
+    const activeStrategy = activeClient.assignments[0].strategy;
+    const config = activeStrategy.configJson ? JSON.parse(activeStrategy.configJson) : null;
     if (!config) {
-      throw new Error(`Strategy "${activeClient.strategy.name}" is missing configJson configuration.`);
+      throw new Error(`Strategy "${activeStrategy.name}" is missing configJson configuration.`);
     }
 
     const segment = config.basicInfo?.segment || 'NSE F&O';
@@ -94,7 +95,7 @@ export async function GET() {
     
     return NextResponse.json({
       success: true,
-      message: `Strategy "${activeClient.strategy.name}" execution triggered dynamically using mock stock ${mockStocks[0].symbol} (${mockStocks[0].changePercent}% change) matching segment "${segment}".`
+      message: `Strategy "${activeStrategy.name}" execution triggered dynamically using mock stock ${mockStocks[0].symbol} (${mockStocks[0].changePercent}% change) matching segment "${segment}".`
     });
   } catch (error: any) {
     return NextResponse.json({

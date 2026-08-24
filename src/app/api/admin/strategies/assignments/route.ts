@@ -7,22 +7,31 @@ export async function GET() {
     const clients = await prisma.client.findMany({
       include: {
         user: true,
-        strategy: true
+        assignments: {
+          include: {
+            strategy: true
+          }
+        }
       }
     });
 
-    const mappedClients = clients.map(client => ({
-      id: client.id,
-      name: client.user.name,
-      broker: client.zerodhaClientId ? 'Zerodha' : 'Not Connected',
-      clientId: client.zerodhaClientId || 'N/A',
-      segment: client.strategy?.configJson ? JSON.parse(client.strategy.configJson)?.basicInfo?.segment || 'N/A' : 'N/A',
-      capital: Number(client.capital),
-      status: client.user.status, // user active status
-      strategyStatus: client.tradingStatus, // 'active' or 'inactive'
-      strategyId: client.strategyId,
-      strategyName: client.strategy?.name || 'No Strategy Assigned'
-    }));
+    const mappedClients = clients.map(client => {
+      const strategyIds = client.assignments.map(a => a.strategyId);
+      const strategyNames = client.assignments.map(a => a.strategy?.name || '').filter(Boolean);
+      return {
+        id: client.id,
+        name: client.user.name,
+        broker: client.zerodhaClientId ? 'Zerodha' : 'Not Connected',
+        clientId: client.zerodhaClientId || 'N/A',
+        segment: client.assignments.map(a => a.strategy?.configJson ? JSON.parse(a.strategy.configJson)?.basicInfo?.segment || 'N/A' : 'N/A').join(', ') || 'N/A',
+        capital: Number(client.capital),
+        status: client.user.status, // user active status
+        strategyStatus: client.tradingStatus, // 'active' or 'inactive'
+        strategyIds: strategyIds,
+        strategyId: strategyIds[0] || null,
+        strategyName: strategyNames.join(', ') || 'No Strategy Assigned'
+      };
+    });
 
     return NextResponse.json({ success: true, clients: mappedClients });
   } catch (error) {
@@ -56,30 +65,32 @@ export async function POST(request: Request) {
     const targetStrategyId = action === 'remove' ? null : strategyId;
 
     try {
-      // Perform database updates
-      await prisma.$transaction(
-        clientIds.map((clientId) =>
-          prisma.client.update({
-            where: { id: clientId },
-            data: { strategyId: targetStrategyId }
-          })
-        )
-      );
-
-      // Create assignments log records
-      if (action !== 'remove' && targetStrategyId) {
+      // Perform database updates on strategy assignments
+      if (action === 'remove') {
+        await prisma.strategyAssignment.deleteMany({
+          where: {
+            clientId: { in: clientIds },
+            strategyId: strategyId
+          }
+        });
+      } else {
         for (const cId of clientIds) {
-          try {
+          const exists = await prisma.strategyAssignment.findFirst({
+            where: { clientId: cId, strategyId }
+          });
+          if (!exists) {
             await prisma.strategyAssignment.create({
               data: {
                 clientId: cId,
-                strategyId: targetStrategyId,
+                strategyId: strategyId,
                 status: 'active'
               }
             });
+          }
+          try {
             await prisma.strategyLog.create({
               data: {
-                strategyId: targetStrategyId,
+                strategyId: strategyId,
                 message: `Client ${cId} assigned to strategy.`,
                 logType: 'info'
               }

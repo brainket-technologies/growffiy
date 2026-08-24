@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 
     const clients = await prisma.client.findMany({
       where,
-      include: { user: true, strategy: true, productType: true },
+      include: { user: true, productType: true, assignments: { include: { strategy: true } } },
     });
     return NextResponse.json({ success: true, clients });
   } catch (error) {
@@ -57,14 +57,30 @@ export async function POST(request: Request) {
           zerodhaPassword,
           zerodhaTotpSecret,
           capital: Math.max(-1, Number(capital)),
-          strategyId,
           productTypeId,
           addedByStaffId,
           tradingStatus: 'inactive',
           subscriptionStatus: 'pending',
         },
-        include: { user: true, strategy: true, productType: true },
+        include: { user: true, productType: true, assignments: { include: { strategy: true } } },
       });
+
+      const targetStrategyIds: string[] = [];
+      if (body.strategyIds && Array.isArray(body.strategyIds)) {
+        targetStrategyIds.push(...body.strategyIds);
+      } else if (strategyId) {
+        targetStrategyIds.push(strategyId);
+      }
+
+      if (targetStrategyIds.length > 0) {
+        await prisma.strategyAssignment.createMany({
+          data: targetStrategyIds.map(sId => ({
+            clientId: newClient.id,
+            strategyId: sId,
+            status: 'active'
+          }))
+        });
+      }
 
       try {
         const originUrl = request.headers.get('origin') || request.headers.get('host') || 'http://localhost:3000';

@@ -48,7 +48,7 @@ let inMemoryClients: any[] = [
 export async function GET() {
   try {
     const dbClients = await prisma.client.findMany({
-      include: { user: true, strategy: true, productType: true },
+      include: { user: true, productType: true, assignments: { include: { strategy: true } } },
     });
     
     // Only use mock/in-memory clients if the database is not configured
@@ -142,13 +142,29 @@ export async function POST(request: Request) {
           proxyUrl: proxyUrl ? proxyUrl.trim() : null,
           capital: Math.max(-1, Number(capital)),
           perDayTradeAmount: body.perDayTradeAmount ? Number(body.perDayTradeAmount) : 0,
-          strategyId,
           productTypeId,
           tradingStatus: 'inactive',
           subscriptionStatus: 'pending',
         },
-        include: { user: true, strategy: true, productType: true },
+        include: { user: true, productType: true, assignments: { include: { strategy: true } } },
       });
+
+      const targetStrategyIds: string[] = [];
+      if (body.strategyIds && Array.isArray(body.strategyIds)) {
+        targetStrategyIds.push(...body.strategyIds);
+      } else if (strategyId) {
+        targetStrategyIds.push(strategyId);
+      }
+
+      if (targetStrategyIds.length > 0) {
+        await prisma.strategyAssignment.createMany({
+          data: targetStrategyIds.map(sId => ({
+            clientId: newClient.id,
+            strategyId: sId,
+            status: 'active'
+          }))
+        });
+      }
 
       // Trigger welcome email notification asynchronously if mail option is turned on
       try {

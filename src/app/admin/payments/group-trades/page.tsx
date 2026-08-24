@@ -382,7 +382,6 @@ export default function GroupTradesPage() {
           isOpen={!!selectedGroup}
           onClose={() => setSelectedGroup(null)}
           title={`Group Trade Detail: ${selectedGroup.symbol} (${selectedGroup.strategy})`}
-          width="850px"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             

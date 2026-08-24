@@ -6,7 +6,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   try {
     const client = await prisma.client.findUnique({
       where: { id },
-      include: { user: true, strategy: true, productType: true },
+      include: { user: true, productType: true, assignments: { include: { strategy: true } } },
     });
     if (!client) return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
     return NextResponse.json({ success: true, client });
