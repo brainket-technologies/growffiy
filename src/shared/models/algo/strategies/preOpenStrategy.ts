@@ -8,10 +8,11 @@ import { getTickSizeAndRound } from '../../../utils/tickSizeUtil';
 import { getLatestOrderState } from '../../../utils/kiteHelper';
 import { performKiteAutoLogin } from '../../../services/kiteAutoLogin';
 import { StockQuote, getPreOpenStocks } from '../../../utils/preOpenFetcher';
-import { fetchEligibleClients, fetchClientsByStrategy } from '../clientSelector';
+import { matchesConditions } from '../../../utils/conditionEvaluator';
+import { getFreshCircuitLimits } from '../../../utils/circuitLimitHelper';
+import { fetchClientsByStrategy } from '../clientSelector';
 import { getMasterClient } from '../../../utils/masterClient';
 import { logFailedTrade } from '../../../utils/tradeLogger';
-import { matchesConditions } from '../../../utils/conditionEvaluator';
 
 function mapTimeframeToKiteInterval(tf: string): string {
   if (!tf) return '5minute';
@@ -656,7 +657,7 @@ export class PreOpenStrategy {
           }
 
           let adjustedEntryPrice = calculatedBufferedEntry;
-          const freshLimits = await this.engine.getFreshCircuitLimits(client, exchangeParam, targetStock.symbol, activeAccessToken);
+          const freshLimits = await getFreshCircuitLimits(client, exchangeParam, targetStock.symbol, activeAccessToken);
           if (freshLimits) {
             const { upper, lower } = freshLimits;
             if (upper > 0 && lower > 0) {
@@ -932,7 +933,7 @@ export class PreOpenStrategy {
                   }
 
                   if (client.zerodhaApiKey && activeAccessToken) {
-                    const freshLimitsSLT = await this.engine.getFreshCircuitLimits(client, exchangeParam, targetStock.symbol, activeAccessToken);
+                    const freshLimitsSLT = await getFreshCircuitLimits(client, exchangeParam, targetStock.symbol, activeAccessToken);
                     if (freshLimitsSLT) {
                       const { upper, lower } = freshLimitsSLT;
                       if (upper > 0 && lower > 0) {
