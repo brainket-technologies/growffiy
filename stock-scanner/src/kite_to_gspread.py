@@ -748,7 +748,7 @@ def run_streamer():
             for attempt in range(retries):
                 try:
                     ws = worksheet1 if worksheet_num == 1 else worksheet2
-                    ws.update(range_name, grid_data, value_input_option='USER_ENTERED')
+                    ws.update(range_name, grid_data, value_input_option='RAW')
                     return True
                 except Exception as e:
                     logger.warning(f"Attempt {attempt + 1}/{retries} failed to update Sheet{worksheet_num}: {e}")
@@ -763,7 +763,7 @@ def run_streamer():
                             logger.info("Successfully re-authorized Google Sheets API connection.")
                             # Final attempt with the new connection
                             ws = worksheet1 if worksheet_num == 1 else worksheet2
-                            ws.update(range_name, grid_data, value_input_option='USER_ENTERED')
+                            ws.update(range_name, grid_data, value_input_option='RAW')
                             return True
                         except Exception as auth_err:
                             logger.error(f"Re-authorization or final update failed: {auth_err}")
