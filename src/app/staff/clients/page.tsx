@@ -539,16 +539,22 @@ export default function ClientsPage() {
                       </td>
                       <td>
                         {client.assignments && client.assignments.length > 0 ? (
-                          <span 
-                            className="badge badge-purple"
-                            style={{ 
-                              textTransform: 'none', 
-                              fontSize: '11px',
-                              padding: '4px 10px',
-                            }}
-                          >
-                            {client.assignments.map((a: any) => a.strategy?.name || 'Unknown').join(', ')}
-                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            {client.assignments.map((a: any, idx: number) => (
+                              <span 
+                                key={a.strategyId}
+                                style={{ 
+                                  fontSize: '11px',
+                                  color: 'var(--primary)',
+                                  fontWeight: 600,
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                {a.strategy?.name || 'Unknown'}
+                                {idx < client.assignments.length - 1 ? ',' : ''}
+                              </span>
+                            ))}
+                          </div>
                         ) : (
                           <span 
                             className="badge"
