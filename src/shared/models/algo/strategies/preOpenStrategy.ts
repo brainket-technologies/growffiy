@@ -8,6 +8,7 @@ import { getTickSizeAndRound } from '../../../utils/tickSizeUtil';
 import { getLatestOrderState } from '../../../utils/kiteHelper';
 import { performKiteAutoLogin } from '../../../services/kiteAutoLogin';
 import { StockQuote } from '../../algoEngine';
+import { fetchEligibleClients } from '../clientSelector';
 
 function mapTimeframeToKiteInterval(tf: string): string {
   if (!tf) return '5minute';
@@ -50,39 +51,8 @@ export class PreOpenStrategy {
       return;
     }
 
-    const algoType = await prisma.productType.findUnique({ where: { name: 'Algo' } });
-    if (!algoType) {
-      console.log('AlgoEngine preSelect: Algo product type not found. Skipping.');
-      return;
-    }
-
-    const assignments = await prisma.strategyAssignment.findMany({
-      where: {
-        status: 'active',
-        client: {
-          tradingStatus: 'active',
-          subscriptionStatus: 'active',
-          kycStatus: 'verified',
-          productTypeId: algoType.id,
-          accessToken: { not: null }
-        },
-        strategy: strategyId ? { id: strategyId, status: 'active' } : { status: 'active' }
-      },
-      include: {
-        client: {
-          include: {
-            user: true
-          }
-        },
-        strategy: true
-      }
-    });
-
-    const clients = assignments.map(a => ({
-      ...a.client,
-      strategyId: a.strategyId,
-      strategy: a.strategy
-    }));
+    // Fetch eligible clients (6 conditions via clientSelector)
+    const clients = await fetchEligibleClients(strategyId, true);
 
     if (clients.length === 0) {
       console.log('AlgoEngine preSelect: No active clients with connected Kite session.');
@@ -210,38 +180,8 @@ export class PreOpenStrategy {
         return;
       }
 
-      const algoType = await prisma.productType.findUnique({ where: { name: 'Algo' } });
-      if (!algoType) {
-        console.log('AlgoEngine: Algo product type not found. Skipping trade execution.');
-        return;
-      }
-
-      const assignments = await prisma.strategyAssignment.findMany({
-        where: {
-          status: 'active',
-          client: {
-            tradingStatus: 'active',
-            subscriptionStatus: 'active',
-            kycStatus: 'verified',
-            productTypeId: algoType.id
-          },
-          strategy: strategyId ? { id: strategyId, status: 'active' } : { status: 'active' }
-        },
-        include: {
-          client: {
-            include: {
-              user: true
-            }
-          },
-          strategy: true
-        }
-      });
-
-      const clients = assignments.map(a => ({
-        ...a.client,
-        strategyId: a.strategyId,
-        strategy: a.strategy
-      }));
+      // Fetch eligible clients (6 conditions via clientSelector)
+      const clients = await fetchEligibleClients(strategyId, false);
 
       if (clients.length === 0) {
         console.log('AlgoEngine: No active clients found.');
@@ -537,7 +477,7 @@ export class PreOpenStrategy {
           }
 
           let autoLoginErrorStr = '';
-          if (process.env.KITE_AUTO_LOGIN_ENABLED === 'true' && client.productTypeId === algoType.id) {
+          if (process.env.KITE_AUTO_LOGIN_ENABLED === 'true' && client.productTypeId) {
             if (this.engine.todayTokenRefreshed.has(client.id) && activeAccessToken) {
               console.log(`AlgoEngine: Client ${client.user.name} already refreshed today, using existing token.`);
             } else if (client.zerodhaPassword && client.zerodhaTotpSecret) {
