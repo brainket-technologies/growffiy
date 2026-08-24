@@ -106,7 +106,7 @@ def load_db_url():
 def load_google_settings_from_db():
     db_url = load_db_url()
     try:
-        conn = psycopg2.connect(db_url)
+        conn = psycopg2.connect(db_url, connect_timeout=10)
         cur = conn.cursor()
         cur.execute("SELECT setting_key, setting_value FROM app_settings WHERE setting_key IN ('google_sheet_url', 'google_credentials_json')")
         rows = cur.fetchall()
@@ -124,7 +124,7 @@ def load_google_settings_from_db():
 def load_kite_credentials_from_db():
     db_url = load_db_url()
     try:
-        conn = psycopg2.connect(db_url)
+        conn = psycopg2.connect(db_url, connect_timeout=10)
         cur = conn.cursor()
         cur.execute("SELECT setting_value FROM app_settings WHERE setting_key = 'master_scanner_client_id'")
         target_client_row = cur.fetchone()
@@ -164,7 +164,7 @@ def load_kite_credentials_from_db():
 def load_stream_status_from_db():
     db_url = load_db_url()
     try:
-        conn = psycopg2.connect(db_url)
+        conn = psycopg2.connect(db_url, connect_timeout=10)
         cur = conn.cursor()
         cur.execute("SELECT setting_value FROM app_settings WHERE setting_key = 'sheet_stream_status'")
         row = cur.fetchone()
