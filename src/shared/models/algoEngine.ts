@@ -327,9 +327,8 @@ class AlgoEngineService {
   }
 
   public getPreOpenDate(): string {
-    return this.preOpenCacheDate || new Date().toLocaleDateString('en-GB', {
-      day: '2-digit', month: 'short', year: 'numeric'
-    });
+    const fetcher = require('../utils/preOpenFetcher');
+    return fetcher.getPreOpenDate();
   }
 
   public async logFailedTrade(
