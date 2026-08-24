@@ -13,7 +13,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     try {
       let client = await prisma.client.findUnique({
         where: { id },
-        include: { user: true, strategy: true, productType: true },
+        include: { user: true, strategy: true, productType: true, assignments: { include: { strategy: true } } },
       });
       if (!client) {
         return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
@@ -152,6 +152,28 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
          }
        }
  
+       // If strategyIds array is provided, sync assignments
+       let targetStrategyId = strategyId;
+       if (body.strategyIds !== undefined && Array.isArray(body.strategyIds)) {
+         // Delete old assignments
+         await prisma.strategyAssignment.deleteMany({
+           where: { clientId: id }
+         });
+         // Create new assignments
+         if (body.strategyIds.length > 0) {
+           await prisma.strategyAssignment.createMany({
+             data: body.strategyIds.map((sId: string) => ({
+               clientId: id,
+               strategyId: sId,
+               status: 'active'
+             }))
+           });
+           targetStrategyId = body.strategyIds[0];
+         } else {
+           targetStrategyId = null;
+         }
+       }
+
        const updatedClient = await prisma.client.update({
          where: { id },
          data: {
@@ -164,7 +186,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
            proxyUrl: proxyUrl !== undefined ? (proxyUrl ? proxyUrl.trim() : null) : undefined,
            tradingStatus: tradingStatus !== undefined ? tradingStatus : undefined,
            subscriptionStatus: subscriptionStatus !== undefined ? subscriptionStatus : undefined,
-           strategyId: strategyId !== undefined ? strategyId : undefined,
+           strategyId: targetStrategyId !== undefined ? targetStrategyId : undefined,
            productTypeId: productTypeId !== undefined ? productTypeId : undefined,
            capital: capital ? Math.max(-1, Number(capital)) : undefined,
            perDayTradeAmount: body.perDayTradeAmount !== undefined ? (body.perDayTradeAmount !== null && body.perDayTradeAmount !== '' && Number(body.perDayTradeAmount) > 0 ? Number(body.perDayTradeAmount) : null) : undefined,
@@ -175,7 +197,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
            dob: dob !== undefined ? dob : undefined,
            kycStatus: kycStatus !== undefined ? kycStatus : undefined,
          },
-         include: { user: true, strategy: true, productType: true },
+         include: { user: true, strategy: true, productType: true, assignments: { include: { strategy: true } } },
        });
        return NextResponse.json({ success: true, client: updatedClient });
      } catch {

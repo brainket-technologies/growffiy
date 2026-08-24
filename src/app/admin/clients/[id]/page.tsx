@@ -63,6 +63,9 @@ export default function ClientDetailsPage() {
   const [kycStatus, setKycStatus] = useState('pending');
   const [productTypeId, setProductTypeId] = useState('');
   const [productTypes, setProductTypes] = useState<any[]>([]);
+  const [strategyId, setStrategyId] = useState('');
+  const [strategies, setStrategies] = useState<any[]>([]);
+  const [selectedStrategyIds, setSelectedStrategyIds] = useState<string[]>([]);
   const [dedicatedIp, setDedicatedIp] = useState('');
   const [proxyUrl, setProxyUrl] = useState('');
   const [proxyOutboundIp, setProxyOutboundIp] = useState('');
@@ -231,6 +234,14 @@ export default function ClientDetailsPage() {
           setDob(c.dob || '');
           setKycStatus(c.kycStatus || 'pending');
           setProductTypeId(c.productTypeId || '');
+          setStrategyId(c.strategyId || '');
+          if (c.assignments && Array.isArray(c.assignments)) {
+            setSelectedStrategyIds(c.assignments.map((a: any) => a.strategyId));
+          } else if (c.strategyId) {
+            setSelectedStrategyIds([c.strategyId]);
+          } else {
+            setSelectedStrategyIds([]);
+          }
         } else {
           setError('Failed to load client details');
         }
@@ -253,6 +264,18 @@ export default function ClientDetailsPage() {
       }
     };
 
+    const fetchStrategies = async () => {
+      try {
+        const res = await fetch('/api/admin/strategies');
+        const data = await res.json();
+        if (data.success && data.strategies) {
+          setStrategies(data.strategies);
+        }
+      } catch (err) {
+        console.error('Failed to load strategies:', err);
+      }
+    };
+
     const fetchPublicIp = async () => {
       try {
         const res = await fetch('/api/system/public-ip');
@@ -265,6 +288,7 @@ export default function ClientDetailsPage() {
 
     fetchClient();
     fetchProductTypes();
+    fetchStrategies();
     fetchPublicIp();
   }, [id]);
 
@@ -352,6 +376,7 @@ export default function ClientDetailsPage() {
         dob,
         kycStatus,
         productTypeId: productTypeId || null,
+        strategyIds: selectedStrategyIds,
       });
 
       if (success) {
@@ -1471,6 +1496,45 @@ export default function ClientDetailsPage() {
                           </option>
                         ))}
                       </select>
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="form-label" style={{ fontWeight: 600, color: 'var(--text-heading)' }}>Strategies (Select Multiple)</label>
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', 
+                      gap: '12px',
+                      padding: '12px',
+                      borderRadius: '8px', 
+                      border: '1px solid var(--border-color)', 
+                      maxHeight: '160px',
+                      overflowY: 'auto',
+                      backgroundColor: 'var(--bg-white)'
+                    }}>
+                      {strategies.map((strat) => {
+                        const isChecked = selectedStrategyIds.includes(strat.id);
+                        return (
+                          <label key={strat.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: 'var(--text-heading)', userSelect: 'none' }}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedStrategyIds(prev => [...prev, strat.id]);
+                                } else {
+                                  setSelectedStrategyIds(prev => prev.filter(id => id !== strat.id));
+                                }
+                              }}
+                              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                            />
+                            {strat.name}
+                          </label>
+                        );
+                      })}
+                      {strategies.length === 0 && (
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No strategies found.</span>
+                      )}
                     </div>
                   </div>
                 </div>
