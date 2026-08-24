@@ -11,6 +11,7 @@ import { StockQuote, getPreOpenStocks } from '../../../utils/preOpenFetcher';
 import { fetchEligibleClients, fetchClientsByStrategy } from '../clientSelector';
 import { getMasterClient } from '../../../utils/masterClient';
 import { logFailedTrade } from '../../../utils/tradeLogger';
+import { matchesConditions } from '../../../utils/conditionEvaluator';
 
 function mapTimeframeToKiteInterval(tf: string): string {
   if (!tf) return '5minute';
@@ -355,14 +356,19 @@ export class PreOpenStrategy {
               }
             }
 
-            if (cs && config.conditions?.length > 0) {
-              if (!await this.engine.matchesConditions(cs, config.conditions, client)) {
-                const reason = `Preselected stock ${cs.symbol} (${cs.changePercent.toFixed(2)}%) failed strategy conditions`;
-                console.log(`AlgoEngine: ${reason} for ${client.user.name}. Logging FAILED trade.`);
-                await logFailedTrade(client, strategy, cs.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
-                return;
-              }
-            }
+             if (cs && config.conditions?.length > 0) {
+               // Call directly with engine status fields or standalone caching parameters
+               const self = this;
+               if (!await matchesConditions(cs, config.conditions, this.engine.wsLive, client, this.engine.conditionCache, {
+                 get date(): string { return (self.engine as any).conditionCacheDate; },
+                 set date(v: string) { (self.engine as any).conditionCacheDate = v; }
+               })) {
+                 const reason = `Preselected stock ${cs.symbol} (${cs.changePercent.toFixed(2)}%) failed strategy conditions`;
+                 console.log(`AlgoEngine: ${reason} for ${client.user.name}. Logging FAILED trade.`);
+                 await logFailedTrade(client, strategy, cs.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
+                 return;
+               }
+             }
 
             let candlePrice = candlePriceCache.get(cs.symbol) || 0;
             const masterClientData = await getMasterClient();
