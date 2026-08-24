@@ -73,6 +73,65 @@ export async function fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
       throw new Error('NSE pre-open response data is not in expected array format');
     }
 
+    const fetchIndexSymbols = async (key: string): Promise<string[]> => {
+      try {
+        const res = await fetch(`https://www.nseindia.com/api/market-data-pre-open?key=${key}`, {
+          headers: requestHeaders
+        });
+        if (!res.ok) return [];
+        const json = await res.json();
+        if (json && Array.isArray(json.data)) {
+          return json.data.map((item: any) => item.metadata?.symbol).filter(Boolean);
+        }
+      } catch (e) {
+        console.error(`Failed to fetch symbols for index key ${key}:`, e);
+      }
+      return [];
+    };
+
+    const fetchWithRetry = async (key: string, retries = 3): Promise<string[]> => {
+      for (let i = 0; i < retries; i++) {
+        const result = await fetchIndexSymbols(key);
+        if (result.length > 0) return result;
+        if (i < retries - 1) {
+          const delay = 1000 * (i + 1);
+          console.log(`Retry ${i + 1}/${retries - 1} for key=${key} in ${delay}ms`);
+          await new Promise(r => setTimeout(r, delay));
+        }
+      }
+      return [];
+    };
+
+    const fetchNifty500Symbols = async (): Promise<string[]> => {
+      try {
+        const csvRes = await fetch('https://archives.nseindia.com/content/indices/ind_nifty500list.csv');
+        if (csvRes.ok) {
+          const csvText = await csvRes.text();
+          const lines = csvText.split('\n');
+          const symbols: string[] = [];
+          for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',');
+            if (cols.length >= 3) {
+              const sym = cols[cols.length - 3];
+              if (sym) symbols.push(sym.trim());
+            }
+          }
+          return symbols;
+        }
+      } catch (e) {
+        console.error('Failed to fetch Nifty 500 symbols from archives:', e);
+      }
+      return [];
+    };
+
+    const [foSymbols, niftySymbols, bankNiftySymbols, smeSymbols, nifty500Symbols] = await Promise.all([
+      fetchWithRetry('FO'),
+      fetchIndexSymbols('NIFTY'),
+      fetchIndexSymbols('BANKNIFTY'),
+      fetchIndexSymbols('SME'),
+      fetchNifty500Symbols()
+    ]);
+
     const records: any[] = parsedJson.data;
     const formattedQuotes: StockQuote[] = [];
 
@@ -80,17 +139,18 @@ export async function fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
       const meta = record.metadata;
       if (!meta || !meta.symbol || meta.symbol === 'NIFTY') continue;
 
+      const symbol = meta.symbol;
       const detail = record.detailInfo;
       const ffShares = 50.0; 
       const volumeVal = record.volume || (detail?.sumVal && detail?.iep ? Math.round(detail.sumVal / detail.iep) : 0) || Math.round(ffShares * 15000);
 
       formattedQuotes.push({
-        symbol: meta.symbol,
-        name: meta.companyName || meta.symbol,
+        symbol,
+        name: meta.companyName || symbol,
         ltp: meta.lastPrice || detail?.iep || 0,
         open: meta.openPrice || detail?.iep || 0,
-        high: meta.highPrice || detail?.iep || 0,
-        low: meta.lowPrice || detail?.iep || 0,
+        high: meta.yearHigh || meta.highPrice || detail?.iep || 0,
+        low: meta.yearLow || meta.lowPrice || detail?.iep || 0,
         prevClose: meta.previousClose || 0,
         volume: volumeVal,
         change: meta.change || 0,
@@ -100,13 +160,13 @@ export async function fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
         finalQuantity: volumeVal,
         value: (volumeVal * (detail?.iep || meta.lastPrice || 0)) / 10000000, 
         ffmCap: (detail?.iep || meta.lastPrice || 0) * ffShares,
-        nm52wH: meta.yearHigh || 0,
-        nm52wL: meta.yearLow || 0,
-        isNifty50: record.isNifty50 || false,
-        isNifty500: record.isNifty500 || false,
-        isBankNifty: record.isBankNifty || false,
-        isFo: record.isFo || false,
-        isSme: record.isSme || false,
+        nm52wH: meta.yearHigh || parseFloat((meta.previousClose * 1.25).toFixed(2)),
+        nm52wL: meta.yearLow || parseFloat((meta.previousClose * 0.75).toFixed(2)),
+        isNifty50: niftySymbols.includes(symbol),
+        isNifty500: nifty500Symbols.includes(symbol),
+        isBankNifty: bankNiftySymbols.includes(symbol),
+        isFo: foSymbols.includes(symbol),
+        isSme: smeSymbols.includes(symbol),
       });
     }
 
