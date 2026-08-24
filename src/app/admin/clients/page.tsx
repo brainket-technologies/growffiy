@@ -501,17 +501,16 @@ export default function ClientsPage() {
                         )}
                       </td>
                       <td>
-                        {client.strategy?.name ? (
+                        {client.assignments && client.assignments.length > 0 ? (
                           <span 
                             className="badge badge-purple"
                             style={{ 
                               textTransform: 'none', 
                               fontSize: '11px',
                               padding: '4px 10px',
-                              whiteSpace: 'nowrap'
                             }}
                           >
-                            {client.strategy.name}
+                            {client.assignments.map((a: any) => a.strategy?.name || 'Unknown').join(', ')}
                           </span>
                         ) : (
                           <span 
