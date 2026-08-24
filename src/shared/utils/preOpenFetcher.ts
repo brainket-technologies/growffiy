@@ -222,3 +222,11 @@ export function getPreOpenDate(): string {
     day: '2-digit', month: 'short', year: 'numeric'
   });
 }
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports.getPreOpenStocks = getPreOpenStocks;
+  module.exports.getCachedPreOpenStocks = getCachedPreOpenStocks;
+  module.exports.getPreOpenDate = getPreOpenDate;
+  module.exports.fetchLivePreOpenFromNSE = fetchLivePreOpenFromNSE;
+  module.exports.fetchLivePreOpenFromKite = fetchLivePreOpenFromKite;
+}
