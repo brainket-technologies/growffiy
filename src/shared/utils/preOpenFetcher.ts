@@ -1,6 +1,5 @@
 import { API_ENDPOINTS } from '../../core/constants';
 import { KiteClient } from '../services/kite';
-import { getMasterClient } from './masterClient';
 
 export interface StockQuote {
   symbol: string;
@@ -129,11 +128,22 @@ export async function fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
 /**
  * Fetch Pre-Open Quotes using Kite credentials as a fallback backup.
  */
-export async function fetchLivePreOpenFromKite(): Promise<StockQuote[]> {
+export async function fetchLivePreOpenFromKite(apiKey?: string, accessToken?: string): Promise<StockQuote[]> {
   try {
-    const master = await getMasterClient();
-    if (!master) {
-      console.warn('fetchLivePreOpenFromKite: Master client config missing. Cannot fetch Kite quotes.');
+    let finalApiKey = apiKey;
+    let finalToken = accessToken;
+
+    if (!finalApiKey || !finalToken) {
+      const { getMasterClient } = require('./masterClient');
+      const master = await getMasterClient();
+      if (master) {
+        finalApiKey = master.zerodhaApiKey;
+        finalToken = master.accessToken;
+      }
+    }
+
+    if (!finalApiKey || !finalToken) {
+      console.warn('fetchLivePreOpenFromKite: Master client credentials missing. Cannot fetch Kite fallback quotes.');
       return [];
     }
 
@@ -143,7 +153,7 @@ export async function fetchLivePreOpenFromKite(): Promise<StockQuote[]> {
     const instTokens = nseList.slice(0, 100).map(s => `NSE:${s.symbol}`);
     console.log(`Requesting quote quotes for top ${instTokens.length} stocks from Zerodha Kite...`);
     
-    const quoteRes = await KiteClient.getQuotes(master.zerodhaApiKey, master.accessToken, instTokens);
+    const quoteRes = await KiteClient.getQuotes(finalApiKey, finalToken, instTokens);
     if (quoteRes?.status === 'success' && quoteRes.data) {
       const dataMap = quoteRes.data;
       const kiteQuotes: StockQuote[] = [];
@@ -196,7 +206,7 @@ export async function fetchLivePreOpenFromKite(): Promise<StockQuote[]> {
 /**
  * Fetch cache-valid Pre-Open stock quotes.
  */
-export async function getPreOpenStocks(forceFetch = false): Promise<StockQuote[]> {
+export async function getPreOpenStocks(forceFetch = false, apiKey?: string, accessToken?: string): Promise<StockQuote[]> {
   const isExpired = (Date.now() - lastPreOpenFetchTime) > CACHE_EXPIRY_MS;
   const isDifferentDay = preOpenCacheDate !== new Date().toLocaleDateString('en-GB', {
     day: '2-digit', month: 'short', year: 'numeric'
@@ -207,7 +217,7 @@ export async function getPreOpenStocks(forceFetch = false): Promise<StockQuote[]
       return await fetchLivePreOpenFromNSE();
     } catch {
       console.warn('NSE Pre-Open fetch failed, attempting Kite fallback quote fetch...');
-      return await fetchLivePreOpenFromKite();
+      return await fetchLivePreOpenFromKite(apiKey, accessToken);
     }
   }
   return preOpenCache;
