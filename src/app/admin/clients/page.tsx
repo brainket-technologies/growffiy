@@ -1260,7 +1260,7 @@ export default function ClientsPage() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: '#ff5722',
+                backgroundColor: '#10b981',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
@@ -1271,8 +1271,35 @@ export default function ClientsPage() {
                 textDecoration: 'none'
               }}
             >
-              Open Zerodha Login
+              Connect Zerodha
             </a>
+            {credentialsModal?.client?.accessToken && (
+              <Button
+                onClick={async () => {
+                  if (credentialsModal?.client?.id) {
+                    const confirmDisconnect = window.confirm('Are you sure you want to disconnect Zerodha session?');
+                    if (confirmDisconnect) {
+                      await updateClient(credentialsModal.client.id, { accessToken: null });
+                      setCredentialsModal(null);
+                      setShowPassword(false);
+                      setCopiedField(null);
+                    }
+                  }
+                }}
+                style={{
+                  borderRadius: '6px',
+                  padding: '10px 20px',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  border: 'none'
+                }}
+              >
+                Disconnect Zerodha
+              </Button>
+            )}
           </div>
         </div>
       </Modal>
