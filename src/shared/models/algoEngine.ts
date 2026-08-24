@@ -16,6 +16,7 @@ import { logFailedTrade } from '../utils/tradeLogger';
 import { getFreshCircuitLimits } from '../utils/circuitLimitHelper';
 import { matchesConditions } from '../utils/conditionEvaluator';
 import { PreOpenStrategy } from './algo/strategies/preOpenStrategy';
+import { getPreOpenStocks, fetchLivePreOpenFromNSE, fetchLivePreOpenFromKite, getCachedPreOpenStocks, getPreOpenDate } from '../utils/preOpenFetcher';
 
 
 export interface StockQuote {
@@ -181,7 +182,6 @@ class AlgoEngineService {
   }
 
   public async fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
-    const { fetchLivePreOpenFromNSE } = require('../utils/preOpenFetcher');
     return fetchLivePreOpenFromNSE();
   }
 
@@ -198,14 +198,11 @@ class AlgoEngineService {
   }
 
   public async fetchLivePreOpenFromKite(): Promise<StockQuote[]> {
-    const { fetchLivePreOpenFromKite } = require('../utils/preOpenFetcher');
     return fetchLivePreOpenFromKite();
   }
 
   public async getPreOpenStocks(forceFetch = false): Promise<StockQuote[]> {
-    const { getPreOpenStocks } = require('../utils/preOpenFetcher');
     const stocks = await getPreOpenStocks(forceFetch);
-    const { getCachedPreOpenStocks, getPreOpenDate } = require('../utils/preOpenFetcher');
     this.preOpenCache = getCachedPreOpenStocks();
     this.preOpenCacheDate = getPreOpenDate();
     return stocks;
