@@ -960,18 +960,18 @@ export default function ClientDetailsPage() {
         </p>
       </div>
 
-      <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+      <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div className="client-details-grid">
           {/* Left Column: Profile Card & KYC details */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-            <Card style={{ display: 'flex', flexDirection: 'column', padding: '24px', alignItems: 'center', textAlign: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <Card style={{ display: 'flex', flexDirection: 'column', padding: '16px', alignItems: 'center', textAlign: 'center' }}>
               <div className="avatar-glow">
                 {name ? name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'CL'}
               </div>
               <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', marginBottom: '2px' }}>
                 {name || 'Client Profile'}
               </h3>
-              <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginBottom: '18px', wordBreak: 'break-all' }}>
+              <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginBottom: '10px', wordBreak: 'break-all' }}>
                 {email || 'No email configured'}
               </p>
               
@@ -1031,7 +1031,7 @@ export default function ClientDetailsPage() {
             </Card>
 
             {/* KYC Card under Profile Overview */}
-            <Card style={{ padding: '24px' }}>
+            <Card style={{ padding: '16px' }}>
               <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-title)' }}>
                 <Shield size={16} color="var(--primary)" /> KYC & Verification
               </h4>
@@ -1098,10 +1098,10 @@ export default function ClientDetailsPage() {
           </div>
 
           {/* Right Column: Main Config and Credentials Info */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {/* Account Info details */}
-            <Card style={{ padding: '24px 28px' }}>
-              <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-title)' }}>
+            <Card style={{ padding: '16px 20px' }}>
+              <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-title)' }}>
                 <User size={18} color="var(--primary)" /> Account Credentials & Settings
               </h4>
               <div className="form-grid-2">
@@ -1184,8 +1184,8 @@ export default function ClientDetailsPage() {
             </Card>
 
             {/* API Config details */}
-            <Card style={{ padding: '24px 28px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+            <Card style={{ padding: '16px 20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '12px' }}>
                 <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-title)' }}>
                   <Server size={18} color="var(--primary)" /> Zerodha API Secrets & Setup
                   <button 
@@ -1542,8 +1542,8 @@ export default function ClientDetailsPage() {
             </Card>
 
             {/* Standalone Card: Client Dedicated Static Outbound IP & Proxy Settings */}
-            <Card style={{ padding: '24px 28px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <Card style={{ padding: '16px 20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '12px' }}>
                 <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-title)', margin: 0 }}>
                   <Shield size={18} color="var(--primary)" /> Client Dedicated Static Outbound IP (Permanent / Fixed)
                 </h4>
