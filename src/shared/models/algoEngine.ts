@@ -16,6 +16,7 @@ import { getTickSizeAndRound } from '../utils/tickSizeUtil';
 import { batchArray, concurrentMap } from '../../core/helpers';
 import { logSystemEvent } from '../services/auditLogger';
 import { getLatestOrderState } from '../utils/kiteHelper';
+import { calculateClientCapitalAndRisk } from '../utils/marginHelper';
 
 function mapTimeframeToKiteInterval(tf: string): string {
   if (!tf) return '5minute';
@@ -368,20 +369,33 @@ class AlgoEngineService {
       return;
     }
 
-    const where: any = {
-      tradingStatus: 'active',
-      subscriptionStatus: 'active',
-      kycStatus: 'verified',
-      productTypeId: algoType.id,
-      strategyId: { not: null },
-      accessToken: { not: null }
-    };
-    if (strategyId) where.strategyId = strategyId;
-
-    const clients = await prisma.client.findMany({
-      where,
-      include: { user: true, strategy: true }
+    const assignments = await prisma.strategyAssignment.findMany({
+      where: {
+        status: 'active',
+        client: {
+          tradingStatus: 'active',
+          subscriptionStatus: 'active',
+          kycStatus: 'verified',
+          productTypeId: algoType.id,
+          accessToken: { not: null }
+        },
+        strategy: strategyId ? { id: strategyId, status: 'active' } : { status: 'active' }
+      },
+      include: {
+        client: {
+          include: {
+            user: true
+          }
+        },
+        strategy: true
+      }
     });
+
+    const clients = assignments.map(a => ({
+      ...a.client,
+      strategyId: a.strategyId,
+      strategy: a.strategy
+    }));
 
     if (clients.length === 0) {
       console.log('AlgoEngine preSelect: No active clients with connected Kite session.');
@@ -517,19 +531,32 @@ class AlgoEngineService {
         return;
       }
 
-      const where: any = {
-        tradingStatus: 'active',
-        subscriptionStatus: 'active',
-        kycStatus: 'verified',
-        productTypeId: algoType.id,
-        strategyId: { not: null }
-      };
-      if (strategyId) where.strategyId = strategyId;
-
-      const clients = await prisma.client.findMany({
-        where,
-        include: { user: true, strategy: true }
+      const assignments = await prisma.strategyAssignment.findMany({
+        where: {
+          status: 'active',
+          client: {
+            tradingStatus: 'active',
+            subscriptionStatus: 'active',
+            kycStatus: 'verified',
+            productTypeId: algoType.id
+          },
+          strategy: strategyId ? { id: strategyId, status: 'active' } : { status: 'active' }
+        },
+        include: {
+          client: {
+            include: {
+              user: true
+            }
+          },
+          strategy: true
+        }
       });
+
+      const clients = assignments.map(a => ({
+        ...a.client,
+        strategyId: a.strategyId,
+        strategy: a.strategy
+      }));
 
       if (clients.length === 0) {
         console.log('AlgoEngine: No active clients found.');
@@ -882,40 +909,17 @@ class AlgoEngineService {
             return;
           }
 
-          const cachedMargin = this.marginCache.get(client.id);
-          const dbCapital = Number(client.capital);
+          const marginCalc = await calculateClientCapitalAndRisk({
+            client,
+            activeAccessToken,
+            cachedMargin: this.marginCache.get(client.id),
+            onCacheMargin: (clientId, margin) => this.marginCache.set(clientId, margin),
+            config
+          });
 
-          // Agar DB capital -1 hai to DB ko ignore karo — sirf live margin use hoga
-          const dbDisabled = dbCapital === -1;
-
-          let marginOrApi: number;
-
-          if (cachedMargin !== undefined) {
-            marginOrApi = cachedMargin;
-            console.log(`AlgoEngine: Using cached margin for ${client.user.name}: ₹${marginOrApi}`);
-          } else {
-            try {
-              console.log(`AlgoEngine: Fetching live Zerodha margins for client ${client.user.name}...`);
-              const marginRes = await KiteClient.getMargins(client.zerodhaApiKey!, activeAccessToken);
-              if (marginRes && marginRes.status === 'success' && marginRes.data?.equity?.net !== undefined) {
-                marginOrApi = Number(marginRes.data.equity.net);
-                this.marginCache.set(client.id, marginOrApi);
-                console.log(`AlgoEngine: Successfully fetched live Net Cash Balance for ${client.user.name}: ₹${marginOrApi}`);
-              } else {
-                marginOrApi = dbDisabled ? 0 : dbCapital;
-                console.warn(`AlgoEngine: Margin API response unsuccessful for ${client.user.name}. Using DB capital: ₹${marginOrApi}`);
-              }
-            } catch (marginErr: any) {
-              marginOrApi = dbDisabled ? 0 : dbCapital;
-              console.error(`AlgoEngine: Error fetching live Zerodha margins for ${client.user.name}. Using DB capital: ₹${marginOrApi}`, marginErr);
-            }
-          }
-
-          // Per Day Trade Amount Validation
-          const perDayTradeAmount = client.perDayTradeAmount ? Number(client.perDayTradeAmount) : 0;
-          if (perDayTradeAmount > 0) {
-            if (marginOrApi < perDayTradeAmount) {
-              const errMsg = `Skipped: Insufficient Live Margin (₹${marginOrApi.toLocaleString('en-IN')}) for configured Per Day Trade Amount (₹${perDayTradeAmount.toLocaleString('en-IN')})`;
+          if (!marginCalc.success) {
+            const errMsg = marginCalc.skipReason || 'Margin validation failed';
+            if (errMsg.startsWith('Skipped: Insufficient Live Margin')) {
               console.warn(`AlgoEngine: ${errMsg} for client ${client.user?.name || client.id}. Skipping trade.`);
               await this.logFailedTrade(
                 client,
@@ -926,38 +930,13 @@ class AlgoEngineService {
                 errMsg,
                 { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId }
               );
-              return;
+            } else {
+              console.log(`AlgoEngine: ${errMsg} Skipping trade for ${client.user.name}.`);
             }
-          }
-
-          // Pick capital: if perDayTradeAmount > 0 use it, else pick lower of margin & dbCapital
-          let clientCapital = perDayTradeAmount > 0 ? perDayTradeAmount : (dbDisabled ? marginOrApi : Math.min(marginOrApi, dbCapital));
-          console.log(`AlgoEngine: Final clientCapital for ${client.user.name} = ${perDayTradeAmount > 0 ? `perDayTradeAmount=₹${perDayTradeAmount}` : (dbDisabled ? 'live-only' : `min(margin=${marginOrApi}, db=${dbCapital})`)} = ₹${clientCapital}`);
-
-          const configRisk = config?.riskManagement?.riskPerTrade;
-          if (perDayTradeAmount <= 0 && (!configRisk || configRisk <= 0)) {
-            console.log(`AlgoEngine: riskManagement.riskPerTrade not configured (or invalid) for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);
             return;
           }
-          const riskPercent = configRisk || 0;
-          const marginRate = config?.riskManagement?.misMarginRate;
 
-          // If perDayTradeAmount is explicitly configured (> 0), use it directly as capitalAtRisk (INR risk per trade).
-          // Otherwise, derive capitalAtRisk using strategy riskPerTrade %.
-          let capitalAtRisk = perDayTradeAmount > 0 ? perDayTradeAmount : clientCapital * (riskPercent / 100);
-
-          const capitalAllocPct = config?.riskManagement?.capitalAllocation;
-          if (capitalAllocPct !== undefined && capitalAllocPct !== null && capitalAllocPct > 0) {
-            const allocLimit = clientCapital * (capitalAllocPct / 100);
-            if (capitalAtRisk > allocLimit) {
-              capitalAtRisk = allocLimit;
-            }
-          }
-
-          const dbCapitalLimit = Number(client.capital);
-          if (dbCapitalLimit !== -1 && capitalAtRisk > dbCapitalLimit) {
-            capitalAtRisk = dbCapitalLimit;
-          }
+          const { marginOrApi, clientCapital, capitalAtRisk, riskPercent, marginRate } = marginCalc;
 
           if (!config?.stoploss?.type) {
             console.log(`AlgoEngine: stoploss.type not configured for strategy "${strategy.name}". Skipping trade for ${client.user.name}.`);

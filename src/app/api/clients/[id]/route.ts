@@ -13,7 +13,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     try {
       let client = await prisma.client.findUnique({
         where: { id },
-        include: { user: true, strategy: true, productType: true, assignments: { include: { strategy: true } } },
+        include: { user: true, productType: true, assignments: { include: { strategy: true } } },
       });
       if (!client) {
         return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
@@ -186,7 +186,6 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
            proxyUrl: proxyUrl !== undefined ? (proxyUrl ? proxyUrl.trim() : null) : undefined,
            tradingStatus: tradingStatus !== undefined ? tradingStatus : undefined,
            subscriptionStatus: subscriptionStatus !== undefined ? subscriptionStatus : undefined,
-           strategyId: targetStrategyId !== undefined ? targetStrategyId : undefined,
            productTypeId: productTypeId !== undefined ? productTypeId : undefined,
            capital: capital ? Math.max(-1, Number(capital)) : undefined,
            perDayTradeAmount: body.perDayTradeAmount !== undefined ? (body.perDayTradeAmount !== null && body.perDayTradeAmount !== '' && Number(body.perDayTradeAmount) > 0 ? Number(body.perDayTradeAmount) : null) : undefined,
@@ -197,7 +196,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
            dob: dob !== undefined ? dob : undefined,
            kycStatus: kycStatus !== undefined ? kycStatus : undefined,
          },
-         include: { user: true, strategy: true, productType: true, assignments: { include: { strategy: true } } },
+         include: { user: true, productType: true, assignments: { include: { strategy: true } } },
        });
        return NextResponse.json({ success: true, client: updatedClient });
      } catch {
