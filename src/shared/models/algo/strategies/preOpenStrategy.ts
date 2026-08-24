@@ -1,23 +1,13 @@
-import dotenv from 'dotenv';
-import path from 'path';
-
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
-dotenv.config({ path: path.join(__dirname, '../../.env') });
-dotenv.config({ path: path.join(__dirname, '../../../.env') });
-
-import { prisma } from '../../database/db';
-import { API_ENDPOINTS } from '../../core/constants';
-import { KiteClient } from '../services/kite';
-import { performKiteAutoLogin } from '../services/kiteAutoLogin';
-import { applyOperator, calculateRSI, calculateEMA, calculateSMA, calculateMACD, calculateATR, calculateVWAP, calculateBollingerBands, calculateSuperTrend, calculateADX } from '../services/indicators';
-import { WsLiveFeed } from './wsLiveFeed';
-import { TradingScheduler } from './tradingScheduler';
-import { getTickSizeAndRound } from '../utils/tickSizeUtil';
-import { batchArray, concurrentMap } from '../../core/helpers';
-import { logSystemEvent } from '../services/auditLogger';
-import { getLatestOrderState } from '../utils/kiteHelper';
-import { calculateClientCapitalAndRisk } from '../utils/marginHelper';
-import { PreOpenStrategy } from './algo/strategies/preOpenStrategy';
+import { prisma } from '../../../../database/db';
+import { KiteClient } from '../../../services/kite';
+import { calculateClientCapitalAndRisk } from '../../../utils/marginHelper';
+import { logSystemEvent } from '../../../services/auditLogger';
+import { API_ENDPOINTS } from '../../../../core/constants';
+import { concurrentMap } from '../../../../core/helpers';
+import { getTickSizeAndRound } from '../../../utils/tickSizeUtil';
+import { getLatestOrderState } from '../../../utils/kiteHelper';
+import { performKiteAutoLogin } from '../../../services/kiteAutoLogin';
+import { StockQuote } from '../../algoEngine';
 
 function mapTimeframeToKiteInterval(tf: string): string {
   if (!tf) return '5minute';
@@ -35,336 +25,25 @@ function mapTimeframeToKiteInterval(tf: string): string {
   return map[tf.toLowerCase()] || '5minute';
 }
 
-export interface StockQuote {
-  symbol: string;
-  name: string;
-  ltp: number;
-  open: number;
-  high: number;
-  low: number;
-  prevClose: number;
-  volume: number;
-  change: number;
-  changePercent: number;
-  iep: number;
-  final: number;
-  finalQuantity: number;
-  value: number;
-  ffmCap: number;
-  nm52wH: number;
-  nm52wL: number;
-  isNifty50?: boolean;
-  isNifty500?: boolean;
-  isBankNifty?: boolean;
-  isFo?: boolean;
-  isSme?: boolean;
-}
+export class PreOpenStrategy {
+  private engine: any;
 
-class AlgoEngineService {
-  private isTradingActive: boolean = false;
-
-  public preOpenCache: StockQuote[] = [];
-  private lastPreOpenFetchTime: number = 0;
-  private preOpenCacheDate: string = '';
-
-  public preselectedStockByStrategy: Map<string, StockQuote> = new Map();
-  todayTokenRefreshed: Set<string> = new Set();
-
-  private conditionCache: Map<string, boolean> = new Map();
-  private conditionCacheDate: string = '';
-
-  public marginCache: Map<string, number> = new Map();
-  private marginCacheDate: string = '';
-  public entryLock: Set<string> = new Set();
-
-  private lastHttpFetchTime = 0;
-  private initialized = false;
-
-  public wsLive: WsLiveFeed;
-  private tradingScheduler: TradingScheduler;
-  private preOpenStrategy: PreOpenStrategy;
-
-  constructor() {
-    this.preOpenStrategy = new PreOpenStrategy(this);
-    this.wsLive = new WsLiveFeed(
-      () => this.preOpenCache,
-      () => this.preselectedStockByStrategy
-    );
-    this.tradingScheduler = new TradingScheduler(
-      {
-        todayTokenRefreshed: this.todayTokenRefreshed,
-        getAlgoSetting: (key, defaultValue) => this.getAlgoSetting(key, defaultValue),
-        getPreOpenStocks: (forceFetch) => this.getPreOpenStocks(forceFetch),
-        preSelectAllClients: (strategyId) => this.preSelectAllClients(strategyId),
-        executePreOpenTrades: (adminId, mockStocks, strategyId, legIndex, dualLegGroupId) => this.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId),
-      },
-      this.wsLive
-    );
-  }
-
-  async init() {
-    if (this.initialized) return;
-    this.initialized = true;
-    
-    // Cleanup stale trade locks from previous days at startup
-    // Also cleanup today's OLD-format locks (without 'leg' in key) from before the legIndex fix
-    try {
-      const todayStr = new Date().toISOString().split('T')[0];
-      console.log(`AlgoEngine init: Cleaning up stale trade locks (${todayStr})...`);
-      const deletedLocks = await prisma.appSettings.deleteMany({
-        where: {
-          type: 'lock',
-          settingKey: { startsWith: 'trade_lock_' },
-          OR: [
-            // Delete all locks from previous days
-            { NOT: { settingKey: { endsWith: todayStr } } },
-            // Delete today's old-format locks (don't contain '_leg')
-            { AND: [
-              { settingKey: { endsWith: todayStr } },
-              { NOT: { settingKey: { contains: '_leg' } } }
-            ]}
-          ]
-        }
-      });
-      console.log(`AlgoEngine init: Cleaned up ${deletedLocks.count} stale/old-format trade locks.`);
-    } catch (e) {
-      console.error('AlgoEngine init: Failed to cleanup stale trade locks:', e);
-    }
-
-    await this.wsLive.initialize();
-    await this.restorePreselectedStocks();
-    this.tradingScheduler.startDailyTokenRefreshScheduler();
-    this.tradingScheduler.startDailyPreOpenStrategyScheduler();
-    this.tradingScheduler.startActiveTradesMonitoringScheduler();
-  }
-
-  private async restorePreselectedStocks(): Promise<void> {
-    try {
-      const records = await prisma.strategyPreselect.findMany();
-      for (const rec of records) {
-        try {
-          const stock: StockQuote = JSON.parse(rec.stockData);
-          this.preselectedStockByStrategy.set(rec.strategyId, stock);
-          console.log(`AlgoEngine init: Restored preselected stock ${stock.symbol} for strategy ${rec.strategyId}.`);
-        } catch (e) {
-          console.error(`AlgoEngine init: Failed to parse preselected stock for strategy ${rec.strategyId}:`, e);
-        }
-      }
-    } catch (e) {
-      console.error('AlgoEngine init: Failed to restore preselected stocks:', e);
-    }
-  }
-
-  async getAlgoSetting(key: string, defaultValue: string): Promise<string> {
-    try {
-      const setting = await prisma.appSettings.findUnique({ where: { settingKey: key } });
-      return setting?.settingValue || defaultValue;
-    } catch {
-      return defaultValue;
-    }
-  }
-
-  public async getMasterClient(): Promise<{ id: string; zerodhaApiKey: string; accessToken: string } | null> {
-    try {
-      const masterSetting = await prisma.appSettings.findUnique({
-        where: { settingKey: 'master_scanner_client_id' }
-      });
-      let masterClient = null;
-      if (masterSetting?.settingValue) {
-        masterClient = await prisma.client.findFirst({
-          where: {
-            OR: [
-              { id: masterSetting.settingValue },
-              { zerodhaClientId: masterSetting.settingValue }
-            ],
-            accessToken: { not: null },
-            zerodhaApiKey: { not: null }
-          }
-        });
-      }
-      if (!masterClient) {
-        masterClient = await prisma.client.findFirst({
-          where: { accessToken: { not: null }, zerodhaApiKey: { not: null } }
-        });
-      }
-      if (masterClient && masterClient.zerodhaApiKey && masterClient.accessToken) {
-        return {
-          id: masterClient.id,
-          zerodhaApiKey: masterClient.zerodhaApiKey,
-          accessToken: masterClient.accessToken
-        };
-      }
-    } catch (err) {
-      console.error('AlgoEngine: Error resolving Master Client credentials:', err);
-    }
-    return null;
-  }
-
-  private async getFreshCircuitLimits(client: any, exchange: string, symbol: string, accessToken?: string): Promise<{ upper: number; lower: number } | null> {
-    try {
-      const masterClientData = await this.getMasterClient();
-      const apiKey = masterClientData?.zerodhaApiKey || client.zerodhaApiKey;
-      const token = masterClientData?.accessToken || accessToken || client.accessToken;
-      if (!apiKey || !token) return null;
-
-      const quoteRes = await KiteClient.getQuotes(apiKey, token, [`${exchange}:${symbol}`]);
-      if (quoteRes?.status === 'success' && quoteRes.data?.[`${exchange}:${symbol}`]) {
-        const q = quoteRes.data[`${exchange}:${symbol}`];
-        if (q.upper_circuit_limit !== undefined && q.lower_circuit_limit !== undefined) {
-          return {
-            upper: Number(q.upper_circuit_limit),
-            lower: Number(q.lower_circuit_limit)
-          };
-        }
-      }
-    } catch (e) {
-      console.error(`AlgoEngine: Failed to fetch fresh circuit limits for ${symbol}:`, e);
-    }
-    return null;
-  }
-
-  private async matchesConditions(stock: any, conditions: any[], client?: any): Promise<boolean> {
-    if (!conditions || !Array.isArray(conditions) || conditions.length === 0) return true;
-
-    const strategyId = client?.strategy?.id;
-    if (strategyId) {
-      const todayDateKey = new Date().toLocaleDateString();
-      if (this.conditionCacheDate !== todayDateKey) {
-        this.conditionCache.clear();
-        this.conditionCacheDate = todayDateKey;
-      }
-      const cacheKey = `${strategyId}_${stock.symbol}`;
-      if (this.conditionCache.has(cacheKey)) {
-        return this.conditionCache.get(cacheKey)!;
-      }
-    }
-
-    for (const cond of conditions) {
-      const val = Number(cond.value);
-      if (cond.indicator === 'Pre Open Change %') {
-        if (cond.operator === '<' && !(stock.changePercent < val)) return false;
-        if (cond.operator === '>' && !(stock.changePercent > val)) return false;
-        if (cond.operator === '<=' && !(stock.changePercent <= val)) return false;
-        if (cond.operator === '>=' && !(stock.changePercent >= val)) return false;
-        if (cond.operator === '==' && !(stock.changePercent == val)) return false;
-      } else if (cond.indicator === 'Price Action') {
-        if (cond.value === 'Previous 5m High') {
-          const prevHigh = stock.high || stock.prevClose || stock.ltp;
-          if (cond.operator === '>' && !(stock.ltp > prevHigh)) return false;
-          if (cond.operator === '>=' && !(stock.ltp >= prevHigh)) return false;
-        }
-      } else if (cond.indicator === 'Gap Up') {
-        const gapPct = stock.prevClose ? ((stock.iep - stock.prevClose) / stock.prevClose) * 100 : 0;
-        if (!applyOperator(gapPct, cond.operator, val)) return false;
-      } else if (cond.indicator === 'Gap Down') {
-        const gapPct = stock.prevClose ? ((stock.iep - stock.prevClose) / stock.prevClose) * 100 : 0;
-        if (!applyOperator(gapPct, cond.operator, -val)) return false;
-      } else if (cond.indicator === 'Previous High') {
-        if (!applyOperator(stock.ltp, cond.operator, stock.nm52wH || stock.high || stock.ltp)) return false;
-      } else if (cond.indicator === 'Previous Low') {
-        if (!applyOperator(stock.ltp, cond.operator, stock.nm52wL || stock.low || stock.ltp)) return false;
-      } else if (cond.indicator === 'Previous Close') {
-        if (!applyOperator(stock.ltp, cond.operator, stock.prevClose)) return false;
-      } else if (cond.indicator === 'Pre Open Price') {
-        if (!applyOperator(stock.ltp, cond.operator, stock.iep)) return false;
-      } else if (cond.indicator === 'Pre Open Volume') {
-        if (!applyOperator(stock.finalQuantity || stock.volume, cond.operator, val)) return false;
-      } else if (cond.indicator === 'Volume') {
-        if (!applyOperator(stock.volume, cond.operator, val)) return false;
-      } else if (cond.indicator === 'Open Interest') {
-        if (!applyOperator(stock.openInterest || 0, cond.operator, val)) return false;
-      } else if (['RSI', 'EMA', 'SMA', 'VWAP', 'MACD', 'ATR', 'Bollinger Bands', 'SuperTrend', 'ADX', 'Candle Pattern'].includes(cond.indicator)) {
-        if (!client) return true;
-        let kiteInterval = '5minute';
-        try {
-          if (client?.strategy?.configJson) {
-            const cfg = JSON.parse(client.strategy.configJson);
-            kiteInterval = mapTimeframeToKiteInterval(cfg.basicInfo?.timeframe || '5m');
-          }
-        } catch { }
-        const candles = await this.wsLive.fetchHistoricalCandles(client, stock.symbol, kiteInterval, 5);
-        if (candles.length < 2) return true;
-        const closePrices = candles.map(c => c[4]);
-        if (cond.indicator === 'RSI') {
-          const rsi = calculateRSI(closePrices, 14);
-          if (!applyOperator(rsi, cond.operator, val)) return false;
-        } else if (cond.indicator === 'EMA') {
-          if (isNaN(val) || val <= 0) return true;
-          const ema = calculateEMA(closePrices, val);
-          const sma = calculateSMA(closePrices, 20);
-          if (cond.value === 'SMA' && !applyOperator(ema, cond.operator, sma)) return false;
-          if (!applyOperator(ema, cond.operator, val)) return false;
-        } else if (cond.indicator === 'SMA') {
-          if (isNaN(val) || val <= 0) return true;
-          const sma = calculateSMA(closePrices, val);
-          if (!applyOperator(sma, cond.operator, val)) return false;
-        } else if (cond.indicator === 'VWAP') {
-          const vwap = calculateVWAP(candles);
-          if (!applyOperator(stock.ltp, cond.operator, vwap)) return false;
-        } else if (cond.indicator === 'MACD') {
-          const macd = calculateMACD(closePrices);
-          const compareVal = cond.value === 'Signal' ? macd.signal : (Number(cond.value) || macd.signal);
-          if (!applyOperator(macd.macd, cond.operator, compareVal)) return false;
-        } else if (cond.indicator === 'ATR') {
-          if (isNaN(val) || val <= 0) return true;
-          const atr = calculateATR(candles, val);
-          if (!applyOperator(atr, cond.operator, val)) return false;
-        } else if (cond.indicator === 'Bollinger Bands') {
-          if (isNaN(val) || val <= 0) return true;
-          const bb = calculateBollingerBands(closePrices, val);
-          const bbVal = cond.value === 'Upper' ? bb.upper : (cond.value === 'Lower' ? bb.lower : bb.middle);
-          if (!applyOperator(stock.ltp, cond.operator, bbVal)) return false;
-        } else if (cond.indicator === 'SuperTrend') {
-          const st = calculateSuperTrend(candles, 10, 3);
-          if (cond.value === 'Up' && st.direction !== 'up') return false;
-          if (cond.value === 'Down' && st.direction !== 'down') return false;
-          if (!applyOperator(st.value, cond.operator, val)) return false;
-        } else if (cond.indicator === 'ADX') {
-          const adx = calculateADX(candles);
-          if (!applyOperator(adx, cond.operator, val)) return false;
-        } else if (cond.indicator === 'Candle Pattern') {
-          const last = candles[candles.length - 1];
-          const prev = candles.length > 1 ? candles[candles.length - 2] : last;
-          if (cond.value === 'Doji') {
-            const body = Math.abs(last[4] - last[1]);
-            const range = last[2] - last[3];
-            if (range > 0 && (body / range) > 0.1) return false;
-          } else if (cond.value === 'Bullish Engulfing') {
-            if (!(prev[4] < prev[1] && last[4] > last[1] && last[4] > prev[1] && last[1] < prev[4])) return false;
-          } else if (cond.value === 'Bearish Engulfing') {
-            if (!(prev[4] > prev[1] && last[4] < last[1] && last[1] < prev[4] && last[4] > prev[1])) return false;
-          } else if (cond.value === 'Hammer') {
-            const body = Math.abs(last[4] - last[1]);
-            const lowerWick = Math.min(last[4], last[1]) - last[3];
-            const upperWick = last[2] - Math.max(last[4], last[1]);
-            if (!(lowerWick > body * 2 && upperWick < body * 0.3)) return false;
-          }
-        }
-      }
-    }
-    if (strategyId) {
-      this.conditionCache.set(`${strategyId}_${stock.symbol}`, true);
-    }
-    return true;
+  constructor(engine: any) {
+    this.engine = engine;
   }
 
   async preSelectAllClients(strategyId?: string): Promise<void> {
-    return this.preOpenStrategy.preSelectAllClients(strategyId);
-  }
-
-  // --- Original preSelectAllClients kept here for reference only (now delegated to PreOpenStrategy) ---
-  private async _legacyPreSelectAllClients_UNUSED(strategyId?: string): Promise<void> {
-    this.preselectedStockByStrategy.clear();
-    this.marginCache.clear();
+    this.engine.preselectedStockByStrategy.clear();
+    this.engine.marginCache.clear();
     try {
       await prisma.strategyPreselect.deleteMany();
     } catch (e) {
       console.error('AlgoEngine preSelect: Failed to clear old preselections from DB:', e);
     }
 
-    const preOpenStocks = this.preOpenCache.length > 0
-      ? this.preOpenCache
-      : await this.getPreOpenStocks();
+    const preOpenStocks = this.engine.preOpenCache.length > 0
+      ? this.engine.preOpenCache
+      : await this.engine.getPreOpenStocks();
 
     if (!preOpenStocks || preOpenStocks.length === 0) {
       console.log('AlgoEngine preSelect: No pre-open stocks available. Skipping.');
@@ -440,7 +119,7 @@ class AlgoEngineService {
       const segment = config.basicInfo.segment;
       const selectPosition = config.basicInfo.selectPosition;
 
-      let matchingStocks = preOpenStocks.filter(stock => {
+      let matchingStocks = preOpenStocks.filter((stock: StockQuote) => {
         if (segment === 'NSE F&O' || segment === 'Futures' || segment === 'Options') {
           if (!stock.isFo) return false;
         } else if (segment === 'Nifty 50' || segment === 'Nifty') {
@@ -455,8 +134,6 @@ class AlgoEngineService {
         console.log(`AlgoEngine preSelect: No matching stocks for strategy ${strategy.name}.`);
         continue;
       }
-
-
 
       const explicitType = config.basicInfo?.stockSelectionType;
       const isShortTrade = explicitType
@@ -474,7 +151,7 @@ class AlgoEngineService {
       }
 
       const selected = sortedStocks[selectPosition - 1];
-      this.preselectedStockByStrategy.set(strategy.id, selected);
+      this.engine.preselectedStockByStrategy.set(strategy.id, selected);
       try {
         await prisma.strategyPreselect.upsert({
           where: { strategyId: strategy.id },
@@ -484,17 +161,17 @@ class AlgoEngineService {
       } catch (e) {
         console.error(`AlgoEngine preSelect: Failed to persist preselected stock for strategy ${strategy.id}:`, e);
       }
-      this.wsLive.subscribeSymbols([selected.symbol]);
+      this.engine.wsLive.subscribeSymbols([selected.symbol]);
       console.log(`AlgoEngine preSelect: Strategy "${strategy.name}" → #${selectPosition} ${selected.symbol}(${selected.changePercent}%)`);
     }
 
     if (strategyId) {
-      const selected = this.preselectedStockByStrategy.get(strategyId);
+      const selected = this.engine.preselectedStockByStrategy.get(strategyId);
       if (selected) {
         console.log(`AlgoEngine preSelect: Clients of strategy "${strategyId}" will trade ${selected.symbol}.`);
       }
     } else {
-      console.log(`AlgoEngine preSelect: ${this.preselectedStockByStrategy.size} strategies have preselected stocks.`);
+      console.log(`AlgoEngine preSelect: ${this.engine.preselectedStockByStrategy.size} strategies have preselected stocks.`);
     }
 
     const PRE_SELECT_CONCURRENCY = 15;
@@ -503,26 +180,21 @@ class AlgoEngineService {
         try {
           const marginRes = await KiteClient.getMargins(client.zerodhaApiKey, client.accessToken);
           if (marginRes?.status === 'success' && marginRes.data?.equity?.net !== undefined) {
-            this.marginCache.set(client.id, Number(marginRes.data.equity.net));
+            this.engine.marginCache.set(client.id, Number(marginRes.data.equity.net));
           }
         } catch { }
       }
     }, PRE_SELECT_CONCURRENCY);
 
-    console.log(`AlgoEngine preSelect: Margins cached for ${this.marginCache.size}/${clients.length} clients.`);
+    console.log(`AlgoEngine preSelect: Margins cached for ${this.engine.marginCache.size}/${clients.length} clients.`);
   }
 
-  public async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyId?: string, legIndex?: number, dualLegGroupId?: string | null): Promise<void> {
-    return this.preOpenStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
-  }
-
-  // --- Original executePreOpenTrades kept here for reference only (now delegated to PreOpenStrategy) ---
-  private async _legacyExecutePreOpenTrades_UNUSED(adminId: string, mockStocks?: StockQuote[], strategyId?: string, legIndex?: number, dualLegGroupId?: string | null): Promise<void> {
+  async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyId?: string, legIndex?: number, dualLegGroupId?: string | null): Promise<void> {
     console.log('AlgoEngine: executePreOpenTrades started.');
     try {
       const preOpenStocks = mockStocks && mockStocks.length > 0
         ? mockStocks
-        : await this.getPreOpenStocks();
+        : await this.engine.getPreOpenStocks();
 
       if (!preOpenStocks || preOpenStocks.length === 0) {
         const msg = 'AlgoEngine: No pre-open stocks fetched from NSE. Aborting execution for today.';
@@ -648,7 +320,7 @@ class AlgoEngineService {
           }
 
           if (!candidateStock) {
-            candidateStock = this.preselectedStockByStrategy.get(strategy.id) || null;
+            candidateStock = this.engine.preselectedStockByStrategy.get(strategy.id) || null;
           }
 
           if (!candidateStock) {
@@ -657,9 +329,8 @@ class AlgoEngineService {
               return;
             }
             const segment = config.basicInfo.segment;
-            const action = currentLeg.tradeAction?.action || 'Long';
             const selectPosition = config.basicInfo.selectPosition;
-            let matchingStocks = preOpenStocks.filter(stock => {
+            let matchingStocks = preOpenStocks.filter((stock: StockQuote) => {
               if (segment === 'NSE F&O' || segment === 'Futures' || segment === 'Options') {
                 if (!stock.isFo) return false;
               } else if (segment === 'Nifty 50' || segment === 'Nifty') {
@@ -669,8 +340,6 @@ class AlgoEngineService {
               }
               return true;
             });
-
-
 
             const getPreOpenPct = (s: any) => s.preOpenChangePercent !== undefined ? s.preOpenChangePercent : (s.prevClose ? ((s.iep - s.prevClose) / s.prevClose) * 100 : s.changePercent);
             const sortedStocks = [...matchingStocks].sort((a, b) =>
@@ -685,23 +354,21 @@ class AlgoEngineService {
             candidateStock = sortedStocks[selectPosition - 1];
           }
 
-          // NOTE: conditions check moved AFTER lock acquisition below to prevent duplicate FAILED trades
-
-          console.log(`AlgoEngine: Client ${client.user.name} | Stock ${candidateStock.symbol}(${candidateStock.changePercent}%)`);
+          const cs = candidateStock!;
+          console.log(`AlgoEngine: Client ${client.user.name} | Stock ${cs.symbol}(${cs.changePercent}%)`);
 
           let targetStock: StockQuote | null = null;
           let breakoutEntryPrice = 0;
 
           const currentLegIdx = legIndex || 0;
-          lockKey = `${client.id}:${candidateStock.symbol}:leg${currentLegIdx}`;
-          if (this.entryLock.has(lockKey)) {
-            console.log(`AlgoEngine: Entry already in progress for ${candidateStock.symbol} Leg ${currentLegIdx + 1} (${client.user.name}). Skipping.`);
+          lockKey = `${client.id}:${cs.symbol}:leg${currentLegIdx}`;
+          if (this.engine.entryLock.has(lockKey)) {
+            console.log(`AlgoEngine: Entry already in progress for ${cs.symbol} Leg ${currentLegIdx + 1} (${client.user.name}). Skipping.`);
             return;
           }
-          this.entryLock.add(lockKey);
+          this.engine.entryLock.add(lockKey);
 
           const todayStr = todayStart.toISOString().split('T')[0];
-          // Include legIndex in lock key so each OCO leg has its own independent lock
           dbLockKey = `trade_lock_${client.id}_${strategy.id}_leg${currentLegIdx}_${todayStr}`;
           try {
             await prisma.appSettings.create({
@@ -709,12 +376,11 @@ class AlgoEngineService {
             });
           } catch (e) {
             console.log(`AlgoEngine DB Lock: Trade already processing for ${client.user.name} Leg ${currentLegIdx + 1}. Skipping duplicate execution.`);
-            this.entryLock.delete(lockKey);
+            this.engine.entryLock.delete(lockKey);
             return;
           }
 
           try {
-            // Check if ANY valid (non-failed/non-rejected entry) trade was placed today for this client+strategy+leg
             const existingTrade = await prisma.trade.findFirst({
               where: {
                 clientId: client.id,
@@ -729,7 +395,6 @@ class AlgoEngineService {
               return;
             }
 
-            // OCO Rule: Check if ANY other leg in this dualLegGroupId has already filled/completed today
             if (finalDualLegGroupId) {
               const existingOcoFilled = await prisma.trade.findFirst({
                 where: {
@@ -746,56 +411,54 @@ class AlgoEngineService {
               }
             }
 
-            // MOVED HERE from before lock: conditions check (prevents duplicate FAILED trades)
-            if (candidateStock && config.conditions?.length > 0) {
-              if (!await this.matchesConditions(candidateStock, config.conditions, client)) {
-                const reason = `Preselected stock ${candidateStock.symbol} (${candidateStock.changePercent.toFixed(2)}%) failed strategy conditions`;
+            if (cs && config.conditions?.length > 0) {
+              if (!await this.engine.matchesConditions(cs, config.conditions, client)) {
+                const reason = `Preselected stock ${cs.symbol} (${cs.changePercent.toFixed(2)}%) failed strategy conditions`;
                 console.log(`AlgoEngine: ${reason} for ${client.user.name}. Logging FAILED trade.`);
-                await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
+                await this.engine.logFailedTrade(client, strategy, cs.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
                 return;
               }
             }
 
-            let candlePrice = candlePriceCache.get(candidateStock.symbol) || 0;
-            const masterClientData = await this.getMasterClient();
+            let candlePrice = candlePriceCache.get(cs.symbol) || 0;
+            const masterClientData = await this.engine.getMasterClient();
             const marketApiKey = masterClientData?.zerodhaApiKey || client.zerodhaApiKey;
             const marketAccessToken = masterClientData?.accessToken || client.accessToken;
 
             if (candlePrice === 0 && marketApiKey && marketAccessToken) {
-              const instTokenStr = Object.entries(this.wsLive.instrumentToSymbol).find(([, sym]) => sym === candidateStock.symbol)?.[0];
+              const instTokenStr = Object.entries(this.engine.wsLive.instrumentToSymbol).find(([, sym]) => sym === cs.symbol)?.[0];
               if (instTokenStr) {
                 try {
-                  // Lock date to Asia/Kolkata (IST) timezone regardless of VPS system clock
                   const todayIST = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
                   const from = todayIST;
                   const to = todayIST;
 
-                  console.log(`AlgoEngine: Fetching historical data for ${candidateStock.symbol} token=${instTokenStr} from=${from} to=${to}`);
+                  console.log(`AlgoEngine: Fetching historical data for ${cs.symbol} token=${instTokenStr} from=${from} to=${to}`);
                   const kiteInterval = mapTimeframeToKiteInterval(legTimeframe);
                   const res = await KiteClient.getHistoricalData(marketApiKey, marketAccessToken, instTokenStr, kiteInterval, from, to);
-                  console.log(`AlgoEngine: Historical response for ${candidateStock.symbol}: status=${res.status}, candles=${res.data?.candles?.length ?? 0}`);
+                  console.log(`AlgoEngine: Historical response for ${cs.symbol}: status=${res.status}, candles=${res.data?.candles?.length ?? 0}`);
                   if (res.status === 'success' && Array.isArray(res.data?.candles) && res.data.candles.length > 0) {
                     const priceIdx: Record<string, number> = { open: 1, high: 2, low: 3, close: 4 };
                     candlePrice = Number(res.data.candles[0][priceIdx[legCandleType]]);
-                    candlePriceCache.set(candidateStock.symbol, candlePrice);
-                    console.log(`AlgoEngine: Candle price for ${candidateStock.symbol} (${legCandleType}): ${candlePrice}`);
+                    candlePriceCache.set(cs.symbol, candlePrice);
+                    console.log(`AlgoEngine: Candle price for ${cs.symbol} (${legCandleType}): ${candlePrice}`);
                   } else {
-                    console.warn(`AlgoEngine: No candle data for ${candidateStock.symbol} - status: ${res.status}, error: ${res.message ?? 'none'}`);
+                    console.warn(`AlgoEngine: No candle data for ${cs.symbol} - status: ${res.status}, error: ${res.message ?? 'none'}`);
                   }
                 } catch (histErr) {
-                  console.error(`AlgoEngine: Historical data fetch failed for ${candidateStock.symbol}:`, histErr);
+                  console.error(`AlgoEngine: Historical data fetch failed for ${cs.symbol}:`, histErr);
                 }
               } else {
-                console.warn(`AlgoEngine: Instrument token not found for ${candidateStock.symbol}`);
+                console.warn(`AlgoEngine: Instrument token not found for ${cs.symbol}`);
               }
             } else if (candlePrice > 0) {
-              console.log(`AlgoEngine: Using cached candle price for ${candidateStock.symbol}: ${candlePrice}`);
+              console.log(`AlgoEngine: Using cached candle price for ${cs.symbol}: ${candlePrice}`);
             }
 
             if (candlePrice === 0) {
-              const reason = `Candle data not fetched for ${candidateStock.symbol}`;
+              const reason = `Candle data not fetched for ${cs.symbol}`;
               console.log(`AlgoEngine: ${reason}. Logging FAILED trade for ${client.user.name}.`);
-              await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
+              await this.engine.logFailedTrade(client, strategy, cs.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
               return;
             }
 
@@ -808,23 +471,23 @@ class AlgoEngineService {
               breakoutEntryPrice = candlePrice * (1 + bufferPct / 100);
             }
 
-            const currentLtp = candidateStock.ltp || candidateStock.iep || breakoutEntryPrice;
+            const currentLtp = cs.ltp || cs.iep || breakoutEntryPrice;
             const hasPriceAction = config.conditions?.some((c: any) => c.indicator === 'Price Action');
 
             if (legOrderType === 'SL-Market' || !hasPriceAction || (isShortTrade ? currentLtp <= breakoutEntryPrice : currentLtp >= breakoutEntryPrice)) {
-              targetStock = candidateStock;
-              console.log(`AlgoEngine: ${isShortTrade ? 'Breakdown' : 'Breakout'} confirmed for ${candidateStock.symbol} (${direction}) | Entry: ${breakoutEntryPrice} | LTP: ${currentLtp} | CandlePriceType: ${legCandleType}`);
+              targetStock = cs;
+              console.log(`AlgoEngine: ${isShortTrade ? 'Breakdown' : 'Breakout'} confirmed for ${cs.symbol} (${direction}) | Entry: ${breakoutEntryPrice} | LTP: ${currentLtp} | CandlePriceType: ${legCandleType}`);
             } else {
-              console.log(`AlgoEngine: ${isShortTrade ? 'Breakdown' : 'Breakout'} not met for ${candidateStock.symbol} (${direction}) | Entry: ${breakoutEntryPrice} | LTP: ${currentLtp}. Skipping.`);
+              console.log(`AlgoEngine: ${isShortTrade ? 'Breakdown' : 'Breakout'} not met for ${cs.symbol} (${direction}) | Entry: ${breakoutEntryPrice} | LTP: ${currentLtp}. Skipping.`);
             }
           } catch (checkErr) {
-            console.error(`AlgoEngine: Error checking breakout for ${candidateStock.symbol}:`, checkErr);
+            console.error(`AlgoEngine: Error checking breakout for ${cs.symbol}:`, checkErr);
           }
 
           if (!targetStock) {
-            const reason = `Breakout not met: LTP ${candidateStock.ltp || candidateStock.iep} < breakout entry ${breakoutEntryPrice}`;
+            const reason = `Breakout not met: LTP ${cs.ltp || cs.iep} < breakout entry ${breakoutEntryPrice}`;
             console.log(`AlgoEngine: ${reason} for ${client.user.name}. Logging FAILED trade.`);
-            await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, breakoutEntryPrice, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
+            await this.engine.logFailedTrade(client, strategy, cs.symbol, productParam, breakoutEntryPrice, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
             return;
           }
 
@@ -833,13 +496,13 @@ class AlgoEngineService {
           if (!config?.stoploss?.fixedPercent) {
             const reason = `stoploss.fixedPercent not configured for strategy "${strategy.name}"`;
             console.log(`AlgoEngine: ${reason}. Logging FAILED trade for ${client.user.name}.`);
-            await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, entryPrice, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
+            await this.engine.logFailedTrade(client, strategy, cs.symbol, productParam, entryPrice, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
             return;
           }
           if (!config?.target?.profitPercent) {
             const reason = `target.profitPercent not configured for strategy "${strategy.name}"`;
             console.log(`AlgoEngine: ${reason}. Logging FAILED trade for ${client.user.name}.`);
-            await this.logFailedTrade(client, strategy, candidateStock.symbol, productParam, entryPrice, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
+            await this.engine.logFailedTrade(client, strategy, cs.symbol, productParam, entryPrice, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
             return;
           }
           const slPercent = config.stoploss.fixedPercent;
@@ -875,14 +538,14 @@ class AlgoEngineService {
 
           let autoLoginErrorStr = '';
           if (process.env.KITE_AUTO_LOGIN_ENABLED === 'true' && client.productTypeId === algoType.id) {
-            if (this.todayTokenRefreshed.has(client.id) && activeAccessToken) {
+            if (this.engine.todayTokenRefreshed.has(client.id) && activeAccessToken) {
               console.log(`AlgoEngine: Client ${client.user.name} already refreshed today, using existing token.`);
             } else if (client.zerodhaPassword && client.zerodhaTotpSecret) {
               console.log(`AlgoEngine: Auto-login is enabled. Refreshing session dynamically for client: ${client.user.name}`);
               const autoLoginRes = await performKiteAutoLogin(client.id);
               if (autoLoginRes.success && autoLoginRes.accessToken) {
                 activeAccessToken = autoLoginRes.accessToken;
-                this.todayTokenRefreshed.add(client.id);
+                this.engine.todayTokenRefreshed.add(client.id);
               } else {
                 autoLoginErrorStr = autoLoginRes.error || 'Unknown auto-login error';
                 console.warn(`AlgoEngine: Dynamic auto-login failed for ${client.user.name}: ${autoLoginErrorStr}`);
@@ -925,8 +588,8 @@ class AlgoEngineService {
           const marginCalc = await calculateClientCapitalAndRisk({
             client,
             activeAccessToken,
-            cachedMargin: this.marginCache.get(client.id),
-            onCacheMargin: (clientId, margin) => this.marginCache.set(clientId, margin),
+            cachedMargin: this.engine.marginCache.get(client.id),
+            onCacheMargin: (clientId, margin) => this.engine.marginCache.set(clientId, margin),
             config
           });
 
@@ -934,7 +597,7 @@ class AlgoEngineService {
             const errMsg = marginCalc.skipReason || 'Margin validation failed';
             if (errMsg.startsWith('Skipped: Insufficient Live Margin')) {
               console.warn(`AlgoEngine: ${errMsg} for client ${client.user?.name || client.id}. Skipping trade.`);
-              await this.logFailedTrade(
+              await this.engine.logFailedTrade(
                 client,
                 strategy,
                 targetStock.symbol,
@@ -985,7 +648,7 @@ class AlgoEngineService {
             const errMsg = `Skipped: Calculated quantity is 0 (capitalAtRisk ₹${capitalAtRisk.toFixed(2)} / slPoints ₹${slPoints.toFixed(2)} = 0).`;
             console.log(`AlgoEngine: Calculated quantity is 0 for client ${client.user.name} (CapitalAtRisk: ₹${capitalAtRisk.toFixed(2)}, SL Points: ₹${slPoints.toFixed(2)}). Skipping trade.`);
 
-            await this.logFailedTrade(
+            await this.engine.logFailedTrade(
               client,
               strategy,
               targetStock.symbol,
@@ -1035,8 +698,6 @@ class AlgoEngineService {
             ? Number(currentLeg.tradeAction.marketProtection)
             : 0.05;
 
-           // Fetch fresh circuit limits first to adjust entry price
-          // 1. Calculate entry price WITH leg buffer percentage applied first
           let calculatedBufferedEntry = entryPrice;
           if (legBufferPct !== undefined && legBufferPct !== null && legBufferPct !== -1 && legBufferPct > 0) {
             calculatedBufferedEntry = isShortTrade
@@ -1044,9 +705,8 @@ class AlgoEngineService {
               : entryPrice * (1 + legBufferPct / 100);
           }
 
-          // 2. Validate buffered price against Live Circuit Limits (Skip trade if Circuit limit hit at entry)
           let adjustedEntryPrice = calculatedBufferedEntry;
-          const freshLimits = await this.getFreshCircuitLimits(client, exchangeParam, targetStock.symbol, activeAccessToken);
+          const freshLimits = await this.engine.getFreshCircuitLimits(client, exchangeParam, targetStock.symbol, activeAccessToken);
           if (freshLimits) {
             const { upper, lower } = freshLimits;
             if (upper > 0 && lower > 0) {
@@ -1054,7 +714,7 @@ class AlgoEngineService {
                 const circuitType = calculatedBufferedEntry >= upper ? 'Upper Circuit' : 'Lower Circuit';
                 const reason = `Entry skipped: Stock ${targetStock.symbol} hit ${circuitType} (Entry: ₹${calculatedBufferedEntry.toFixed(2)}, Circuit Range: ${lower} - ${upper})`;
                 console.log(`AlgoEngine: ${reason} for ${client.user.name}. Skipping trade.`);
-                await this.logFailedTrade(client, strategy, targetStock.symbol, productParam, calculatedBufferedEntry, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
+                await this.engine.logFailedTrade(client, strategy, targetStock.symbol, productParam, calculatedBufferedEntry, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
                 return;
               } else {
                 console.log(`AlgoEngine: Buffered entry price (₹${calculatedBufferedEntry.toFixed(2)}) is within Circuit Limits (${lower} - ${upper}).`);
@@ -1085,11 +745,9 @@ class AlgoEngineService {
             target = isShortTrade ? adjustedEntryPrice * (1 - targetPercent / 100) : adjustedEntryPrice * (1 + targetPercent / 100);
           }
 
-          // Validate Stop-Loss and Target prices against Circuit Limits if fetched
           if (freshLimits) {
             const { upper, lower } = freshLimits;
             if (upper > 0 && lower > 0) {
-              // Stop-Loss Circuit Check
               if (stopLoss < lower) {
                 console.log(`AlgoEngine: Stop Loss (₹${stopLoss.toFixed(2)}) fell below Lower Circuit (₹${lower}). Capping SL to Lower Circuit.`);
                 stopLoss = lower;
@@ -1098,7 +756,6 @@ class AlgoEngineService {
                 stopLoss = upper;
               }
 
-              // Target Circuit Check
               if (target < lower) {
                 console.log(`AlgoEngine: Target (₹${target.toFixed(2)}) fell below Lower Circuit (₹${lower}). Capping Target to Lower Circuit.`);
                 target = lower;
@@ -1109,14 +766,12 @@ class AlgoEngineService {
             }
           }
 
-          // Keep original calculated values
           const rawEntryPrice = entryPrice;
           const rawStopLoss = isShortTrade ? rawEntryPrice + slPoints : rawEntryPrice - slPoints;
           const rawTarget = targetType === 'Risk Reward Ratio'
             ? (isShortTrade ? rawEntryPrice - (slPoints * config.target.riskRewardRatio) : rawEntryPrice + (slPoints * config.target.riskRewardRatio))
             : (isShortTrade ? rawEntryPrice * (1 - targetPercent / 100) : rawEntryPrice * (1 + targetPercent / 100));
 
-          // Round values to tick size dynamically using Zerodha Quote API
           let finalEntryPrice = adjustedEntryPrice;
           let finalStopLoss = stopLoss;
           let finalTarget = target;
@@ -1275,9 +930,8 @@ class AlgoEngineService {
           let entryFilled = false;
           let latestOrderStatus = 'OPEN';
 
-          // Entry order place hone ke baad — poll karo fill hone tak
           if (orderId && client.zerodhaApiKey && activeAccessToken) {
-            const maxPolls = 30; // 30 × 2s = 60s wait for trigger
+            const maxPolls = 30;
             for (let attempt = 0; attempt < maxPolls; attempt++) {
               await new Promise(r => setTimeout(r, 2000));
               try {
@@ -1295,7 +949,6 @@ class AlgoEngineService {
                   console.log(`AlgoEngine: Entry order ${orderId} COMPLETE at avg price ₹${actualEntryPrice}`);
                   entryFilled = true;
 
-                  // Dual Leg OCO: Cancel any other open/pending leg entry orders in Zerodha for this client & group
                   if (finalDualLegGroupId && client.zerodhaApiKey && activeAccessToken) {
                     try {
                       const otherLegTrades = await prisma.trade.findMany({
@@ -1328,10 +981,8 @@ class AlgoEngineService {
                     }
                   }
 
-                  // Entry fill hote hi SL + Target place karo
                   if (client.zerodhaApiKey && activeAccessToken) {
-                    // Fetch fresh circuit limits right before placing SL/Target
-                    const freshLimitsSLT = await this.getFreshCircuitLimits(client, exchangeParam, targetStock.symbol, activeAccessToken);
+                    const freshLimitsSLT = await this.engine.getFreshCircuitLimits(client, exchangeParam, targetStock.symbol, activeAccessToken);
                     if (freshLimitsSLT) {
                       const { upper, lower } = freshLimitsSLT;
                       if (upper > 0 && lower > 0) {
@@ -1344,7 +995,7 @@ class AlgoEngineService {
                             finalTarget = upper;
                             console.log(`AlgoEngine: Adjusted Target to Upper Circuit for ${targetStock.symbol} LONG: ₹${finalTarget}`);
                           }
-                        } else { // SHORT
+                        } else {
                           if (finalStopLoss > upper) {
                             finalStopLoss = upper - 0.05;
                             console.log(`AlgoEngine: Adjusted SL to Upper Circuit - 0.05 for ${targetStock.symbol} SHORT: ₹${finalStopLoss}`);
@@ -1354,13 +1005,11 @@ class AlgoEngineService {
                             console.log(`AlgoEngine: Adjusted Target to Lower Circuit for ${targetStock.symbol} SHORT: ₹${finalTarget}`);
                           }
                         }
-                        // Round again
                         finalStopLoss = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, exchangeParam, targetStock.symbol, finalStopLoss);
                         finalTarget = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, exchangeParam, targetStock.symbol, finalTarget);
                       }
                     }
 
-                    // 10-second delay after cancelling opposite leg order to ensure Zerodha margin is completely freed
                     console.log(`AlgoEngine OCO: Waiting 10 seconds after opposite leg cancellation before placing Stop-Loss order for ${client.user.name}...`);
                     await new Promise(resolve => setTimeout(resolve, 10000));
 
@@ -1392,7 +1041,6 @@ class AlgoEngineService {
                       }
                     }
 
-                    // 5-second delay after SL placement before placing Target LIMIT order
                     console.log(`AlgoEngine OCO: Waiting 5 seconds after Stop-Loss order before placing Target order for ${client.user.name}...`);
                     await new Promise(resolve => setTimeout(resolve, 5000));
 
@@ -1523,7 +1171,7 @@ class AlgoEngineService {
               }
             });
           }
-          this.wsLive.subscribeSymbols([targetStock.symbol]);
+          this.engine.wsLive.subscribeSymbols([targetStock.symbol]);
 
           const tradeActionLabel = isShortTrade ? 'Sold (Short)' : 'Bought (Long)';
           await prisma.strategyLog.create({
@@ -1548,10 +1196,7 @@ class AlgoEngineService {
         } catch (clientErr: any) {
           console.error(`AlgoEngine: Error executing pre-open trade for client ${client.id}:`, clientErr);
         } finally {
-          this.entryLock.delete(lockKey);
-          // NOTE: DB lock is intentionally NOT deleted here.
-          // It stays for the entire trading day to prevent re-entry after server restart.
-          // Stale locks from previous days are cleaned up at startup (see cleanupStaleTradeLocks).
+          this.engine.entryLock.delete(lockKey);
         }
       };
 
@@ -1562,392 +1207,4 @@ class AlgoEngineService {
       console.error('AlgoEngine: executePreOpenTrades error:', e);
     }
   }
-
-  public async fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
-    const headers = {
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': '*/*',
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Referer': API_ENDPOINTS.NSE_REFERER,
-    };
-
-    try {
-      console.log('Initiating pre-open fetch from official NSE India API...');
-      const homeRes = await fetch(API_ENDPOINTS.NSE_HOME, { headers });
-      const rawCookies = homeRes.headers.get('set-cookie') || '';
-      const cookies = rawCookies.split(',').map(c => c.split(';')[0]).join('; ');
-
-      const fetchIndexSymbols = async (key: string): Promise<string[]> => {
-        try {
-          const res = await fetch(`https://www.nseindia.com/api/market-data-pre-open?key=${key}`, {
-            headers: { ...headers, 'Cookie': cookies }
-          });
-          if (!res.ok) return [];
-          const json = await res.json();
-          if (json && Array.isArray(json.data)) {
-            return json.data.map((item: any) => item.metadata?.symbol).filter(Boolean);
-          }
-        } catch (e) {
-          console.error(`Failed to fetch symbols for index key ${key}:`, e);
-        }
-        return [];
-      };
-
-      const fetchWithRetry = async (key: string, retries = 3): Promise<string[]> => {
-        for (let i = 0; i < retries; i++) {
-          const result = await fetchIndexSymbols(key);
-          if (result.length > 0) return result;
-          if (i < retries - 1) {
-            const delay = 1000 * (i + 1);
-            console.log(`Retry ${i + 1}/${retries - 1} for key=${key} in ${delay}ms`);
-            await new Promise(r => setTimeout(r, delay));
-          }
-        }
-        return [];
-      };
-
-      const foSymbols = await fetchWithRetry('FO');
-
-      // Fetch Nifty 500 list from public NSE archives CSV (bulletproof way, bypasses Cloudflare/404 blocks)
-      const fetchNifty500Symbols = async (): Promise<string[]> => {
-        try {
-          const csvRes = await fetch('https://archives.nseindia.com/content/indices/ind_nifty500list.csv');
-          if (csvRes.ok) {
-            const csvText = await csvRes.text();
-            const lines = csvText.split('\n');
-            const symbols: string[] = [];
-            for (let i = 1; i < lines.length; i++) {
-              const cols = lines[i].split(',');
-              if (cols.length >= 3) {
-                const sym = cols[cols.length - 3];
-                if (sym) symbols.push(sym.trim());
-              }
-            }
-            return symbols;
-          }
-        } catch (e) {
-          console.error('Failed to fetch Nifty 500 symbols from archives:', e);
-        }
-        return [];
-      };
-
-      const [dataRes, niftySymbols, bankNiftySymbols, smeSymbols, nifty500Symbols] = await Promise.all([
-        fetch(API_ENDPOINTS.NSE_PRE_OPEN, { headers: { ...headers, 'Cookie': cookies } }),
-        fetchIndexSymbols('NIFTY'),
-        fetchIndexSymbols('BANKNIFTY'),
-        fetchIndexSymbols('SME'),
-        fetchNifty500Symbols()
-      ]);
-
-      if (!dataRes.ok) {
-        throw new Error(`NSE API responded with status ${dataRes.status}`);
-      }
-
-      const nseJson = await dataRes.json();
-      if (!nseJson || !Array.isArray(nseJson.data)) {
-        throw new Error('Invalid JSON format from NSE Pre-Open API');
-      }
-
-      console.log(`Successfully retrieved ${nseJson.data.length} pre-open quotes from NSE.`);
-
-      const freshStocks: StockQuote[] = nseJson.data
-        .filter((nseItem: any) => nseItem.metadata && nseItem.metadata.symbol)
-        .map((nseItem: any) => {
-          const symbol = nseItem.metadata.symbol;
-          const name = nseItem.metadata.companyName || symbol;
-          const prevClose = nseItem.metadata.previousClose || 100.0;
-          const iep = nseItem.metadata.iep || nseItem.metadata.lastPrice || prevClose;
-          const change = nseItem.metadata.change || 0;
-          const changePercent = nseItem.metadata.pChange || 0;
-          const ltp = iep;
-          const open = iep;
-          const high = nseItem.metadata.yearHigh || iep;
-          const low = nseItem.metadata.yearLow || iep;
-          const volume = nseItem.metadata.finalQuantity || nseItem.detail?.preOpenMarket?.totalTradedVolume || 0;
-          const ffmCap = ltp * 50.0;
-          const value = (nseItem.metadata.totalTurnover || (volume * ltp)) / 10000000;
-
-          return {
-            symbol, name, ltp, open, high, low, prevClose, volume, change, changePercent,
-            preOpenChangePercent: changePercent,
-            iep, final: ltp, finalQuantity: volume, value, ffmCap,
-            nm52wH: nseItem.metadata.yearHigh || parseFloat((prevClose * 1.25).toFixed(2)),
-            nm52wL: nseItem.metadata.yearLow || parseFloat((prevClose * 0.75).toFixed(2)),
-            isNifty50: niftySymbols.includes(symbol),
-            isNifty500: nifty500Symbols.includes(symbol),
-            isBankNifty: bankNiftySymbols.includes(symbol),
-            isFo: foSymbols.includes(symbol),
-            isSme: smeSymbols.includes(symbol)
-          };
-        });
-
-      let dateStr = new Date().toLocaleDateString('en-GB', {
-        day: '2-digit', month: 'short', year: 'numeric'
-      });
-
-      if (nseJson.timestamp) {
-        const parts = String(nseJson.timestamp).trim().split(' ');
-        if (parts[0]) {
-          const datePart = parts[0].replace(/-/g, ' ');
-          if (datePart.length >= 10 && datePart.length <= 12) {
-            dateStr = datePart;
-          }
-        }
-      }
-
-      this.preOpenCache = freshStocks;
-      this.preOpenCacheDate = dateStr;
-      this.lastPreOpenFetchTime = Date.now();
-
-      this.wsLive.resubscribeTopMovers(freshStocks);
-
-      // Async save to database without blocking the returned result
-      Promise.resolve().then(async () => {
-        for (const stock of freshStocks) {
-          try {
-            await prisma.historicalPreOpen.upsert({
-              where: {
-                date_symbol: {
-                  date: dateStr,
-                  symbol: stock.symbol
-                }
-              },
-              create: {
-                date: dateStr,
-                symbol: stock.symbol,
-                data: stock as any
-              },
-              update: {
-                data: stock as any
-              }
-            });
-          } catch (dbErr) {
-            console.error(`Failed to save historical pre-open for ${stock.symbol} on ${dateStr}:`, dbErr);
-          }
-        }
-        console.log(`Saved ${freshStocks.length} historical pre-open quotes for ${dateStr} to DB.`);
-      }).catch(err => console.error('Error in historical pre-open async saving:', err));
-
-      return freshStocks;
-    } catch (err) {
-      console.error('NSE API pre-open fetch failed:', err);
-      return this.preOpenCache;
-    }
-  }
-
-  public async getPreOpenStocksByDate(dateStr: string): Promise<StockQuote[]> {
-    try {
-      const records = await prisma.historicalPreOpen.findMany({
-        where: { date: dateStr }
-      });
-      return records.map(r => r.data as unknown as StockQuote);
-    } catch (err) {
-      console.error(`Failed to get pre-open stocks for date ${dateStr}:`, err);
-      return [];
-    }
-  }
-
-  public async fetchLivePreOpenFromKite(): Promise<StockQuote[]> {
-    return this.fetchLivePreOpenFromNSE();
-  }
-
-  public async getPreOpenStocks(forceFetch = false): Promise<StockQuote[]> {
-    const todayDateStr = new Date().toLocaleDateString('en-GB', {
-      day: '2-digit', month: 'short', year: 'numeric'
-    });
-
-    const isCacheExpired = this.preOpenCacheDate !== todayDateStr;
-    const canRefetch = Date.now() - this.lastPreOpenFetchTime > 5 * 60 * 1000;
-
-    if (forceFetch || this.preOpenCache.length === 0 || (isCacheExpired && canRefetch)) {
-      console.log(`AlgoEngine: Fetching fresh official NSE pre-open data (forceFetch=${forceFetch})...`);
-      await this.fetchLivePreOpenFromNSE();
-    }
-    return this.preOpenCache;
-  }
-
-  public async updateLiveQuotesFromKiteHTTP() {
-    if (process.env.USE_HTTP_POLLING !== 'true') return;
-    if (Date.now() - this.lastHttpFetchTime < 3000) return;
-
-    const creds = await this.wsLive.getActiveCredentials();
-    if (!creds) {
-      console.log('No active Kite credentials found to fetch HTTP live quotes.');
-      return;
-    }
-
-    const stocksState = this.wsLive.getStocks();
-    if (stocksState.length === 0 && this.preOpenCache.length > 0) {
-      this.wsLive.stocksState = [...this.preOpenCache];
-    }
-
-    const symbols = (this.wsLive.stocksState.length > 0 ? this.wsLive.stocksState : this.preOpenCache).map(s => s.symbol);
-    if (symbols.length === 0) return;
-
-    try {
-      console.log(`Fetching HTTP live quotes for ${symbols.length} symbols from Kite API...`);
-
-      const BATCH_SIZE = 30;
-      const batches = batchArray(symbols, BATCH_SIZE);
-      console.log(`Split into ${batches.length} batches of up to ${BATCH_SIZE} symbols each.`);
-
-      const headers = {
-        'Authorization': `token ${creds.apiKey}:${creds.accessToken}`,
-        'X-Kite-Version': '3'
-      };
-
-      const batchResults = await Promise.allSettled(
-        batches.map(batch => {
-          const queryParams = batch.map(sym => `i=NSE:${sym}`).join('&');
-          const url = `${API_ENDPOINTS.KITE_BASE}/quote?${queryParams}`;
-          return fetch(url, { headers }).then(res => {
-            if (!res.ok) throw new Error(`Kite batch quote fetch failed with status ${res.status}`);
-            return res.json();
-          });
-        })
-      );
-
-      let mergedData: any = {};
-      for (const result of batchResults) {
-        if (result.status === 'fulfilled' && result.value?.status === 'success' && result.value?.data) {
-          mergedData = { ...mergedData, ...result.value.data };
-        }
-      }
-
-      if (Object.keys(mergedData).length > 0) {
-        this.wsLive.stocksState = (this.wsLive.stocksState.length > 0 ? this.wsLive.stocksState : this.preOpenCache).map(stock => {
-          const key = `NSE:${stock.symbol}`;
-          const tick = mergedData[key];
-          if (tick) {
-            const ltp = tick.last_price;
-            const close = tick.ohlc?.close || stock.prevClose || ltp;
-            const change = parseFloat((ltp - close).toFixed(2));
-            const changePercent = close ? parseFloat(((change / close) * 100).toFixed(2)) : 0;
-            const ffShares = 50.0;
-            const volumeVal = tick.volume || stock.volume || Math.round(ffShares * 15000);
-            return {
-              ...stock, ltp,
-              open: tick.ohlc?.open || stock.open || ltp,
-              high: tick.ohlc?.high || stock.high || ltp,
-              low: tick.ohlc?.low || stock.low || ltp,
-              prevClose: close, volume: volumeVal, change, changePercent,
-              iep: ltp, final: ltp, finalQuantity: volumeVal,
-              value: (volumeVal * ltp) / 10000000,
-              ffmCap: ltp * ffShares,
-            };
-          }
-          return stock;
-        });
-
-        this.lastHttpFetchTime = Date.now();
-        console.log('Successfully updated stocksState with live quotes from Kite HTTP API.');
-      } else {
-        const failedCount = batchResults.filter(r => r.status === 'rejected').length;
-        console.warn(`All ${batches.length} quote batches failed. ${failedCount} batches errored.`);
-      }
-    } catch (err) {
-      console.error('Failed to update live quotes from Kite HTTP API:', err);
-    }
-  }
-
-  public isWsConnected(): boolean {
-    return this.wsLive.isWsConnected();
-  }
-
-  public getStocks(): StockQuote[] {
-    return this.wsLive.getStocks();
-  }
-
-  public async toggleTrading(status: boolean): Promise<void> {
-    this.isTradingActive = status;
-    try {
-      await prisma.appSettings.upsert({
-        where: { settingKey: 'isTradingActive' },
-        update: { settingValue: String(status) },
-        create: { settingKey: 'isTradingActive', settingValue: String(status), type: 'boolean' }
-      });
-    } catch (e) {
-      console.error('Failed to save trading status to DB:', e);
-    }
-  }
-
-  public async getTradingStatus(): Promise<boolean> {
-    try {
-      const setting = await prisma.appSettings.findUnique({
-        where: { settingKey: 'isTradingActive' }
-      });
-      if (setting) {
-        this.isTradingActive = setting.settingValue === 'true';
-      }
-    } catch (e) {
-      console.error('Failed to load trading status from DB:', e);
-    }
-    return this.isTradingActive;
-  }
-
-  public getPreOpenDate(): string {
-    return this.preOpenCacheDate || new Date().toLocaleDateString('en-GB', {
-      day: '2-digit', month: 'short', year: 'numeric'
-    });
-  }
-
-  public async logFailedTrade(
-    client: any,
-    strategy: any,
-    symbol: string,
-    orderType: string,
-    entryPrice: number,
-    reason: string,
-    legFields?: { direction: string; legName: string; legTimeframe: string; dualLegGroupId: string | null }
-  ): Promise<void> {
-    try {
-      // Guard: Do not log duplicate FAILED trade if one already exists today for same client+strategy+leg
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      const alreadyLogged = await prisma.trade.findFirst({
-        where: {
-          clientId: client.id,
-          strategyId: strategy.id,
-          legName: legFields?.legName ?? null,
-          createdAt: { gte: todayStart }
-        }
-      });
-      if (alreadyLogged) {
-        console.log(`AlgoEngine: FAILED trade already logged today for ${client.user.name} (${symbol}, leg: ${legFields?.legName ?? 'none'}). Skipping duplicate log.`);
-        return;
-      }
-
-      await prisma.trade.create({
-        data: {
-          clientId: client.id,
-          strategyId: strategy.id,
-          symbol,
-          orderType,
-          entryPrice: entryPrice || 0,
-          quantity: 0,
-          status: 'FAILED',
-          entryTime: new Date(),
-          kiteResponse: { message: reason },
-          ...(legFields ? { direction: legFields.direction, legName: legFields.legName, legTimeframe: legFields.legTimeframe, dualLegGroupId: legFields.dualLegGroupId } : {})
-        }
-      });
-      await prisma.strategyLog.create({
-        data: {
-          strategyId: strategy.id,
-          message: `Trade skipped for ${client.user.name} (${symbol}): ${reason}`,
-          logType: 'warning'
-        }
-      });
-      console.log(`AlgoEngine: Logged FAILED trade for ${client.user.name} (${symbol}) - ${reason}`);
-    } catch (e) {
-      console.error(`AlgoEngine: Failed to log failed trade for ${symbol}:`, e);
-    }
-  }
 }
-
-const globalForAlgo = global as unknown as { algoEngine: AlgoEngineService; initPromise?: Promise<void> };
-export const algoEngine = globalForAlgo.algoEngine || new AlgoEngineService();
-if (!globalForAlgo.initPromise) {
-  globalForAlgo.initPromise = algoEngine.init();
-}
-if (process.env.NODE_ENV !== 'production') globalForAlgo.algoEngine = algoEngine;
