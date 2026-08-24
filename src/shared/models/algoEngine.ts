@@ -19,6 +19,8 @@ import { getLatestOrderState } from '../utils/kiteHelper';
 import { calculateClientCapitalAndRisk } from '../utils/marginHelper';
 import { getMasterClient } from '../utils/masterClient';
 import { logFailedTrade } from '../utils/tradeLogger';
+import { getFreshCircuitLimits } from '../utils/circuitLimitHelper';
+import { matchesConditions } from '../utils/conditionEvaluator';
 import { PreOpenStrategy } from './algo/strategies/preOpenStrategy';
 
 function mapTimeframeToKiteInterval(tf: string): string {
@@ -170,152 +172,25 @@ class AlgoEngineService {
     return getMasterClient();
   }
 
-  private async getFreshCircuitLimits(client: any, exchange: string, symbol: string, accessToken?: string): Promise<{ upper: number; lower: number } | null> {
-    try {
-      const masterClientData = await this.getMasterClient();
-      const apiKey = masterClientData?.zerodhaApiKey || client.zerodhaApiKey;
-      const token = masterClientData?.accessToken || accessToken || client.accessToken;
-      if (!apiKey || !token) return null;
-
-      const quoteRes = await KiteClient.getQuotes(apiKey, token, [`${exchange}:${symbol}`]);
-      if (quoteRes?.status === 'success' && quoteRes.data?.[`${exchange}:${symbol}`]) {
-        const q = quoteRes.data[`${exchange}:${symbol}`];
-        if (q.upper_circuit_limit !== undefined && q.lower_circuit_limit !== undefined) {
-          return {
-            upper: Number(q.upper_circuit_limit),
-            lower: Number(q.lower_circuit_limit)
-          };
-        }
-      }
-    } catch (e) {
-      console.error(`AlgoEngine: Failed to fetch fresh circuit limits for ${symbol}:`, e);
-    }
-    return null;
+  public async getFreshCircuitLimits(client: any, exchange: string, symbol: string, accessToken?: string): Promise<{ upper: number; lower: number } | null> {
+    return getFreshCircuitLimits(client, exchange, symbol, accessToken);
   }
 
-  private async matchesConditions(stock: any, conditions: any[], client?: any): Promise<boolean> {
-    if (!conditions || !Array.isArray(conditions) || conditions.length === 0) return true;
+  public async matchesConditions(stock: any, conditions: any[], client?: any): Promise<boolean> {
+    const self = this;
+    const cacheDateRef = {
+      get date(): string { return self.conditionCacheDate; },
+      set date(v: string) { self.conditionCacheDate = v; }
+    };
 
-    const strategyId = client?.strategy?.id;
-    if (strategyId) {
-      const todayDateKey = new Date().toLocaleDateString();
-      if (this.conditionCacheDate !== todayDateKey) {
-        this.conditionCache.clear();
-        this.conditionCacheDate = todayDateKey;
-      }
-      const cacheKey = `${strategyId}_${stock.symbol}`;
-      if (this.conditionCache.has(cacheKey)) {
-        return this.conditionCache.get(cacheKey)!;
-      }
-    }
-
-    for (const cond of conditions) {
-      const val = Number(cond.value);
-      if (cond.indicator === 'Pre Open Change %') {
-        if (cond.operator === '<' && !(stock.changePercent < val)) return false;
-        if (cond.operator === '>' && !(stock.changePercent > val)) return false;
-        if (cond.operator === '<=' && !(stock.changePercent <= val)) return false;
-        if (cond.operator === '>=' && !(stock.changePercent >= val)) return false;
-        if (cond.operator === '==' && !(stock.changePercent == val)) return false;
-      } else if (cond.indicator === 'Price Action') {
-        if (cond.value === 'Previous 5m High') {
-          const prevHigh = stock.high || stock.prevClose || stock.ltp;
-          if (cond.operator === '>' && !(stock.ltp > prevHigh)) return false;
-          if (cond.operator === '>=' && !(stock.ltp >= prevHigh)) return false;
-        }
-      } else if (cond.indicator === 'Gap Up') {
-        const gapPct = stock.prevClose ? ((stock.iep - stock.prevClose) / stock.prevClose) * 100 : 0;
-        if (!applyOperator(gapPct, cond.operator, val)) return false;
-      } else if (cond.indicator === 'Gap Down') {
-        const gapPct = stock.prevClose ? ((stock.iep - stock.prevClose) / stock.prevClose) * 100 : 0;
-        if (!applyOperator(gapPct, cond.operator, -val)) return false;
-      } else if (cond.indicator === 'Previous High') {
-        if (!applyOperator(stock.ltp, cond.operator, stock.nm52wH || stock.high || stock.ltp)) return false;
-      } else if (cond.indicator === 'Previous Low') {
-        if (!applyOperator(stock.ltp, cond.operator, stock.nm52wL || stock.low || stock.ltp)) return false;
-      } else if (cond.indicator === 'Previous Close') {
-        if (!applyOperator(stock.ltp, cond.operator, stock.prevClose)) return false;
-      } else if (cond.indicator === 'Pre Open Price') {
-        if (!applyOperator(stock.ltp, cond.operator, stock.iep)) return false;
-      } else if (cond.indicator === 'Pre Open Volume') {
-        if (!applyOperator(stock.finalQuantity || stock.volume, cond.operator, val)) return false;
-      } else if (cond.indicator === 'Volume') {
-        if (!applyOperator(stock.volume, cond.operator, val)) return false;
-      } else if (cond.indicator === 'Open Interest') {
-        if (!applyOperator(stock.openInterest || 0, cond.operator, val)) return false;
-      } else if (['RSI', 'EMA', 'SMA', 'VWAP', 'MACD', 'ATR', 'Bollinger Bands', 'SuperTrend', 'ADX', 'Candle Pattern'].includes(cond.indicator)) {
-        if (!client) return true;
-        let kiteInterval = '5minute';
-        try {
-          if (client?.strategy?.configJson) {
-            const cfg = JSON.parse(client.strategy.configJson);
-            kiteInterval = mapTimeframeToKiteInterval(cfg.basicInfo?.timeframe || '5m');
-          }
-        } catch { }
-        const candles = await this.wsLive.fetchHistoricalCandles(client, stock.symbol, kiteInterval, 5);
-        if (candles.length < 2) return true;
-        const closePrices = candles.map(c => c[4]);
-        if (cond.indicator === 'RSI') {
-          const rsi = calculateRSI(closePrices, 14);
-          if (!applyOperator(rsi, cond.operator, val)) return false;
-        } else if (cond.indicator === 'EMA') {
-          if (isNaN(val) || val <= 0) return true;
-          const ema = calculateEMA(closePrices, val);
-          const sma = calculateSMA(closePrices, 20);
-          if (cond.value === 'SMA' && !applyOperator(ema, cond.operator, sma)) return false;
-          if (!applyOperator(ema, cond.operator, val)) return false;
-        } else if (cond.indicator === 'SMA') {
-          if (isNaN(val) || val <= 0) return true;
-          const sma = calculateSMA(closePrices, val);
-          if (!applyOperator(sma, cond.operator, val)) return false;
-        } else if (cond.indicator === 'VWAP') {
-          const vwap = calculateVWAP(candles);
-          if (!applyOperator(stock.ltp, cond.operator, vwap)) return false;
-        } else if (cond.indicator === 'MACD') {
-          const macd = calculateMACD(closePrices);
-          const compareVal = cond.value === 'Signal' ? macd.signal : (Number(cond.value) || macd.signal);
-          if (!applyOperator(macd.macd, cond.operator, compareVal)) return false;
-        } else if (cond.indicator === 'ATR') {
-          if (isNaN(val) || val <= 0) return true;
-          const atr = calculateATR(candles, val);
-          if (!applyOperator(atr, cond.operator, val)) return false;
-        } else if (cond.indicator === 'Bollinger Bands') {
-          if (isNaN(val) || val <= 0) return true;
-          const bb = calculateBollingerBands(closePrices, val);
-          const bbVal = cond.value === 'Upper' ? bb.upper : (cond.value === 'Lower' ? bb.lower : bb.middle);
-          if (!applyOperator(stock.ltp, cond.operator, bbVal)) return false;
-        } else if (cond.indicator === 'SuperTrend') {
-          const st = calculateSuperTrend(candles, 10, 3);
-          if (cond.value === 'Up' && st.direction !== 'up') return false;
-          if (cond.value === 'Down' && st.direction !== 'down') return false;
-          if (!applyOperator(st.value, cond.operator, val)) return false;
-        } else if (cond.indicator === 'ADX') {
-          const adx = calculateADX(candles);
-          if (!applyOperator(adx, cond.operator, val)) return false;
-        } else if (cond.indicator === 'Candle Pattern') {
-          const last = candles[candles.length - 1];
-          const prev = candles.length > 1 ? candles[candles.length - 2] : last;
-          if (cond.value === 'Doji') {
-            const body = Math.abs(last[4] - last[1]);
-            const range = last[2] - last[3];
-            if (range > 0 && (body / range) > 0.1) return false;
-          } else if (cond.value === 'Bullish Engulfing') {
-            if (!(prev[4] < prev[1] && last[4] > last[1] && last[4] > prev[1] && last[1] < prev[4])) return false;
-          } else if (cond.value === 'Bearish Engulfing') {
-            if (!(prev[4] > prev[1] && last[4] < last[1] && last[1] < prev[4] && last[4] > prev[1])) return false;
-          } else if (cond.value === 'Hammer') {
-            const body = Math.abs(last[4] - last[1]);
-            const lowerWick = Math.min(last[4], last[1]) - last[3];
-            const upperWick = last[2] - Math.max(last[4], last[1]);
-            if (!(lowerWick > body * 2 && upperWick < body * 0.3)) return false;
-          }
-        }
-      }
-    }
-    if (strategyId) {
-      this.conditionCache.set(`${strategyId}_${stock.symbol}`, true);
-    }
-    return true;
+    return matchesConditions(
+      stock,
+      conditions,
+      this.wsLive,
+      client,
+      this.conditionCache,
+      cacheDateRef
+    );
   }
 
   async preSelectAllClients(strategyId?: string): Promise<void> {
