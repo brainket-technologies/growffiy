@@ -8,36 +8,15 @@ dotenv.config({ path: path.join(__dirname, '../../../.env') });
 import { prisma } from '../../database/db';
 import { API_ENDPOINTS } from '../../core/constants';
 import { KiteClient } from '../services/kite';
-import { performKiteAutoLogin } from '../services/kiteAutoLogin';
-import { applyOperator, calculateRSI, calculateEMA, calculateSMA, calculateMACD, calculateATR, calculateVWAP, calculateBollingerBands, calculateSuperTrend, calculateADX } from '../services/indicators';
 import { WsLiveFeed } from './wsLiveFeed';
 import { TradingScheduler } from './tradingScheduler';
-import { getTickSizeAndRound } from '../utils/tickSizeUtil';
 import { batchArray, concurrentMap } from '../../core/helpers';
-import { logSystemEvent } from '../services/auditLogger';
-import { getLatestOrderState } from '../utils/kiteHelper';
-import { calculateClientCapitalAndRisk } from '../utils/marginHelper';
 import { getMasterClient } from '../utils/masterClient';
 import { logFailedTrade } from '../utils/tradeLogger';
 import { getFreshCircuitLimits } from '../utils/circuitLimitHelper';
 import { matchesConditions } from '../utils/conditionEvaluator';
 import { PreOpenStrategy } from './algo/strategies/preOpenStrategy';
 
-function mapTimeframeToKiteInterval(tf: string): string {
-  if (!tf) return '5minute';
-  const map: Record<string, string> = {
-    '1m': 'minute',
-    '3m': '3minute',
-    '5m': '5minute',
-    '10m': '10minute',
-    '15m': '15minute',
-    '30m': '30minute',
-    '60m': '60minute',
-    '1h': '60minute',
-    '1d': 'day'
-  };
-  return map[tf.toLowerCase()] || '5minute';
-}
 
 export interface StockQuote {
   symbol: string;
@@ -436,8 +415,8 @@ class AlgoEngineService {
       };
 
       const batchResults = await Promise.allSettled(
-        batches.map(batch => {
-          const queryParams = batch.map(sym => `i=NSE:${sym}`).join('&');
+        batches.map((batch: string[]) => {
+          const queryParams = batch.map((sym: string) => `i=NSE:${sym}`).join('&');
           const url = `${API_ENDPOINTS.KITE_BASE}/quote?${queryParams}`;
           return fetch(url, { headers }).then(res => {
             if (!res.ok) throw new Error(`Kite batch quote fetch failed with status ${res.status}`);
@@ -481,7 +460,7 @@ class AlgoEngineService {
         this.lastHttpFetchTime = Date.now();
         console.log('Successfully updated stocksState with live quotes from Kite HTTP API.');
       } else {
-        const failedCount = batchResults.filter(r => r.status === 'rejected').length;
+        const failedCount = batchResults.filter((r: any) => r.status === 'rejected').length;
         console.warn(`All ${batches.length} quote batches failed. ${failedCount} batches errored.`);
       }
     } catch (err) {
