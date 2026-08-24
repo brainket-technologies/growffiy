@@ -10,6 +10,7 @@ import { performKiteAutoLogin } from '../../../services/kiteAutoLogin';
 import { StockQuote } from '../../algoEngine';
 import { fetchEligibleClients, fetchClientsByStrategy } from '../clientSelector';
 import { getMasterClient } from '../../../utils/masterClient';
+import { logFailedTrade } from '../../../utils/tradeLogger';
 
 function mapTimeframeToKiteInterval(tf: string): string {
   if (!tf) return '5minute';
@@ -360,7 +361,7 @@ export class PreOpenStrategy {
               if (!await this.engine.matchesConditions(cs, config.conditions, client)) {
                 const reason = `Preselected stock ${cs.symbol} (${cs.changePercent.toFixed(2)}%) failed strategy conditions`;
                 console.log(`AlgoEngine: ${reason} for ${client.user.name}. Logging FAILED trade.`);
-                await this.engine.logFailedTrade(client, strategy, cs.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
+                await logFailedTrade(client, strategy, cs.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
                 return;
               }
             }
@@ -403,7 +404,7 @@ export class PreOpenStrategy {
             if (candlePrice === 0) {
               const reason = `Candle data not fetched for ${cs.symbol}`;
               console.log(`AlgoEngine: ${reason}. Logging FAILED trade for ${client.user.name}.`);
-              await this.engine.logFailedTrade(client, strategy, cs.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
+              await logFailedTrade(client, strategy, cs.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
               return;
             }
 
@@ -432,7 +433,7 @@ export class PreOpenStrategy {
           if (!targetStock) {
             const reason = `Breakout not met: LTP ${cs.ltp || cs.iep} < breakout entry ${breakoutEntryPrice}`;
             console.log(`AlgoEngine: ${reason} for ${client.user.name}. Logging FAILED trade.`);
-            await this.engine.logFailedTrade(client, strategy, cs.symbol, productParam, breakoutEntryPrice, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
+            await logFailedTrade(client, strategy, cs.symbol, productParam, breakoutEntryPrice, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
             return;
           }
 
@@ -441,13 +442,13 @@ export class PreOpenStrategy {
           if (!config?.stoploss?.fixedPercent) {
             const reason = `stoploss.fixedPercent not configured for strategy "${strategy.name}"`;
             console.log(`AlgoEngine: ${reason}. Logging FAILED trade for ${client.user.name}.`);
-            await this.engine.logFailedTrade(client, strategy, cs.symbol, productParam, entryPrice, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
+            await logFailedTrade(client, strategy, cs.symbol, productParam, entryPrice, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
             return;
           }
           if (!config?.target?.profitPercent) {
             const reason = `target.profitPercent not configured for strategy "${strategy.name}"`;
             console.log(`AlgoEngine: ${reason}. Logging FAILED trade for ${client.user.name}.`);
-            await this.engine.logFailedTrade(client, strategy, cs.symbol, productParam, entryPrice, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
+            await logFailedTrade(client, strategy, cs.symbol, productParam, entryPrice, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
             return;
           }
           const slPercent = config.stoploss.fixedPercent;
@@ -542,7 +543,7 @@ export class PreOpenStrategy {
             const errMsg = marginCalc.skipReason || 'Margin validation failed';
             if (errMsg.startsWith('Skipped: Insufficient Live Margin')) {
               console.warn(`AlgoEngine: ${errMsg} for client ${client.user?.name || client.id}. Skipping trade.`);
-              await this.engine.logFailedTrade(
+              await logFailedTrade(
                 client,
                 strategy,
                 targetStock.symbol,
@@ -593,7 +594,7 @@ export class PreOpenStrategy {
             const errMsg = `Skipped: Calculated quantity is 0 (capitalAtRisk ₹${capitalAtRisk.toFixed(2)} / slPoints ₹${slPoints.toFixed(2)} = 0).`;
             console.log(`AlgoEngine: Calculated quantity is 0 for client ${client.user.name} (CapitalAtRisk: ₹${capitalAtRisk.toFixed(2)}, SL Points: ₹${slPoints.toFixed(2)}). Skipping trade.`);
 
-            await this.engine.logFailedTrade(
+            await logFailedTrade(
               client,
               strategy,
               targetStock.symbol,
@@ -659,7 +660,7 @@ export class PreOpenStrategy {
                 const circuitType = calculatedBufferedEntry >= upper ? 'Upper Circuit' : 'Lower Circuit';
                 const reason = `Entry skipped: Stock ${targetStock.symbol} hit ${circuitType} (Entry: ₹${calculatedBufferedEntry.toFixed(2)}, Circuit Range: ${lower} - ${upper})`;
                 console.log(`AlgoEngine: ${reason} for ${client.user.name}. Skipping trade.`);
-                await this.engine.logFailedTrade(client, strategy, targetStock.symbol, productParam, calculatedBufferedEntry, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
+                await logFailedTrade(client, strategy, targetStock.symbol, productParam, calculatedBufferedEntry, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
                 return;
               } else {
                 console.log(`AlgoEngine: Buffered entry price (₹${calculatedBufferedEntry.toFixed(2)}) is within Circuit Limits (${lower} - ${upper}).`);

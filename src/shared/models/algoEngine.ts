@@ -18,6 +18,7 @@ import { logSystemEvent } from '../services/auditLogger';
 import { getLatestOrderState } from '../utils/kiteHelper';
 import { calculateClientCapitalAndRisk } from '../utils/marginHelper';
 import { getMasterClient } from '../utils/masterClient';
+import { logFailedTrade } from '../utils/tradeLogger';
 import { PreOpenStrategy } from './algo/strategies/preOpenStrategy';
 
 function mapTimeframeToKiteInterval(tf: string): string {
@@ -1869,48 +1870,7 @@ class AlgoEngineService {
     reason: string,
     legFields?: { direction: string; legName: string; legTimeframe: string; dualLegGroupId: string | null }
   ): Promise<void> {
-    try {
-      // Guard: Do not log duplicate FAILED trade if one already exists today for same client+strategy+leg
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      const alreadyLogged = await prisma.trade.findFirst({
-        where: {
-          clientId: client.id,
-          strategyId: strategy.id,
-          legName: legFields?.legName ?? null,
-          createdAt: { gte: todayStart }
-        }
-      });
-      if (alreadyLogged) {
-        console.log(`AlgoEngine: FAILED trade already logged today for ${client.user.name} (${symbol}, leg: ${legFields?.legName ?? 'none'}). Skipping duplicate log.`);
-        return;
-      }
-
-      await prisma.trade.create({
-        data: {
-          clientId: client.id,
-          strategyId: strategy.id,
-          symbol,
-          orderType,
-          entryPrice: entryPrice || 0,
-          quantity: 0,
-          status: 'FAILED',
-          entryTime: new Date(),
-          kiteResponse: { message: reason },
-          ...(legFields ? { direction: legFields.direction, legName: legFields.legName, legTimeframe: legFields.legTimeframe, dualLegGroupId: legFields.dualLegGroupId } : {})
-        }
-      });
-      await prisma.strategyLog.create({
-        data: {
-          strategyId: strategy.id,
-          message: `Trade skipped for ${client.user.name} (${symbol}): ${reason}`,
-          logType: 'warning'
-        }
-      });
-      console.log(`AlgoEngine: Logged FAILED trade for ${client.user.name} (${symbol}) - ${reason}`);
-    } catch (e) {
-      console.error(`AlgoEngine: Failed to log failed trade for ${symbol}:`, e);
-    }
+    return logFailedTrade(client, strategy, symbol, orderType, entryPrice, reason, legFields);
   }
 }
 
