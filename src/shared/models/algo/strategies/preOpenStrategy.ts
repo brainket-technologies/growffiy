@@ -8,7 +8,7 @@ import { getTickSizeAndRound } from '../../../utils/tickSizeUtil';
 import { getLatestOrderState } from '../../../utils/kiteHelper';
 import { performKiteAutoLogin } from '../../../services/kiteAutoLogin';
 import { StockQuote } from '../../algoEngine';
-import { fetchEligibleClients } from '../clientSelector';
+import { fetchEligibleClients, fetchClientsByStrategy } from '../clientSelector';
 
 function mapTimeframeToKiteInterval(tf: string): string {
   if (!tf) return '5minute';
@@ -51,27 +51,23 @@ export class PreOpenStrategy {
       return;
     }
 
-    // Fetch eligible clients (6 conditions via clientSelector)
-    const clients = await fetchEligibleClients(strategyId, true);
+    // Fetch eligible clients grouped per strategy (6 conditions via clientSelector)
+    const strategyGroups = await fetchClientsByStrategy(true);
 
-    if (clients.length === 0) {
+    if (strategyGroups.length === 0) {
       console.log('AlgoEngine preSelect: No active clients with connected Kite session.');
       return;
     }
 
-    const uniqueStrategies = new Map<string, { strategy: any; clients: any[] }>();
-    for (const client of clients) {
-      if (!client.strategy || client.strategy.status !== 'active') continue;
-      if (!uniqueStrategies.has(client.strategy.id)) {
-        uniqueStrategies.set(client.strategy.id, { strategy: client.strategy, clients: [] });
-      }
-      uniqueStrategies.get(client.strategy.id)!.clients.push(client);
-    }
+    // Filter to specific strategy if requested
+    const filteredGroups = strategyId
+      ? strategyGroups.filter(g => g.strategyId === strategyId)
+      : strategyGroups;
 
-    for (const [, { strategy, clients: strategyClients }] of uniqueStrategies) {
-      let config: any = null;
-      try { config = strategy.configJson ? JSON.parse(strategy.configJson) : null; } catch { console.warn(`AlgoEngine preSelect: Invalid configJson for strategy ${strategy.name}. Skipping.`); continue; }
-      if (!config) continue;
+    for (const { strategyId: sId, strategyName, configJson, assignedClients: strategyClients } of filteredGroups) {
+      const strategy = { id: sId, name: strategyName };
+      let config: any = configJson;
+      if (!config) { console.warn(`AlgoEngine preSelect: Invalid configJson for strategy ${strategyName}. Skipping.`); continue; }
 
       if (config.riskManagement) {
         if (config.riskManagement.maxDailyLoss < -1) config.riskManagement.maxDailyLoss = -1;
@@ -144,8 +140,9 @@ export class PreOpenStrategy {
       console.log(`AlgoEngine preSelect: ${this.engine.preselectedStockByStrategy.size} strategies have preselected stocks.`);
     }
 
+    const allClients = strategyGroups.flatMap(g => g.assignedClients);
     const PRE_SELECT_CONCURRENCY = 15;
-    await concurrentMap(clients, async (client: any) => {
+    await concurrentMap(allClients, async (client: any) => {
       if (client.zerodhaApiKey && client.accessToken) {
         try {
           const marginRes = await KiteClient.getMargins(client.zerodhaApiKey, client.accessToken);
@@ -156,7 +153,7 @@ export class PreOpenStrategy {
       }
     }, PRE_SELECT_CONCURRENCY);
 
-    console.log(`AlgoEngine preSelect: Margins cached for ${this.engine.marginCache.size}/${clients.length} clients.`);
+    console.log(`AlgoEngine preSelect: Margins cached for ${this.engine.marginCache.size}/${allClients.length} clients.`);
   }
 
   async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyId?: string, legIndex?: number, dualLegGroupId?: string | null): Promise<void> {
@@ -180,8 +177,15 @@ export class PreOpenStrategy {
         return;
       }
 
-      // Fetch eligible clients (6 conditions via clientSelector)
-      const clients = await fetchEligibleClients(strategyId, false);
+      // Fetch eligible clients grouped per strategy (6 conditions via clientSelector)
+      const strategyGroups = await fetchClientsByStrategy(false);
+
+      // Flatten to client list (filter by strategyId if provided)
+      const filteredGroups = strategyId
+        ? strategyGroups.filter(g => g.strategyId === strategyId)
+        : strategyGroups;
+
+      const clients = filteredGroups.flatMap(g => g.assignedClients);
 
       if (clients.length === 0) {
         console.log('AlgoEngine: No active clients found.');
