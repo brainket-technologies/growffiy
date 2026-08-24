@@ -361,6 +361,28 @@ def run_streamer():
                 if sym:
                     symbol_to_row1[sym] = r_idx
         logger.info(f"Mapped {len(symbol_to_row1)} symbols from Sheet1.")
+        
+        # 0-based column indices for in-memory updates
+        sheet1_col_indices = {h: idx for idx, h in enumerate(headers1)}
+        col_indices1 = {}
+        for name in ["CMP", "LTP"]:
+            if name in headers1:
+                col_indices1["LTP"] = headers1.index(name)
+                break
+        if "OPEN" in headers1:
+            col_indices1["OPEN"] = headers1.index("OPEN")
+        for name in ["HIGH", "DAY HIGH"]:
+            if name in headers1:
+                col_indices1["HIGH"] = headers1.index(name)
+                break
+        for name in ["LOW", "DAY LOW"]:
+            if name in headers1:
+                col_indices1["LOW"] = headers1.index(name)
+                break
+        for name in ["CHG %", "% CHG", "INTRA %", "CHANGE"]:
+            if name in headers1:
+                col_indices1["CHANGE"] = headers1.index(name)
+                break
     except Exception as e:
         logger.error(f"Error mapping Sheet1 structure: {e}")
         sys.exit(1)
@@ -403,6 +425,26 @@ def run_streamer():
                 if sym:
                     symbol_to_row2[sym] = r_idx
         logger.info(f"Mapped {len(symbol_to_row2)} symbols from Sheet2.")
+        
+        # 0-based column indices for in-memory updates
+        sheet2_col_indices = {h: idx for idx, h in enumerate(headers2)}
+        col_indices2 = {}
+        for name in ["LTP", "CMP"]:
+            if name in headers2:
+                col_indices2["LTP"] = headers2.index(name)
+                break
+        for name in ["DAY HIGH", "HIGH"]:
+            if name in headers2:
+                col_indices2["HIGH"] = headers2.index(name)
+                break
+        for name in ["DAY LOW", "LOW"]:
+            if name in headers2:
+                col_indices2["LOW"] = headers2.index(name)
+                break
+        for name in ["% CHG", "CHG %"]:
+            if name in headers2:
+                col_indices2["CHANGE"] = headers2.index(name)
+                break
     except Exception as e:
         logger.error(f"Error mapping Sheet2 structure: {e}")
         sys.exit(1)
@@ -699,14 +741,14 @@ def run_streamer():
             prefix = "+" if val > 0 else ""
             return f"{prefix}{val:.2f}%"
 
-        def update_sheet_with_retry(worksheet_num, updates):
+        def update_sheet_with_retry(worksheet_num, grid_data, range_name):
             nonlocal worksheet1, worksheet2
             retries = 5
             backoff = 2
             for attempt in range(retries):
                 try:
                     ws = worksheet1 if worksheet_num == 1 else worksheet2
-                    ws.batch_update(updates)
+                    ws.update(range_name, grid_data, value_input_option='USER_ENTERED')
                     return True
                 except Exception as e:
                     logger.warning(f"Attempt {attempt + 1}/{retries} failed to update Sheet{worksheet_num}: {e}")
@@ -721,7 +763,7 @@ def run_streamer():
                             logger.info("Successfully re-authorized Google Sheets API connection.")
                             # Final attempt with the new connection
                             ws = worksheet1 if worksheet_num == 1 else worksheet2
-                            ws.batch_update(updates)
+                            ws.update(range_name, grid_data, value_input_option='USER_ENTERED')
                             return True
                         except Exception as auth_err:
                             logger.error(f"Re-authorization or final update failed: {auth_err}")
@@ -730,9 +772,21 @@ def run_streamer():
         while True:
             time.sleep(2.0)
             
-            updates1 = []
-            updates2 = []
-            
+            # Normalize row length to match headers length to prevent IndexError
+            grid_data1 = []
+            for row in all_rows1[1:]:
+                row_copy = row[:]
+                if len(row_copy) < len(headers1):
+                    row_copy += [""] * (len(headers1) - len(row_copy))
+                grid_data1.append(row_copy)
+                
+            grid_data2 = []
+            for row in all_rows2[1:]:
+                row_copy = row[:]
+                if len(row_copy) < len(headers2):
+                    row_copy += [""] * (len(headers2) - len(row_copy))
+                grid_data2.append(row_copy)
+                
             with price_lock:
                 current_cache = dict(latest_prices)
                 
@@ -807,57 +861,57 @@ def run_streamer():
                 # ------------------- PREPARE SHEET 1 UPDATES -------------------
                 if symbol in symbol_to_row1:
                     row1 = symbol_to_row1[symbol]
+                    r_idx1 = row1 - 2
                     
-                    if "LTP" in col_mappings1:
-                        updates1.append({"range": f"{col_mappings1['LTP']}{row1}", "values": [[ltp]]})
-                    if "OPEN" in col_mappings1 and open_val is not None:
-                        updates1.append({"range": f"{col_mappings1['OPEN']}{row1}", "values": [[open_val]]})
-                    if "HIGH" in col_mappings1 and high_val is not None:
-                        updates1.append({"range": f"{col_mappings1['HIGH']}{row1}", "values": [[high_val]]})
-                    if "LOW" in col_mappings1 and low_val is not None:
-                        updates1.append({"range": f"{col_mappings1['LOW']}{row1}", "values": [[low_val]]})
-                    if "CHANGE" in col_mappings1 and change_val is not None:
-                        updates1.append({"range": f"{col_mappings1['CHANGE']}{row1}", "values": [[format_percent(change_val)]]})
+                    if "LTP" in col_indices1:
+                        grid_data1[r_idx1][col_indices1['LTP']] = ltp
+                    if "OPEN" in col_indices1 and open_val is not None:
+                        grid_data1[r_idx1][col_indices1['OPEN']] = open_val
+                    if "HIGH" in col_indices1 and high_val is not None:
+                        grid_data1[r_idx1][col_indices1['HIGH']] = high_val
+                    if "LOW" in col_indices1 and low_val is not None:
+                        grid_data1[r_idx1][col_indices1['LOW']] = low_val
+                    if "CHANGE" in col_indices1 and change_val is not None:
+                        grid_data1[r_idx1][col_indices1['CHANGE']] = format_percent(change_val)
                         
-                    if "INTRA %" in headers1 and open_val and open_val > 0:
+                    if "INTRA %" in sheet1_col_indices and open_val and open_val > 0:
                         intra_val = ((ltp - open_val) / open_val) * 100
-                        updates1.append({"range": f"{sheet1_cols['INTRA %']}{row1}", "values": [[format_percent(intra_val)]]})
+                        grid_data1[r_idx1][sheet1_col_indices['INTRA %']] = format_percent(intra_val)
                         
-                    if "LTP YEST" in headers1 and close_yest:
-                        yest_col = sheet1_cols["LTP YEST"]
-                        updates1.append({"range": f"{yest_col}{row1}", "values": [[close_yest]]})
+                    if "LTP YEST" in sheet1_col_indices and close_yest:
+                        grid_data1[r_idx1][sheet1_col_indices['LTP YEST']] = close_yest
 
-                    if "GAP %" in sheet1_cols and open_val is not None and close_yest:
+                    if "GAP %" in sheet1_col_indices and open_val is not None and close_yest:
                         gap_pct = (open_val - close_yest) / close_yest
-                        updates1.append({"range": f"{sheet1_cols['GAP %']}{row1}", "values": [[format_percent(gap_pct * 100)]]})
+                        grid_data1[r_idx1][sheet1_col_indices['GAP %']] = format_percent(gap_pct * 100)
                         
-                        if "GAP FILL" in sheet1_cols:
+                        if "GAP FILL" in sheet1_col_indices:
                             gap_fill = ""
                             if gap_pct > 0:
                                 gap_fill = "FILLED" if ltp <= close_yest else "DOWN"
                             elif gap_pct < 0:
                                 gap_fill = "FILLED" if ltp >= close_yest else "UP"
-                            updates1.append({"range": f"{sheet1_cols['GAP FILL']}{row1}", "values": [[gap_fill]]})
+                            grid_data1[r_idx1][sheet1_col_indices['GAP FILL']] = gap_fill
 
                     volume_today = tick.get("volume", 0)
                     avg_vol_20 = indicators.get("avg_vol_20")
                     if avg_vol_20 and avg_vol_20 > 0:
-                        if "VOL %" in sheet1_cols:
+                        if "VOL %" in sheet1_col_indices:
                             vol_pct = (volume_today / avg_vol_20) * 100
-                            updates1.append({"range": f"{sheet1_cols['VOL %']}{row1}", "values": [[format_percent(vol_pct)]]})
-                        if "PRE VOL%" in sheet1_cols:
+                            grid_data1[r_idx1][sheet1_col_indices['VOL %']] = format_percent(vol_pct)
+                        if "PRE VOL%" in sheet1_col_indices:
                             volume_yest = indicators.get("volume_yest", 0)
                             pre_vol_pct = (volume_yest / avg_vol_20) * 100
-                            updates1.append({"range": f"{sheet1_cols['PRE VOL%']}{row1}", "values": [[format_percent(pre_vol_pct)]]})
+                            grid_data1[r_idx1][sheet1_col_indices['PRE VOL%']] = format_percent(pre_vol_pct)
 
                     # CPR & Pivots
                     tc = indicators.get("tc")
                     bc = indicators.get("bc")
-                    if "CPR" in sheet1_cols and tc is not None and bc is not None:
+                    if "CPR" in sheet1_col_indices and tc is not None and bc is not None:
                         cpr_min = min(tc, bc)
                         cpr_max = max(tc, bc)
                         cpr_val = "> CPR" if ltp > cpr_max else ("< CPR" if ltp < cpr_min else "= CPR")
-                        updates1.append({"range": f"{sheet1_cols['CPR']}{row1}", "values": [[cpr_val]]})
+                        grid_data1[r_idx1][sheet1_col_indices['CPR']] = cpr_val
 
                     pivot = indicators.get("pivot")
                     s1 = indicators.get("s1")
@@ -865,72 +919,73 @@ def run_streamer():
                     r1 = indicators.get("r1")
                     r2 = indicators.get("r2")
 
-                    if "PIVOT" in sheet1_cols and pivot is not None:
+                    if "PIVOT" in sheet1_col_indices and pivot is not None:
                         pivot_val = "ABOVE" if ltp > pivot else "BELOW"
-                        updates1.append({"range": f"{sheet1_cols['PIVOT']}{row1}", "values": [[pivot_val]]})
-                    if "S1" in sheet1_cols and s1 is not None:
-                        updates1.append({"range": f"{sheet1_cols['S1']}{row1}", "values": [["BELOW S1" if ltp < s1 else ""]]})
-                    if "S2" in sheet1_cols and s2 is not None:
-                        updates1.append({"range": f"{sheet1_cols['S2']}{row1}", "values": [["BELOW S2" if ltp < s2 else ""]]})
-                    if "R1" in sheet1_cols and r1 is not None:
-                        updates1.append({"range": f"{sheet1_cols['R1']}{row1}", "values": [["ABOVE R1" if ltp > r1 else ""]]})
-                    if "R2" in sheet1_cols and r2 is not None:
-                        updates1.append({"range": f"{sheet1_cols['R2']}{row1}", "values": [["ABOVE R2" if ltp > r2 else ""]]})
+                        grid_data1[r_idx1][sheet1_col_indices['PIVOT']] = pivot_val
+                    if "S1" in sheet1_col_indices and s1 is not None:
+                        grid_data1[r_idx1][sheet1_col_indices['S1']] = "BELOW S1" if ltp < s1 else ""
+                    if "S2" in sheet1_col_indices and s2 is not None:
+                        grid_data1[r_idx1][sheet1_col_indices['S2']] = "BELOW S2" if ltp < s2 else ""
+                    if "R1" in sheet1_col_indices and r1 is not None:
+                        grid_data1[r_idx1][sheet1_col_indices['R1']] = "ABOVE R1" if ltp > r1 else ""
+                    if "R2" in sheet1_col_indices and r2 is not None:
+                        grid_data1[r_idx1][sheet1_col_indices['R2']] = "ABOVE R2" if ltp > r2 else ""
 
                     high_yest = indicators.get("high_yest")
                     low_yest = indicators.get("low_yest")
-                    if "NEW H/L" in sheet1_cols and high_yest is not None and low_yest is not None:
+                    if "NEW H/L" in sheet1_col_indices and high_yest is not None and low_yest is not None:
                         new_hl = "NEW H" if (high_val is not None and high_val > high_yest) else ("NEW L" if (low_val is not None and low_val < low_yest) else "")
-                        updates1.append({"range": f"{sheet1_cols['NEW H/L']}{row1}", "values": [[new_hl]]})
+                        grid_data1[r_idx1][sheet1_col_indices['NEW H/L']] = new_hl
 
-                    if "NEAR" in sheet1_cols and high_val is not None and low_val is not None:
+                    if "NEAR" in sheet1_col_indices and high_val is not None and low_val is not None:
                         near_val = "HIGH" if (high_val - ltp <= 0.01 * ltp) else ("LOW" if (ltp - low_val <= 0.01 * ltp) else "")
-                        updates1.append({"range": f"{sheet1_cols['NEAR']}{row1}", "values": [[near_val]]})
+                        grid_data1[r_idx1][sheet1_col_indices['NEAR']] = near_val
 
                     dma5 = indicators.get("dma5")
                     dma13 = indicators.get("dma13")
-                    if "DMA 5/13" in sheet1_cols and dma5 is not None and dma13 is not None:
-                        updates1.append({"range": f"{sheet1_cols['DMA 5/13']}{row1}", "values": [["UP" if dma5 > dma13 else "DOWN"]]})
+                    if "DMA 5/13" in sheet1_col_indices and dma5 is not None and dma13 is not None:
+                        grid_data1[r_idx1][sheet1_col_indices['DMA 5/13']] = "UP" if dma5 > dma13 else "DOWN"
 
                     dma200 = indicators.get("dma200")
                     if dma200:
-                        if "200 DMA" in sheet1_cols:
-                            updates1.append({"range": f"{sheet1_cols['200 DMA']}{row1}", "values": [[round(dma200, 2)]]})
-                        if "200 DMA%" in sheet1_cols:
-                            updates1.append({"range": f"{sheet1_cols['200 DMA%']}{row1}", "values": [[format_percent(((ltp - dma200) / dma200) * 100)]]})
+                        if "200 DMA" in sheet1_col_indices:
+                            grid_data1[r_idx1][sheet1_col_indices['200 DMA']] = round(dma200, 2)
+                        if "200 DMA%" in sheet1_col_indices:
+                            grid_data1[r_idx1][sheet1_col_indices['200 DMA%']] = format_percent(((ltp - dma200) / dma200) * 100)
 
-                    if "OPEN =" in sheet1_cols and open_val is not None and high_val is not None and low_val is not None:
+                    if "OPEN =" in sheet1_col_indices and open_val is not None and high_val is not None and low_val is not None:
                         open_eq = "OPEN HIGH" if abs(open_val - high_val) < 0.0001 else ("OPEN LOW" if abs(open_val - low_val) < 0.0001 else "")
-                        updates1.append({"range": f"{sheet1_cols['OPEN =']}{row1}", "values": [[open_eq]]})
+                        grid_data1[r_idx1][sheet1_col_indices['OPEN =']] = open_eq
 
                 # ------------------- PREPARE SHEET 2 UPDATES -------------------
                 if symbol in symbol_to_row2:
                     row2 = symbol_to_row2[symbol]
+                    r_idx2 = row2 - 2
                     
-                    if "LTP" in col_mappings2:
-                        updates2.append({"range": f"{col_mappings2['LTP']}{row2}", "values": [[ltp]]})
-                    if "HIGH" in col_mappings2 and high_val is not None:
-                        updates2.append({"range": f"{col_mappings2['HIGH']}{row2}", "values": [[high_val]]})
-                    if "LOW" in col_mappings2 and low_val is not None:
-                        updates2.append({"range": f"{col_mappings2['LOW']}{row2}", "values": [[low_val]]})
-                    if "CHANGE" in col_mappings2 and change_val is not None:
-                        updates2.append({"range": f"{col_mappings2['CHANGE']}{row2}", "values": [[format_percent(change_val)]]})
+                    if "LTP" in col_indices2:
+                        grid_data2[r_idx2][col_indices2['LTP']] = ltp
+                    if "HIGH" in col_indices2 and high_val is not None:
+                        grid_data2[r_idx2][col_indices2['HIGH']] = high_val
+                    if "LOW" in col_indices2 and low_val is not None:
+                        grid_data2[r_idx2][col_indices2['LOW']] = low_val
+                    if "CHANGE" in col_indices2 and change_val is not None:
+                        grid_data2[r_idx2][col_indices2['CHANGE']] = format_percent(change_val)
                         
-                    if "INTRA %" in sheet2_cols and open_val and open_val > 0:
+                    if "INTRA %" in sheet2_col_indices and open_val and open_val > 0:
                         intra_val = ((ltp - open_val) / open_val) * 100
-                        updates2.append({"range": f"{sheet2_cols['INTRA %']}{row2}", "values": [[format_percent(intra_val)]]})
+                        grid_data2[r_idx2][sheet2_col_indices['INTRA %']] = format_percent(intra_val)
 
-                    if "GAP %" in sheet2_cols and open_val is not None and close_yest:
+                    if "GAP %" in sheet2_col_indices and open_val is not None and close_yest:
                         gap_pct = (open_val - close_yest) / close_yest
-                        updates2.append({"range": f"{sheet2_cols['GAP %']}{row2}", "values": [[format_percent(gap_pct * 100)]]})
+                        grid_data2[r_idx2][sheet2_col_indices['GAP %']] = format_percent(gap_pct * 100)
 
-                    if "OPEN =" in sheet2_cols and open_val is not None and high_val is not None and low_val is not None:
+                    if "OPEN =" in sheet2_col_indices and open_val is not None and high_val is not None and low_val is not None:
                         open_eq = "OPEN HIGH" if abs(open_val - high_val) < 0.0001 else ("OPEN LOW" if abs(open_val - low_val) < 0.0001 else "")
-                        updates2.append({"range": f"{sheet2_cols['OPEN =']}{row2}", "values": [[open_eq]]})
+                        grid_data2[r_idx2][sheet2_col_indices['OPEN =']] = open_eq
 
-                    if "LAST TYPE" in sheet2_cols:
+                    if "LAST TYPE" in sheet2_col_indices:
                         pat = last_completed_patterns.get(symbol, "")
-                        updates2.append({"range": f"{sheet2_cols['LAST TYPE']}{row2}", "values": [[pat]]})
+                        grid_data2[r_idx2][sheet2_col_indices['LAST TYPE']] = pat
 
                     # Define time headers list
                     TIME_HEADERS = [
@@ -948,42 +1003,44 @@ def run_streamer():
 
                     active_time_obj = active_interval.time()
                     for h_time in TIME_HEADERS:
-                        if h_time in sheet2_cols:
+                        if h_time in sheet2_col_indices:
                             h_time_obj = parse_time_str(h_time)
                             if h_time_obj is not None:
                                 if h_time_obj > active_time_obj:
-                                    # Future candle: show 0.00%
-                                    updates2.append({"range": f"{sheet2_cols[h_time]}{row2}", "values": [["0.00%"]]})
+                                    grid_data2[r_idx2][sheet2_col_indices[h_time]] = "0.00%"
                                 elif h_time_obj == active_time_obj:
-                                    # Active candle: show live return
-                                    updates2.append({"range": f"{sheet2_cols[h_time]}{row2}", "values": [[format_percent(active_ret)]]})
+                                    grid_data2[r_idx2][sheet2_col_indices[h_time]] = format_percent(active_ret)
                                 else:
-                                    # Completed/Past candle: show historical return if present, otherwise 0.00%
                                     h_ret = historical_candle_returns.get(symbol, {}).get(h_time)
                                     val = format_percent(h_ret) if h_ret is not None else "0.00%"
-                                    updates2.append({"range": f"{sheet2_cols[h_time]}{row2}", "values": [[val]]})
+                                    grid_data2[r_idx2][sheet2_col_indices[h_time]] = val
 
+            # Send contiguous grid blocks
+            last_col_letter1 = col_idx_to_letter(len(headers1))
+            range_name1 = f"A2:{last_col_letter1}{len(grid_data1) + 1}"
+            
+            last_col_letter2 = col_idx_to_letter(len(headers2))
+            range_name2 = f"A2:{last_col_letter2}{len(grid_data2) + 1}"
+            
+            logger.info(f"Streaming block updates to Sheet1 ({range_name1})...")
+            update_sheet_with_retry(1, grid_data1, range_name1)
+                
+            logger.info(f"Streaming block updates to Sheet2 ({range_name2})...")
+            update_sheet_with_retry(2, grid_data2, range_name2)
+                    
+            if should_save_cache:
+                try:
+                    with open(CACHE_FILE, "w") as cf:
+                        json.dump({
+                            "date": today_str,
+                            "indicators": stock_indicators,
+                            "historical_candle_returns": historical_candle_returns,
+                            "last_completed_patterns": last_completed_patterns
+                        }, cf)
+                    logger.info("Saved updated candles & patterns to local cache.")
+                except Exception as cache_err:
+                    logger.warning(f"Error saving cache inside loop: {cache_err}")
 
-            if updates1:
-                logger.info(f"Streaming {len(updates1)} updates to Sheet1...")
-                update_sheet_with_retry(1, updates1)
-                    
-            if updates2:
-                logger.info(f"Streaming {len(updates2)} updates to Sheet2...")
-                update_sheet_with_retry(2, updates2)
-                    
-                if should_save_cache:
-                    try:
-                        with open(CACHE_FILE, "w") as cf:
-                            json.dump({
-                                "date": today_str,
-                                "indicators": stock_indicators,
-                                "historical_candle_returns": historical_candle_returns,
-                                "last_completed_patterns": last_completed_patterns
-                            }, cf)
-                        logger.info("Saved updated candles & patterns to local cache.")
-                    except Exception as cache_err:
-                        logger.warning(f"Error saving cache inside loop: {cache_err}")
 
     updater_thread = threading.Thread(target=sheet_updater_loop, daemon=True)
     updater_thread.start()
