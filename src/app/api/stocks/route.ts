@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { algoEngine } from '../../../shared/models/algoEngine';
+import { StockQuote } from '../../../shared/utils/preOpenFetcher';
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,8 +18,10 @@ export async function GET(req: NextRequest) {
       await algoEngine.updateLiveQuotesFromKiteHTTP();
     }
 
+    const categoryParam = url.searchParams.get('category'); // e.g. "NIFTY BANK"
+
     const stocks = algoEngine.getStocks();
-    let preOpenStocks;
+    let preOpenStocks: StockQuote[];
     let preOpenDate = algoEngine.getPreOpenDate();
 
     if (dateParam) {
@@ -26,6 +29,16 @@ export async function GET(req: NextRequest) {
       preOpenDate = dateParam;
     } else {
       preOpenStocks = await algoEngine.getPreOpenStocks();
+    }
+
+    if (categoryParam && categoryParam !== 'All' && categoryParam !== 'F&O' && categoryParam !== 'SME') {
+      const { fetchStocksByNSEIndex } = require('../../../shared/utils/marketWatchHelper');
+      const symbolsFilter = await fetchStocksByNSEIndex(categoryParam);
+      if (symbolsFilter && symbolsFilter.length > 0) {
+        preOpenStocks = preOpenStocks.filter(s => symbolsFilter.includes(s.symbol));
+      } else {
+        preOpenStocks = [];
+      }
     }
 
     const isTradingActive = await algoEngine.getTradingStatus();

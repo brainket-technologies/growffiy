@@ -627,12 +627,67 @@ export default function MarketWatchPage() {
                 }}
               >
                 <option value="All">Category: All</option>
-                <option value="Nifty 50">Category: Nifty 50</option>
-                <option value="Nifty 500">Category: Nifty 500</option>
-                <option value="Bank Nifty">Category: Bank Nifty</option>
                 <option value="F&O">Category: F&O</option>
                 <option value="SME">Category: SME</option>
-                <option value="Others">Category: Others</option>
+                <optgroup label="Indices Eligible in Derivatives">
+                  <option value="NIFTY 50">NIFTY 50</option>
+                  <option value="NIFTY BANK">NIFTY BANK</option>
+                  <option value="NIFTY FINANCIAL SERVICES">NIFTY FINANCIAL SERVICES</option>
+                  <option value="NIFTY INDIA FPI 150">NIFTY INDIA FPI 150</option>
+                  <option value="NIFTY MIDCAP SELECT">NIFTY MIDCAP SELECT</option>
+                  <option value="NIFTY NEXT 50">NIFTY NEXT 50</option>
+                </optgroup>
+                <optgroup label="Broad Market Indices">
+                  <option value="NIFTY 100">NIFTY 100</option>
+                  <option value="NIFTY 200">NIFTY 200</option>
+                  <option value="NIFTY 500">NIFTY 500</option>
+                  <option value="NIFTY LARGEMIDCAP 250">NIFTY LARGEMIDCAP 250</option>
+                  <option value="NIFTY MICROCAP 250">NIFTY MICROCAP 250</option>
+                  <option value="NIFTY MIDCAP 100">NIFTY MIDCAP 100</option>
+                  <option value="NIFTY MIDCAP 150">NIFTY MIDCAP 150</option>
+                  <option value="NIFTY MIDCAP 50">NIFTY MIDCAP 50</option>
+                  <option value="NIFTY SMALLCAP 100">NIFTY SMALLCAP 100</option>
+                  <option value="NIFTY SMALLCAP 250">NIFTY SMALLCAP 250</option>
+                  <option value="NIFTY SMALLCAP 50">NIFTY SMALLCAP 50</option>
+                  <option value="NIFTY TOTAL MARKET">NIFTY TOTAL MARKET</option>
+                </optgroup>
+                <optgroup label="Sectoral Market Indices">
+                  <option value="NIFTY AUTO">NIFTY AUTO</option>
+                  <option value="NIFTY CEMENT">NIFTY CEMENT</option>
+                  <option value="NIFTY CHEMICALS">NIFTY CHEMICALS</option>
+                  <option value="NIFTY CONSUMER DURABLES">NIFTY CONSUMER DURABLES</option>
+                  <option value="NIFTY FMCG">NIFTY FMCG</option>
+                  <option value="NIFTY HEALTHCARE INDEX">NIFTY HEALTHCARE INDEX</option>
+                  <option value="NIFTY IT">NIFTY IT</option>
+                  <option value="NIFTY MEDIA">NIFTY MEDIA</option>
+                  <option value="NIFTY METAL">NIFTY METAL</option>
+                  <option value="NIFTY OIL & GAS">NIFTY OIL &amp; GAS</option>
+                  <option value="NIFTY PHARMA">NIFTY PHARMA</option>
+                  <option value="NIFTY PSU BANK">NIFTY PSU BANK</option>
+                  <option value="NIFTY PRIVATE BANK">NIFTY PRIVATE BANK</option>
+                  <option value="NIFTY REALTY">NIFTY REALTY</option>
+                </optgroup>
+                <optgroup label="Thematic Market Indices">
+                  <option value="NIFTY COMMODITIES">NIFTY COMMODITIES</option>
+                  <option value="NIFTY CPSE">NIFTY CPSE</option>
+                  <option value="NIFTY ENERGY">NIFTY ENERGY</option>
+                  <option value="NIFTY INDIA DEFENCE">NIFTY INDIA DEFENCE</option>
+                  <option value="NIFTY INDIA DIGITAL">NIFTY INDIA DIGITAL</option>
+                  <option value="NIFTY INFRASTRUCTURE">NIFTY INFRASTRUCTURE</option>
+                  <option value="NIFTY MNC">NIFTY MNC</option>
+                  <option value="NIFTY PSE">NIFTY PSE</option>
+                  <option value="NIFTY SERVICES SECTOR">NIFTY SERVICES SECTOR</option>
+                </optgroup>
+                <optgroup label="Strategy Market Indices">
+                  <option value="NIFTY ALPHA 50">NIFTY ALPHA 50</option>
+                  <option value="NIFTY DIVIDEND OPPORTUNITIES 50">NIFTY DIVIDEND OPPORTUNITIES 50</option>
+                  <option value="NIFTY HIGH BETA 50">NIFTY HIGH BETA 50</option>
+                  <option value="NIFTY LOW VOLATILITY 50">NIFTY LOW VOLATILITY 50</option>
+                  <option value="NIFTY100 QUALITY 30">NIFTY100 QUALITY 30</option>
+                  <option value="NIFTY200 MOMENTUM 30">NIFTY200 MOMENTUM 30</option>
+                  <option value="NIFTY50 EQUAL WEIGHT">NIFTY50 EQUAL WEIGHT</option>
+                  <option value="NIFTY50 VALUE 20">NIFTY50 VALUE 20</option>
+                </optgroup>
               </select>
             </div>
 
