@@ -19,7 +19,7 @@ import {
   Zap
 } from 'lucide-react';
 
-type CategoryType = 'Nifty 50' | 'Nifty 500' | 'Bank Nifty' | 'F&O' | 'SME' | 'Others' | 'All';
+type CategoryType = string;
 
 // Static fallback NSE holidays (used until dynamic data loads)
 const FALLBACK_HOLIDAYS: { date: string; name: string }[] = [
@@ -103,6 +103,9 @@ export default function MarketWatchPage() {
   const [sortAsc, setSortAsc] = useState<boolean>(false);
   const [denom, setDenom] = useState<'lakhs' | 'crores' | 'billions'>('crores');
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string | null>(null);
+  const [liveIndexStocks, setLiveIndexStocks] = useState<any[]>([]);
+  const [loadingIndex, setLoadingIndex] = useState<boolean>(false);
+  const [indexError, setIndexError] = useState<string | null>(null);
 
   // New Historical View states
   const [viewMode, setViewMode] = useState<'live' | 'historical'>('live');
@@ -209,6 +212,34 @@ export default function MarketWatchPage() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // Fetch live index stocks from Kite via master client when category changes
+  const SIMPLE_CATS = ['All', 'F&O', 'SME'];
+  useEffect(() => {
+    if (SIMPLE_CATS.includes(category)) {
+      setLiveIndexStocks([]);
+      setIndexError(null);
+      return;
+    }
+    setLoadingIndex(true);
+    setIndexError(null);
+    setLiveIndexStocks([]);
+    fetch(`/api/market-watch?index=${encodeURIComponent(category)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          setLiveIndexStocks(data.stocks || []);
+        } else {
+          setIndexError(data.error || 'Failed to fetch index stocks');
+          setLiveIndexStocks([]);
+        }
+      })
+      .catch(err => {
+        setIndexError(err.message);
+        setLiveIndexStocks([]);
+      })
+      .finally(() => setLoadingIndex(false));
+  }, [category]);
+
   // Fetch OHLC quotes API helper
   const fetchHistoricalOhlc = async (dateVal: string, timeVal: string, triggerKiteFetch = false, forceRefresh = false) => {
     if (triggerKiteFetch) {
@@ -294,7 +325,12 @@ export default function MarketWatchPage() {
     }
   }, [viewMode, historicalDate, historicalTime]);
 
-  const activeStocksSource = viewMode === 'historical' ? historicalStocks : stocks;
+  const SIMPLE_CATS_MW = ['All', 'F&O', 'SME'];
+  const activeStocksSource = (() => {
+    if (viewMode === 'historical') return historicalStocks;
+    if (!SIMPLE_CATS_MW.includes(category) && liveIndexStocks.length > 0) return liveIndexStocks;
+    return stocks;
+  })();
 
   // Derive active stock details for candlestick panel
   const selectedStock = selectedStockSymbol ? activeStocksSource.find(s => s.symbol === selectedStockSymbol) : null;
@@ -988,9 +1024,18 @@ export default function MarketWatchPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 600, fontFamily: 'var(--font-title)', margin: 0 }}>
                 {viewMode === 'live' 
-                  ? `Watchlist Stocks (${sortedStocks.length})` 
+                  ? `${!SIMPLE_CATS_MW.includes(category) ? category + ' ' : ''}Stocks (${sortedStocks.length})` 
                   : `OHLC Ticks at ${historicalTime} (${sortedStocks.length})`}
               </h3>
+              {loadingIndex && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#2563eb', fontSize: '12px', fontWeight: 500 }}>
+                  <Loader2 size={14} style={{ animation: 'spin 1.2s linear infinite' }} />
+                  <span>Fetching {category} stocks from Kite...</span>
+                </div>
+              )}
+              {indexError && !loadingIndex && (
+                <div style={{ fontSize: '12px', color: '#ef4444', fontWeight: 500 }}>⚠ {indexError}</div>
+              )}
               {viewMode === 'live' ? (
                 isWsConnected ? (
                   <div style={{ display: 'inline-flex', alignItems: 'center' }} title="Live Feed Connected">
