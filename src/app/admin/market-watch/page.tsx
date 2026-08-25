@@ -428,7 +428,7 @@ export default function MarketWatchPage() {
 
       try {
         // 1. Trigger background fetch (returns immediately)
-        const triggerRes = await fetch(`/api/stocks/ohlc?date=${dateVal}&time=${timeVal}&fetch=true${forceRefresh ? '&force=true' : ''}`);
+        const triggerRes = await fetch(`/api/stocks/ohlc?date=${dateVal}&time=${timeVal}&category=${encodeURIComponent(category)}&fetch=true${forceRefresh ? '&force=true' : ''}`);
         const triggerData = await triggerRes.json();
 
         // If data already exists in DB (status=done with stocks) and we are not forcing refresh, load directly

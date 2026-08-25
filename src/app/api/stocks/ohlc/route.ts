@@ -11,7 +11,7 @@ function getJobKey(date: string, time: string) {
 }
 
 // Background fetch job (fire-and-forget)
-async function runBackgroundFetch(dateParam: string, timeParam: string, jobKey: string) {
+async function runBackgroundFetch(dateParam: string, timeParam: string, jobKey: string, customSymbols?: string[]) {
   try {
     const client = await prisma.client.findFirst({
       where: { accessToken: { not: null }, zerodhaApiKey: { not: null } }
@@ -22,8 +22,8 @@ async function runBackgroundFetch(dateParam: string, timeParam: string, jobKey: 
       return;
     }
 
-    // Get list of active stock symbols from engine
-    let symbols = algoEngine.getStocks().map(s => s.symbol);
+    // Get list of active stock symbols from engine or custom list
+    let symbols = customSymbols && customSymbols.length > 0 ? customSymbols : algoEngine.getStocks().map(s => s.symbol);
     if (symbols.length === 0) {
       symbols = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'LT', 'ITC', 'AXISBANK', 'KOTAKBANK'];
     }
@@ -157,17 +157,29 @@ export async function GET(req: NextRequest) {
     // === TRIGGER: Start background fetch ===
     if (triggerFetch) {
       const forceParam = url.searchParams.get('force') === 'true';
+      const categoryParam = url.searchParams.get('category') || 'NIFTY 500';
+      
       const existing = fetchState[jobKey];
       if (existing?.running) {
         // Already running — return current progress
         return NextResponse.json({ success: true, status: 'running', processed: existing.processed, total: existing.total });
       }
 
+      // 1. Fetch active index symbols list dynamically
+      const { fetchStocksByNSEIndex } = require('../../../../shared/utils/marketWatchHelper');
+      const customSymbols = await fetchStocksByNSEIndex(categoryParam);
+
       // If NOT forcing refresh, check DB first — maybe data already exists
       if (!forceParam) {
         const dbRecords = await getDbRecords(dateParam, timeParam);
         if (dbRecords.length > 0) {
-          return NextResponse.json({ success: true, status: 'done', stocks: mapRecords(dbRecords) });
+          // If we filtered symbols, check how many matched DB
+          const matched = customSymbols.length > 0 
+            ? dbRecords.filter(r => customSymbols.includes(r.symbol)) 
+            : dbRecords;
+          if (matched.length > 0) {
+            return NextResponse.json({ success: true, status: 'done', stocks: mapRecords(dbRecords) });
+          }
         }
       } else {
         // Delete existing DB records for this slot first to allow clean override
@@ -177,8 +189,8 @@ export async function GET(req: NextRequest) {
       }
 
       // Start background fetch (fire-and-forget)
-      console.log(`API /api/stocks/ohlc: Starting background fetch (force=${forceParam}) for ${dateParam} ${timeParam}...`);
-      runBackgroundFetch(dateParam, timeParam, jobKey); // intentionally NOT awaited
+      console.log(`API /api/stocks/ohlc: Starting background fetch (force=${forceParam}) for category ${categoryParam} with ${customSymbols.length} symbols...`);
+      runBackgroundFetch(dateParam, timeParam, jobKey, customSymbols); // intentionally NOT awaited
 
       return NextResponse.json({ success: true, status: 'started', message: 'Background fetch started. Poll /api/stocks/ohlc?date=...&time=...&poll=true for progress.' });
     }
