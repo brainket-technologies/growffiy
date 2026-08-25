@@ -220,7 +220,8 @@ function parseNSECsv(csvText: string): string[] {
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
-    const cols = line.split(',');
+    // Split by comma only outside of quotes
+    const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
     const sym = cols[symbolColIndex]?.trim().replace(/"/g, '');
     if (sym && sym.length > 0 && sym !== 'Symbol') {
       symbols.push(sym);
