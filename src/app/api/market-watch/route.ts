@@ -54,21 +54,31 @@ export async function GET(req: NextRequest) {
         symbol,
         name: symbol,
         ltp,
+        iep: ltp,            // page template uses iep
+        final: ltp,          // page uses final
         open,
         high,
         low,
         prevClose,
         volume: q.volume || 0,
+        finalQuantity: q.volume || 0,
         change: parseFloat(change.toFixed(2)),
         changePercent: parseFloat(changePercent.toFixed(2)),
+        value: parseFloat(((q.volume || 0) * ltp / 10000000).toFixed(2)),
+        ffmCap: ltp * 50,
+        nm52wH: q.upper_circuit_limit || high || 0,
+        nm52wL: q.lower_circuit_limit || low || 0,
         buyQty: q.depth?.buy?.[0]?.quantity || 0,
         sellQty: q.depth?.sell?.[0]?.quantity || 0,
         avgPrice: q.average_price || 0,
         oi: q.oi || 0,
         upperCircuit: q.upper_circuit_limit || 0,
         lowerCircuit: q.lower_circuit_limit || 0,
-        weekHigh52: q['52_week_high'] || q.upper_circuit_limit || 0,
-        weekLow52: q['52_week_low'] || q.lower_circuit_limit || 0,
+        isNifty50: false,
+        isNifty500: false,
+        isBankNifty: false,
+        isFo: false,
+        isSme: false,
       };
     });
 
