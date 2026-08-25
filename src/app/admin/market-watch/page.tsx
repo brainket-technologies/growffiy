@@ -146,19 +146,7 @@ function CategorySelectorMw({ current, onChange, categories }: { current: string
         }}
       />
       <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <div 
-          onClick={() => { onChange('All'); setOpen(false); }}
-          style={{ 
-            padding: '6px 8px', 
-            borderRadius: '4px', 
-            cursor: 'pointer', 
-            fontSize: '13px',
-            backgroundColor: current === 'All' ? 'var(--bg-light)' : 'transparent',
-            fontWeight: current === 'All' ? 'bold' : 'normal'
-          }}
-        >
-          All (NIFTY 500)
-        </div>
+
         {Object.entries(categories).map(([group, list]) => {
           const filtered = list.filter(item => item.toLowerCase().includes(search.toLowerCase()));
           if (filtered.length === 0) return null;
@@ -197,7 +185,7 @@ function CategorySelectorMw({ current, onChange, categories }: { current: string
 export default function MarketWatchPage() {
   const { stocks, loading, isSyncing, isWsConnected, clients, dashboardStats, isTradingActive } = useAppViewModel();
 
-  const [category, setCategory] = useState<CategoryType>('All');
+  const [category, setCategory] = useState<CategoryType>('NIFTY 500');
   const [symbolQuery, setSymbolQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'gainers' | 'losers' | 'equal_any' | 'equal_open_high' | 'equal_open_low' | 'equal_open_close' | 'equal_high_low' | 'equal_high_close' | 'equal_low_close'>('all');
   const [sortField, setSortField] = useState<string>('changePercent');
@@ -806,7 +794,7 @@ export default function MarketWatchPage() {
                 onChange={(e) => setCategory(e.target.value)}
                 style={{ display: 'none' }}
               >
-                <option value="All">Category: All</option>
+
                 <optgroup label="Indices Eligible in Derivatives">
                   <option value="NIFTY 50">NIFTY 50</option>
                   <option value="NIFTY BANK">NIFTY BANK</option>
