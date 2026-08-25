@@ -48,70 +48,81 @@ async function runBackgroundFetch(dateParam: string, timeParam: string, jobKey: 
 
     fetchState[jobKey] = { running: true, done: false, processed: 0, total };
 
-    for (const symbol of symbols) {
-      const token = symbolToToken[symbol];
-      if (!token) continue;
+    // Concurrent batch processing (5 parallel workers) to speed up 10x
+    const CONCURRENCY = 5;
+    const worker = async () => {
+      while (symbols.length > 0) {
+        const symbol = symbols.shift();
+        if (!symbol) break;
 
-      try {
-        const fromTime = `${dateParam} 09:15:00`;
-        const toTime = `${dateParam} 15:30:00`;
+        const token = symbolToToken[symbol];
+        if (!token) continue;
 
-        console.log(`BG Fetch [${jobKey}]: Processing ${symbol} (${processed + 1}/${total})`);
-        const res = await KiteClient.getHistoricalData(
-          client.zerodhaApiKey,
-          client.accessToken,
-          token,
-          'minute',
-          fromTime,
-          toTime
-        );
+        try {
+          const fromTime = `${dateParam} 09:15:00`;
+          const toTime = `${dateParam} 15:30:00`;
 
-        if (res.status === 'success' && Array.isArray(res.data?.candles)) {
-          const candles = res.data.candles;
+          const res = await KiteClient.getHistoricalData(
+            client.zerodhaApiKey!,
+            client.accessToken!,
+            token,
+            'minute',
+            fromTime,
+            toTime
+          );
 
-          const intervalConfig: Record<string, { startTime: string; count: number }> = {
-            '09:20': { startTime: '09:20', count: 5 },
-            '09:30': { startTime: '09:30', count: 5 },
-            '09:45': { startTime: '09:45', count: 5 },
-            '12:00': { startTime: '12:00', count: 5 },
-          };
+          if (res.status === 'success' && Array.isArray(res.data?.candles)) {
+            const candles = res.data.candles;
 
-          for (const tTarget of targetTimes) {
-            const cfg = intervalConfig[tTarget];
-            if (!cfg) continue;
+            const intervalConfig: Record<string, { startTime: string; count: number }> = {
+              '09:20': { startTime: '09:20', count: 5 },
+              '09:30': { startTime: '09:30', count: 5 },
+              '09:45': { startTime: '09:45', count: 5 },
+              '12:00': { startTime: '12:00', count: 5 },
+            };
 
-            const startIdx = candles.findIndex((c: any) => {
-              const timestampStr = String(c[0]);
-              return timestampStr.includes(`${cfg.startTime}:00`);
-            });
+            for (const tTarget of targetTimes) {
+              const cfg = intervalConfig[tTarget];
+              if (!cfg) continue;
 
-            if (startIdx === -1) continue;
+              const startIdx = candles.findIndex((c: any) => {
+                const timestampStr = String(c[0]);
+                return timestampStr.includes(`${cfg.startTime}:00`);
+              });
 
-            const group = candles.slice(startIdx, startIdx + cfg.count);
-            if (group.length === 0) continue;
+              if (startIdx === -1) continue;
 
-            const open = Number(group[0][1]);
-            const high = Math.max(...group.map((c: any) => Number(c[2])));
-            const low = Math.min(...group.map((c: any) => Number(c[3])));
-            const close = Number(group[group.length - 1][4]);
+              const group = candles.slice(startIdx, startIdx + cfg.count);
+              if (group.length === 0) continue;
 
-            await prisma.historicalOhlc.upsert({
-              where: { date_time_symbol: { date: dateParam, time: tTarget, symbol } },
-              update: { open, high, low, close },
-              create: { date: dateParam, time: tTarget, symbol, open, high, low, close }
-            });
+              const open = Number(group[0][1]);
+              const high = Math.max(...group.map((c: any) => Number(c[2])));
+              const low = Math.min(...group.map((c: any) => Number(c[3])));
+              const close = Number(group[group.length - 1][4]);
+
+              await prisma.historicalOhlc.upsert({
+                where: { date_time_symbol: { date: dateParam, time: tTarget, symbol } },
+                update: { open, high, low, close },
+                create: { date: dateParam, time: tTarget, symbol, open, high, low, close }
+              });
+            }
           }
+        } catch (e: any) {
+          console.error(`BG Fetch [${jobKey}]: Error for ${symbol}:`, e.message || e);
         }
-      } catch (e: any) {
-        console.error(`BG Fetch [${jobKey}]: Error for ${symbol}:`, e.message || e);
+
+        processed++;
+        fetchState[jobKey] = { running: true, done: false, processed, total };
+
+        // Mild gap to prevent instant API throttling
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
+    };
 
-      processed++;
-      fetchState[jobKey] = { running: true, done: false, processed, total };
+    // Run parallel workers
+    const workers = Array.from({ length: CONCURRENCY }, () => worker());
+    await Promise.all(workers);
 
-      // Rate limit guard: 350ms delay
-      await new Promise(resolve => setTimeout(resolve, 350));
-    }
 
     console.log(`BG Fetch [${jobKey}]: Completed. Processed ${processed} symbols.`);
     fetchState[jobKey] = { running: false, done: true, processed, total };
