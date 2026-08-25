@@ -71,7 +71,7 @@ const INDEX_CSV_MAP: Record<string, string> = {
   // Derivatives eligible
   "NIFTY 50":                                           "https://archives.nseindia.com/content/indices/ind_nifty50list.csv",
   "NIFTY BANK":                                         "https://archives.nseindia.com/content/indices/ind_niftybankindexlist.csv",
-  "NIFTY FINANCIAL SERVICES":                           "https://archives.nseindia.com/content/indices/ind_niftyfinancialserviceslist.csv",
+  "NIFTY FINANCIAL SERVICES":                           "https://archives.nseindia.com/content/indices/ind_niftyfinancelist.csv",
   "NIFTY NEXT 50":                                      "https://archives.nseindia.com/content/indices/ind_niftynext50list.csv",
   "NIFTY MIDCAP SELECT":                                "https://archives.nseindia.com/content/indices/ind_niftymidcapselectlist.csv",
   "NIFTY INDIA FPI 150":                                "https://archives.nseindia.com/content/indices/ind_niftyindiafpi150list.csv",
@@ -101,7 +101,7 @@ const INDEX_CSV_MAP: Record<string, string> = {
   "NIFTY CHEMICALS":                                    "https://archives.nseindia.com/content/indices/ind_niftychemicalslist.csv",
   "NIFTY CONSUMER DURABLES":                            "https://archives.nseindia.com/content/indices/ind_niftyconsumerdurables_list.csv",
   "NIFTY FINANCIAL SERVICES EX-BANK":                   "https://archives.nseindia.com/content/indices/ind_niftyfinancialservicesexbank_list.csv",
-  "NIFTY FINANCIAL SERVICES 25/50":                     "https://archives.nseindia.com/content/indices/ind_niftyfinancialservices2550_list.csv",
+  "NIFTY FINANCIAL SERVICES 25/50":                     "https://archives.nseindia.com/content/indices/ind_niftyfinancialservices25_50list.csv",
   "NIFTY FMCG":                                         "https://archives.nseindia.com/content/indices/ind_niftyfmcglist.csv",
   "NIFTY HEALTHCARE INDEX":                             "https://archives.nseindia.com/content/indices/ind_niftyhealthcarelist.csv",
   "NIFTY IT":                                           "https://archives.nseindia.com/content/indices/ind_niftyitlist.csv",
@@ -238,8 +238,19 @@ export async function fetchStocksByNSEIndex(indexName: string): Promise<string[]
   try {
     const res = await fetch(csvUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-        'Accept': 'text/csv,text/plain,*/*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Upgrade-Insecure-Requests': '1',
       },
     });
     if (!res.ok) throw new Error(`CSV fetch failed: ${res.status}`);
