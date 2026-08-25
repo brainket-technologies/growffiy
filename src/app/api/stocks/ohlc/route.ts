@@ -48,8 +48,8 @@ async function runBackgroundFetch(dateParam: string, timeParam: string, jobKey: 
 
     fetchState[jobKey] = { running: true, done: false, processed: 0, total };
 
-    // Concurrent batch processing (5 parallel workers) to speed up 10x
-    const CONCURRENCY = 5;
+    // Concurrent batch processing (15 parallel workers) to maximize speed performance
+    const CONCURRENCY = 15;
     const worker = async () => {
       while (symbols.length > 0) {
         const symbol = symbols.shift();
@@ -114,8 +114,8 @@ async function runBackgroundFetch(dateParam: string, timeParam: string, jobKey: 
         processed++;
         fetchState[jobKey] = { running: true, done: false, processed, total };
 
-        // Mild gap to prevent instant API throttling
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Highly optimized minimum delay to prevent request overlap
+        await new Promise(resolve => setTimeout(resolve, 20));
       }
     };
 
