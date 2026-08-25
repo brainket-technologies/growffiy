@@ -226,17 +226,17 @@ export default function MarketWatchPage() {
   }, []);
 
   // Fetch live index stocks from Kite via master client when category changes
-  const SIMPLE_CATS = ['All', 'F&O', 'SME'];
+  const CATEGORY_INDEX_MAP: Record<string, string> = {
+    'All': 'NIFTY 500',
+    'F&O': 'NIFTY 50',
+    'SME': 'NIFTY SMALLCAP 100',
+  };
   useEffect(() => {
-    if (SIMPLE_CATS.includes(category)) {
-      setLiveIndexStocks([]);
-      setIndexError(null);
-      return;
-    }
+    const indexName = CATEGORY_INDEX_MAP[category] || category;
     setLoadingIndex(true);
     setIndexError(null);
     setLiveIndexStocks([]);
-    fetch(`/api/market-watch?index=${encodeURIComponent(category)}`)
+    fetch(`/api/market-watch?index=${encodeURIComponent(indexName)}`)
       .then(r => r.json())
       .then(data => {
         if (data.success) {
@@ -338,11 +338,9 @@ export default function MarketWatchPage() {
     }
   }, [viewMode, historicalDate, historicalTime]);
 
-  const SIMPLE_CATS_MW = ['All', 'F&O', 'SME'];
   const activeStocksSource = (() => {
     if (viewMode === 'historical') return historicalStocks;
-    if (!SIMPLE_CATS_MW.includes(category) && liveIndexStocks.length > 0) return liveIndexStocks;
-    return stocks;
+    return liveIndexStocks; // always dynamic — empty until index is selected
   })();
 
   // Derive active stock details for candlestick panel
@@ -1037,7 +1035,7 @@ export default function MarketWatchPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 600, fontFamily: 'var(--font-title)', margin: 0 }}>
                 {viewMode === 'live' 
-                  ? `${!SIMPLE_CATS_MW.includes(category) ? category + ' ' : ''}Stocks (${sortedStocks.length})` 
+                  ? `${category} Stocks (${sortedStocks.length})` 
                   : `OHLC Ticks at ${historicalTime} (${sortedStocks.length})`}
               </h3>
               {loadingIndex && (
