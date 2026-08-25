@@ -70,7 +70,7 @@ export const NSE_INDICES_CATEGORIES: Record<string, string[]> = {
 const INDEX_CSV_MAP: Record<string, string> = {
   // Derivatives eligible
   "NIFTY 50":                                           "https://archives.nseindia.com/content/indices/ind_nifty50list.csv",
-  "NIFTY BANK":                                         "https://archives.nseindia.com/content/indices/ind_niftybankindexlist.csv",
+  "NIFTY BANK":                                         "https://archives.nseindia.com/content/indices/ind_niftybanklist.csv",
   "NIFTY FINANCIAL SERVICES":                           "https://archives.nseindia.com/content/indices/ind_niftyfinancelist.csv",
   "NIFTY NEXT 50":                                      "https://archives.nseindia.com/content/indices/ind_niftynext50list.csv",
   "NIFTY MIDCAP SELECT":                                "https://archives.nseindia.com/content/indices/ind_niftymidcapselectlist.csv",
