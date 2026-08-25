@@ -180,27 +180,15 @@ export async function GET(req: NextRequest) {
       const { fetchStocksByNSEIndex } = require('../../../../shared/utils/marketWatchHelper');
       const customSymbols = await fetchStocksByNSEIndex(categoryParam);
 
-      // If NOT forcing refresh, check DB first — maybe data already exists
-      if (!forceParam) {
-        const dbRecords = await getDbRecords(dateParam, timeParam);
-        if (dbRecords.length > 0) {
-          // If we filtered symbols, check how many matched DB
-          const matched = customSymbols.length > 0 
-            ? dbRecords.filter(r => customSymbols.includes(r.symbol)) 
-            : dbRecords;
-          if (matched.length > 0) {
-            return NextResponse.json({ success: true, status: 'done', stocks: mapRecords(dbRecords) });
-          }
-        }
-      } else {
-        // Delete existing DB records for this slot first to allow clean override
+      // Force delete existing records for this slot if overriding
+      if (forceParam) {
         await prisma.historicalOhlc.deleteMany({
           where: { date: dateParam, time: timeParam }
         });
       }
 
       // Start background fetch (fire-and-forget)
-      console.log(`API /api/stocks/ohlc: Starting background fetch (force=${forceParam}) for category ${categoryParam} with ${customSymbols.length} symbols...`);
+      console.log(`API /api/stocks/ohlc: Explicit trigger fetch (force=${forceParam}) for category ${categoryParam} with ${customSymbols.length} symbols...`);
       runBackgroundFetch(dateParam, timeParam, jobKey, customSymbols); // intentionally NOT awaited
 
       return NextResponse.json({ success: true, status: 'started', message: 'Background fetch started. Poll /api/stocks/ohlc?date=...&time=...&poll=true for progress.' });
