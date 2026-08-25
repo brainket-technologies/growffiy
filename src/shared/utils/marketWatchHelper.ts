@@ -64,16 +64,6 @@ export const NSE_INDICES_CATEGORIES: Record<string, string[]> = {
   ]
 };
 
-// Fallback lists if archives returns 404
-const OFFLINE_FALLBACK_MAP: Record<string, string[]> = {
-  "NIFTY INDIA FPI 150": ["RELIANCE", "TCS", "HDFCBANK", "BHARTIARTL", "ICICIBANK", "INFY", "ITC", "SBI", "L&T", "AXISBANK"],
-  "NIFTY CAPITAL MARKETS": ["HDFC", "SBICARD", "MUTHOOTFIN", "ISEC", "CDSL", "MCX", "KFINTECH"],
-  "NIFTY EV & NEW AGE AUTOMOTIVE": ["TATAELXSI", "KPITTECH", "TTE", "OLA", "M&M", "MARUTI", "TATASTEEL"],
-  "NIFTY INDIA DEFENCE": ["HAL", "BEL", "MAZDOCK", "BDL", "COCHINSHIP", "GRSE", "BEML"],
-  "NIFTY INDIA RAILWAYS PSU": ["IRFC", "RVNL", "IRCON", "RAILTEL", "RITES", "CONCOR"],
-  "NIFTY SME EMERGE": ["KOTYARK", "MANGALAM", "BEWL", "SARTELE", "SPECTRUM", "INFOBEAT"]
-};
-
 // Normalize names for URL matching exceptions
 const EXCEPTION_URL_MAP: Record<string, string> = {
   "NIFTY BANK": "ind_niftybanklist.csv",
@@ -134,8 +124,8 @@ export async function fetchStocksByNSEIndex(indexName: string): Promise<string[]
     });
 
     if (res.status === 404) {
-      console.warn(`marketWatchHelper: 404 on ${csvUrl}, using offline fallback for ${indexName}`);
-      return OFFLINE_FALLBACK_MAP[indexName] || [];
+      console.warn(`marketWatchHelper: 404 on ${csvUrl} for ${indexName}`);
+      return [];
     }
 
     if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
@@ -144,6 +134,6 @@ export async function fetchStocksByNSEIndex(indexName: string): Promise<string[]
 
   } catch (e: any) {
     console.error(`marketWatchHelper: Error for "${indexName}":`, e.message);
-    return OFFLINE_FALLBACK_MAP[indexName] || [];
+    return [];
   }
 }
