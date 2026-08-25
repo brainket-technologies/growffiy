@@ -197,7 +197,7 @@ function CategorySelectorMw({ current, onChange, categories }: { current: string
 export default function MarketWatchPage() {
   const { stocks, loading, isSyncing, isWsConnected, clients, dashboardStats, isTradingActive } = useAppViewModel();
 
-  const [category, setCategory] = useState<CategoryType>('F&O');
+  const [category, setCategory] = useState<CategoryType>('All');
   const [symbolQuery, setSymbolQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'gainers' | 'losers' | 'equal_any' | 'equal_open_high' | 'equal_open_low' | 'equal_open_close' | 'equal_high_low' | 'equal_high_close' | 'equal_low_close'>('all');
   const [sortField, setSortField] = useState<string>('changePercent');
