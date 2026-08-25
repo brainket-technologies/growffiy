@@ -106,6 +106,7 @@ export default function MarketWatchPage() {
   const [liveIndexStocks, setLiveIndexStocks] = useState<any[]>([]);
   const [loadingIndex, setLoadingIndex] = useState<boolean>(false);
   const [indexError, setIndexError] = useState<string | null>(null);
+  const [indexCategories, setIndexCategories] = useState<Record<string, string[]>>({});
 
   // New Historical View states
   const [viewMode, setViewMode] = useState<'live' | 'historical'>('live');
@@ -199,6 +200,18 @@ export default function MarketWatchPage() {
         const latest = getLatestTradingDayFn(hSet, ['Mon','Tue','Wed','Thu','Fri']);
         setHistoricalDate(latest);
       });
+  }, []);
+
+  // Fetch NSE indices categories dynamically from server
+  useEffect(() => {
+    fetch('/api/market-watch/indices')
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.categories) {
+          setIndexCategories(data.categories);
+        }
+      })
+      .catch(err => console.warn('Failed to load index categories:', err.message));
   }, []);
 
   // Close calendar on outside click
