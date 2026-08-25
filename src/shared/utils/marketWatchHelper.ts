@@ -204,15 +204,26 @@ const INDEX_CSV_MAP: Record<string, string> = {
 };
 
 function parseNSECsv(csvText: string): string[] {
-  const lines = csvText.trim().split('\n');
+  const lines = csvText.replace(/\r/g, '').trim().split('\n');
+  if (lines.length === 0) return [];
+  
+  // Find "Symbol" column index dynamically from header
+  const headerCols = lines[0].split(',').map(c => c.trim().replace(/"/g, '').toLowerCase());
+  let symbolColIndex = headerCols.indexOf('symbol');
+  
+  // Fallback to column index 2 if not found explicitly
+  if (symbolColIndex === -1) {
+    symbolColIndex = 2;
+  }
+
   const symbols: string[] = [];
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
     const cols = line.split(',');
-    if (cols.length >= 3) {
-      const sym = cols[2]?.trim().replace(/"/g, '');
-      if (sym && sym.length > 0 && sym !== 'Symbol') symbols.push(sym);
+    const sym = cols[symbolColIndex]?.trim().replace(/"/g, '');
+    if (sym && sym.length > 0 && sym !== 'Symbol') {
+      symbols.push(sym);
     }
   }
   return symbols;

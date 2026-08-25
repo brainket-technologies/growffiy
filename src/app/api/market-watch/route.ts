@@ -40,13 +40,16 @@ export async function GET(req: NextRequest) {
     }
 
     // Step 5: Format response into clean stock objects
-    const stocks = Object.entries(allQuotes).map(([instrument, q]: [string, any]) => {
-      const symbol = instrument.replace('NSE:', '');
-      const ltp = q.last_price || 0;
-      const prevClose = q.ohlc?.close || 0;
-      const open = q.ohlc?.open || 0;
-      const high = q.ohlc?.high || 0;
-      const low = q.ohlc?.low || 0;
+    const stocks = symbols.map((symbol: string) => {
+      const instrument = `NSE:${symbol}`;
+      const q = allQuotes[instrument];
+
+      // Default values if Kite didn't return data for this symbol
+      const ltp = q ? (q.last_price || 0) : 0;
+      const prevClose = q ? (q.ohlc?.close || 0) : 0;
+      const open = q ? (q.ohlc?.open || 0) : 0;
+      const high = q ? (q.ohlc?.high || 0) : 0;
+      const low = q ? (q.ohlc?.low || 0) : 0;
       const change = ltp - prevClose;
       const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
@@ -60,20 +63,20 @@ export async function GET(req: NextRequest) {
         high,
         low,
         prevClose,
-        volume: q.volume || 0,
-        finalQuantity: q.volume || 0,
+        volume: q ? (q.volume || 0) : 0,
+        finalQuantity: q ? (q.volume || 0) : 0,
         change: parseFloat(change.toFixed(2)),
         changePercent: parseFloat(changePercent.toFixed(2)),
-        value: parseFloat(((q.volume || 0) * ltp / 10000000).toFixed(2)),
+        value: parseFloat(((q ? (q.volume || 0) : 0) * ltp / 10000000).toFixed(2)),
         ffmCap: ltp * 50,
-        nm52wH: q.upper_circuit_limit || high || 0,
-        nm52wL: q.lower_circuit_limit || low || 0,
-        buyQty: q.depth?.buy?.[0]?.quantity || 0,
-        sellQty: q.depth?.sell?.[0]?.quantity || 0,
-        avgPrice: q.average_price || 0,
-        oi: q.oi || 0,
-        upperCircuit: q.upper_circuit_limit || 0,
-        lowerCircuit: q.lower_circuit_limit || 0,
+        nm52wH: q ? (q.upper_circuit_limit || high || 0) : high || 0,
+        nm52wL: q ? (q.lower_circuit_limit || low || 0) : low || 0,
+        buyQty: q ? (q.depth?.buy?.[0]?.quantity || 0) : 0,
+        sellQty: q ? (q.depth?.sell?.[0]?.quantity || 0) : 0,
+        avgPrice: q ? (q.average_price || 0) : 0,
+        oi: q ? (q.oi || 0) : 0,
+        upperCircuit: q ? (q.upper_circuit_limit || 0) : 0,
+        lowerCircuit: q ? (q.lower_circuit_limit || 0) : 0,
         isNifty50: false,
         isNifty500: false,
         isBankNifty: false,
