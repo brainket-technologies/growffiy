@@ -348,6 +348,38 @@ export default function MarketWatchPage() {
     }).finally(() => setLoadingIndex(false));
   }, [category]);
 
+  // Keep liveIndexStocks synced with real-time websocket updates from global context
+  useEffect(() => {
+    if (viewMode === 'live' && liveIndexStocks.length > 0 && stocks.length > 0) {
+      setLiveIndexStocks(prev => {
+        let changed = false;
+        const updated = prev.map(p => {
+          const match = stocks.find(s => s.symbol === p.symbol);
+          if (match && (match.ltp !== p.ltp || match.volume !== p.volume || match.high !== p.high || match.low !== p.low)) {
+            changed = true;
+            const change = match.ltp - p.prevClose;
+            const changePercent = p.prevClose > 0 ? (change / p.prevClose) * 100 : 0;
+            return {
+              ...p,
+              ltp: match.ltp,
+              open: match.open || p.open,
+              high: match.high || p.high,
+              low: match.low || p.low,
+              volume: match.volume || p.volume,
+              finalQuantity: match.volume || p.volume,
+              change: parseFloat(change.toFixed(2)),
+              changePercent: parseFloat(changePercent.toFixed(2)),
+              value: parseFloat(((match.volume || p.volume) * match.ltp / 10000000).toFixed(2))
+            };
+          }
+          return p;
+        });
+        return changed ? updated : prev;
+      });
+    }
+  }, [stocks, viewMode]);
+
+
   // Fetch OHLC quotes API helper
   const fetchHistoricalOhlc = async (dateVal: string, timeVal: string, triggerKiteFetch = false, forceRefresh = false) => {
     if (triggerKiteFetch) {
