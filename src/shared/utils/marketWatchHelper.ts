@@ -124,17 +124,7 @@ export async function fetchStocksByNSEIndex(indexName: string): Promise<string[]
     });
 
     if (res.status === 404) {
-      console.warn(`marketWatchHelper: 404 on ${csvUrl} for ${indexName}, falling back to NIFTY 500`);
-      // Fallback to NIFTY 500 constituents to prevent empty lists
-      const fb = await fetch(`https://archives.nseindia.com/content/indices/ind_nifty500list.csv`, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-      });
-      if (fb.ok) {
-        const fbText = await fb.text();
-        return parseNSECsv(fbText);
-      }
+      console.warn(`marketWatchHelper: 404 on ${csvUrl} for ${indexName}`);
       return [];
     }
 
@@ -144,15 +134,6 @@ export async function fetchStocksByNSEIndex(indexName: string): Promise<string[]
 
   } catch (e: any) {
     console.error(`marketWatchHelper: Error for "${indexName}":`, e.message);
-    // Silent fallback to NIFTY 500 on exceptions
-    try {
-      const fb = await fetch(`https://archives.nseindia.com/content/indices/ind_nifty500list.csv`, {
-        headers: { 'User-Agent': 'Mozilla/5.0' }
-      });
-      if (fb.ok) {
-        return parseNSECsv(await fb.text());
-      }
-    } catch {}
     return [];
   }
 }
