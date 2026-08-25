@@ -107,6 +107,7 @@ export default function MarketWatchPage() {
   const [loadingIndex, setLoadingIndex] = useState<boolean>(false);
   const [indexError, setIndexError] = useState<string | null>(null);
   const [indexCategories, setIndexCategories] = useState<Record<string, string[]>>({});
+  const [indexSymbols, setIndexSymbols] = useState<string[]>([]); // symbol list for current category
 
   // New Historical View states
   const [viewMode, setViewMode] = useState<'live' | 'historical'>('live');
@@ -236,21 +237,26 @@ export default function MarketWatchPage() {
     setLoadingIndex(true);
     setIndexError(null);
     setLiveIndexStocks([]);
-    fetch(`/api/market-watch?index=${encodeURIComponent(indexName)}`)
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          setLiveIndexStocks(data.stocks || []);
-        } else {
-          setIndexError(data.error || 'Failed to fetch index stocks');
-          setLiveIndexStocks([]);
-        }
-      })
-      .catch(err => {
-        setIndexError(err.message);
+    setIndexSymbols([]);
+
+    // Fetch symbols (lightweight CSV) and live Kite quotes in parallel
+    Promise.all([
+      fetch(`/api/market-watch/symbols?category=${encodeURIComponent(category)}`).then(r => r.json()).catch(() => ({ symbols: [] })),
+      fetch(`/api/market-watch?index=${encodeURIComponent(indexName)}`).then(r => r.json()).catch(() => ({ success: false, stocks: [] })),
+    ]).then(([symData, liveData]) => {
+      // Store symbol list for historical filtering
+      if (symData.symbols && symData.symbols.length > 0) {
+        setIndexSymbols(symData.symbols);
+      }
+      // Store live stocks for live mode table
+      if (liveData.success) {
+        setLiveIndexStocks(liveData.stocks || []);
+        setIndexError(null);
+      } else {
+        setIndexError(liveData.error || 'Failed to fetch live stocks');
         setLiveIndexStocks([]);
-      })
-      .finally(() => setLoadingIndex(false));
+      }
+    }).finally(() => setLoadingIndex(false));
   }, [category]);
 
   // Fetch OHLC quotes API helper
@@ -339,7 +345,13 @@ export default function MarketWatchPage() {
   }, [viewMode, historicalDate, historicalTime]);
 
   const activeStocksSource = (() => {
-    if (viewMode === 'historical') return historicalStocks;
+    if (viewMode === 'historical') {
+      // Filter historical stocks by selected index symbols if available
+      if (indexSymbols.length > 0) {
+        return historicalStocks.filter((s: any) => indexSymbols.includes(s.symbol));
+      }
+      return historicalStocks;
+    }
     return liveIndexStocks; // always dynamic — empty until index is selected
   })();
 
