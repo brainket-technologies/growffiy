@@ -323,30 +323,68 @@ export default function MarketWatchPage() {
   };
   useEffect(() => {
     const indexName = CATEGORY_INDEX_MAP[category] || category;
+    
+    // First load
     setLoadingIndex(true);
     setIndexError(null);
     setLiveIndexStocks([]);
     setIndexSymbols([]);
 
-    // Fetch symbols (lightweight CSV) and live Kite quotes in parallel
-    Promise.all([
-      fetch(`/api/market-watch/symbols?category=${encodeURIComponent(category)}`).then(r => r.json()).catch(() => ({ symbols: [] })),
-      fetch(`/api/market-watch?index=${encodeURIComponent(indexName)}`).then(r => r.json()).catch(() => ({ success: false, stocks: [] })),
-    ]).then(([symData, liveData]) => {
-      // Store symbol list for historical filtering
-      if (symData.symbols && symData.symbols.length > 0) {
-        setIndexSymbols(symData.symbols);
+    let active = true;
+
+    // Fetch initial symbols list (CSV)
+    fetch(`/api/market-watch/symbols?category=${encodeURIComponent(category)}`)
+      .then(r => r.json())
+      .then(symData => {
+        if (active && symData.symbols && symData.symbols.length > 0) {
+          setIndexSymbols(symData.symbols);
+        }
+      })
+      .catch(() => {});
+
+    // Initial Kite live quotes fetch
+    const fetchQuotes = () => {
+      fetch(`/api/market-watch?index=${encodeURIComponent(indexName)}`)
+        .then(r => r.json())
+        .then(liveData => {
+          if (!active) return;
+          if (liveData.success) {
+            setLiveIndexStocks(liveData.stocks || []);
+            setIndexError(null);
+          } else {
+            setIndexError(liveData.error || 'Failed to fetch live stocks');
+          }
+        })
+        .catch(err => {
+          if (active) setIndexError(err.message);
+        })
+        .finally(() => {
+          if (active) setLoadingIndex(false);
+        });
+    };
+
+    fetchQuotes();
+
+    // Start 3-second auto update interval
+    const intervalId = setInterval(() => {
+      if (viewMode === 'live') {
+        fetch(`/api/market-watch?index=${encodeURIComponent(indexName)}`)
+          .then(r => r.json())
+          .then(liveData => {
+            if (active && liveData.success) {
+              setLiveIndexStocks(liveData.stocks || []);
+            }
+          })
+          .catch(() => {});
       }
-      // Store live stocks for live mode table
-      if (liveData.success) {
-        setLiveIndexStocks(liveData.stocks || []);
-        setIndexError(null);
-      } else {
-        setIndexError(liveData.error || 'Failed to fetch live stocks');
-        setLiveIndexStocks([]);
-      }
-    }).finally(() => setLoadingIndex(false));
-  }, [category]);
+    }, 3000);
+
+    return () => {
+      active = false;
+      clearInterval(intervalId);
+    };
+  }, [category, viewMode]);
+
 
   // Keep liveIndexStocks synced with real-time websocket updates from global context
   useEffect(() => {
