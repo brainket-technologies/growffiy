@@ -92,6 +92,107 @@ function getLatestTradingDayFn(holidaySet: Set<string>, tradingDayNames: string[
   }
   return todayStr;
 }
+function CategorySelectorMw({ current, onChange, categories }: { current: string; onChange: (val: string) => void; categories: Record<string, string[]> }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const dropRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    (window as any)._toggleCategoryMw = () => setOpen(prev => !prev);
+    const clickOutside = (e: MouseEvent) => {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', clickOutside);
+    return () => {
+      delete (window as any)._toggleCategoryMw;
+      document.removeEventListener('mousedown', clickOutside);
+    };
+  }, []);
+
+  if (!open) return null;
+
+  return (
+    <div 
+      ref={dropRef}
+      style={{ 
+        position: 'absolute', 
+        top: '42px', 
+        left: 0, 
+        zIndex: 1000, 
+        backgroundColor: 'var(--bg-white)', 
+        border: '1px solid var(--border-color)', 
+        borderRadius: '8px', 
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)', 
+        width: '320px', 
+        padding: '12px' 
+      }}
+    >
+      <input 
+        type="text" 
+        placeholder="Search category/index..." 
+        value={search} 
+        onChange={(e) => setSearch(e.target.value)} 
+        style={{ 
+          width: '100%', 
+          height: '34px', 
+          border: '1px solid var(--border-color)', 
+          borderRadius: '6px', 
+          padding: '0 10px', 
+          fontSize: '13px', 
+          outline: 'none', 
+          marginBottom: '10px' 
+        }}
+      />
+      <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div 
+          onClick={() => { onChange('All'); setOpen(false); }}
+          style={{ 
+            padding: '6px 8px', 
+            borderRadius: '4px', 
+            cursor: 'pointer', 
+            fontSize: '13px',
+            backgroundColor: current === 'All' ? 'var(--bg-light)' : 'transparent',
+            fontWeight: current === 'All' ? 'bold' : 'normal'
+          }}
+        >
+          All (NIFTY 500)
+        </div>
+        {Object.entries(categories).map(([group, list]) => {
+          const filtered = list.filter(item => item.toLowerCase().includes(search.toLowerCase()));
+          if (filtered.length === 0) return null;
+          return (
+            <div key={group} style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 'bold', padding: '4px 8px', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid var(--border-light)', marginBottom: '4px' }}>
+                {group}
+              </div>
+              {filtered.map(item => (
+                <div 
+                  key={item}
+                  onClick={() => { onChange(item); setOpen(false); }}
+                  style={{ 
+                    padding: '6px 8px', 
+                    paddingLeft: '16px',
+                    borderRadius: '4px', 
+                    cursor: 'pointer', 
+                    fontSize: '13px',
+                    backgroundColor: current === item ? 'var(--bg-light)' : 'transparent',
+                    fontWeight: current === item ? 'bold' : 'normal',
+                    color: 'var(--text-heading)'
+                  }}
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 
 export default function MarketWatchPage() {
   const { stocks, loading, isSyncing, isWsConnected, clients, dashboardStats, isTradingActive } = useAppViewModel();
@@ -668,22 +769,42 @@ export default function MarketWatchPage() {
             paddingBottom: '16px',
             borderBottom: '1px solid var(--border-light)' 
           }}>
-            {/* Category Dropdown (Selector) */}
-            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', height: '38px', backgroundColor: 'var(--bg-white)' }}>
+            {/* Category Custom Searchable Dropdown */}
+            <div style={{ position: 'relative' }}>
+              <div 
+                onClick={() => (window as any)._toggleCategoryMw?.()}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  border: '1px solid var(--border-color)', 
+                  borderRadius: '8px', 
+                  padding: '0 12px', 
+                  height: '38px', 
+                  minWidth: '220px', 
+                  backgroundColor: 'var(--bg-white)',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: 'var(--text-heading)'
+                }}
+              >
+                <span>Category: {category}</span>
+                <span style={{ fontSize: '10px', marginLeft: '8px', color: 'var(--text-secondary)' }}>▼</span>
+              </div>
+
+              {/* Toggle Logic & Dropdown Overlay */}
+              <CategorySelectorMw 
+                current={category} 
+                onChange={(val) => setCategory(val)} 
+                categories={indexCategories}
+              />
+            </div>
+            <div style={{ display: 'none' }}>
               <select 
                 value={category} 
-                onChange={(e) => setCategory(e.target.value as CategoryType)}
-                style={{ 
-                  border: 'none', 
-                  outline: 'none', 
-                  padding: '0 12px', 
-                  fontSize: '13px', 
-                  fontWeight: 600, 
-                  color: 'var(--text-heading)',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer',
-                  height: '100%'
-                }}
+                onChange={(e) => setCategory(e.target.value)}
+                style={{ display: 'none' }}
               >
                 <option value="All">Category: All</option>
                 <optgroup label="Indices Eligible in Derivatives">
