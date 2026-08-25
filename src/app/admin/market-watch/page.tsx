@@ -501,7 +501,7 @@ export default function MarketWatchPage() {
     } else {
       if (activeFilter.startsWith('equal_')) setActiveFilter('all');
     }
-  }, [viewMode, historicalDate, historicalTime]);
+  }, [viewMode, historicalDate, historicalTime, category]);
 
   const activeStocksSource = (() => {
     if (viewMode === 'historical') {
