@@ -16,6 +16,7 @@ import { logFailedTrade } from '../utils/tradeLogger';
 import { getFreshCircuitLimits } from '../utils/circuitLimitHelper';
 import { matchesConditions } from '../utils/conditionEvaluator';
 import { PreOpenStrategy } from './algo/strategies/preOpenStrategy';
+import { TenAmStrategy } from './algo/strategies/tenAmStrategy';
 
 
 export interface StockQuote {
@@ -66,9 +67,11 @@ class AlgoEngineService {
   public wsLive: WsLiveFeed;
   private tradingScheduler: TradingScheduler;
   private preOpenStrategy: PreOpenStrategy;
+  private tenAmStrategy: TenAmStrategy;
 
   constructor() {
     this.preOpenStrategy = new PreOpenStrategy(this);
+    this.tenAmStrategy = new TenAmStrategy(this);
     this.wsLive = new WsLiveFeed(
       () => this.preOpenCache,
       () => this.preselectedStockByStrategy
@@ -173,10 +176,22 @@ class AlgoEngineService {
   }
 
   async preSelectAllClients(strategyId?: string): Promise<void> {
+    if (strategyId) {
+      const strategy = await prisma.strategy.findUnique({ where: { id: strategyId } });
+      if (strategy?.name?.toLowerCase().includes('ten am')) {
+        return this.tenAmStrategy.preSelectAllClients(strategyId);
+      }
+    }
     return this.preOpenStrategy.preSelectAllClients(strategyId);
   }
 
   public async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyId?: string, legIndex?: number, dualLegGroupId?: string | null): Promise<void> {
+    if (strategyId) {
+      const strategy = await prisma.strategy.findUnique({ where: { id: strategyId } });
+      if (strategy?.name?.toLowerCase().includes('ten am')) {
+        return this.tenAmStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
+      }
+    }
     return this.preOpenStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
   }
 

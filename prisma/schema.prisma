@@ -347,6 +347,12 @@ model HistoricalOhlc {
   high      Float
   low       Float
   close     Float
+  prevClose Float    @default(0.0) @map("prev_close")
+  volume    Int      @default(0)
+  high52w   Float    @default(0.0) @map("high_52w")
+  low52w    Float    @default(0.0) @map("low_52w")
+  change30d Float    @default(0.0) @map("change_30d")
+  change365d Float   @default(0.0) @map("change_365d")
   createdAt DateTime @default(now()) @map("created_at")
 
   @@unique([date, time, symbol])
@@ -400,4 +406,16 @@ model Testimonial {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("testimonials")
+}
+
+model MarketWatchSnapshot {
+  id        String   @id @default(uuid())
+  indexName String   @map("index_name")
+  timeSlot  String   @map("time_slot")
+  date      String   
+  data      Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([indexName, date, timeSlot])
+  @@map("market_watch_snapshots")
 }

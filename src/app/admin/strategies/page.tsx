@@ -62,6 +62,8 @@ interface LegTradeAction {
   bufferPercent: number;
   marketProtection?: number;
   candlePriceType: 'open' | 'high' | 'low' | 'close';
+  candlePattern?: 'None' | 'GRG' | 'RGR';
+  selectPosition?: number;
 }
 
 interface LegConfig {
@@ -78,7 +80,7 @@ interface StrategyConfig {
     description: string;
     tradeType: 'Intraday' | 'Swing' | 'Positional';
     exchange: 'NSE' | 'BSE';
-    segment: 'Cash' | 'Equity' | 'Futures' | 'Options' | 'NSE F&O' | 'Nifty 50' | 'Bank Nifty';
+    segment: 'Cash' | 'Equity' | 'Futures' | 'Options' | 'NSE F&O' | 'Nifty 50' | 'Bank Nifty' | 'Nifty 500';
     preSelectTime: string;
     exitTime: string;
     maxTradesPerDay: number;
@@ -86,6 +88,7 @@ interface StrategyConfig {
     stockSelectionType?: 'Gapdown (Losers)' | 'Gapup (Gainers)';
     checkIntervalSec: number;
     status: 'active' | 'inactive';
+    topCount?: number;
   };
   legs: LegConfig[];
   stoploss: {
@@ -159,7 +162,8 @@ const INITIAL_CONFIG: StrategyConfig = {
     maxTradesPerDay: 3,
     selectPosition: 1,
     checkIntervalSec: 60,
-    status: 'inactive'
+    status: 'inactive',
+    topCount: 20
   },
   legs: [{
     name: 'Leg 1',
@@ -1531,8 +1535,25 @@ export default function StrategiesPage() {
                           <option value="NSE F&O">NSE F&O</option>
                           <option value="Nifty 50">Nifty 50</option>
                           <option value="Bank Nifty">Bank Nifty</option>
+                          <option value="Nifty 500">Nifty 500</option>
                         </select>
                       </div>
+                      {formData.basicInfo.name === 'Ten AM Strategy' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{ fontSize: '12px', fontWeight: 600 }}>Top Stock Gainer/Loser Selection Count</label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={100}
+                            value={formData.basicInfo.topCount || 20}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              basicInfo: { ...formData.basicInfo, topCount: Number(e.target.value) }
+                            })}
+                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1570,74 +1591,76 @@ export default function StrategiesPage() {
                   </div>
 
                   {/* TRADE SELECTION */}
-                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '16px' }}>
-                    <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>TRADE SELECTION</label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Selection Type</label>
-                      <select
-                        value={formData.basicInfo.stockSelectionType || 'Gapdown (Losers)'}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          basicInfo: { ...formData.basicInfo, stockSelectionType: e.target.value as any }
-                        })}
-                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      >
-                        <option value="Gapdown (Losers)">Top Gapdown (Losers)</option>
-                        <option value="Gapup (Gainers)">Top Gapup (Gainers)</option>
-                      </select>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Select Position</label>
-                      <select
-                        value={formData.basicInfo.selectPosition}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          basicInfo: { ...formData.basicInfo, selectPosition: Number(e.target.value) }
-                        })}
-                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      >
-                        <option value={1}>1st</option>
-                        <option value={2}>2nd</option>
-                        <option value={3}>3rd</option>
-                        <option value={4}>4th</option>
-                        <option value={5}>5th</option>
-                        <option value={6}>6th</option>
-                        <option value={7}>7th</option>
-                        <option value={8}>8th</option>
-                        <option value={9}>9th</option>
-                        <option value={10}>10th</option>
-                      </select>
-                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Select which ranked stock to trade (e.g. 1st loser, 2nd loser)</span>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Max Trades/Day</label>
-                      <input
-                        type="number"
-                        value={formData.basicInfo.maxTradesPerDay}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          basicInfo: { ...formData.basicInfo, maxTradesPerDay: Number(e.target.value) }
-                        })}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    />
-                  </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '12px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Check Interval (sec)</label>
-                      <input
-                        type="number"
-                        min={10}
-                        max={300}
-                        step={10}
-                        value={formData.basicInfo.checkIntervalSec}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          basicInfo: { ...formData.basicInfo, checkIntervalSec: Number(e.target.value) }
-                        })}
+                  {formData.basicInfo.name !== 'Ten AM Strategy' && (
+                    <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '16px' }}>
+                      <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>TRADE SELECTION</label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 600 }}>Selection Type</label>
+                        <select
+                          value={formData.basicInfo.stockSelectionType || 'Gapdown (Losers)'}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            basicInfo: { ...formData.basicInfo, stockSelectionType: e.target.value as any }
+                          })}
+                          style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                        >
+                          <option value="Gapdown (Losers)">Top Gapdown (Losers)</option>
+                          <option value="Gapup (Gainers)">Top Gapup (Gainers)</option>
+                        </select>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 600 }}>Select Position</label>
+                        <select
+                          value={formData.basicInfo.selectPosition}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            basicInfo: { ...formData.basicInfo, selectPosition: Number(e.target.value) }
+                          })}
+                          style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                        >
+                          <option value={1}>1st</option>
+                          <option value={2}>2nd</option>
+                          <option value={3}>3rd</option>
+                          <option value={4}>4th</option>
+                          <option value={5}>5th</option>
+                          <option value={6}>6th</option>
+                          <option value={7}>7th</option>
+                          <option value={8}>8th</option>
+                          <option value={9}>9th</option>
+                          <option value={10}>10th</option>
+                        </select>
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Select which ranked stock to trade (e.g. 1st loser, 2nd loser)</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 600 }}>Max Trades/Day</label>
+                        <input
+                          type="number"
+                          value={formData.basicInfo.maxTradesPerDay}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            basicInfo: { ...formData.basicInfo, maxTradesPerDay: Number(e.target.value) }
+                          })}
                         style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                       />
-                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>How often the engine checks/monitors this strategy (default: 60)</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '12px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 600 }}>Check Interval (sec)</label>
+                        <input
+                          type="number"
+                          min={10}
+                          max={300}
+                          step={10}
+                          value={formData.basicInfo.checkIntervalSec}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            basicInfo: { ...formData.basicInfo, checkIntervalSec: Number(e.target.value) }
+                          })}
+                          style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                        />
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>How often the engine checks/monitors this strategy (default: 60)</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </Card>
 
@@ -1714,6 +1737,139 @@ export default function StrategiesPage() {
                       </div>
                     </div>
                   )}
+                </div>
+              </Card>
+
+              {/* Risk Management */}
+              <Card hoverable>
+                <div style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.06) 0%, rgba(217,119,6,0.04) 100%)', margin: '-24px -24px 16px -24px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', borderRadius: '16px 16px 0 0' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                    <ShieldAlert size={16} color="var(--color-info)" /> Risk Guard System
+                  </h3>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Capital Allocation %</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="number"
+                        min="-1"
+                        value={formData.riskManagement.capitalAllocation}
+                        onChange={(e) => {
+                          let val = Number(e.target.value);
+                          if (val < -1) val = -1;
+                          setFormData({ ...formData, riskManagement: { ...formData.riskManagement, capitalAllocation: val } });
+                        }}
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                      />
+                      {formData.riskManagement.capitalAllocation <= 0 && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>Disabled</span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Risk % (of Total Capital)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={formData.riskManagement.riskPerTrade}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        riskManagement: { ...formData.riskManagement, riskPerTrade: Number(e.target.value) }
+                      })}
+                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>MIS Margin Rate (%)</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="-1"
+                        value={formData.riskManagement.misMarginRate}
+                        onChange={(e) => {
+                          let val = Number(e.target.value);
+                          if (val < -1) val = -1;
+                          setFormData({ ...formData, riskManagement: { ...formData.riskManagement, misMarginRate: val } });
+                        }}
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                      />
+                      {formData.riskManagement.misMarginRate <= 0 && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>Disabled</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Max Daily Loss (₹)</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="number"
+                        min="-1"
+                        value={formData.riskManagement.maxDailyLoss}
+                        onChange={(e) => {
+                          let val = Number(e.target.value);
+                          if (val < -1) val = -1;
+                          setFormData({ ...formData, riskManagement: { ...formData.riskManagement, maxDailyLoss: val } });
+                        }}
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                      />
+                      {formData.riskManagement.maxDailyLoss === -1 && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>Disabled</span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Max Daily Profit (₹)</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="number"
+                        min="-1"
+                        value={formData.riskManagement.maxDailyProfit}
+                        onChange={(e) => {
+                          let val = Number(e.target.value);
+                          if (val < -1) val = -1;
+                          setFormData({ ...formData, riskManagement: { ...formData.riskManagement, maxDailyProfit: val } });
+                        }}
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                      />
+                      {formData.riskManagement.maxDailyProfit === -1 && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>Disabled</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Max Open Positions</label>
+                    <input
+                      type="number"
+                      value={formData.riskManagement.maxOpenPositions}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        riskManagement: { ...formData.riskManagement, maxOpenPositions: Number(e.target.value) }
+                      })}
+                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Kill Switch</label>
+                    <select
+                      value={formData.riskManagement.killSwitch ? 'true' : 'false'}
+                      onChange={(e: any) => setFormData({
+                        ...formData,
+                        riskManagement: { ...formData.riskManagement, killSwitch: e.target.value === 'true' }
+                      })}
+                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                    >
+                      <option value="false">Off</option>
+                      <option value="true">On (Force Suspend)</option>
+                    </select>
+                  </div>
                 </div>
               </Card>
             </div>
@@ -1819,6 +1975,28 @@ export default function StrategiesPage() {
                         <input type="number" step="0.01" value={leg.tradeAction.bufferPercent} onChange={(e) => handleLegChange(legIdx, 'tradeAction.bufferPercent', Number(e.target.value))}
                           style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none', fontSize: '12px' }} />
                       </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: 600 }}>Candle Pattern</label>
+                        <select value={leg.tradeAction.candlePattern || 'None'} onChange={(e) => handleLegChange(legIdx, 'tradeAction.candlePattern', e.target.value)}
+                          style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none', fontSize: '12px', cursor: 'pointer' }}>
+                          <option value="None">None</option>
+                          <option value="GRG">GRG</option>
+                          <option value="RGR">RGR</option>
+                        </select>
+                      </div>
+                      {formData.basicInfo.name === 'Ten AM Strategy' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <label style={{ fontSize: '11px', fontWeight: 600 }}>Select Position</label>
+                          <select value={leg.tradeAction.selectPosition || 1} onChange={(e) => handleLegChange(legIdx, 'tradeAction.selectPosition', Number(e.target.value))}
+                            style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none', fontSize: '12px', cursor: 'pointer' }}>
+                            <option value={1}>1st</option>
+                            <option value={2}>2nd</option>
+                            <option value={3}>3rd</option>
+                            <option value={4}>4th</option>
+                            <option value={5}>5th</option>
+                          </select>
+                        </div>
+                      )}
                       {(leg.tradeAction.orderType === 'Market' || leg.tradeAction.orderType === 'SL-Market') && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                           <label style={{ fontSize: '11px', fontWeight: 600 }}>Market Protection</label>
@@ -1976,138 +2154,7 @@ export default function StrategiesPage() {
                 )}
               </Card>
 
-              {/* Risk Management */}
-              <Card hoverable>
-                <div style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.06) 0%, rgba(217,119,6,0.04) 100%)', margin: '-24px -24px 16px -24px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', borderRadius: '16px 16px 0 0' }}>
-                  <h3 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                    <ShieldAlert size={16} color="var(--color-info)" /> Risk Guard System
-                  </h3>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Capital Allocation %</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input
-                        type="number"
-                        min="-1"
-                        value={formData.riskManagement.capitalAllocation}
-                        onChange={(e) => {
-                          let val = Number(e.target.value);
-                          if (val < -1) val = -1;
-                          setFormData({ ...formData, riskManagement: { ...formData.riskManagement, capitalAllocation: val } });
-                        }}
-                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      />
-                      {formData.riskManagement.capitalAllocation <= 0 && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>Disabled</span>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Risk % (of Total Capital)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={formData.riskManagement.riskPerTrade}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        riskManagement: { ...formData.riskManagement, riskPerTrade: Number(e.target.value) }
-                      })}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    />
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600 }}>MIS Margin Rate (%)</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="-1"
-                        value={formData.riskManagement.misMarginRate}
-                        onChange={(e) => {
-                          let val = Number(e.target.value);
-                          if (val < -1) val = -1;
-                          setFormData({ ...formData, riskManagement: { ...formData.riskManagement, misMarginRate: val } });
-                        }}
-                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      />
-                      {formData.riskManagement.misMarginRate <= 0 && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>Disabled</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Max Daily Loss (₹)</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input
-                        type="number"
-                        min="-1"
-                        value={formData.riskManagement.maxDailyLoss}
-                        onChange={(e) => {
-                          let val = Number(e.target.value);
-                          if (val < -1) val = -1;
-                          setFormData({ ...formData, riskManagement: { ...formData.riskManagement, maxDailyLoss: val } });
-                        }}
-                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      />
-                      {formData.riskManagement.maxDailyLoss === -1 && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>Disabled</span>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Max Daily Profit (₹)</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input
-                        type="number"
-                        min="-1"
-                        value={formData.riskManagement.maxDailyProfit}
-                        onChange={(e) => {
-                          let val = Number(e.target.value);
-                          if (val < -1) val = -1;
-                          setFormData({ ...formData, riskManagement: { ...formData.riskManagement, maxDailyProfit: val } });
-                        }}
-                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      />
-                      {formData.riskManagement.maxDailyProfit === -1 && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>Disabled</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Max Open Positions</label>
-                    <input
-                      type="number"
-                      value={formData.riskManagement.maxOpenPositions}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        riskManagement: { ...formData.riskManagement, maxOpenPositions: Number(e.target.value) }
-                      })}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Kill Switch</label>
-                    <select
-                      value={formData.riskManagement.killSwitch ? 'true' : 'false'}
-                      onChange={(e: any) => setFormData({
-                        ...formData,
-                        riskManagement: { ...formData.riskManagement, killSwitch: e.target.value === 'true' }
-                      })}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    >
-                      <option value="false">Off</option>
-                      <option value="true">On (Force Suspend)</option>
-                    </select>
-                  </div>
-                </div>
-              </Card>
+              
             </div>
           </div>
 

@@ -22,6 +22,7 @@ export class TradingScheduler {
   static readonly TRADE_MONITOR_CONCURRENCY = 10;
   private isMonitoringRunning = false;
   private lastOhlcSnapshot: Map<string, string> = new Map();
+  private lastMarketWatchSnapshot: Map<string, string> = new Map();
 
   constructor(
     private engine: EngineAccess,
@@ -61,6 +62,14 @@ export class TradingScheduler {
           this.lastOhlcSnapshot.set(currentTimeStr, currentDateKey);
           this.recordOhlcSnapshot(currentTimeStr, currentDateKey).catch(err => {
             console.error('Error recording OHLC snapshot in scheduler thread:', err);
+          });
+        }
+
+        // Check for Market Watch snapshots at specific times (same 4 slots)
+        if (targetOhlcTimes.includes(currentTimeStr) && this.lastMarketWatchSnapshot.get(currentTimeStr) !== currentDateKey) {
+          this.lastMarketWatchSnapshot.set(currentTimeStr, currentDateKey);
+          this.recordMarketWatchSnapshot(currentTimeStr).catch(err => {
+            console.error('Error recording Market Watch snapshot in scheduler thread:', err);
           });
         }
 
@@ -844,9 +853,9 @@ export class TradingScheduler {
 
                     if (!trade.targetOrderId || trade.targetOrderId === '' || trade.targetOrderId === 'REJECTED') {
                       try {
-                        // 5-second delay after SL order before sending Target LIMIT order to Zerodha
-                        console.log(`AlgoEngine Monitor: Waiting 5 seconds after Stop-Loss order before placing Target order for ${trade.symbol}...`);
-                        await new Promise(resolve => setTimeout(resolve, 5000));
+                        // 30-second delay after SL order before sending Target LIMIT order to Zerodha
+                        console.log(`AlgoEngine Monitor: Waiting 30 seconds after Stop-Loss order before placing Target order for ${trade.symbol}...`);
+                        await new Promise(resolve => setTimeout(resolve, 30000));
 
                         const targetParams = {
                           exchange: exchangeParam, tradingsymbol: trade.symbol,
@@ -1255,6 +1264,111 @@ export class TradingScheduler {
       console.log(`AlgoEngine Scheduler: Successfully saved ${count} OHLC stock snapshots for ${formattedDate} at ${timeStr}.`);
     } catch (err) {
       console.error('AlgoEngine Scheduler: Failed to record OHLC snapshot:', err);
+    }
+  }
+
+  private async recordMarketWatchSnapshot(timeStr: string) {
+    const https = await import('https');
+    const zlib = await import('zlib');
+
+    const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+    const agent = new https.Agent({ keepAlive: true, rejectUnauthorized: false });
+
+    const dateObj = new Date();
+    const formattedDate = dateObj.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
+    const INDICES = [
+      'NIFTY 50', 'NIFTY BANK', 'NIFTY FIN SERVICE', 'NIFTY MID SELECT',
+      'NIFTY NEXT 50', 'NIFTY 100', 'NIFTY 200', 'NIFTY 500',
+      'NIFTY MIDCAP 100', 'NIFTY MIDCAP 150', 'NIFTY MIDCAP 50',
+      'NIFTY SMALLCAP 100', 'NIFTY SMALLCAP 250', 'NIFTY SMALLCAP 50',
+      'NIFTY TOTAL MARKET', 'NIFTY MICROCAP 250', 'NIFTY LARGEMIDCAP 250',
+      'NIFTY AUTO', 'NIFTY FMCG', 'NIFTY IT', 'NIFTY METAL',
+      'NIFTY PHARMA', 'NIFTY REALTY', 'NIFTY PSU BANK', 'NIFTY PRIVATE BANK',
+      'NIFTY OIL & GAS', 'NIFTY HEALTHCARE INDEX', 'NIFTY CONSUMER DURABLES',
+      'NIFTY MEDIA', 'NIFTY CHEMICALS', 'NIFTY CEMENT',
+    ];
+
+    const httpGet = (url: string, headers: Record<string, string>): Promise<{ status: number; body: string; cookies: string[] }> =>
+      new Promise((resolve, reject) => {
+        const parsed = new URL(url);
+        const req = https.request(
+          { hostname: parsed.hostname, path: parsed.pathname + parsed.search, method: 'GET', headers, agent, timeout: 15000 },
+          (res) => {
+            const cookies: string[] = [];
+            const raw = res.headers['set-cookie'];
+            if (Array.isArray(raw)) cookies.push(...raw.map((c: string) => c.split(';')[0].trim()));
+            else if (raw) cookies.push(raw.split(';')[0].trim());
+            const chunks: Buffer[] = [];
+            const enc = res.headers['content-encoding'] ?? '';
+            let stream: NodeJS.ReadableStream = res;
+            if (enc.includes('br')) stream = res.pipe(zlib.createBrotliDecompress());
+            else if (enc.includes('gzip')) stream = res.pipe(zlib.createGunzip());
+            stream.on('data', (c: Buffer) => chunks.push(c));
+            stream.on('end', () => resolve({ status: res.statusCode ?? 0, body: Buffer.concat(chunks).toString('utf8'), cookies }));
+            stream.on('error', reject);
+          }
+        );
+        req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+        req.on('error', reject);
+        req.end();
+      });
+
+    try {
+      console.log(`AlgoEngine Scheduler: Recording Market Watch snapshot for ${formattedDate} ${timeStr}...`);
+
+      // Step 1: Get NSE cookies
+      const base = { 'User-Agent': UA, 'Accept': 'text/html,*/*;q=0.8', 'Accept-Encoding': 'gzip, deflate, br', 'Accept-Language': 'en-US,en;q=0.9', 'Connection': 'keep-alive' };
+      const cookieMap: Record<string, string> = {};
+      const r1 = await httpGet('https://www.nseindia.com/', base);
+      for (const c of r1.cookies) { const eq = c.indexOf('='); if (eq > 0) cookieMap[c.slice(0, eq)] = c.slice(eq + 1); }
+      const cookie1 = Object.entries(cookieMap).map(([k, v]) => `${k}=${v}`).join('; ');
+      const r2 = await httpGet('https://www.nseindia.com/market-data/live-equity-market', { ...base, 'Cookie': cookie1, 'Referer': 'https://www.nseindia.com/' });
+      for (const c of r2.cookies) { const eq = c.indexOf('='); if (eq > 0) cookieMap[c.slice(0, eq)] = c.slice(eq + 1); }
+      const cookies = Object.entries(cookieMap).map(([k, v]) => `${k}=${v}`).join('; ');
+
+      // Step 2: Fetch all indices concurrently for exact point-in-time snapshot
+      console.log(`AlgoEngine Scheduler: Fetching 31 indices concurrently from NSE...`);
+      const fetchPromises = INDICES.map(async (indexName) => {
+        try {
+          const url = `https://www.nseindia.com/api/NextApi/apiClient/marketWatchApi?functionName=getIndicesData&symbol=${encodeURIComponent(indexName)}`;
+          const r = await httpGet(url, {
+            'User-Agent': UA, 'Accept': 'application/json, text/plain, */*',
+            'Accept-Encoding': 'gzip, deflate, br', 'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': 'https://www.nseindia.com/market-data/live-equity-market',
+            'Cookie': cookies, 'Sec-Fetch-Dest': 'empty', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-origin',
+          });
+          if (r.status === 200) {
+            const d = JSON.parse(r.body);
+            return { indexName, data: d?.data?.data || [] };
+          }
+        } catch {}
+        return { indexName, data: [] };
+      });
+
+      const results = await Promise.all(fetchPromises);
+
+      // Step 3: Save to DB sequentially to avoid DB connection spikes
+      let saved = 0, failed = 0;
+      for (const { indexName, data } of results) {
+        if (data.length > 0) {
+          try {
+            await prisma.marketWatchSnapshot.upsert({
+              where: { indexName_date_timeSlot: { indexName, date: formattedDate, timeSlot: timeStr } },
+              update: { data },
+              create: { indexName, date: formattedDate, timeSlot: timeStr, data },
+            });
+            saved++;
+          } catch {
+            failed++;
+          }
+        } else {
+          failed++;
+        }
+      }
+      console.log(`AlgoEngine Scheduler: Market Watch snapshot done — ${saved} saved, ${failed} failed for ${formattedDate} ${timeStr}.`);
+    } catch (err) {
+      console.error('AlgoEngine Scheduler: Failed to record Market Watch snapshot:', err);
     }
   }
 }
