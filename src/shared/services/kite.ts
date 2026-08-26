@@ -1,10 +1,18 @@
 import crypto from 'crypto';
 import https from 'https';
+if (typeof window === 'undefined') {
+  try {
+    const dns = require('dns');
+    if (typeof dns.setDefaultResultOrder === 'function') {
+      dns.setDefaultResultOrder('ipv4first'); // Force IPv4 for Kite API calls
+    }
+  } catch (e) { }
+}
 
 async function kiteFetch(url: string, options: any, dedicatedIp?: string | null) {
   const fetchOpts: any = { ...options };
   const ip = dedicatedIp ? String(dedicatedIp).trim() : '';
-  
+
   if (ip && ip !== 'null' && ip !== 'undefined' && ip !== '0.0.0.0') {
     try {
       if (typeof window === 'undefined') {
@@ -26,7 +34,7 @@ async function kiteFetch(url: string, options: any, dedicatedIp?: string | null)
     try {
       const parsedUrl = new URL(url);
       const postData = fetchOpts.body || '';
-      
+
       const reqHeaders = { ...fetchOpts.headers };
       if (postData) {
         reqHeaders['Content-Length'] = Buffer.byteLength(postData);
@@ -254,7 +262,7 @@ export class KiteClient {
   /**
    * Places a regular order on Zerodha Kite.
    */
-   public static async placeOrder(
+  public static async placeOrder(
     apiKey: string,
     accessToken: string,
     params: {
@@ -270,6 +278,7 @@ export class KiteClient {
       market_protection?: number;
       variety?: 'regular' | 'amo';
     },
+
     dedicatedIp?: string | null
   ) {
     const bodyParams = new URLSearchParams();

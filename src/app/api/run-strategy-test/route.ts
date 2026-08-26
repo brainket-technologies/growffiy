@@ -91,7 +91,7 @@ export async function GET() {
     ];
 
     // Trigger the real production strategy evaluation and execution algorithm with mock stock
-    await algoEngine.executePreOpenTrades('system-admin-mock', mockStocks);
+    await algoEngine.executePreOpenTrades('system-admin-mock', mockStocks, activeStrategy.id);
     
     return NextResponse.json({
       success: true,

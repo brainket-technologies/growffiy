@@ -142,7 +142,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
       const config: any = group.configJson;
       const topCount: number = config?.basicInfo?.topCount || 20;
       const selectPosition: number = config?.basicInfo?.selectPosition || 1; // e.g. 3rd matching stock
-      const activeLegs = (config?.legs || []).filter((l: any) => l.isEnabled);
+      const activeLegs = (config?.legs || []).filter((l: any) => l.enabled || l.isEnabled);
       if (activeLegs.length === 0) continue;
 
       // ---------------------------------------------------------------
@@ -159,10 +159,11 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
           // 4b️⃣ Fetch three 15‑minute candles (09:15, 09:30, 09:45) using Master token
           const from = new Date(dateStr + 'T09:15:00+05:30').toISOString();
           const to = new Date(dateStr + 'T09:46:00+05:30').toISOString(); // include 09:45 candle
+          const liveToken = this.engine.wsLive.getSymbolToToken(stock.symbol);
           const candles = await KiteClient.getHistoricalData(
             masterClient.zerodhaApiKey,
             masterClient.accessToken,
-            stock.instrumentToken || stock.symbol,
+            liveToken || stock.instrumentToken || stock.symbol,
             mapTimeframeToKiteInterval('15m'),
             from,
             to
@@ -176,11 +177,15 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
           const isRGR = direction === 'sell' && pattern[0] === 'R' && pattern[1] === 'G' && pattern[2] === 'R';
           if ((direction === 'buy' && isGRG) || (direction === 'sell' && isRGR)) {
             matchesFound++;
-            if (matchesFound === selectPosition) return stock;
+            if (matchesFound === selectPosition) {
+              stock.thirdCandleHigh = hist[2][2];
+              stock.thirdCandleLow = hist[2][3];
+              return stock;
+            }
           }
         }
-        // Fallback – return first stock if no enough matches
-        return list[0];
+        // No matches found, do not trade
+        return null;
       };
 
       const targetGainer = await findMatchingStock(gainers, 'buy');
@@ -208,7 +213,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
           const todayStartLocal = new Date();
           todayStartLocal.setHours(0, 0, 0, 0);
           const todayTrades = await prisma.trade.findMany({
-            where: { clientId: client.id, createdAt: { gte: todayStartLocal }, pnl: { not: null } }
+            where: { clientId: client.id, strategyId: group.strategyId, createdAt: { gte: todayStartLocal }, pnl: { not: null } }
           });
           const todayPnl = todayTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
           
@@ -247,9 +252,18 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
             const qty = Math.floor(rawQty);
 
             // ---- Price calculations ----
-            const entryPriceRaw = targetStock.ltp * 1.001; // tiny buffer (0.1%)
-            const slPriceRaw = leg.direction?.toLowerCase() === 'buy' ? targetStock.low : targetStock.high;
-            const targetPriceRaw = leg.direction?.toLowerCase() === 'buy' ? entryPriceRaw * 1.02 : entryPriceRaw * 0.98; // 1:2 R:R placeholder
+            const bufferPct = leg.tradeAction?.bufferPercent || 0.1;
+            const thirdCandleHigh = targetStock.thirdCandleHigh || targetStock.high;
+            const thirdCandleLow = targetStock.thirdCandleLow || targetStock.low;
+            
+            const isBuy = leg.direction?.toLowerCase() === 'buy';
+            
+            const baseEntry = isBuy ? thirdCandleHigh : thirdCandleLow;
+            const bufferVal = baseEntry * (bufferPct / 100);
+            const entryPriceRaw = isBuy ? baseEntry + bufferVal : baseEntry - bufferVal;
+            
+            const slPriceRaw = isBuy ? thirdCandleLow : thirdCandleHigh;
+            const targetPriceRaw = isBuy ? entryPriceRaw * 1.02 : entryPriceRaw * 0.98; // 1:2 R:R placeholder
 
             const entryPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, entryPriceRaw);
             let slPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, slPriceRaw);

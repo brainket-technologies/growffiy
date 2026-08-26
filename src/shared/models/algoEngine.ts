@@ -181,8 +181,17 @@ class AlgoEngineService {
       if (strategy?.name?.toLowerCase().includes('ten am')) {
         return this.tenAmStrategy.preSelectAllClients(strategyId);
       }
+      return this.preOpenStrategy.preSelectAllClients(strategyId);
+    } else {
+      const strategies = await prisma.strategy.findMany({ where: { status: 'active' } });
+      for (const st of strategies) {
+        if (st.name.toLowerCase().includes('ten am')) {
+          await this.tenAmStrategy.preSelectAllClients(st.id);
+        } else {
+          await this.preOpenStrategy.preSelectAllClients(st.id);
+        }
+      }
     }
-    return this.preOpenStrategy.preSelectAllClients(strategyId);
   }
 
   public async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyId?: string, legIndex?: number, dualLegGroupId?: string | null): Promise<void> {
@@ -191,8 +200,17 @@ class AlgoEngineService {
       if (strategy?.name?.toLowerCase().includes('ten am')) {
         return this.tenAmStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
       }
+      return this.preOpenStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
+    } else {
+      const strategies = await prisma.strategy.findMany({ where: { status: 'active' } });
+      for (const st of strategies) {
+        if (st.name.toLowerCase().includes('ten am')) {
+          await this.tenAmStrategy.executePreOpenTrades(adminId, mockStocks, st.id, legIndex, dualLegGroupId);
+        } else {
+          await this.preOpenStrategy.executePreOpenTrades(adminId, mockStocks, st.id, legIndex, dualLegGroupId);
+        }
+      }
     }
-    return this.preOpenStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
   }
 
   public async fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {

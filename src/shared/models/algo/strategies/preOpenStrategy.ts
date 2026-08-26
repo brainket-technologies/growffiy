@@ -631,7 +631,7 @@ export class PreOpenStrategy {
           const todayStartLocal = new Date();
           todayStartLocal.setHours(0, 0, 0, 0);
           const todayTrades = await prisma.trade.findMany({
-            where: { clientId: client.id, createdAt: { gte: todayStartLocal }, pnl: { not: null } }
+            where: { clientId: client.id, strategyId: group.strategyId, createdAt: { gte: todayStartLocal }, pnl: { not: null } }
           });
           const todayPnl = todayTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
           const maxDailyLoss = config?.riskManagement?.maxDailyLoss;
