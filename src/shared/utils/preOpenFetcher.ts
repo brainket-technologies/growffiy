@@ -294,9 +294,10 @@ export function getPreOpenDate(): string {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports.getPreOpenStocks = getPreOpenStocks;
-  module.exports.getCachedPreOpenStocks = getCachedPreOpenStocks;
-  module.exports.getPreOpenDate = getPreOpenDate;
-  module.exports.fetchLivePreOpenFromNSE = fetchLivePreOpenFromNSE;
-  module.exports.fetchLivePreOpenFromKite = fetchLivePreOpenFromKite;
+// module.exports.getPreOpenStocks = getPreOpenStocks;
+// module.exports.getCachedPreOpenStocks = getCachedPreOpenStocks;
+// module.exports.getPreOpenDate = getPreOpenDate;
+// module.exports.fetchLivePreOpenFromNSE = fetchLivePreOpenFromNSE;
+// module.exports.getNifty50Snapshot = getNifty50Snapshot;
+// module.exports.getBankNiftySnapshot = getBankNiftySnapshot;enFromKite;
 }

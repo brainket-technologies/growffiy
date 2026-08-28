@@ -51,7 +51,7 @@ class AlgoEngineService {
   private lastPreOpenFetchTime: number = 0;
   private preOpenCacheDate: string = '';
 
-  public preselectedStockByStrategy: Map<string, StockQuote> = new Map();
+  public preselectedStockByStrategy: Map<string, any> = new Map();
   todayTokenRefreshed: Set<string> = new Set();
 
   private conditionCache: Map<string, boolean> = new Map();

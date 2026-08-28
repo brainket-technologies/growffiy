@@ -451,8 +451,9 @@ export class TradingScheduler {
               return;
             }
 
-            // Auto-recovery: If trade is OPEN but slOrderId is missing, attempt to place SL-M order now
-            if (!trade.slOrderId && trade.entryOrderStatus === 'filled' && Number(trade.stopLoss) > 0 && Number(trade.quantity) > 0) {
+            // Auto-recovery: If trade is OPEN but slOrderId is missing (give it 30s so scheduleTradeMonitor can place it first)
+            const filledTimeAgo = trade.updatedAt ? (new Date().getTime() - new Date(trade.updatedAt).getTime()) : 0;
+            if (!trade.slOrderId && trade.entryOrderStatus === 'filled' && Number(trade.stopLoss) > 0 && Number(trade.quantity) > 0 && filledTimeAgo > 30000) {
               try {
                 const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
                 const exchangeParam = config?.basicInfo?.exchange || 'NSE';
@@ -1298,7 +1299,7 @@ export class TradingScheduler {
             const cookies: string[] = [];
             const raw = res.headers['set-cookie'];
             if (Array.isArray(raw)) cookies.push(...raw.map((c: string) => c.split(';')[0].trim()));
-            else if (raw) cookies.push(raw.split(';')[0].trim());
+            else if (raw) cookies.push((raw as string).split(';')[0].trim());
             const chunks: Buffer[] = [];
             const enc = res.headers['content-encoding'] ?? '';
             let stream: NodeJS.ReadableStream = res;

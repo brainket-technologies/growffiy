@@ -659,7 +659,17 @@ export default function LiveTradeTransactionsPage() {
                           {row.stopLoss && <span>SL: ₹{Number(row.stopLoss).toFixed(2)}</span>}
                           {row.target && <span>Tgt: ₹{Number(row.target).toFixed(2)}</span>}
                           {row.entryOrderId && <span style={{ fontSize: '10px', fontFamily: 'monospace', color: 'var(--text-muted)' }}>E:{row.entryOrderId.slice(0,8)}</span>}
-                          <span className={`badge ${getOrderStatusBadgeClass(row.entryOrderStatus)}`} style={{ fontSize: '8px' }}>{row.entryOrderStatus || '--'}</span>
+                        </div>
+                        <div style={{ display: 'inline-flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
+                          <span className={`badge ${getOrderStatusBadgeClass(row.entryOrderStatus)}`} style={{ fontSize: '8px', padding: '1px 4px' }}>
+                            E:{(row.entryOrderStatus || '--').toUpperCase().slice(0,4)}
+                          </span>
+                          <span className={`badge ${getOrderStatusBadgeClass(row.slOrderStatus)}`} style={{ fontSize: '8px', padding: '1px 4px' }}>
+                            SL:{row.slOrderId ? (row.slOrderStatus || 'OPEN').toUpperCase().slice(0,4) : '--'}
+                          </span>
+                          <span className={`badge ${getOrderStatusBadgeClass(row.targetOrderStatus)}`} style={{ fontSize: '8px', padding: '1px 4px' }}>
+                            T:{row.targetOrderId ? (row.targetOrderStatus || 'OPEN').toUpperCase().slice(0,4) : '--'}
+                          </span>
                         </div>
                       </td>
                       <td style={{ fontSize: '11px', whiteSpace: 'nowrap' }}>{row.exitReason || '--'}</td>

@@ -93,12 +93,16 @@ export class TenAmStrategy {
       const finalStocks = [...gainers, ...losers];
 
       try {
-        const preselectData = finalStocks.map(stock => ({
+        const preselectData = {
           strategyId: strategy.id,
-          symbol: stock.symbol,
-          stockData: JSON.stringify(stock)
-        }));
-        await prisma.strategyPreselect.createMany({ data: preselectData, skipDuplicates: true });
+          symbol: 'MULTIPLE',
+          stockData: JSON.stringify(finalStocks)
+        };
+        await prisma.strategyPreselect.upsert({
+          where: { strategyId: strategy.id },
+          update: { stockData: preselectData.stockData, symbol: 'MULTIPLE' },
+          create: preselectData
+        });
         this.engine.preselectedStockByStrategy.set(strategy.id, finalStocks);
         console.log(`AlgoEngine preSelect: Saved ${finalStocks.length} pre-selected stocks for ${strategy.name}`);
       } catch (err) {
@@ -252,20 +256,26 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
           const capitalAtRiskPerLeg = marginResult.capitalAtRisk / legDivisor;
           const buyingPowerPerLeg = marginResult.clientCapital / legDivisor;
 
-          for (const leg of activeLegs) {
-            const targetStock = (leg.direction?.toLowerCase() === 'buy') ? targetGainer : targetLoser;
-            if (!targetStock) continue;
+          for (let li = 0; li < activeLegs.length; li++) {
+            if (legIndex !== undefined && legIndex !== null && li !== legIndex) continue;
+            const leg = activeLegs[li];
+            
+            const isBuy = leg.tradeAction?.action?.toLowerCase() === 'long' || leg.direction?.toLowerCase() === 'buy';
+            const targetStock = isBuy ? targetGainer : targetLoser;
+            
+            if (!targetStock) {
+              console.log(`AlgoEngine: No matching stock found for ${client.user?.name} Leg ${li + 1} (${isBuy ? 'buy' : 'sell'}). Skipping leg.`);
+              continue;
+            }
 
             // ---- Quantity (rounded to tick size) ----
             const rawQty = Math.max(1, Math.floor(capitalAtRiskPerLeg / (targetStock.ltp || 1)));
-            const qty = 1; // FORCED TO 1 FOR TESTING
+            const qty = rawQty;
 
             // ---- Price calculations ----
             const bufferPct = leg.tradeAction?.bufferPercent || 0.1;
             const thirdCandleHigh = targetStock.thirdCandleHigh || targetStock.high;
             const thirdCandleLow = targetStock.thirdCandleLow || targetStock.low;
-            
-            const isBuy = leg.direction?.toLowerCase() === 'buy';
             
             const baseEntry = isBuy ? thirdCandleHigh : thirdCandleLow;
             const bufferVal = baseEntry * (bufferPct / 100);
@@ -279,15 +289,21 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
             let targetPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, targetPriceRaw);
 
             // ---- Circuit limit safety ----
-            const circuitLimits = await getFreshCircuitLimits(client, 'NSE', targetStock.symbol, activeAccessToken);
-            if (circuitLimits) {
-              const { lower, upper } = circuitLimits;
+            console.log(`AlgoEngine: Fetching circuit limits for ${targetStock.symbol}...`);
+            const freshLimits = await getFreshCircuitLimits(client, 'NSE', targetStock.symbol, activeAccessToken);
+            console.log(`AlgoEngine: Fetched circuit limits for ${targetStock.symbol}:`, freshLimits);
+            
+            if (freshLimits) {
+              const { lower, upper } = freshLimits;
               if (entryPrice <= lower || entryPrice >= upper) {
                 console.log(`Entry skipped for ${client.user?.name}: ${targetStock.symbol} hits circuit limits.`);
-                await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, 'CNC', entryPrice, 'Circuit Hit', { direction: leg.direction || '', legName: leg.name || '', legTimeframe: '15m', dualLegGroupId: null });
+                await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, 'CNC', entryPrice, 'Circuit Hit', { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '15m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice });
                 continue;
               }
             }
+
+            // ---- Build Order Payload ----
+            console.log(`AlgoEngine: Building order payload for ${targetStock.symbol}...`);
 
             // ---- Place SL‑Market entry order ----
             let entryOrderId: string | null = null;
@@ -295,34 +311,92 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
               const orderPayload: any = {
                 tradingsymbol: targetStock.symbol,
                 exchange: 'NSE',
-                transaction_type: leg.direction?.toUpperCase() === 'BUY' ? 'BUY' : 'SELL',
+                transaction_type: isBuy ? 'BUY' : 'SELL',
                 quantity: qty,
+                order_type: leg.tradeAction?.orderType === 'SL-Market' ? 'SL-M' : (leg.tradeAction?.orderType || 'SL-M'),
                 product: 'CNC',
-                order_type: 'SL-MARKET',
                 price: entryPrice,
                 trigger_price: slPrice,
                 validity: 'DAY',
                 variety: 'regular',
+                tag: 'algo_tenam'
               };
+
+              console.log(`AlgoEngine: Calling KiteClient.placeOrder for ${targetStock.symbol}...`);
               let orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, orderPayload, (client.proxyUrl || client.dedicatedIp));
+              console.log(`AlgoEngine: KiteClient.placeOrder returned for ${targetStock.symbol}:`, orderRes);
               
-              if (orderRes && orderRes.status === 'error' &&
-                (orderRes.message?.includes('Trigger price') ||
-                  orderRes.message?.includes('stoploss') ||
-                  orderRes.message?.includes('lower than') ||
-                  orderRes.message?.includes('higher than'))) {
-                console.log(`AlgoEngine: Trigger price already crossed for ${targetStock.symbol}. Retrying entry order as MARKET order.`);
-                const fallbackParams = {
-                  ...orderPayload,
-                  order_type: 'MARKET',
-                  price: undefined,
-                  trigger_price: undefined
-                };
-                orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, fallbackParams, (client.proxyUrl || client.dedicatedIp));
+              if (orderRes && orderRes.status === 'error') {
+                if (orderRes.message?.includes('Trigger price') || 
+                    orderRes.message?.includes('circuit') ||
+                    orderRes.message?.includes('stoploss') ||
+                    orderRes.message?.includes('lower than') ||
+                    orderRes.message?.includes('higher than')) {
+                  console.log(`AlgoEngine: Retrying with MARKET order due to circuit/trigger issue for ${targetStock.symbol}...`);
+                  const fallbackParams = {
+                    ...orderPayload,
+                    order_type: 'MARKET',
+                    price: undefined,
+                    trigger_price: undefined
+                  };
+                  orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, fallbackParams, (client.proxyUrl || client.dedicatedIp));
+                }
+                
+                if (orderRes && orderRes.status === 'error') {
+                  const errMsg = orderRes?.message || 'Kite API error';
+                  console.warn(`AlgoEngine: Entry order failed for ${client.user?.name} – ${targetStock.symbol}:`, errMsg);
+                  // Save full trade record like Pre-Open does (with qty/SL/target visible in UI)
+                  await prisma.trade.create({
+                    data: {
+                      clientId: client.id, strategyId: group.strategyId,
+                      symbol: targetStock.symbol, orderType: 'CNC',
+                      entryPrice, quantity: qty,
+                      stopLoss: slPrice, target: targetPrice,
+                      slTriggerPrice: slPrice,
+                      originalEntryPrice: entryPriceRaw,
+                      originalStopLoss: slPriceRaw,
+                      originalTarget: targetPriceRaw,
+                      status: 'FAILED', entryTime: new Date(),
+                      entryOrderStatus: 'FAILED',
+                      kiteResponse: orderRes || { error: errMsg },
+                      direction: isBuy ? 'LONG' : 'SHORT',
+                      legName: leg.name || '',
+                      legTimeframe: '15m'
+                    }
+                  });
+                  await prisma.strategyLog.create({
+                    data: { strategyId: group.strategyId, message: `Ten AM order failed for ${client.user?.name} (${targetStock.symbol}): ${errMsg}`, logType: 'error' }
+                  });
+                  continue;
+                }
               }
               
-              entryOrderId = orderRes?.data?.order_id || null;
+              entryOrderId = orderRes?.data?.order_id;
               
+              if (!entryOrderId) {
+                console.warn(`AlgoEngine: Entry order no ID for ${client.user?.name} – ${targetStock.symbol}`);
+                await prisma.trade.create({
+                  data: {
+                    clientId: client.id, strategyId: group.strategyId,
+                    symbol: targetStock.symbol, orderType: 'CNC',
+                    entryPrice, quantity: qty,
+                    stopLoss: slPrice, target: targetPrice,
+                    slTriggerPrice: slPrice,
+                    originalEntryPrice: entryPriceRaw,
+                    originalStopLoss: slPriceRaw,
+                    originalTarget: targetPriceRaw,
+                    status: 'FAILED', entryTime: new Date(),
+                    entryOrderStatus: 'FAILED',
+                    kiteResponse: orderRes || {},
+                    direction: isBuy ? 'LONG' : 'SHORT',
+                    legName: leg.name || '',
+                    legTimeframe: '15m'
+                  }
+                });
+                continue;
+              }
+
+
               if (entryOrderId) {
                 console.log(`Entry order placed ${entryOrderId} for ${client.user?.name} – ${targetStock.symbol}`);
                 let tradeId = '';
@@ -345,7 +419,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                       entryOrderId: entryOrderId,
                       entryOrderStatus: 'OPEN',
                       kiteResponse: orderRes || {},
-                      direction: leg.direction?.toLowerCase() === 'buy' ? 'LONG' : 'SHORT',
+                      direction: isBuy ? 'LONG' : 'SHORT',
                       legName: leg.name || '',
                       legTimeframe: '15m'
                     }
@@ -382,7 +456,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                         if (freshLimitsSLT) {
                           const { upper, lower } = freshLimitsSLT;
                           if (upper > 0 && lower > 0) {
-                            if (leg.direction?.toUpperCase() === 'BUY') {
+                            if (isBuy) {
                               if (slPrice < lower) {
                                 slPrice = lower + 0.05;
                                 console.log(`AlgoEngine: Adjusted SL to Lower Circuit + 0.05 for ${targetStock.symbol} LONG: ₹${slPrice}`);
@@ -413,10 +487,10 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                           const slPayload: any = {
                             tradingsymbol: targetStock.symbol,
                             exchange: 'NSE',
-                            transaction_type: leg.direction?.toUpperCase() === 'BUY' ? 'SELL' : 'BUY',
+                            transaction_type: isBuy ? 'SELL' : 'BUY',
                             quantity: qty,
                             product: 'CNC',
-                            order_type: 'SL-MARKET',
+                            order_type: 'SL-M',
                             price: slPrice,
                             trigger_price: slPrice,
                             validity: 'DAY',
@@ -445,7 +519,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                           const tgtPayload: any = {
                             tradingsymbol: targetStock.symbol,
                             exchange: 'NSE',
-                            transaction_type: leg.direction?.toUpperCase() === 'BUY' ? 'SELL' : 'BUY',
+                            transaction_type: isBuy ? 'SELL' : 'BUY',
                             quantity: qty,
                             product: 'CNC',
                             order_type: 'LIMIT',
@@ -501,6 +575,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                       status: 'open',
                       entryOrderStatus: entryFilled ? 'filled' : (latestOrderStatus === 'COMPLETE' ? 'filled' : latestOrderStatus),
                       slOrderId: slOrderIdStr,
+                      slTriggerPrice: slPrice,
                       targetOrderId: tgtOrderIdStr,
                       targetOrderStatus: tgtOrderStatusVal || (tgtOrderIdStr ? 'OPEN' : null)
                     }
@@ -509,7 +584,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
               }
             } catch (err) {
               console.error('Failed to place entry order:', err);
-              await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, 'CNC', entryPrice, 'Entry Fail', { direction: leg.direction || '', legName: leg.name || '', legTimeframe: '15m', dualLegGroupId: null });
+              await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, 'CNC', entryPrice, 'Entry Fail', { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '15m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice });
               continue;
             }
           }

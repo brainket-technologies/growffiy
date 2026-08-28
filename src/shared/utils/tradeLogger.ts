@@ -5,6 +5,10 @@ export interface FailedTradeLegFields {
   legName: string;
   legTimeframe: string;
   dualLegGroupId: string | null;
+  quantity?: number;
+  stopLoss?: number;
+  target?: number;
+  slTriggerPrice?: number;
 }
 
 /**
@@ -51,9 +55,13 @@ export async function logFailedTrade(
         symbol,
         orderType,
         entryPrice: entryPrice || 0,
-        quantity: 0,
+        quantity: legFields?.quantity ?? 0,
+        stopLoss: legFields?.stopLoss ?? null,
+        target: legFields?.target ?? null,
+        slTriggerPrice: legFields?.slTriggerPrice ?? null,
         status: 'FAILED',
         entryTime: new Date(),
+        entryOrderStatus: 'FAILED',
         kiteResponse: { message: reason },
         ...(legFields
           ? {

@@ -38,12 +38,21 @@ export class PreOpenStrategy {
   }
 
   async preSelectAllClients(strategyId?: string): Promise<void> {
-    this.engine.preselectedStockByStrategy.clear();
-    this.engine.marginCache.clear();
-    try {
-      await prisma.strategyPreselect.deleteMany();
-    } catch (e) {
-      console.error('AlgoEngine preSelect: Failed to clear old preselections from DB:', e);
+    if (strategyId) {
+      this.engine.preselectedStockByStrategy.delete(strategyId);
+      try {
+        await prisma.strategyPreselect.deleteMany({ where: { strategyId } });
+      } catch (e) {
+        console.error(`AlgoEngine preSelect: Failed to clear old preselections for strategy ${strategyId} from DB:`, e);
+      }
+    } else {
+      this.engine.preselectedStockByStrategy.clear();
+      this.engine.marginCache.clear();
+      try {
+        await prisma.strategyPreselect.deleteMany();
+      } catch (e) {
+        console.error('AlgoEngine preSelect: Failed to clear old preselections from DB:', e);
+      }
     }
 
     const preOpenStocks = await getPreOpenStocks();
@@ -631,7 +640,7 @@ export class PreOpenStrategy {
           const todayStartLocal = new Date();
           todayStartLocal.setHours(0, 0, 0, 0);
           const todayTrades = await prisma.trade.findMany({
-            where: { clientId: client.id, strategyId: group.strategyId, createdAt: { gte: todayStartLocal }, pnl: { not: null } }
+            where: { clientId: client.id, strategyId: strategy.id, createdAt: { gte: todayStartLocal }, pnl: { not: null } }
           });
           const todayPnl = todayTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
           const maxDailyLoss = config?.riskManagement?.maxDailyLoss;

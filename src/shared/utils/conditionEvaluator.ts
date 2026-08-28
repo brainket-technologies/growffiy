@@ -45,11 +45,12 @@ export async function matchesConditions(
   for (const cond of conditions) {
     const val = Number(cond.value);
     if (cond.indicator === 'Pre Open Change %') {
-      if (cond.operator === '<' && !(stock.changePercent < val)) return false;
-      if (cond.operator === '>' && !(stock.changePercent > val)) return false;
-      if (cond.operator === '<=' && !(stock.changePercent <= val)) return false;
-      if (cond.operator === '>=' && !(stock.changePercent >= val)) return false;
-      if (cond.operator === '==' && !(stock.changePercent == val)) return false;
+      const pct = stock.changePercent !== undefined ? stock.changePercent : stock.pChange;
+      if (cond.operator === '<' && !(pct < val)) return false;
+      if (cond.operator === '>' && !(pct > val)) return false;
+      if (cond.operator === '<=' && !(pct <= val)) return false;
+      if (cond.operator === '>=' && !(pct >= val)) return false;
+      if (cond.operator === '==' && !(pct == val)) return false;
     } else if (cond.indicator === 'Price Action') {
       if (cond.value === 'Previous 5m High') {
         const prevHigh = stock.high || stock.prevClose || stock.ltp;
