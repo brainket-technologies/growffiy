@@ -31,9 +31,14 @@ export class TenAmStrategy {
   }
 
   async preSelectAllClients(strategyId?: string): Promise<void> {
-    this.engine.preselectedStockByStrategy.clear();
-    this.engine.marginCache.clear();
-    try { await prisma.strategyPreselect.deleteMany(); } catch (e) { }
+    if (strategyId) {
+      this.engine.preselectedStockByStrategy.delete(strategyId);
+      try { await prisma.strategyPreselect.deleteMany({ where: { strategyId } }); } catch (e) { }
+    } else {
+      this.engine.preselectedStockByStrategy.clear();
+      this.engine.marginCache.clear();
+      try { await prisma.strategyPreselect.deleteMany(); } catch (e) { }
+    }
 
     const dateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
     const mwSnapshot = await prisma.marketWatchSnapshot.findUnique({
@@ -157,9 +162,13 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
           if (config?.conditions && !(await matchesConditions(stock, config.conditions, this.engine.wsLive))) continue;
 
           // 4b️⃣ Fetch three 15‑minute candles (09:15, 09:30, 09:45) using Master token
-          const from = new Date(dateStr + 'T09:15:00+05:30').toISOString();
-          const to = new Date(dateStr + 'T09:46:00+05:30').toISOString(); // include 09:45 candle
-          const liveToken = this.engine.wsLive.getSymbolToToken(stock.symbol);
+          const from = dateStr + ' 09:15:00';
+          const to = dateStr + ' 10:01:00'; // include the fully formed 09:45 candle which finishes at 10:00
+          let liveToken = stock.instrumentToken;
+          if (!liveToken && this.engine.wsLive?.instrumentToSymbol) {
+            const instTokenStr = Object.entries(this.engine.wsLive.instrumentToSymbol).find(([, sym]) => sym === stock.symbol)?.[0];
+            if (instTokenStr) liveToken = parseInt(instTokenStr, 10);
+          }
           const candles = await KiteClient.getHistoricalData(
             masterClient.zerodhaApiKey,
             masterClient.accessToken,
@@ -249,7 +258,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
 
             // ---- Quantity (rounded to tick size) ----
             const rawQty = Math.max(1, Math.floor(capitalAtRiskPerLeg / (targetStock.ltp || 1)));
-            const qty = Math.floor(rawQty);
+            const qty = 1; // FORCED TO 1 FOR TESTING
 
             // ---- Price calculations ----
             const bufferPct = leg.tradeAction?.bufferPercent || 0.1;
