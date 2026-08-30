@@ -23,7 +23,7 @@ function httpGet(url: string, headers: Record<string, string>, timeoutMs = 12000
         const cookies: string[] = [];
         const rawCookies = res.headers['set-cookie'];
         if (Array.isArray(rawCookies)) cookies.push(...rawCookies.map(c => c.split(';')[0].trim()));
-        else if (rawCookies) cookies.push(rawCookies.split(';')[0].trim());
+        else if (typeof rawCookies === 'string') cookies.push((rawCookies as string).split(';')[0].trim());
 
         const chunks: Buffer[] = [];
         const enc = res.headers['content-encoding'] ?? '';

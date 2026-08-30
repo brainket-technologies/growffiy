@@ -59,10 +59,11 @@ interface StrategyCondition {
 interface LegTradeAction {
   action: 'Long' | 'Short' | 'Buy' | 'Sell';
   orderType: 'Market' | 'Limit' | 'SL-Limit' | 'SL-Market';
-  bufferPercent: number;
+  entryBufferPercent: number;
+  slBufferPercent: number;
   marketProtection?: number;
   candlePriceType: 'open' | 'high' | 'low' | 'close';
-  candlePattern?: 'None' | 'GRG' | 'RGR';
+  candlePattern?: 'None' | 'GRG' | 'RGR' | 'Green' | 'Red';
   selectPosition?: number;
 }
 
@@ -173,9 +174,11 @@ const INITIAL_CONFIG: StrategyConfig = {
     tradeAction: {
       action: 'Long',
       orderType: 'SL-Market',
-      bufferPercent: 0.1,
+      entryBufferPercent: 0.1,
+      slBufferPercent: 0.1,
       marketProtection: -1,
-      candlePriceType: 'high'
+      candlePriceType: 'high',
+      candlePattern: 'None'
     }
   }],
   stoploss: {
@@ -954,7 +957,8 @@ export default function StrategiesPage() {
         tradeAction: {
           action: 'Short',
           orderType: 'SL-Market',
-          bufferPercent: 0.1,
+          entryBufferPercent: 0.1,
+          slBufferPercent: 0.1,
           marketProtection: -1,
           candlePriceType: 'low'
         }
@@ -1075,11 +1079,6 @@ export default function StrategiesPage() {
           </p>
         </div>
 
-        {viewMode === 'list' && (
-          <Button onClick={handleCreateNew} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Plus size={16} /> Create Strategy
-          </Button>
-        )}
 
         {(viewMode === 'create' || viewMode === 'edit') && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -1199,7 +1198,7 @@ export default function StrategiesPage() {
                 </div>
               </div>
               <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)', lineHeight: 1 }}>
-                {clients.filter(c => c.strategyId).length}
+                {clients.filter(c => c.strategyIds && c.strategyIds.length > 0).length}
               </h2>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
                 Across all strategies
@@ -1282,7 +1281,7 @@ export default function StrategiesPage() {
                         {paginated.length === 0 ? (
                           <tr>
                             <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
-                              No strategies found. Click <strong>+ Create Strategy</strong> to get started.
+                              No strategies found.
                             </td>
                           </tr>
                         ) : (
@@ -1296,7 +1295,7 @@ export default function StrategiesPage() {
                               entryTime = p.basicInfo?.entryTime || '';
                               exitTime = p.basicInfo?.exitTime || '';
                             } catch (e) {}
-                            const assignedCount = clients.filter(c => c.strategyId === strat.id).length;
+                            const assignedCount = clients.filter(c => c.strategyIds?.includes(strat.id)).length;
                             const tradeCount = (trades || []).filter(t => t.strategyId === strat.id).length;
                             const isActive = strat.status === 'active';
 
@@ -1538,7 +1537,7 @@ export default function StrategiesPage() {
                           <option value="Nifty 500">Nifty 500</option>
                         </select>
                       </div>
-                      {formData.basicInfo.name === 'Ten AM Strategy' && (
+                      {(formData.basicInfo.name === 'Ten AM Strategy' || formData.basicInfo.name === 'First Minute Strategy') && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           <label style={{ fontSize: '12px', fontWeight: 600 }}>Top Stock Gainer/Loser Selection Count</label>
                           <input
@@ -1591,7 +1590,7 @@ export default function StrategiesPage() {
                   </div>
 
                   {/* TRADE SELECTION */}
-                  {formData.basicInfo.name !== 'Ten AM Strategy' && (
+                  {(formData.basicInfo.name !== 'Ten AM Strategy' && formData.basicInfo.name !== 'First Minute Strategy') && (
                     <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '16px' }}>
                       <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>TRADE SELECTION</label>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
@@ -1971,8 +1970,13 @@ export default function StrategiesPage() {
                         </select>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '11px', fontWeight: 600 }}>Buffer %</label>
-                        <input type="number" step="0.01" value={leg.tradeAction.bufferPercent} onChange={(e) => handleLegChange(legIdx, 'tradeAction.bufferPercent', Number(e.target.value))}
+                        <label style={{ fontSize: '11px', fontWeight: 600 }}>Entry Buffer %</label>
+                        <input type="number" step="0.01" value={leg.tradeAction.entryBufferPercent !== undefined ? leg.tradeAction.entryBufferPercent : leg.tradeAction.entryBufferPercent} onChange={(e) => handleLegChange(legIdx, 'tradeAction.entryBufferPercent', Number(e.target.value))}
+                          style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none', fontSize: '12px' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: 600 }}>SL Buffer %</label>
+                        <input type="number" step="0.01" value={leg.tradeAction.slBufferPercent !== undefined ? leg.tradeAction.slBufferPercent : leg.tradeAction.entryBufferPercent} onChange={(e) => handleLegChange(legIdx, 'tradeAction.slBufferPercent', Number(e.target.value))}
                           style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none', fontSize: '12px' }} />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -1982,9 +1986,11 @@ export default function StrategiesPage() {
                           <option value="None">None</option>
                           <option value="GRG">GRG</option>
                           <option value="RGR">RGR</option>
+                          <option value="Green">Green</option>
+                          <option value="Red">Red</option>
                         </select>
                       </div>
-                      {formData.basicInfo.name === 'Ten AM Strategy' && (
+                      {(formData.basicInfo.name === 'Ten AM Strategy' || formData.basicInfo.name === 'First Minute Strategy') && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                           <label style={{ fontSize: '11px', fontWeight: 600 }}>Select Position</label>
                           <select value={leg.tradeAction.selectPosition || 1} onChange={(e) => handleLegChange(legIdx, 'tradeAction.selectPosition', Number(e.target.value))}
@@ -2741,7 +2747,7 @@ export default function StrategiesPage() {
                   </thead>
                   <tbody>
                     {clients.map(client => {
-                      const isAssignedToThis = client.strategyId === selectedStrategy.id;
+                      const isAssignedToThis = client.strategyIds?.includes(selectedStrategy.id);
                       return (
                         <tr key={client.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                           <td style={{ padding: '12px', textAlign: 'center' }}>
@@ -2762,7 +2768,7 @@ export default function StrategiesPage() {
                             </span>
                           </td>
                           <td style={{ padding: '12px', textAlign: 'center' }}>
-                            {client.strategyId ? (
+                            {client.strategyIds && client.strategyIds.length > 0 ? (
                               <span className={`badge ${isAssignedToThis ? 'badge-success' : 'badge-warning'}`}>
                                 {isAssignedToThis ? 'Assigned' : `Other (${client.strategyName || 'Linked'})`}
                               </span>

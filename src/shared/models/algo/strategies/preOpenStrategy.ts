@@ -88,13 +88,14 @@ export class PreOpenStrategy {
       if (config.stoploss?.trailingSL < -1) config.stoploss.trailingSL = -1;
       if (config.target?.trailingTarget < -1) config.target.trailingTarget = -1;
 
-      if (!config.basicInfo?.segment || !config.basicInfo?.selectPosition) {
+      const selectPosition = config.legs?.[0]?.tradeAction?.selectPosition || config.basicInfo?.selectPosition;
+
+      if (!config.basicInfo?.segment || !selectPosition) {
         console.log(`AlgoEngine preSelect: Strategy config missing required fields (segment/selectPosition) for strategy ${strategy.name}. Skipping.`);
         continue;
       }
 
       const segment = config.basicInfo.segment;
-      const selectPosition = config.basicInfo.selectPosition;
 
       let matchingStocks = preOpenStocks.filter((stock: StockQuote) => {
         if (segment === 'NSE F&O' || segment === 'Futures' || segment === 'Options') {
@@ -250,7 +251,7 @@ export class PreOpenStrategy {
           const direction = isShortTrade ? 'SHORT' : 'LONG';
           const legTimeframe = currentLeg.timeframe || '5m';
           const legCandleType = currentLeg.tradeAction?.candlePriceType || 'high';
-          const legBufferPct = currentLeg.tradeAction?.bufferPercent;
+          const legBufferPct = currentLeg.tradeAction?.entryBufferPercent !== undefined ? currentLeg.tradeAction.entryBufferPercent : currentLeg.tradeAction?.bufferPercent;
           const legOrderType = currentLeg.tradeAction?.orderType || 'SL-Market';
 
           const enabledLegs = (config.legs || []).filter((l: any) => l.enabled);
@@ -279,12 +280,12 @@ export class PreOpenStrategy {
           }
 
           if (!candidateStock) {
-            if (!config.basicInfo?.segment || !config.basicInfo?.selectPosition) {
-              console.log(`AlgoEngine: Strategy config missing required fields (segment/selectPosition) for fallback filter for client ${client.user.name}. Skipping.`);
+            const selectPosition = config.legs?.[0]?.tradeAction?.selectPosition || config.basicInfo?.selectPosition;
+            if (!config.basicInfo?.segment || !selectPosition) {
+              console.log(`AlgoEngine: Strategy config missing required fields (segment/selectPosition) for client ${client.user.name}. Skipping.`);
               return;
             }
             const segment = config.basicInfo.segment;
-            const selectPosition = config.basicInfo.selectPosition;
             let matchingStocks = preOpenStocks.filter((stock: StockQuote) => {
               if (segment === 'NSE F&O' || segment === 'Futures' || segment === 'Options') {
                 if (!stock.isFo) return false;

@@ -101,7 +101,7 @@ export async function calculateClientCapitalAndRisk(params: MarginParams): Promi
   const marginRate = config?.riskManagement?.misMarginRate;
 
   // If perDayTradeAmount is explicitly configured (> 0), use it directly as capitalAtRisk (INR risk per trade).
-  let capitalAtRisk = perDayTradeAmount > 0 ? perDayTradeAmount : clientCapital * (riskPercent / 100);
+  let capitalAtRisk = perDayTradeAmount > 0 ? clientCapital : clientCapital * (riskPercent / 100);
 
   const capitalAllocPct = config?.riskManagement?.capitalAllocation;
   if (capitalAllocPct !== undefined && capitalAllocPct !== null && capitalAllocPct > 0) {

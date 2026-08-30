@@ -33,7 +33,6 @@ model Client {
   zerodhaClientId    String?              @map("zerodha_client_id")
   accessToken        String?              @map("access_token")
   capital            Decimal              @db.Decimal(12, 2)
-  perDayTradeAmount  Decimal?             @default(0) @db.Decimal(12, 2) @map("per_day_trade_amount")
   tradingStatus      String               @default("inactive") @map("trading_status")
   subscriptionStatus String               @default("pending") @map("subscription_status")
   createdAt          DateTime             @default(now()) @map("created_at")
@@ -51,12 +50,13 @@ model Client {
   panNumber          String?              @map("pan_number")
   productTypeId      String?              @map("product_type_id")
   addedByStaffId     String?              @map("added_by_staff_id")
+  perDayTradeAmount  Decimal?             @default(0) @map("per_day_trade_amount") @db.Decimal(12, 2)
   addedByStaff       Staff?               @relation(fields: [addedByStaffId], references: [id])
   productType        ProductType?         @relation(fields: [productTypeId], references: [id])
   user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  demoStrategies     DemoStrategy[]
   assignments        StrategyAssignment[]
   trades             Trade[]
-  demoStrategies     DemoStrategy[]
 
   @@map("clients")
 }
@@ -90,10 +90,6 @@ model StaffPermission {
   @@map("staff_permissions")
 }
 
-// ============================================================
-// ✅  REAL / PRODUCTION TABLE — Admin Strategy Templates
-// This table (strategies) stores admin-configured strategies.
-// ============================================================
 model Strategy {
   id            String               @id @default(uuid())
   name          String
@@ -339,21 +335,21 @@ model HistoricalPreOpen {
 }
 
 model HistoricalOhlc {
-  id        String   @id @default(uuid())
-  date      String
-  time      String
-  symbol    String
-  open      Float
-  high      Float
-  low       Float
-  close     Float
-  prevClose Float    @default(0.0) @map("prev_close")
-  volume    Int      @default(0)
-  high52w   Float    @default(0.0) @map("high_52w")
-  low52w    Float    @default(0.0) @map("low_52w")
-  change30d Float    @default(0.0) @map("change_30d")
-  change365d Float   @default(0.0) @map("change_365d")
-  createdAt DateTime @default(now()) @map("created_at")
+  id         String   @id @default(uuid())
+  date       String
+  time       String
+  symbol     String
+  open       Float
+  high       Float
+  low        Float
+  close      Float
+  createdAt  DateTime @default(now()) @map("created_at")
+  volume     Int      @default(0)
+  prevClose  Float    @default(0.0) @map("prev_close")
+  change30d  Float    @default(0.0) @map("change_30d")
+  change365d Float    @default(0.0) @map("change_365d")
+  high52w    Float    @default(0.0) @map("high_52w")
+  low52w     Float    @default(0.0) @map("low_52w")
 
   @@unique([date, time, symbol])
   @@map("historical_ohlc")
@@ -371,13 +367,6 @@ model Enquiry {
   @@map("enquiries")
 }
 
-// ============================================================
-// ⚠️  STATIC / DEMO TABLE — NOT CONNECTED TO TRADING ENGINE
-// This table (demo_stttgry) stores client-side demo strategies.
-// It has NO connection to any live trading, algo engine, or
-// order execution system. AI must NOT use this table for
-// any trading logic, broker calls, or financial transactions.
-// ============================================================
 model DemoStrategy {
   id          String   @id @default(uuid())
   name        String
@@ -385,9 +374,9 @@ model DemoStrategy {
   status      String   @default("active")
   configJson  String?  @map("config_json")
   clientId    String   @map("client_id")
-  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@map("demo_stttgry")
 }
@@ -412,7 +401,7 @@ model MarketWatchSnapshot {
   id        String   @id @default(uuid())
   indexName String   @map("index_name")
   timeSlot  String   @map("time_slot")
-  date      String   
+  date      String
   data      Json
   createdAt DateTime @default(now()) @map("created_at")
 
