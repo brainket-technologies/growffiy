@@ -90,6 +90,7 @@ interface StrategyConfig {
     checkIntervalSec: number;
     status: 'active' | 'inactive';
     topCount?: number;
+    ohlcCondition?: 'None' | 'Open = High' | 'Open = Low' | 'Open = Close';
   };
   legs: LegConfig[];
   stoploss: {
@@ -164,7 +165,8 @@ const INITIAL_CONFIG: StrategyConfig = {
     selectPosition: 1,
     checkIntervalSec: 60,
     status: 'inactive',
-    topCount: 20
+    topCount: 20,
+    ohlcCondition: 'None'
   },
   legs: [{
     name: 'Leg 1',
@@ -177,7 +179,7 @@ const INITIAL_CONFIG: StrategyConfig = {
       entryBufferPercent: 0.1,
       slBufferPercent: 0.1,
       marketProtection: -1,
-      candlePriceType: 'high',
+      candlePriceType: 'low',
       candlePattern: 'None'
     }
   }],
@@ -1537,9 +1539,11 @@ export default function StrategiesPage() {
                           <option value="Nifty 500">Nifty 500</option>
                         </select>
                       </div>
-                      {(formData.basicInfo.name === 'Ten AM Strategy' || formData.basicInfo.name === 'First Minute Strategy') && (
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+                      {(formData.basicInfo.name === 'Ten AM Strategy' || formData.basicInfo.name === 'First Minute Strategy' || formData.basicInfo.name === 'OH PREOPEN 1 MIN') && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <label style={{ fontSize: '12px', fontWeight: 600 }}>Top Stock Gainer/Loser Selection Count</label>
+                          <label style={{ fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>Top Stock Gainer/Loser Count</label>
                           <input
                             type="number"
                             min={1}
@@ -1553,6 +1557,26 @@ export default function StrategiesPage() {
                           />
                         </div>
                       )}
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: 600 }}>OHLC Condition</label>
+                        <select 
+                          value={formData.basicInfo.ohlcCondition || 'None'} 
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            basicInfo: { ...formData.basicInfo, ohlcCondition: e.target.value as any }
+                          })}
+                          style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }}
+                        >
+                          <option value="None">None</option>
+                          <option value="Open = High">Open = High</option>
+                          <option value="Open = Low">Open = Low</option>
+                          <option value="Open = Close">Open = Close</option>
+                          <option value="High = Low">High = Low</option>
+                          <option value="High = Close">High = Close</option>
+                          <option value="Low = Close">Low = Close</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
 
@@ -1590,7 +1614,7 @@ export default function StrategiesPage() {
                   </div>
 
                   {/* TRADE SELECTION */}
-                  {(formData.basicInfo.name !== 'Ten AM Strategy' && formData.basicInfo.name !== 'First Minute Strategy') && (
+                  {(formData.basicInfo.name !== 'Ten AM Strategy' && formData.basicInfo.name !== 'First Minute Strategy' && formData.basicInfo.name !== 'OH PREOPEN 1 MIN') && (
                     <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '16px' }}>
                       <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>TRADE SELECTION</label>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
@@ -1990,7 +2014,7 @@ export default function StrategiesPage() {
                           <option value="Red">Red</option>
                         </select>
                       </div>
-                      {(formData.basicInfo.name === 'Ten AM Strategy' || formData.basicInfo.name === 'First Minute Strategy') && (
+                      {(formData.basicInfo.name === 'Ten AM Strategy' || formData.basicInfo.name === 'First Minute Strategy' || formData.basicInfo.name === 'OH PREOPEN 1 MIN') && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                           <label style={{ fontSize: '11px', fontWeight: 600 }}>Select Position</label>
                           <select value={leg.tradeAction.selectPosition || 1} onChange={(e) => handleLegChange(legIdx, 'tradeAction.selectPosition', Number(e.target.value))}

@@ -8,19 +8,19 @@ Iss document mein har client setup, unke server infrastructure, database, aur de
 
 | Client Name | Environment | Hosting Type / Provider | Server IP / Domain | SSH User & Pass / Access | Database Type / Connection URL | Code Path / Location | Update Method |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Janvi** | 🧪 **TESTING** | Hostinger | Web Hosting (`growffi.live`) | Panel Access (File Manager) | Neon Cloud PostgreSQL (`postgresql://neondb_owner:...`) | `/public_html` | ZIP Upload / Web Portal |
+| **Anand** | 🧪 **TESTING** | Hostinger | Web Hosting (`growffi.live`) | Panel Access (File Manager) | Neon Cloud PostgreSQL (`postgresql://neondb_owner:...`) | `/public_html` | ZIP Upload / Web Portal |
 | **Ashutosh** (⚠️ **SUSPENDED ACCOUNT/SERVER**) | 🔴 **PRODUCTION** | GlobeHost VPS | `66.116.245.44` (`growffi.in`) | `root` / `2hA@QAydr#r%pD` | Local VPS PostgreSQL (`postgresql://growffiy:...`) | `/var/www/growffiy` | SSH Script / Commands |
-| **Growffi Main** | 🔴 **PRODUCTION** | VPS | `66.116.210.206` (`growffi.com`) | `root` / `Q}K)H~l8i@=XwC` | Local VPS PostgreSQL (`postgresql://growffiy_user:growffiy_live_pass_2026@localhost:5432/growffiy_com_db`) | `/var/www/growffiy` | SSH Script / Commands |
+| **Janvi** | 🔴 **PRODUCTION** | VPS | `66.116.210.206` (`growffi.com`) | `root` / `Q}K)H~l8i@=XwC` | Local VPS PostgreSQL (`postgresql://growffiy_user:growffiy_live_pass_2026@localhost:5432/growffiy_com_db`) | `/var/www/growffiy` | SSH Script / Commands |
 
 ---
 
 ## ⚠️ Critical Rules for AI & Developers
 
-1. 🧪 **Janvi Server (`growffi.live`) = TESTING ENVIRONMENT**
+1. 🧪 **Anand Server (`growffi.live`) = TESTING ENVIRONMENT**
    - Ye server sirf **Testing & Verification** ke liye hai.
    - Naye UI changes, strategy configurations, aur features pehle yahan test aur verify honge.
 
-2. 🔴 **Ashutosh (`growffi.in`) & Anand (`growffi.live`) = PRODUCTION ENVIRONMENTS**
+2. 🔴 **Ashutosh (`growffi.in`) & Janvi (`growffi.com`) = PRODUCTION ENVIRONMENTS**
    - Ye servers **REAL LIVE TRADING / PRODUCTION** ke liye hain.
    - 🚫 **STRICT RULE:** Production servers (66.116.245.44 aur 66.116.210.206) ke code, configuration, ya database (DB) me **bina explicit user instruction/approval ke koi bhi change, deployment, ya query execute NAHI karni hai**.
    - Production server pe modification sirf tabhi hoga jab User explicitly specific approval de.
@@ -33,7 +33,7 @@ Iss document mein har client setup, unke server infrastructure, database, aur de
 
 3. 🗄️ **New Server Deployment — Database Restore**
    - Jab bhi **koi naya server setup karna ho**, toh database seed ya fresh migration **mat karo**.
-   - **HAMESHA** `database/janvi_db_backup.sql` file use karo — yahi **master backup hai jo Janvi ke current DB ka full snapshot hai**.
+   - **HAMESHA** `database/janvi_db_backup.sql` file use karo — yahi **master backup hai jo Anand ke current DB ka full snapshot hai**.
    - Iss file ko restore karke naye server ka DB setup hoga:
      ```bash
      # Naye server pe DB restore karne ka command:
@@ -43,7 +43,7 @@ Iss document mein har client setup, unke server infrastructure, database, aur de
 
 ---
 
-## 1. 🟢 Client 1: Janvi Setup
+## 1. 🟢 Client 1: Anand Setup
 
 ### ⚙️ Details & Architecture
 - **Domain**: `growffi.live`
@@ -106,10 +106,10 @@ sshpass -p '2hA@QAydr#r%pD' ssh root@66.116.245.44
 
 ---
 
-## 3. 🟣 Client 3: Growffi Main Setup (growffi.com)
+## 3. 🟣 Client 3: Janvi Setup (growffi.com)
 
 ### ⚙️ Details & Credentials
-- **Client Name**: Growffi Main
+- **Client Name**: Janvi
 - **Domain**: `growffi.com`
 - **Server IP**: `66.116.210.206`
 - **SSH Port**: `22`

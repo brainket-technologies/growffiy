@@ -161,7 +161,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
       const gainers = sortedStocks.slice(0, topCount);
       const losers = sortedStocks.slice(-topCount).reverse();
 
-      const findMatchingStock = async (list: any[], direction: string) => {
+      const findMatchingStock = async (list: any[], direction: 'buy' | 'sell', ohlcCondition: string = 'None') => {
         let matchesFound = 0;
         for (const stock of list) {
           if (config?.conditions && !(await matchesConditions(stock, config.conditions, this.engine.wsLive))) continue;
@@ -189,7 +189,24 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
           const pattern = hist.map(c => c[4] > c[1] ? 'G' : 'R'); // G = green, R = red
           const isGRG = direction === 'buy' && pattern[0] === 'G' && pattern[1] === 'R' && pattern[2] === 'G';
           const isRGR = direction === 'sell' && pattern[0] === 'R' && pattern[1] === 'G' && pattern[2] === 'R';
-          if ((direction === 'buy' && isGRG) || (direction === 'sell' && isRGR)) {
+          let isMatch = ((direction === 'buy' && isGRG) || (direction === 'sell' && isRGR));
+
+          if (isMatch && ohlcCondition !== 'None') {
+            const firstCandle = hist[0];
+            const open = firstCandle[1];
+            const high = firstCandle[2];
+            const low = firstCandle[3];
+            const close = firstCandle[4];
+
+            if (ohlcCondition === 'Open = High' && open !== high) isMatch = false;
+            else if (ohlcCondition === 'Open = Low' && open !== low) isMatch = false;
+            else if (ohlcCondition === 'Open = Close' && open !== close) isMatch = false;
+            else if (ohlcCondition === 'High = Low' && high !== low) isMatch = false;
+            else if (ohlcCondition === 'High = Close' && high !== close) isMatch = false;
+            else if (ohlcCondition === 'Low = Close' && low !== close) isMatch = false;
+          }
+
+          if (isMatch) {
             matchesFound++;
             if (matchesFound === selectPosition) {
               stock.thirdCandleHigh = hist[2][2];
@@ -202,8 +219,9 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
         return null;
       };
 
-      const targetGainer = await findMatchingStock(gainers, 'buy');
-      const targetLoser = await findMatchingStock(losers, 'sell');
+      const ohlcCond = config?.basicInfo?.ohlcCondition || 'None';
+      const targetGainer = await findMatchingStock(gainers, 'buy', ohlcCond);
+      const targetLoser = await findMatchingStock(losers, 'sell', ohlcCond);
 
       // ---------------------------------------------------------------
       // 5️⃣ Ultra‑fast concurrent processing of all clients (up to 500+)

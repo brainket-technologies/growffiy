@@ -119,7 +119,7 @@ export class FirstMinuteStrategy {
 
     for (const group of filteredGroups) {
       const engineType = group.configJson?.basicInfo?.engineType || '';
-      if (engineType !== 'FIRST_MINUTE' && !group.strategyName.toLowerCase().includes('first minute') && !group.configJson?.basicInfo?.name?.toLowerCase().includes('first minute')) continue;
+      if (engineType !== 'FIRST_MINUTE' && !group.strategyName.toLowerCase().includes('first minute') && !group.configJson?.basicInfo?.name?.toLowerCase().includes('first minute') && !group.strategyName.toLowerCase().includes('oh preopen') && !group.configJson?.basicInfo?.name?.toLowerCase().includes('oh preopen')) continue;
       const config: any = group.configJson;
       const topCount: number = config?.basicInfo?.topCount || 10;
       const selectPosition: number = config?.basicInfo?.selectPosition || 1;
@@ -141,7 +141,7 @@ export class FirstMinuteStrategy {
       const gainers = preselectedStocks.filter(s => s.changePercent > 0).sort((a, b) => b.changePercent - a.changePercent).slice(0, topCount);
       const losers = preselectedStocks.filter(s => s.changePercent < 0).sort((a, b) => a.changePercent - b.changePercent).slice(0, topCount);
 
-      const findMatchingStock = async (list: any[], requiredPattern: 'Green' | 'Red' | 'None', selectPos: number) => {
+      const findMatchingStock = async (list: any[], requiredPattern: 'Green' | 'Red' | 'None', selectPos: number, ohlcCondition: string = 'None') => {
         let matchesFound = 0;
         for (const stock of list) {
           if (config?.conditions && !(await matchesConditions(stock, config.conditions, this.engine.wsLive))) continue;
@@ -181,6 +181,15 @@ export class FirstMinuteStrategy {
           else if (requiredPattern === 'Green' && close > open) isMatch = true;
           else if (requiredPattern === 'None' || !requiredPattern) isMatch = true;
 
+          if (isMatch && ohlcCondition !== 'None') {
+            if (ohlcCondition === 'Open = High' && open !== high) isMatch = false;
+            else if (ohlcCondition === 'Open = Low' && open !== low) isMatch = false;
+            else if (ohlcCondition === 'Open = Close' && open !== close) isMatch = false;
+            else if (ohlcCondition === 'High = Low' && high !== low) isMatch = false;
+            else if (ohlcCondition === 'High = Close' && high !== close) isMatch = false;
+            else if (ohlcCondition === 'Low = Close' && low !== close) isMatch = false;
+          }
+
           if (isMatch) {
              stock.firstCandleHigh = high;
              stock.firstCandleLow = low;
@@ -198,6 +207,9 @@ export class FirstMinuteStrategy {
       let gainerSelectPos = 1;
       let loserSelectPos = 1;
 
+      let gainerOhlc = config?.basicInfo?.ohlcCondition || 'None';
+      let loserOhlc = config?.basicInfo?.ohlcCondition || 'None';
+
       // Extract patterns and positions from the config
       if (activeLegs.length > 0) {
          const leg1 = activeLegs[0];
@@ -210,8 +222,8 @@ export class FirstMinuteStrategy {
          if (leg2.tradeAction?.selectPosition) loserSelectPos = Number(leg2.tradeAction.selectPosition) || 1;
       }
 
-      const targetGainer = await findMatchingStock(gainers, gainerLegPattern, gainerSelectPos);
-      const targetLoser = await findMatchingStock(losers, loserLegPattern, loserSelectPos);
+      const targetGainer = await findMatchingStock(gainers, gainerLegPattern, gainerSelectPos, gainerOhlc);
+      const targetLoser = await findMatchingStock(losers, loserLegPattern, loserSelectPos, loserOhlc);
 
       await Promise.all(
         group.assignedClients.map(async (client) => {

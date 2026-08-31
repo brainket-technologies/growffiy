@@ -399,10 +399,31 @@ export class PreOpenStrategy {
                   const res = await KiteClient.getHistoricalData(marketApiKey, marketAccessToken, instTokenStr, kiteInterval, from, to);
                   console.log(`AlgoEngine: Historical response for ${cs.symbol}: status=${res.status}, candles=${res.data?.candles?.length ?? 0}`);
                   if (res.status === 'success' && Array.isArray(res.data?.candles) && res.data.candles.length > 0) {
-                    const priceIdx: Record<string, number> = { open: 1, high: 2, low: 3, close: 4 };
-                    candlePrice = Number(res.data.candles[0][priceIdx[legCandleType]]);
-                    candlePriceCache.set(cs.symbol, candlePrice);
-                    console.log(`AlgoEngine: Candle price for ${cs.symbol} (${legCandleType}): ${candlePrice}`);
+                    const firstCandle = res.data.candles[0];
+                    const open = firstCandle[1];
+                    const high = firstCandle[2];
+                    const low = firstCandle[3];
+                    const close = firstCandle[4];
+
+                    const ohlcCond = config?.basicInfo?.ohlcCondition || 'None';
+                    let skipStock = false;
+                    if (ohlcCond === 'Open = High' && open !== high) skipStock = true;
+                    else if (ohlcCond === 'Open = Low' && open !== low) skipStock = true;
+                    else if (ohlcCond === 'Open = Close' && open !== close) skipStock = true;
+                    else if (ohlcCond === 'High = Low' && high !== low) skipStock = true;
+                    else if (ohlcCond === 'High = Close' && high !== close) skipStock = true;
+                    else if (ohlcCond === 'Low = Close' && low !== close) skipStock = true;
+
+                    if (skipStock) {
+                      console.log(`AlgoEngine: OHLC Condition (${ohlcCond}) not met for ${cs.symbol}. Skipping.`);
+                      candlePriceCache.set(cs.symbol, -1);
+                      candlePrice = -1;
+                    } else {
+                      const priceIdx: Record<string, number> = { open: 1, high: 2, low: 3, close: 4 };
+                      candlePrice = Number(firstCandle[priceIdx[legCandleType]]);
+                      candlePriceCache.set(cs.symbol, candlePrice);
+                      console.log(`AlgoEngine: Candle price for ${cs.symbol} (${legCandleType}): ${candlePrice}`);
+                    }
                   } else {
                     console.warn(`AlgoEngine: No candle data for ${cs.symbol} - status: ${res.status}, error: ${res.message ?? 'none'}`);
                   }
@@ -416,8 +437,8 @@ export class PreOpenStrategy {
               console.log(`AlgoEngine: Using cached candle price for ${cs.symbol}: ${candlePrice}`);
             }
 
-            if (candlePrice === 0) {
-              const reason = `Candle data not fetched for ${cs.symbol}`;
+            if (candlePrice <= 0) {
+              const reason = candlePrice === -1 ? `OHLC Condition not met` : `Candle data not fetched for ${cs.symbol}`;
               console.log(`AlgoEngine: ${reason}. Logging FAILED trade for ${client.user.name}.`);
               await logFailedTrade(client, strategy, cs.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
               return;

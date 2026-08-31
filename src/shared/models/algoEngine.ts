@@ -190,7 +190,7 @@ class AlgoEngineService {
       
       if (engineType === 'TEN_AM' || (!engineType && (dbName.includes('ten am') || configName.includes('ten am')))) {
         return this.tenAmStrategy.preSelectAllClients(strategyId);
-      } else if (engineType === 'FIRST_MINUTE' || (!engineType && (dbName.includes('first minute') || configName.includes('first minute')))) {
+      } else if (engineType === 'FIRST_MINUTE' || (!engineType && (dbName.includes('first minute') || configName.includes('first minute') || dbName.includes('oh preopen') || configName.includes('oh preopen')))) {
         return this.firstMinuteStrategy.preSelectAllClients(strategyId);
       }
       return this.preOpenStrategy.preSelectAllClients(strategyId);
@@ -206,7 +206,7 @@ class AlgoEngineService {
 
         if (engineType === 'TEN_AM' || (!engineType && (dbName.includes('ten am') || configName.includes('ten am')))) {
           await this.tenAmStrategy.preSelectAllClients(st.id);
-        } else if (engineType === 'FIRST_MINUTE' || (!engineType && (dbName.includes('first minute') || configName.includes('first minute')))) {
+        } else if (engineType === 'FIRST_MINUTE' || (!engineType && (dbName.includes('first minute') || configName.includes('first minute') || dbName.includes('oh preopen') || configName.includes('oh preopen')))) {
           await this.firstMinuteStrategy.preSelectAllClients(st.id);
         } else {
           await this.preOpenStrategy.preSelectAllClients(st.id);
@@ -227,7 +227,7 @@ class AlgoEngineService {
       
       if (engineType === 'TEN_AM' || (!engineType && (dbName.includes('ten am') || configName.includes('ten am')))) {
         return this.tenAmStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
-      } else if (engineType === 'FIRST_MINUTE' || (!engineType && (dbName.includes('first minute') || configName.includes('first minute')))) {
+      } else if (engineType === 'FIRST_MINUTE' || (!engineType && (dbName.includes('first minute') || configName.includes('first minute') || dbName.includes('oh preopen') || configName.includes('oh preopen')))) {
         return this.firstMinuteStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
       }
       return this.preOpenStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
@@ -243,7 +243,7 @@ class AlgoEngineService {
 
         if (engineType === 'TEN_AM' || (!engineType && (dbName.includes('ten am') || configName.includes('ten am')))) {
           await this.tenAmStrategy.executePreOpenTrades(adminId, mockStocks, st.id, legIndex, dualLegGroupId);
-        } else if (engineType === 'FIRST_MINUTE' || (!engineType && (dbName.includes('first minute') || configName.includes('first minute')))) {
+        } else if (engineType === 'FIRST_MINUTE' || (!engineType && (dbName.includes('first minute') || configName.includes('first minute') || dbName.includes('oh preopen') || configName.includes('oh preopen')))) {
           await this.firstMinuteStrategy.executePreOpenTrades(adminId, mockStocks, st.id, legIndex, dualLegGroupId);
         } else {
           await this.preOpenStrategy.executePreOpenTrades(adminId, mockStocks, st.id, legIndex, dualLegGroupId);
