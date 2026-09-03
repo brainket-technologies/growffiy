@@ -22,7 +22,7 @@ const SNAPSHOT_INDICES = [
 ];
 
 // ── Allowed time slots ────────────────────────────────────────────────────────
-const ALLOWED_SLOTS = ['09:20', '09:30', '09:45', '12:00'];
+const ALLOWED_SLOTS = ['09:16', '09:20', '09:30', '09:45', '10:00', '12:00'];
 
 // ── HTTP helper ───────────────────────────────────────────────────────────────
 function httpGet(url: string, headers: Record<string, string>): Promise<{ status: number; body: string; cookies: string[] }> {

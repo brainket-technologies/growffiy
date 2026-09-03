@@ -57,7 +57,7 @@ export class TradingScheduler {
         if (hours < 7 || hours >= 16) return;
 
         // Check for OHLC snapshots at specific times
-        const targetOhlcTimes = ['09:20', '09:30', '09:45', '12:00'];
+        const targetOhlcTimes = ['09:16', '09:20', '09:30', '09:45', '10:00', '12:00'];
         if (targetOhlcTimes.includes(currentTimeStr) && this.lastOhlcSnapshot.get(currentTimeStr) !== currentDateKey) {
           this.lastOhlcSnapshot.set(currentTimeStr, currentDateKey);
           this.recordOhlcSnapshot(currentTimeStr, currentDateKey).catch(err => {

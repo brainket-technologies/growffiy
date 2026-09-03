@@ -432,11 +432,11 @@ export default function MarketWatchPage() {
                     onChange={e => setHistoryTime(e.target.value)}
                     style={{ border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0 8px', height: '34px', fontSize: '13px', outline: 'none', backgroundColor: 'var(--bg-white)' }}
                   >
-                    {['09:20', '09:30', '09:45', '12:00'].map(t => {
+                    {['09:16', '09:20', '09:30', '09:45', '10:00', '12:00'].map(t => {
                       const isDisabled = Object.keys(availableHistory).length > 0 && !(availableHistory[historyDate] || []).includes(t);
                       return (
                         <option key={t} value={t} disabled={isDisabled}>
-                          {t === '09:20' ? '9:20 AM' : t === '09:30' ? '9:30 AM' : t === '09:45' ? '9:45 AM' : '12:00 PM'}
+                          {t === '09:16' ? '9:16 AM' : t === '09:20' ? '9:20 AM' : t === '09:30' ? '9:30 AM' : t === '09:45' ? '9:45 AM' : t === '10:00' ? '10:00 AM' : '12:00 PM'}
                         </option>
                       );
                     })}

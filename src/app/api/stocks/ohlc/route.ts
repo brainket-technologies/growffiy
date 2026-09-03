@@ -42,7 +42,7 @@ async function runBackgroundFetch(dateParam: string, timeParam: string, jobKey: 
       }
     }
 
-    const targetTimes = ['09:20', '09:30', '09:45', '12:00'];
+    const targetTimes = ['09:16', '09:20', '09:30', '09:45', '10:00', '12:00'];
     let processed = 0;
     const total = symbols.filter(s => !!symbolToToken[s]).length;
 
