@@ -235,11 +235,13 @@ export default function AdminDashboard() {
 
   // Helper function to calculate P&L for a trade
   const getTradePnl = (t: any) => {
+    let val = Number(t.pnl || 0);
+    if (val !== 0) return val;
+
     const status = (t.status || '').toLowerCase();
     if (status === 'cancelled' || status === 'failed' || status === 'rejected' || status === 'open') {
       return 0;
     }
-    let val = Number(t.pnl || 0);
     if ((t.pnl === null || t.pnl === undefined || val === 0) && t.entryPrice && t.exitPrice && Number(t.quantity) > 0) {
       const isShort = (t.direction || '').toLowerCase() === 'short';
       const entry = Number(t.entryPrice);
@@ -566,7 +568,7 @@ export default function AdminDashboard() {
   const filteredTrades = trades.filter(t => {
     // Filter out CANCELLED or FAILED trades from appearing in this table
     const status = (t.status || '').toLowerCase();
-    if (status === 'cancelled' || status === 'failed') return false;
+    if ((status === 'cancelled' || status === 'failed') && (t.pnl === null || t.pnl === undefined || Number(t.pnl) === 0)) return false;
 
     const dStr = t.createdAt || t.entryTime;
     if (!dStr) return true;

@@ -30,11 +30,14 @@ export async function GET(request: Request) {
     });
 
     const helperCalcPnl = (t: any) => {
+      let val = Number(t.pnl || 0);
+      if (val !== 0) return val;
+
       const status = (t.status || '').toLowerCase();
       if (status === 'cancelled' || status === 'failed' || status === 'rejected' || status === 'open') {
         return 0;
       }
-      let val = Number(t.pnl || 0);
+      
       if ((t.pnl === null || t.pnl === undefined || val === 0) && t.entryPrice && t.exitPrice && Number(t.quantity) > 0) {
         const isShort = (t.direction || '').toLowerCase() === 'short';
         const entry = Number(t.entryPrice);
