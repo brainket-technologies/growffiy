@@ -286,7 +286,7 @@ export default function GroupTradesPage() {
                       <td style={{ padding: '12px 16px', fontSize: '12px' }}>
                         {g.exitPrice ? `₹${g.exitPrice.toFixed(2)}` : '--'}
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)', maxWidth: '180px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={g.exitReason || ''}>
                         {g.exitReason || '--'}
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '11px' }}>
@@ -294,7 +294,7 @@ export default function GroupTradesPage() {
                           {g.ocoStatus?.toUpperCase()}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: '12.5px', fontWeight: 700 }}>
+                      <td style={{ padding: '12px 16px', fontSize: '12.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>
                         <span style={{ color: pnlColor }}>
                           {g.totalPnl > 0.01 ? `+₹${g.totalPnl.toFixed(2)}` : g.totalPnl < -0.01 ? `-₹${Math.abs(g.totalPnl).toFixed(2)}` : '₹0.00'}
                         </span>

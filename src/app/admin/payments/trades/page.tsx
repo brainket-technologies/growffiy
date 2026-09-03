@@ -612,7 +612,7 @@ export default function LiveTradeTransactionsPage() {
                           const leg = (row.legs || [])[i];
                           return <LegCell key={`leg-${i}`} leg={leg} />;
                         })}
-                        <td style={{ fontSize: '11px', whiteSpace: 'nowrap' }}>{activeLeg?.exitReason || '--'}</td>
+                        <td style={{ fontSize: '11px', maxWidth: '180px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={activeLeg?.exitReason || ''}>{activeLeg?.exitReason || '--'}</td>
                         <td style={{ whiteSpace: 'nowrap' }}>{activeLeg?.exitPrice ? `₹${Number(activeLeg.exitPrice).toFixed(2)}` : '--'}</td>
                         <td style={{ fontSize: '11px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{formatDateTime(activeLeg?.exitTime)}</td>
                         <td>
@@ -672,7 +672,7 @@ export default function LiveTradeTransactionsPage() {
                           </span>
                         </div>
                       </td>
-                      <td style={{ fontSize: '11px', whiteSpace: 'nowrap' }}>{row.exitReason || '--'}</td>
+                      <td style={{ fontSize: '11px', maxWidth: '180px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={row.exitReason || ''}>{row.exitReason || '--'}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>{row.exitPrice ? `₹${Number(row.exitPrice).toFixed(2)}` : '--'}</td>
                       <td style={{ fontSize: '11px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{formatDateTime(row.exitTime)}</td>
                       <td>
