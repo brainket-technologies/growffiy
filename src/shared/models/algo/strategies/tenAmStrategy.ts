@@ -147,7 +147,8 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
     const filteredGroups = strategyId ? strategyGroups.filter(g => g.strategyId === strategyId) : strategyGroups;
 
     for (const group of filteredGroups) {
-      if (group.strategyName !== 'Ten AM Strategy') continue;
+      const engineType = group.configJson?.basicInfo?.engineType || '';
+      if (engineType !== 'TEN_AM' && group.strategyName !== 'Ten AM Strategy' && group.configJson?.basicInfo?.name !== 'Ten AM Strategy') continue;
       const config: any = group.configJson;
       const topCount: number = config?.basicInfo?.topCount || 20;
       const selectPosition: number = config?.basicInfo?.selectPosition || 1; // e.g. 3rd matching stock
@@ -160,7 +161,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
       const gainers = sortedStocks.slice(0, topCount);
       const losers = sortedStocks.slice(-topCount).reverse();
 
-      const findMatchingStock = async (list: any[], direction: string) => {
+      const findMatchingStock = async (list: any[], direction: 'buy' | 'sell', ohlcCondition: string = 'None') => {
         let matchesFound = 0;
         for (const stock of list) {
           if (config?.conditions && !(await matchesConditions(stock, config.conditions, this.engine.wsLive))) continue;
@@ -188,7 +189,24 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
           const pattern = hist.map(c => c[4] > c[1] ? 'G' : 'R'); // G = green, R = red
           const isGRG = direction === 'buy' && pattern[0] === 'G' && pattern[1] === 'R' && pattern[2] === 'G';
           const isRGR = direction === 'sell' && pattern[0] === 'R' && pattern[1] === 'G' && pattern[2] === 'R';
-          if ((direction === 'buy' && isGRG) || (direction === 'sell' && isRGR)) {
+          let isMatch = ((direction === 'buy' && isGRG) || (direction === 'sell' && isRGR));
+
+          if (isMatch && ohlcCondition !== 'None') {
+            const firstCandle = hist[0];
+            const open = firstCandle[1];
+            const high = firstCandle[2];
+            const low = firstCandle[3];
+            const close = firstCandle[4];
+
+            if (ohlcCondition === 'Open = High' && open !== high) isMatch = false;
+            else if (ohlcCondition === 'Open = Low' && open !== low) isMatch = false;
+            else if (ohlcCondition === 'Open = Close' && open !== close) isMatch = false;
+            else if (ohlcCondition === 'High = Low' && high !== low) isMatch = false;
+            else if (ohlcCondition === 'High = Close' && high !== close) isMatch = false;
+            else if (ohlcCondition === 'Low = Close' && low !== close) isMatch = false;
+          }
+
+          if (isMatch) {
             matchesFound++;
             if (matchesFound === selectPosition) {
               stock.thirdCandleHigh = hist[2][2];
@@ -201,8 +219,9 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
         return null;
       };
 
-      const targetGainer = await findMatchingStock(gainers, 'buy');
-      const targetLoser = await findMatchingStock(losers, 'sell');
+      const ohlcCond = config?.basicInfo?.ohlcCondition || 'None';
+      const targetGainer = await findMatchingStock(gainers, 'buy', ohlcCond);
+      const targetLoser = await findMatchingStock(losers, 'sell', ohlcCond);
 
       // ---------------------------------------------------------------
       // 5️⃣ Ultra‑fast concurrent processing of all clients (up to 500+)
@@ -268,21 +287,59 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
               continue;
             }
 
-            // ---- Quantity (rounded to tick size) ----
-            const rawQty = Math.max(1, Math.floor(capitalAtRiskPerLeg / (targetStock.ltp || 1)));
-            const qty = rawQty;
+            // ---- DB Lock to Prevent Duplicates ----
+            const todayStr = new Date().toISOString().split('T')[0];
+            const dbLockKey = `trade_lock_${client.id}_${group.strategyId}_leg${li}_${todayStr}`;
+            try {
+              await prisma.appSettings.create({
+                data: { settingKey: dbLockKey, settingValue: 'locked', type: 'lock' }
+              });
+            } catch (e) {
+              console.log(`AlgoEngine DB Lock: Trade already processing for ${client.user?.name} Leg ${li + 1}. Skipping duplicate execution.`);
+              continue;
+            }
 
             // ---- Price calculations ----
-            const bufferPct = leg.tradeAction?.bufferPercent || 0.1;
+            const entryBufferPct = leg.tradeAction?.entryBufferPercent !== undefined ? leg.tradeAction.entryBufferPercent : (leg.tradeAction?.bufferPercent || 0.1);
+            const slBufferPct = leg.tradeAction?.slBufferPercent !== undefined ? leg.tradeAction.slBufferPercent : (leg.tradeAction?.bufferPercent || 0.1);
+            
             const thirdCandleHigh = targetStock.thirdCandleHigh || targetStock.high;
             const thirdCandleLow = targetStock.thirdCandleLow || targetStock.low;
             
             const baseEntry = isBuy ? thirdCandleHigh : thirdCandleLow;
-            const bufferVal = baseEntry * (bufferPct / 100);
-            const entryPriceRaw = isBuy ? baseEntry + bufferVal : baseEntry - bufferVal;
+            const entryBufferVal = baseEntry * (entryBufferPct / 100);
+            const entryPriceRaw = isBuy ? baseEntry + entryBufferVal : baseEntry - entryBufferVal;
             
-            const slPriceRaw = isBuy ? thirdCandleLow : thirdCandleHigh;
-            const targetPriceRaw = isBuy ? entryPriceRaw * 1.02 : entryPriceRaw * 0.98; // 1:2 R:R placeholder
+            const baseSl = isBuy ? thirdCandleLow : thirdCandleHigh;
+            const slBufferVal = baseSl * (slBufferPct / 100);
+            const candleSlPriceRaw = isBuy ? baseSl - slBufferVal : baseSl + slBufferVal;
+
+            // ---- Tighter SL Logic (Candle vs Admin Config) ----
+            const configSlPercent = config?.stoploss?.type === 'Trailing SL' 
+              ? (config?.stoploss?.trailingSL || 1) 
+              : (config?.stoploss?.fixedPercent || 1);
+              
+            const configSlPriceRaw = isBuy 
+              ? entryPriceRaw * (1 - (configSlPercent / 100))
+              : entryPriceRaw * (1 + (configSlPercent / 100));
+
+            // Select the tighter SL (closer to entry price to minimize max loss)
+            const slPriceRaw = isBuy 
+              ? Math.max(candleSlPriceRaw, configSlPriceRaw)  // BUY: Higher SL price is tighter
+              : Math.min(candleSlPriceRaw, configSlPriceRaw); // SELL: Lower SL price is tighter
+
+            // ---- Quantity (rounded to tick size, calculated by Risk / SL diff) ----
+            let difference = Math.abs(entryPriceRaw - slPriceRaw);
+            if (difference <= 0) difference = 1;
+            const qty = Math.floor(capitalAtRiskPerLeg / difference);
+
+            if (qty <= 0) {
+              console.log(`AlgoEngine: Quantity calculated as 0 for ${client.user?.name} in ${targetStock.symbol}. Risk capital too low for SL difference. Skipping leg.`);
+              continue;
+            }
+
+            const rrRatio = config?.target?.riskRewardRatio || 2;
+            const targetPriceRaw = isBuy ? entryPriceRaw + (difference * rrRatio) : entryPriceRaw - (difference * rrRatio);
 
             const entryPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, entryPriceRaw);
             let slPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, slPriceRaw);
@@ -302,24 +359,33 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
               }
             }
 
+            const tradeType = config?.basicInfo?.tradeType || 'Intraday';
+            const productParam = tradeType === 'Delivery' ? 'CNC' : (tradeType === 'Carry Forward' || tradeType === 'Normal' || tradeType === 'NRML') ? 'NRML' : 'MIS';
+
             // ---- Build Order Payload ----
             console.log(`AlgoEngine: Building order payload for ${targetStock.symbol}...`);
+            
+            const marketProtectionVal = (leg.tradeAction?.marketProtection !== undefined && Number(leg.tradeAction.marketProtection) >= 0)
+              ? Number(leg.tradeAction.marketProtection)
+              : 0.05; // Matches preOpenStrategy default
 
             // ---- Place SL‑Market entry order ----
             let entryOrderId: string | null = null;
             try {
+              const orderTypeParam = leg.tradeAction?.orderType === 'SL-Market' ? 'SL-M' : (leg.tradeAction?.orderType || 'SL-M');
               const orderPayload: any = {
                 tradingsymbol: targetStock.symbol,
                 exchange: 'NSE',
                 transaction_type: isBuy ? 'BUY' : 'SELL',
                 quantity: qty,
-                order_type: leg.tradeAction?.orderType === 'SL-Market' ? 'SL-M' : (leg.tradeAction?.orderType || 'SL-M'),
-                product: 'CNC',
+                order_type: orderTypeParam,
+                product: productParam,
                 price: entryPrice,
-                trigger_price: slPrice,
+                trigger_price: entryPrice,
                 validity: 'DAY',
                 variety: 'regular',
-                tag: 'algo_tenam'
+                tag: 'algo_tenam',
+                ...(orderTypeParam === 'MARKET' || orderTypeParam === 'SL-M' ? { market_protection: marketProtectionVal } : {})
               };
 
               console.log(`AlgoEngine: Calling KiteClient.placeOrder for ${targetStock.symbol}...`);
@@ -337,7 +403,8 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                     ...orderPayload,
                     order_type: 'MARKET',
                     price: undefined,
-                    trigger_price: undefined
+                    trigger_price: undefined,
+                    market_protection: marketProtectionVal
                   };
                   orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, fallbackParams, (client.proxyUrl || client.dedicatedIp));
                 }
@@ -447,6 +514,18 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                       latestOrderStatus = latest.status;
                     }
                     if (latest?.status?.toUpperCase() === 'COMPLETE') {
+                      // Try to acquire lock to prevent duplicate SL/Tgt orders by TradingScheduler
+                      if (tradeId) {
+                        const lockRes = await prisma.trade.updateMany({
+                          where: { id: tradeId, slOrderStatus: { not: 'PROCESSING_SL_TGT' } },
+                          data: { slOrderStatus: 'PROCESSING_SL_TGT' }
+                        });
+                        if (lockRes.count === 0) {
+                          console.log(`AlgoEngine Monitor: Trade ${tradeId} SL/Tgt is already being processed by scheduler. Skipping internal strategy loop.`);
+                          break;
+                        }
+                      }
+
                       entryFilled = true;
                       console.log(`Entry order ${entryOrderId} COMPLETE for ${client.user?.name}`);
                       
@@ -482,39 +561,36 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                       }
 
                       // Place SL immediately
-                      for (let slAttempt = 1; slAttempt <= 3; slAttempt++) {
-                        try {
-                          const slPayload: any = {
-                            tradingsymbol: targetStock.symbol,
-                            exchange: 'NSE',
-                            transaction_type: isBuy ? 'SELL' : 'BUY',
-                            quantity: qty,
-                            product: 'CNC',
-                            order_type: 'SL-M',
-                            price: slPrice,
-                            trigger_price: slPrice,
-                            validity: 'DAY',
-                            variety: 'regular',
-                          };
-                          const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slPayload, (client.proxyUrl || client.dedicatedIp));
-                          if (slRes?.status === 'success' && slRes.data?.order_id) {
-                            slOrderIdStr = slRes.data.order_id;
-                            console.log(`SL order placed for ${client.user?.name}: ${slOrderIdStr} (attempt ${slAttempt})`);
-                            break;
-                          } else {
-                            console.warn(`AlgoEngine: SL-M order failed (attempt ${slAttempt}/3): ${slRes?.message || 'unknown'}`);
-                            if (slAttempt < 3) await delay(1000);
-                          }
-                        } catch (err) {
-                          console.error(`Failed to place SL order (attempt ${slAttempt}/3):`, err);
-                          if (slAttempt < 3) await delay(1000);
+                      // Place SL immediately
+                      try {
+                        const slPayload: any = {
+                          tradingsymbol: targetStock.symbol,
+                          exchange: 'NSE',
+                          transaction_type: isBuy ? 'SELL' : 'BUY',
+                          quantity: qty,
+                          product: 'CNC',
+                          order_type: 'SL-M',
+                          price: slPrice,
+                          trigger_price: slPrice,
+                          validity: 'DAY',
+                          variety: 'regular',
+                          market_protection: marketProtectionVal
+                        };
+                        const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slPayload, (client.proxyUrl || client.dedicatedIp));
+                        if (slRes?.status === 'success' && slRes.data?.order_id) {
+                          slOrderIdStr = slRes.data.order_id;
+                          console.log(`SL order placed for ${client.user?.name}: ${slOrderIdStr}`);
+                        } else {
+                          console.warn(`AlgoEngine: SL-M order failed: ${slRes?.message || 'unknown'}. Transitioning to VIRTUAL SL monitoring.`);
                         }
+                      } catch (err) {
+                        console.error(`Failed to place SL order:`, err);
                       }
 
                       // Wait 30 seconds, then place Target
                       console.log(`Waiting 30 seconds before placing Target order for ${client.user?.name}...`);
                       await delay(30000);
-                      for (let tgtAttempt = 1; tgtAttempt <= 3; tgtAttempt++) {
+                      for (let tgtAttempt = 1; tgtAttempt <= 1; tgtAttempt++) {
                         try {
                           const tgtPayload: any = {
                             tradingsymbol: targetStock.symbol,
@@ -530,24 +606,15 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                           const tgtRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, tgtPayload, (client.proxyUrl || client.dedicatedIp));
                           if (tgtRes?.status === 'success' && tgtRes.data?.order_id) {
                             tgtOrderIdStr = tgtRes.data.order_id;
-                            console.log(`Target order placed for ${client.user?.name}: ${tgtOrderIdStr} (attempt ${tgtAttempt})`);
-                            break;
+                            console.log(`Target order placed for ${client.user?.name}: ${tgtOrderIdStr}`);
                           } else {
-                            console.warn(`AlgoEngine: Target LIMIT order failed (attempt ${tgtAttempt}/3): ${tgtRes?.message || 'unknown'}`);
-                            if (tgtAttempt === 3) {
-                              tgtOrderStatusVal = 'VIRTUAL_PENDING';
-                              console.warn(`AlgoEngine: All 3 Target LIMIT order attempts failed/rejected on Zerodha for ${client.user?.name}. Transitioned to VIRTUAL target monitoring.`);
-                            } else {
-                              await delay(1000);
-                            }
+                            console.warn(`AlgoEngine: Target LIMIT order failed: ${tgtRes?.message || 'unknown'}`);
+                            tgtOrderStatusVal = 'VIRTUAL_PENDING';
+                            console.warn(`AlgoEngine: Target LIMIT order failed/rejected on Zerodha for ${client.user?.name}. Transitioned to VIRTUAL target monitoring.`);
                           }
                         } catch (err) {
-                          console.error(`Failed to place Target order (attempt ${tgtAttempt}/3):`, err);
-                          if (tgtAttempt === 3) {
-                            tgtOrderStatusVal = 'VIRTUAL_PENDING';
-                          } else {
-                            await delay(1000);
-                          }
+                          console.error(`Failed to place Target order:`, err);
+                          tgtOrderStatusVal = 'VIRTUAL_PENDING';
                         }
                       }
 
