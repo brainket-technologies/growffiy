@@ -317,8 +317,12 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
             // ---- Quantity (rounded to tick size, calculated by Risk / SL diff) ----
             let difference = Math.abs(entryPriceRaw - slPriceRaw);
             if (difference <= 0) difference = 1;
-            const rawQty = Math.max(1, Math.floor(capitalAtRiskPerLeg / difference));
-            const qty = rawQty;
+            const qty = Math.floor(capitalAtRiskPerLeg / difference);
+
+            if (qty <= 0) {
+              console.log(`AlgoEngine: Quantity calculated as 0 for ${client.user?.name} in ${targetStock.symbol}. Risk capital too low for SL difference. Skipping leg.`);
+              continue;
+            }
 
             const rrRatio = config?.target?.riskRewardRatio || 2;
             const targetPriceRaw = isBuy ? entryPriceRaw + (difference * rrRatio) : entryPriceRaw - (difference * rrRatio);
@@ -496,6 +500,18 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                       latestOrderStatus = latest.status;
                     }
                     if (latest?.status?.toUpperCase() === 'COMPLETE') {
+                      // Try to acquire lock to prevent duplicate SL/Tgt orders by TradingScheduler
+                      if (tradeId) {
+                        const lockRes = await prisma.trade.updateMany({
+                          where: { id: tradeId, slOrderStatus: { not: 'PROCESSING_SL_TGT' } },
+                          data: { slOrderStatus: 'PROCESSING_SL_TGT' }
+                        });
+                        if (lockRes.count === 0) {
+                          console.log(`AlgoEngine Monitor: Trade ${tradeId} SL/Tgt is already being processed by scheduler. Skipping internal strategy loop.`);
+                          break;
+                        }
+                      }
+
                       entryFilled = true;
                       console.log(`Entry order ${entryOrderId} COMPLETE for ${client.user?.name}`);
                       
@@ -531,40 +547,36 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                       }
 
                       // Place SL immediately
-                      for (let slAttempt = 1; slAttempt <= 3; slAttempt++) {
-                        try {
-                          const slPayload: any = {
-                            tradingsymbol: targetStock.symbol,
-                            exchange: 'NSE',
-                            transaction_type: isBuy ? 'SELL' : 'BUY',
-                            quantity: qty,
-                            product: 'CNC',
-                            order_type: 'SL-M',
-                            price: slPrice,
-                            trigger_price: slPrice,
-                            validity: 'DAY',
-                            variety: 'regular',
-                            market_protection: marketProtectionVal
-                          };
-                          const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slPayload, (client.proxyUrl || client.dedicatedIp));
-                          if (slRes?.status === 'success' && slRes.data?.order_id) {
-                            slOrderIdStr = slRes.data.order_id;
-                            console.log(`SL order placed for ${client.user?.name}: ${slOrderIdStr} (attempt ${slAttempt})`);
-                            break;
-                          } else {
-                            console.warn(`AlgoEngine: SL-M order failed (attempt ${slAttempt}/3): ${slRes?.message || 'unknown'}`);
-                            if (slAttempt < 3) await delay(1000);
-                          }
-                        } catch (err) {
-                          console.error(`Failed to place SL order (attempt ${slAttempt}/3):`, err);
-                          if (slAttempt < 3) await delay(1000);
+                      // Place SL immediately
+                      try {
+                        const slPayload: any = {
+                          tradingsymbol: targetStock.symbol,
+                          exchange: 'NSE',
+                          transaction_type: isBuy ? 'SELL' : 'BUY',
+                          quantity: qty,
+                          product: 'CNC',
+                          order_type: 'SL-M',
+                          price: slPrice,
+                          trigger_price: slPrice,
+                          validity: 'DAY',
+                          variety: 'regular',
+                          market_protection: marketProtectionVal
+                        };
+                        const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slPayload, (client.proxyUrl || client.dedicatedIp));
+                        if (slRes?.status === 'success' && slRes.data?.order_id) {
+                          slOrderIdStr = slRes.data.order_id;
+                          console.log(`SL order placed for ${client.user?.name}: ${slOrderIdStr}`);
+                        } else {
+                          console.warn(`AlgoEngine: SL-M order failed: ${slRes?.message || 'unknown'}. Transitioning to VIRTUAL SL monitoring.`);
                         }
+                      } catch (err) {
+                        console.error(`Failed to place SL order:`, err);
                       }
 
                       // Wait 30 seconds, then place Target
                       console.log(`Waiting 30 seconds before placing Target order for ${client.user?.name}...`);
                       await delay(30000);
-                      for (let tgtAttempt = 1; tgtAttempt <= 3; tgtAttempt++) {
+                      for (let tgtAttempt = 1; tgtAttempt <= 1; tgtAttempt++) {
                         try {
                           const tgtPayload: any = {
                             tradingsymbol: targetStock.symbol,
@@ -580,24 +592,15 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                           const tgtRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, tgtPayload, (client.proxyUrl || client.dedicatedIp));
                           if (tgtRes?.status === 'success' && tgtRes.data?.order_id) {
                             tgtOrderIdStr = tgtRes.data.order_id;
-                            console.log(`Target order placed for ${client.user?.name}: ${tgtOrderIdStr} (attempt ${tgtAttempt})`);
-                            break;
+                            console.log(`Target order placed for ${client.user?.name}: ${tgtOrderIdStr}`);
                           } else {
-                            console.warn(`AlgoEngine: Target LIMIT order failed (attempt ${tgtAttempt}/3): ${tgtRes?.message || 'unknown'}`);
-                            if (tgtAttempt === 3) {
-                              tgtOrderStatusVal = 'VIRTUAL_PENDING';
-                              console.warn(`AlgoEngine: All 3 Target LIMIT order attempts failed/rejected on Zerodha for ${client.user?.name}. Transitioned to VIRTUAL target monitoring.`);
-                            } else {
-                              await delay(1000);
-                            }
+                            console.warn(`AlgoEngine: Target LIMIT order failed: ${tgtRes?.message || 'unknown'}`);
+                            tgtOrderStatusVal = 'VIRTUAL_PENDING';
+                            console.warn(`AlgoEngine: Target LIMIT order failed/rejected on Zerodha for ${client.user?.name}. Transitioned to VIRTUAL target monitoring.`);
                           }
                         } catch (err) {
-                          console.error(`Failed to place Target order (attempt ${tgtAttempt}/3):`, err);
-                          if (tgtAttempt === 3) {
-                            tgtOrderStatusVal = 'VIRTUAL_PENDING';
-                          } else {
-                            await delay(1000);
-                          }
+                          console.error(`Failed to place Target order:`, err);
+                          tgtOrderStatusVal = 'VIRTUAL_PENDING';
                         }
                       }
 

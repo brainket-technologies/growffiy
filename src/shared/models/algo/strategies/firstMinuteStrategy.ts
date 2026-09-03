@@ -312,7 +312,10 @@ export class FirstMinuteStrategy {
             if (slPoints <= 0) slPoints = 1;
 
             let qty = Math.floor(capitalAtRiskPerLeg / slPoints);
-            if (qty <= 0) qty = 1;
+            if (qty <= 0) {
+              console.log(`AlgoEngine: Quantity calculated as 0 for ${client.user?.name} in ${targetStock.symbol}. Risk capital too low for SL difference. Skipping leg.`);
+              continue;
+            }
 
             if (marginResult.marginRate !== undefined && marginResult.marginRate !== null && marginResult.marginRate > 0) {
               const qtyByBuyingPower = Math.floor((marginResult.clientCapital / legDivisor) / (entryPriceRaw * marginResult.marginRate));
@@ -502,7 +505,20 @@ export class FirstMinuteStrategy {
                     if (latest?.status) latestOrderStatus = latest.status;
                     
                     if (latest?.status?.toUpperCase() === 'COMPLETE') {
+                      // Try to acquire lock to prevent duplicate SL/Tgt orders by TradingScheduler
+                      if (tradeId) {
+                        const lockRes = await prisma.trade.updateMany({
+                          where: { id: tradeId, slOrderStatus: { not: 'PROCESSING_SL_TGT' } },
+                          data: { slOrderStatus: 'PROCESSING_SL_TGT' }
+                        });
+                        if (lockRes.count === 0) {
+                          console.log(`AlgoEngine Monitor: Trade ${tradeId} SL/Tgt is already being processed by scheduler. Skipping internal strategy loop.`);
+                          break;
+                        }
+                      }
+
                       entryFilled = true;
+                      console.log(`Entry order ${entryOrderId} COMPLETE for ${client.user?.name}`);
                       
                       if (client.zerodhaApiKey && activeAccessToken) {
                         const freshLimitsSLT = await getFreshCircuitLimits(client, 'NSE', targetStock.symbol, activeAccessToken);
@@ -522,35 +538,30 @@ export class FirstMinuteStrategy {
                         }
                       }
 
-                      for (let slAttempt = 1; slAttempt <= 3; slAttempt++) {
-                        try {
-                          const slPayload: any = {
-                            tradingsymbol: targetStock.symbol,
-                            exchange: 'NSE',
-                            transaction_type: isBuy ? 'SELL' : 'BUY',
-                            quantity: qty,
-                            product: productParam,
-                            order_type: 'SL-M',
-                            price: slPrice,
-                            trigger_price: slPrice,
-                            validity: 'DAY',
-                            variety: 'regular',
-                            market_protection: marketProtectionVal
-                          };
-                          const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slPayload, (client.proxyUrl || client.dedicatedIp));
-                          if (slRes?.status === 'success' && slRes.data?.order_id) {
-                            slOrderIdStr = slRes.data.order_id;
-                            break;
-                          } else {
-                            if (slAttempt < 3) await delay(1000);
-                          }
-                        } catch (err) {
-                          if (slAttempt < 3) await delay(1000);
+                      try {
+                        const slPayload: any = {
+                          tradingsymbol: targetStock.symbol,
+                          exchange: 'NSE',
+                          transaction_type: isBuy ? 'SELL' : 'BUY',
+                          quantity: qty,
+                          product: productParam,
+                          order_type: 'SL-M',
+                          price: slPrice,
+                          trigger_price: slPrice,
+                          validity: 'DAY',
+                          variety: 'regular',
+                          market_protection: marketProtectionVal
+                        };
+                        const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slPayload, (client.proxyUrl || client.dedicatedIp));
+                        if (slRes?.status === 'success' && slRes.data?.order_id) {
+                          slOrderIdStr = slRes.data.order_id;
                         }
+                      } catch (err) {
+                        console.error(`Failed to place SL order:`, err);
                       }
 
                       await delay(10000); // 10 seconds delay for target
-                      for (let tgtAttempt = 1; tgtAttempt <= 3; tgtAttempt++) {
+                      for (let tgtAttempt = 1; tgtAttempt <= 1; tgtAttempt++) {
                         try {
                           const tgtPayload: any = {
                             tradingsymbol: targetStock.symbol,
@@ -566,14 +577,11 @@ export class FirstMinuteStrategy {
                           const tgtRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, tgtPayload, (client.proxyUrl || client.dedicatedIp));
                           if (tgtRes?.status === 'success' && tgtRes.data?.order_id) {
                             tgtOrderIdStr = tgtRes.data.order_id;
-                            break;
                           } else {
-                            if (tgtAttempt === 3) tgtOrderStatusVal = 'VIRTUAL_PENDING';
-                            else await delay(1000);
+                            tgtOrderStatusVal = 'VIRTUAL_PENDING';
                           }
                         } catch (err) {
-                          if (tgtAttempt === 3) tgtOrderStatusVal = 'VIRTUAL_PENDING';
-                          else await delay(1000);
+                          tgtOrderStatusVal = 'VIRTUAL_PENDING';
                         }
                       }
                       break;

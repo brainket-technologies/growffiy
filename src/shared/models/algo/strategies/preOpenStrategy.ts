@@ -924,6 +924,18 @@ export class PreOpenStrategy {
                 }
                 const isComplete = latestOrder?.status === 'COMPLETE';
                 if (orderStatusRes?.status === 'success' && isComplete) {
+                  // Try to acquire lock to prevent duplicate SL/Tgt orders by TradingScheduler
+                  if (tradeId) {
+                    const lockRes = await prisma.trade.updateMany({
+                      where: { id: tradeId, slOrderStatus: { not: 'PROCESSING_SL_TGT' } },
+                      data: { slOrderStatus: 'PROCESSING_SL_TGT' }
+                    });
+                    if (lockRes.count === 0) {
+                      console.log(`AlgoEngine Monitor: Trade ${tradeId} SL/Tgt is already being processed by scheduler. Skipping internal strategy loop.`);
+                      break;
+                    }
+                  }
+
                   const filledAvgPrice = latestOrder?.average_price || latestOrder?.filled_price || 0;
                   if (filledAvgPrice && Number(filledAvgPrice) > 0) {
                     actualEntryPrice = Number(filledAvgPrice);
@@ -1006,21 +1018,16 @@ export class PreOpenStrategy {
                       trigger_price: finalStopLoss,
                       market_protection: marketProtectionVal
                     };
-                    for (let slAttempt = 1; slAttempt <= 3; slAttempt++) {
-                      try {
-                        const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slParams, (client.proxyUrl || client.dedicatedIp));
-                        if (slRes?.status === 'success' && slRes.data?.order_id) {
-                          slOrderId = slRes.data.order_id;
-                          console.log(`AlgoEngine: SL-M order placed: ${slOrderId} for ${targetStock.symbol} @ trigger ₹${finalStopLoss} (attempt ${slAttempt})`);
-                          break;
-                        } else {
-                          console.warn(`AlgoEngine: SL-M order failed (attempt ${slAttempt}/3): ${slRes?.message || 'unknown'}`);
-                          if (slAttempt < 3) await new Promise(r => setTimeout(r, 1000));
-                        }
-                      } catch (slErr) {
-                        console.error(`AlgoEngine: Error placing SL-M order (attempt ${slAttempt}/3):`, slErr);
-                        if (slAttempt < 3) await new Promise(r => setTimeout(r, 1000));
+                    try {
+                      const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slParams, (client.proxyUrl || client.dedicatedIp));
+                      if (slRes?.status === 'success' && slRes.data?.order_id) {
+                        slOrderId = slRes.data.order_id;
+                        console.log(`AlgoEngine: SL-M order placed: ${slOrderId} for ${targetStock.symbol} @ trigger ₹${finalStopLoss}`);
+                      } else {
+                        console.warn(`AlgoEngine: SL-M order failed: ${slRes?.message || 'unknown'}. Transitioning to VIRTUAL SL monitoring.`);
                       }
+                    } catch (slErr) {
+                      console.error(`AlgoEngine: Error placing SL-M order:`, slErr);
                     }
 
                     console.log(`AlgoEngine OCO: Waiting 5 seconds after Stop-Loss order before placing Target order for ${client.user.name}...`);
@@ -1037,31 +1044,22 @@ export class PreOpenStrategy {
                       price: finalTarget
                     };
 
-                    for (let tgtAttempt = 1; tgtAttempt <= 3; tgtAttempt++) {
+                    for (let tgtAttempt = 1; tgtAttempt <= 1; tgtAttempt++) {
                       try {
                         const targetRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, targetParams, (client.proxyUrl || client.dedicatedIp));
                         if (targetRes?.status === 'success' && targetRes.data?.order_id) {
                           targetOrderId = targetRes.data.order_id;
                           targetOrderStatusVal = 'OPEN';
-                          console.log(`AlgoEngine: Target LIMIT order placed on Zerodha: ${targetOrderId} for ${targetStock.symbol} @ ₹${finalTarget} (attempt ${tgtAttempt})`);
-                          break;
+                          console.log(`AlgoEngine: Target LIMIT order placed on Zerodha: ${targetOrderId} for ${targetStock.symbol} @ ₹${finalTarget}`);
                         } else {
                           const errMsg = targetRes?.message || 'unknown';
-                          console.warn(`AlgoEngine: Target LIMIT order failed/rejected on Zerodha (attempt ${tgtAttempt}/3): ${errMsg}`);
-                          if (tgtAttempt === 3) {
-                            targetOrderStatusVal = 'VIRTUAL_PENDING';
-                            console.warn(`AlgoEngine: All 3 Target LIMIT order attempts failed/rejected on Zerodha for ${client.user.name}. Transitioned to VIRTUAL target monitoring.`);
-                          } else {
-                            await new Promise(r => setTimeout(r, 1000));
-                          }
+                          console.warn(`AlgoEngine: Target LIMIT order failed/rejected on Zerodha: ${errMsg}`);
+                          targetOrderStatusVal = 'VIRTUAL_PENDING';
+                          console.warn(`AlgoEngine: Target LIMIT order failed/rejected on Zerodha for ${client.user.name}. Transitioned to VIRTUAL target monitoring.`);
                         }
                       } catch (tgtErr: any) {
-                        console.error(`AlgoEngine: Error placing Target LIMIT order (attempt ${tgtAttempt}/3):`, tgtErr);
-                        if (tgtAttempt === 3) {
-                          targetOrderStatusVal = 'VIRTUAL_PENDING';
-                        } else {
-                          await new Promise(r => setTimeout(r, 1000));
-                        }
+                        console.error(`AlgoEngine: Error placing Target LIMIT order:`, tgtErr);
+                        targetOrderStatusVal = 'VIRTUAL_PENDING';
                       }
                     }
                   }
