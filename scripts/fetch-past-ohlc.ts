@@ -60,7 +60,7 @@ async function main() {
   }
   console.log(`Target dates to fetch: ${datesToFetch.join(', ')}`);
 
-  const targetTimes = ['09:20', '09:30', '09:45', '12:00'];
+  const targetTimes = ['09:16', '09:20', '09:30', '09:45', '10:00', '12:00'];
   let successfulUpserts = 0;
 
   // 5. Fetch and insert for each symbol
