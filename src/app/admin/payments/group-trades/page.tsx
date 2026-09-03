@@ -26,7 +26,7 @@ export default function GroupTradesPage() {
 
     trades.forEach((t: any) => {
       // Exclude cancelled/failed trades from active group overview if no execution occurred
-      if ((t.status || '').toLowerCase() === 'cancelled' || (t.status || '').toLowerCase() === 'failed') {
+      if (((t.status || '').toLowerCase() === 'cancelled' || (t.status || '').toLowerCase() === 'failed') && (t.pnl === null || t.pnl === undefined || Number(t.pnl) === 0)) {
         return;
       }
 
