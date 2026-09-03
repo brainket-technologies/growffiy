@@ -34,7 +34,7 @@ function httpGet(url: string, headers: Record<string, string>): Promise<{ status
         const cookies: string[] = [];
         const raw = res.headers['set-cookie'];
         if (Array.isArray(raw)) cookies.push(...raw.map(c => c.split(';')[0].trim()));
-        else if (raw) cookies.push(raw.split(';')[0].trim());
+        else if (typeof raw === 'string') cookies.push((raw as string).split(';')[0].trim());
 
         const chunks: Buffer[] = [];
         const enc = res.headers['content-encoding'] ?? '';

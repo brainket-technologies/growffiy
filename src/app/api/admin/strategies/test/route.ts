@@ -132,3 +132,87 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
+
+import { algoEngine } from '@/shared/models/algoEngine';
+import { prisma } from '@/database/db';
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const engineType = searchParams.get('engintype');
+
+    const engine = algoEngine;
+    
+    // Fetch all active strategies from DB
+    const strategies = await prisma.strategy.findMany({
+      where: { status: 'active' }
+    });
+
+    if (!strategies.length) {
+      return NextResponse.json({ success: false, message: 'No active strategies found.' });
+    }
+
+    // Capture logs from console to return to user
+    const originalConsoleLog = console.log;
+    const logs: string[] = [];
+    console.log = (...args: any[]) => {
+      logs.push(args.join(' '));
+      originalConsoleLog(...args);
+    };
+
+    let strategiesToRun = strategies;
+    if (engineType) {
+        strategiesToRun = strategies.filter(s => {
+            let configObj: any = {};
+            try { configObj = typeof s.configJson === 'string' ? JSON.parse(s.configJson) : (s.configJson || {}); } catch(e){}
+            const sEngineType = configObj?.basicInfo?.engineType;
+            if (sEngineType) {
+                return sEngineType === engineType;
+            }
+            // fallback for legacy strategies
+            const dbName = s.name.toLowerCase();
+            const configName = configObj?.basicInfo?.name?.toLowerCase() || '';
+            if (engineType === 'TEN_AM' && (dbName.includes('ten am') || configName.includes('ten am'))) return true;
+            if (engineType === 'FIRST_MINUTE' && (dbName.includes('first minute') || configName.includes('first minute'))) return true;
+            return false;
+        });
+    }
+
+    if (!strategiesToRun.length && engineType) {
+        console.log = originalConsoleLog;
+        return NextResponse.json({ success: false, message: `No active strategies found for engine type: ${engineType}` });
+    }
+
+    // Pre-select clients for only the filtered strategies
+    for (const st of strategiesToRun) {
+        await engine.preSelectAllClients(st.id);
+    }
+
+    // Run the execution manually for filtered strategies
+    for (const st of strategiesToRun) {
+        let configObj: any = {};
+        try { configObj = typeof st.configJson === 'string' ? JSON.parse(st.configJson) : (st.configJson || {}); } catch(e){}
+        const activeLegs = (configObj?.legs || []).filter((l: any) => l.enabled);
+        
+        if (activeLegs.length > 0) {
+            for (let li = 0; li < activeLegs.length; li++) {
+                await engine.executePreOpenTrades('test-admin-dry-run', undefined, st.id, li);
+            }
+        } else {
+            await engine.executePreOpenTrades('test-admin-dry-run', undefined, st.id);
+        }
+    }
+
+    // Restore console.log
+    console.log = originalConsoleLog;
+
+    return NextResponse.json({
+      success: true,
+      message: `Dry run completed successfully for ${strategiesToRun.length} strategy(ies)!`,
+      strategyIds: strategiesToRun.map(s => s.id),
+      logs
+    });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}

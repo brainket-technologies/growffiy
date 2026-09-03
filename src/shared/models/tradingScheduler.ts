@@ -161,7 +161,7 @@ export class TradingScheduler {
             const entryMin = eH * 60 + eM;
             const curMin = hours * 60 + minutes;
             const entryDebug = `[${strategy.name}] now=${currentTimeStr} entry=${entryTime} cmp=${currentTimeStr >= entryTime ? 'Y' : 'N'} lastEntry=${lastEntryByStrategy.get(strategy.id) || '-'} today=${currentDateKey}`;
-            if (curMin >= entryMin && curMin <= entryMin + 5 && lastEntryByStrategy.get(strategy.id) !== currentDateKey) {
+            if (curMin >= entryMin && curMin <= entryMin + 15 && lastEntryByStrategy.get(strategy.id) !== currentDateKey) {
               const todayStart = new Date();
               todayStart.setHours(0, 0, 0, 0);
               const existingTrade = await prisma.trade.findFirst({
@@ -194,7 +194,7 @@ export class TradingScheduler {
                 const [eH, eM] = entryTime.split(':').map(Number);
                 const entryMinutes = eH * 60 + eM;
                 const currentMinutes = hours * 60 + minutes;
-                if (entryMinutes - currentMinutes <= 5) {
+                if (entryMinutes - currentMinutes <= 15) {
                   console.log(`AlgoEngine Scheduler: Entry skip for "${strategy.name}" (${entryDebug})`);
                 }
               }
@@ -229,7 +229,7 @@ export class TradingScheduler {
               const [legH, legM] = legEntryTime.split(':').map(Number);
               const legMin = legH * 60 + legM;
               const curMinLeg = hours * 60 + minutes;
-              if (curMinLeg >= legMin && curMinLeg <= legMin + 5 && lastEntryByStrategy.get(legKey) !== currentDateKey) {
+              if (curMinLeg >= legMin && curMinLeg <= legMin + 15 && lastEntryByStrategy.get(legKey) !== currentDateKey) {
                 const todayStart = new Date();
                 todayStart.setHours(0, 0, 0, 0);
                 const existingLegTrade = await prisma.trade.findFirst({
@@ -264,7 +264,7 @@ export class TradingScheduler {
                 const legEntryMinutes = legH * 60 + legM;
                 const currentMinutes = hours * 60 + minutes;
                 const minutesToEntry = legEntryMinutes - currentMinutes;
-                if (minutesToEntry >= 0 && minutesToEntry <= 5) {
+                if (minutesToEntry >= 0 && minutesToEntry <= 15) {
                   console.log(`AlgoEngine Scheduler: Leg ${li + 1} skip for "${strategy.name}" (now=${currentTimeStr}, legEntry=${legEntryTime}, lastEntry=${lastEntryByStrategy.get(legKey) || '-'})`);
                 }
               }
@@ -522,6 +522,8 @@ export class TradingScheduler {
 
             let slComplete = false;
             let targetComplete = false;
+            let virtualSlHit = false;
+            let virtualTargetHit = false;
 
             // --- Priority 1: Check SL/Target order status via API ---
             if (trade.slOrderId || trade.targetOrderId) {
@@ -572,6 +574,7 @@ export class TradingScheduler {
                   const isSlHit = isShortTrade ? (liveLtp >= slVal) : (liveLtp <= slVal);
                   if (isSlHit) {
                     slComplete = true;
+                    virtualSlHit = true;
                     slAvgPrice = liveLtp;
                     console.log(`AlgoEngine Monitor: Virtual Stop-Loss Hit for ${trade.symbol} @ LTP ₹${liveLtp} (SL: ₹${slVal})`);
                   }
@@ -586,6 +589,7 @@ export class TradingScheduler {
                   const isTargetHit = isShortTrade ? (liveLtp <= targetVal) : (liveLtp >= targetVal);
                   if (isTargetHit) {
                     targetComplete = true;
+                    virtualTargetHit = true;
                     targetAvgPrice = liveLtp;
                     console.log(`AlgoEngine Monitor: Virtual Target Hit for ${trade.symbol} @ LTP ₹${liveLtp} (Target: ₹${targetVal})`);
                   }
@@ -790,6 +794,20 @@ export class TradingScheduler {
                 if (entryStatus?.status === 'success' && latestEntryOrder) {
                   await prisma.trade.update({ where: { id: trade.id }, data: { entryOrderStatus: latestEntryOrder.status === 'COMPLETE' ? 'filled' : latestEntryOrder.status } });
                   if (latestEntryOrder.status === 'COMPLETE') {
+                    // Try to acquire lock to prevent duplicate SL/Tgt orders
+                    const lockRes = await prisma.trade.updateMany({
+                      where: { 
+                        id: trade.id, 
+                        slOrderStatus: { not: 'PROCESSING_SL_TGT' },
+                        slOrderId: null
+                      },
+                      data: { slOrderStatus: 'PROCESSING_SL_TGT' }
+                    });
+                    if (lockRes.count === 0) {
+                      console.log(`AlgoEngine Monitor: Trade ${trade.id} SL/Tgt is already being processed by another instance. Skipping.`);
+                      return;
+                    }
+
                     const filledPrice = Number(latestEntryOrder?.average_price || latestEntryOrder?.filled_price || 0);
                   if (filledPrice > 0) {
                     await prisma.trade.update({ where: { id: trade.id }, data: { entryPrice: filledPrice } });
@@ -836,11 +854,11 @@ export class TradingScheduler {
                         const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, slParams, (client.proxyUrl || client.dedicatedIp));
                         if (slRes?.status === 'success' && slRes.data?.order_id) {
                           newSlOrderId = slRes.data.order_id;
-                          await prisma.trade.update({ where: { id: trade.id }, data: { slOrderStatus: 'OPEN', slKiteResponse: slRes } });
+                          await prisma.trade.update({ where: { id: trade.id }, data: { slOrderId: newSlOrderId, slOrderStatus: 'OPEN', slKiteResponse: slRes } });
                           console.log(`AlgoEngine Monitor: SL-M order placed on Zerodha: ${newSlOrderId} for ${trade.symbol} @ trigger ₹${finalSlTrigger}`);
                         } else if (slRes?.status === 'error') {
                           newSlOrderId = 'REJECTED';
-                          await prisma.trade.update({ where: { id: trade.id }, data: { slOrderStatus: 'REJECTED', slKiteResponse: slRes } });
+                          await prisma.trade.update({ where: { id: trade.id }, data: { slOrderId: newSlOrderId, slOrderStatus: 'REJECTED', slKiteResponse: slRes } });
                           const errMsg = `Kite rejected SL order for ${trade.symbol}. Reason: ${slRes.message}`;
                           console.warn(`AlgoEngine Monitor: ${errMsg}`);
                           await logSystemEvent({
@@ -868,7 +886,7 @@ export class TradingScheduler {
                         const tgtRes = await KiteClient.placeOrder(client.zerodhaApiKey, client.accessToken, targetParams, (client.proxyUrl || client.dedicatedIp));
                         if (tgtRes?.status === 'success' && tgtRes.data?.order_id) {
                           newTargetOrderId = tgtRes.data.order_id;
-                          await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderStatus: 'OPEN', targetKiteResponse: tgtRes } });
+                          await prisma.trade.update({ where: { id: trade.id }, data: { targetOrderId: newTargetOrderId, targetOrderStatus: 'OPEN', targetKiteResponse: tgtRes } });
                           console.log(`AlgoEngine Monitor: Target LIMIT order placed on Zerodha: ${newTargetOrderId} for ${trade.symbol} @ ₹${finalTarget}`);
                         } else if (tgtRes?.status === 'error') {
                           newTargetOrderId = null;
@@ -906,8 +924,9 @@ export class TradingScheduler {
 
                 if (latestEntryOrder.status !== 'COMPLETE') {
                   if (latestEntryOrder.status === 'CANCELLED' || latestEntryOrder.status === 'REJECTED') {
-                    await prisma.trade.update({ where: { id: trade.id }, data: { status: 'FAILED' } });
-                    console.warn(`AlgoEngine Monitor: Entry order ${trade.entryOrderId} ${latestEntryOrder.status}. Trade ${trade.id} marked FAILED.`);
+                    const rejectionMsg = latestEntryOrder.status_message || `Order ${latestEntryOrder.status} by broker.`;
+                    await prisma.trade.update({ where: { id: trade.id }, data: { status: 'FAILED', exitReason: rejectionMsg } });
+                    console.warn(`AlgoEngine Monitor: Entry order ${trade.entryOrderId} ${latestEntryOrder.status}. Reason: ${rejectionMsg}. Trade ${trade.id} marked FAILED.`);
                   } else {
                     const istTimeStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
                     if (config.basicInfo?.exitTime && istTimeStr >= config.basicInfo.exitTime) {
@@ -1009,7 +1028,7 @@ export class TradingScheduler {
               console.log(`AlgoEngine Monitor: EXIT TRIGGERED for trade ${trade.id} (${trade.symbol}) due to ${exitReason} at ₹${exitPrice.toFixed(2)}.`);
 
               let sellRes: any = null;
-              let isManualExit = !slComplete && !targetComplete;
+              let isManualExit = (!slComplete && !targetComplete) || virtualSlHit || virtualTargetHit;
 
               if (isManualExit) {
                 let productToUse = 'MIS';

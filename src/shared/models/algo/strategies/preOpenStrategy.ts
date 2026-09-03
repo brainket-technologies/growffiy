@@ -88,13 +88,14 @@ export class PreOpenStrategy {
       if (config.stoploss?.trailingSL < -1) config.stoploss.trailingSL = -1;
       if (config.target?.trailingTarget < -1) config.target.trailingTarget = -1;
 
-      if (!config.basicInfo?.segment || !config.basicInfo?.selectPosition) {
+      const selectPosition = config.legs?.[0]?.tradeAction?.selectPosition || config.basicInfo?.selectPosition;
+
+      if (!config.basicInfo?.segment || !selectPosition) {
         console.log(`AlgoEngine preSelect: Strategy config missing required fields (segment/selectPosition) for strategy ${strategy.name}. Skipping.`);
         continue;
       }
 
       const segment = config.basicInfo.segment;
-      const selectPosition = config.basicInfo.selectPosition;
 
       let matchingStocks = preOpenStocks.filter((stock: StockQuote) => {
         if (segment === 'NSE F&O' || segment === 'Futures' || segment === 'Options') {
@@ -250,7 +251,7 @@ export class PreOpenStrategy {
           const direction = isShortTrade ? 'SHORT' : 'LONG';
           const legTimeframe = currentLeg.timeframe || '5m';
           const legCandleType = currentLeg.tradeAction?.candlePriceType || 'high';
-          const legBufferPct = currentLeg.tradeAction?.bufferPercent;
+          const legBufferPct = currentLeg.tradeAction?.entryBufferPercent !== undefined ? currentLeg.tradeAction.entryBufferPercent : currentLeg.tradeAction?.bufferPercent;
           const legOrderType = currentLeg.tradeAction?.orderType || 'SL-Market';
 
           const enabledLegs = (config.legs || []).filter((l: any) => l.enabled);
@@ -279,12 +280,12 @@ export class PreOpenStrategy {
           }
 
           if (!candidateStock) {
-            if (!config.basicInfo?.segment || !config.basicInfo?.selectPosition) {
-              console.log(`AlgoEngine: Strategy config missing required fields (segment/selectPosition) for fallback filter for client ${client.user.name}. Skipping.`);
+            const selectPosition = config.legs?.[0]?.tradeAction?.selectPosition || config.basicInfo?.selectPosition;
+            if (!config.basicInfo?.segment || !selectPosition) {
+              console.log(`AlgoEngine: Strategy config missing required fields (segment/selectPosition) for client ${client.user.name}. Skipping.`);
               return;
             }
             const segment = config.basicInfo.segment;
-            const selectPosition = config.basicInfo.selectPosition;
             let matchingStocks = preOpenStocks.filter((stock: StockQuote) => {
               if (segment === 'NSE F&O' || segment === 'Futures' || segment === 'Options') {
                 if (!stock.isFo) return false;
@@ -398,10 +399,31 @@ export class PreOpenStrategy {
                   const res = await KiteClient.getHistoricalData(marketApiKey, marketAccessToken, instTokenStr, kiteInterval, from, to);
                   console.log(`AlgoEngine: Historical response for ${cs.symbol}: status=${res.status}, candles=${res.data?.candles?.length ?? 0}`);
                   if (res.status === 'success' && Array.isArray(res.data?.candles) && res.data.candles.length > 0) {
-                    const priceIdx: Record<string, number> = { open: 1, high: 2, low: 3, close: 4 };
-                    candlePrice = Number(res.data.candles[0][priceIdx[legCandleType]]);
-                    candlePriceCache.set(cs.symbol, candlePrice);
-                    console.log(`AlgoEngine: Candle price for ${cs.symbol} (${legCandleType}): ${candlePrice}`);
+                    const firstCandle = res.data.candles[0];
+                    const open = firstCandle[1];
+                    const high = firstCandle[2];
+                    const low = firstCandle[3];
+                    const close = firstCandle[4];
+
+                    const ohlcCond = config?.basicInfo?.ohlcCondition || 'None';
+                    let skipStock = false;
+                    if (ohlcCond === 'Open = High' && open !== high) skipStock = true;
+                    else if (ohlcCond === 'Open = Low' && open !== low) skipStock = true;
+                    else if (ohlcCond === 'Open = Close' && open !== close) skipStock = true;
+                    else if (ohlcCond === 'High = Low' && high !== low) skipStock = true;
+                    else if (ohlcCond === 'High = Close' && high !== close) skipStock = true;
+                    else if (ohlcCond === 'Low = Close' && low !== close) skipStock = true;
+
+                    if (skipStock) {
+                      console.log(`AlgoEngine: OHLC Condition (${ohlcCond}) not met for ${cs.symbol}. Skipping.`);
+                      candlePriceCache.set(cs.symbol, -1);
+                      candlePrice = -1;
+                    } else {
+                      const priceIdx: Record<string, number> = { open: 1, high: 2, low: 3, close: 4 };
+                      candlePrice = Number(firstCandle[priceIdx[legCandleType]]);
+                      candlePriceCache.set(cs.symbol, candlePrice);
+                      console.log(`AlgoEngine: Candle price for ${cs.symbol} (${legCandleType}): ${candlePrice}`);
+                    }
                   } else {
                     console.warn(`AlgoEngine: No candle data for ${cs.symbol} - status: ${res.status}, error: ${res.message ?? 'none'}`);
                   }
@@ -415,8 +437,8 @@ export class PreOpenStrategy {
               console.log(`AlgoEngine: Using cached candle price for ${cs.symbol}: ${candlePrice}`);
             }
 
-            if (candlePrice === 0) {
-              const reason = `Candle data not fetched for ${cs.symbol}`;
+            if (candlePrice <= 0) {
+              const reason = candlePrice === -1 ? `OHLC Condition not met` : `Candle data not fetched for ${cs.symbol}`;
               console.log(`AlgoEngine: ${reason}. Logging FAILED trade for ${client.user.name}.`);
               await logFailedTrade(client, strategy, cs.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
               return;
@@ -902,6 +924,18 @@ export class PreOpenStrategy {
                 }
                 const isComplete = latestOrder?.status === 'COMPLETE';
                 if (orderStatusRes?.status === 'success' && isComplete) {
+                  // Try to acquire lock to prevent duplicate SL/Tgt orders by TradingScheduler
+                  if (tradeId) {
+                    const lockRes = await prisma.trade.updateMany({
+                      where: { id: tradeId, slOrderStatus: { not: 'PROCESSING_SL_TGT' } },
+                      data: { slOrderStatus: 'PROCESSING_SL_TGT' }
+                    });
+                    if (lockRes.count === 0) {
+                      console.log(`AlgoEngine Monitor: Trade ${tradeId} SL/Tgt is already being processed by scheduler. Skipping internal strategy loop.`);
+                      break;
+                    }
+                  }
+
                   const filledAvgPrice = latestOrder?.average_price || latestOrder?.filled_price || 0;
                   if (filledAvgPrice && Number(filledAvgPrice) > 0) {
                     actualEntryPrice = Number(filledAvgPrice);
@@ -984,21 +1018,16 @@ export class PreOpenStrategy {
                       trigger_price: finalStopLoss,
                       market_protection: marketProtectionVal
                     };
-                    for (let slAttempt = 1; slAttempt <= 3; slAttempt++) {
-                      try {
-                        const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slParams, (client.proxyUrl || client.dedicatedIp));
-                        if (slRes?.status === 'success' && slRes.data?.order_id) {
-                          slOrderId = slRes.data.order_id;
-                          console.log(`AlgoEngine: SL-M order placed: ${slOrderId} for ${targetStock.symbol} @ trigger ₹${finalStopLoss} (attempt ${slAttempt})`);
-                          break;
-                        } else {
-                          console.warn(`AlgoEngine: SL-M order failed (attempt ${slAttempt}/3): ${slRes?.message || 'unknown'}`);
-                          if (slAttempt < 3) await new Promise(r => setTimeout(r, 1000));
-                        }
-                      } catch (slErr) {
-                        console.error(`AlgoEngine: Error placing SL-M order (attempt ${slAttempt}/3):`, slErr);
-                        if (slAttempt < 3) await new Promise(r => setTimeout(r, 1000));
+                    try {
+                      const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slParams, (client.proxyUrl || client.dedicatedIp));
+                      if (slRes?.status === 'success' && slRes.data?.order_id) {
+                        slOrderId = slRes.data.order_id;
+                        console.log(`AlgoEngine: SL-M order placed: ${slOrderId} for ${targetStock.symbol} @ trigger ₹${finalStopLoss}`);
+                      } else {
+                        console.warn(`AlgoEngine: SL-M order failed: ${slRes?.message || 'unknown'}. Transitioning to VIRTUAL SL monitoring.`);
                       }
+                    } catch (slErr) {
+                      console.error(`AlgoEngine: Error placing SL-M order:`, slErr);
                     }
 
                     console.log(`AlgoEngine OCO: Waiting 5 seconds after Stop-Loss order before placing Target order for ${client.user.name}...`);
@@ -1015,31 +1044,22 @@ export class PreOpenStrategy {
                       price: finalTarget
                     };
 
-                    for (let tgtAttempt = 1; tgtAttempt <= 3; tgtAttempt++) {
+                    for (let tgtAttempt = 1; tgtAttempt <= 1; tgtAttempt++) {
                       try {
                         const targetRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, targetParams, (client.proxyUrl || client.dedicatedIp));
                         if (targetRes?.status === 'success' && targetRes.data?.order_id) {
                           targetOrderId = targetRes.data.order_id;
                           targetOrderStatusVal = 'OPEN';
-                          console.log(`AlgoEngine: Target LIMIT order placed on Zerodha: ${targetOrderId} for ${targetStock.symbol} @ ₹${finalTarget} (attempt ${tgtAttempt})`);
-                          break;
+                          console.log(`AlgoEngine: Target LIMIT order placed on Zerodha: ${targetOrderId} for ${targetStock.symbol} @ ₹${finalTarget}`);
                         } else {
                           const errMsg = targetRes?.message || 'unknown';
-                          console.warn(`AlgoEngine: Target LIMIT order failed/rejected on Zerodha (attempt ${tgtAttempt}/3): ${errMsg}`);
-                          if (tgtAttempt === 3) {
-                            targetOrderStatusVal = 'VIRTUAL_PENDING';
-                            console.warn(`AlgoEngine: All 3 Target LIMIT order attempts failed/rejected on Zerodha for ${client.user.name}. Transitioned to VIRTUAL target monitoring.`);
-                          } else {
-                            await new Promise(r => setTimeout(r, 1000));
-                          }
+                          console.warn(`AlgoEngine: Target LIMIT order failed/rejected on Zerodha: ${errMsg}`);
+                          targetOrderStatusVal = 'VIRTUAL_PENDING';
+                          console.warn(`AlgoEngine: Target LIMIT order failed/rejected on Zerodha for ${client.user.name}. Transitioned to VIRTUAL target monitoring.`);
                         }
                       } catch (tgtErr: any) {
-                        console.error(`AlgoEngine: Error placing Target LIMIT order (attempt ${tgtAttempt}/3):`, tgtErr);
-                        if (tgtAttempt === 3) {
-                          targetOrderStatusVal = 'VIRTUAL_PENDING';
-                        } else {
-                          await new Promise(r => setTimeout(r, 1000));
-                        }
+                        console.error(`AlgoEngine: Error placing Target LIMIT order:`, tgtErr);
+                        targetOrderStatusVal = 'VIRTUAL_PENDING';
                       }
                     }
                   }

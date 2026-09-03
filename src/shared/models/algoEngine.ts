@@ -17,6 +17,7 @@ import { getFreshCircuitLimits } from '../utils/circuitLimitHelper';
 import { matchesConditions } from '../utils/conditionEvaluator';
 import { PreOpenStrategy } from './algo/strategies/preOpenStrategy';
 import { TenAmStrategy } from './algo/strategies/tenAmStrategy';
+import { FirstMinuteStrategy } from './algo/strategies/firstMinuteStrategy';
 
 
 export interface StockQuote {
@@ -68,10 +69,12 @@ class AlgoEngineService {
   private tradingScheduler: TradingScheduler;
   private preOpenStrategy: PreOpenStrategy;
   private tenAmStrategy: TenAmStrategy;
+  private firstMinuteStrategy: FirstMinuteStrategy;
 
   constructor() {
     this.preOpenStrategy = new PreOpenStrategy(this);
     this.tenAmStrategy = new TenAmStrategy(this);
+    this.firstMinuteStrategy = new FirstMinuteStrategy(this);
     this.wsLive = new WsLiveFeed(
       () => this.preOpenCache,
       () => this.preselectedStockByStrategy
@@ -178,15 +181,33 @@ class AlgoEngineService {
   async preSelectAllClients(strategyId?: string): Promise<void> {
     if (strategyId) {
       const strategy = await prisma.strategy.findUnique({ where: { id: strategyId } });
-      if (strategy?.name?.toLowerCase().includes('ten am')) {
+      let configObj: any = {};
+      try { configObj = typeof strategy?.configJson === 'string' ? JSON.parse(strategy.configJson) : (strategy?.configJson || {}); } catch(e){}
+      
+      const engineType = configObj?.basicInfo?.engineType || '';
+      const configName = configObj?.basicInfo?.name?.toLowerCase() || '';
+      const dbName = strategy?.name?.toLowerCase() || '';
+      
+      if (engineType === 'TEN_AM' || (!engineType && (dbName.includes('ten am') || configName.includes('ten am')))) {
         return this.tenAmStrategy.preSelectAllClients(strategyId);
+      } else if (engineType === 'FIRST_MINUTE' || (!engineType && (dbName.includes('first minute') || configName.includes('first minute') || dbName.includes('oh preopen') || configName.includes('oh preopen')))) {
+        return this.firstMinuteStrategy.preSelectAllClients(strategyId);
       }
       return this.preOpenStrategy.preSelectAllClients(strategyId);
     } else {
       const strategies = await prisma.strategy.findMany({ where: { status: 'active' } });
       for (const st of strategies) {
-        if (st.name.toLowerCase().includes('ten am')) {
+        let configObj: any = {};
+        try { configObj = typeof st.configJson === 'string' ? JSON.parse(st.configJson) : (st.configJson || {}); } catch(e){}
+        
+        const engineType = configObj?.basicInfo?.engineType || '';
+        const configName = configObj?.basicInfo?.name?.toLowerCase() || '';
+        const dbName = st.name.toLowerCase();
+
+        if (engineType === 'TEN_AM' || (!engineType && (dbName.includes('ten am') || configName.includes('ten am')))) {
           await this.tenAmStrategy.preSelectAllClients(st.id);
+        } else if (engineType === 'FIRST_MINUTE' || (!engineType && (dbName.includes('first minute') || configName.includes('first minute') || dbName.includes('oh preopen') || configName.includes('oh preopen')))) {
+          await this.firstMinuteStrategy.preSelectAllClients(st.id);
         } else {
           await this.preOpenStrategy.preSelectAllClients(st.id);
         }
@@ -195,17 +216,35 @@ class AlgoEngineService {
   }
 
   public async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyId?: string, legIndex?: number, dualLegGroupId?: string | null): Promise<void> {
-    if (strategyId) {
+      if (strategyId) {
       const strategy = await prisma.strategy.findUnique({ where: { id: strategyId } });
-      if (strategy?.name?.toLowerCase().includes('ten am')) {
+      let configObj: any = {};
+      try { configObj = typeof strategy?.configJson === 'string' ? JSON.parse(strategy.configJson) : (strategy?.configJson || {}); } catch(e){}
+      
+      const engineType = configObj?.basicInfo?.engineType || '';
+      const configName = configObj?.basicInfo?.name?.toLowerCase() || '';
+      const dbName = strategy?.name?.toLowerCase() || '';
+      
+      if (engineType === 'TEN_AM' || (!engineType && (dbName.includes('ten am') || configName.includes('ten am')))) {
         return this.tenAmStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
+      } else if (engineType === 'FIRST_MINUTE' || (!engineType && (dbName.includes('first minute') || configName.includes('first minute') || dbName.includes('oh preopen') || configName.includes('oh preopen')))) {
+        return this.firstMinuteStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
       }
       return this.preOpenStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
     } else {
       const strategies = await prisma.strategy.findMany({ where: { status: 'active' } });
       for (const st of strategies) {
-        if (st.name.toLowerCase().includes('ten am')) {
+        let configObj: any = {};
+        try { configObj = typeof st.configJson === 'string' ? JSON.parse(st.configJson) : (st.configJson || {}); } catch(e){}
+        
+        const engineType = configObj?.basicInfo?.engineType || '';
+        const configName = configObj?.basicInfo?.name?.toLowerCase() || '';
+        const dbName = st.name.toLowerCase();
+
+        if (engineType === 'TEN_AM' || (!engineType && (dbName.includes('ten am') || configName.includes('ten am')))) {
           await this.tenAmStrategy.executePreOpenTrades(adminId, mockStocks, st.id, legIndex, dualLegGroupId);
+        } else if (engineType === 'FIRST_MINUTE' || (!engineType && (dbName.includes('first minute') || configName.includes('first minute') || dbName.includes('oh preopen') || configName.includes('oh preopen')))) {
+          await this.firstMinuteStrategy.executePreOpenTrades(adminId, mockStocks, st.id, legIndex, dualLegGroupId);
         } else {
           await this.preOpenStrategy.executePreOpenTrades(adminId, mockStocks, st.id, legIndex, dualLegGroupId);
         }

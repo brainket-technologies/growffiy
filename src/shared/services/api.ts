@@ -28,7 +28,6 @@ class ApiClient {
 
       return data;
     } catch (error: any) {
-      console.error(`ApiClient Error [${options.method || 'GET'} ${path}]:`, error);
       throw error;
     }
   }

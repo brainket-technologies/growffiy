@@ -101,6 +101,62 @@ const DEFAULT_TEMPLATES = [
       },
       conditions: []
     })
+  },
+  {
+    id: 'tmpl-first-minute-strategy',
+    name: 'First Minute Strategy',
+    description: 'Finds the top 10 gainers/losers in preopen and takes a trade based on the first 1-minute candle breakout.',
+    configJson: JSON.stringify({
+      basicInfo: {
+        name: 'First Minute Strategy',
+        description: 'Finds the top 10 gainers/losers in preopen and takes a trade based on the first 1-minute candle breakout.',
+        tradeType: 'Intraday',
+        exchange: 'NSE',
+        segment: 'NSE F&O',
+        entryTime: '09:20:00',
+        exitTime: '15:15:00',
+        maxTradesPerDay: 10,
+        preSelectTime: '09:08:00',
+        selectPosition: 1,
+        topCount: 10,
+        status: 'active',
+        engineType: 'FIRST_MINUTE'
+      },
+      legs: [
+        {
+          name: 'Leg 1',
+          enabled: true,
+          timeframe: '1m',
+          tradeAction: {
+            action: 'Long',
+            orderType: 'SL-Market',
+            bufferPercent: 0.2,
+            marketProtection: 0.05
+          }
+        }
+      ],
+      stoploss: {
+        type: 'Fixed %',
+        orderType: 'Market',
+        fixedPercent: 1.0,
+        fixedPoints: 10,
+        riskPercent: 1.0
+      },
+      target: {
+        type: 'Profit %',
+        profitPercent: 3.0,
+        riskRewardRatio: 3.0
+      },
+      riskManagement: {
+        capitalAllocation: 100,
+        riskPerTrade: 1,
+        maxDailyLoss: -1,
+        maxDailyProfit: -1,
+        maxOpenPositions: 10,
+        killSwitch: false
+      },
+      conditions: []
+    })
   }
 ];
 
