@@ -24,6 +24,7 @@ export async function GET() {
     const finalTrades = isDbConfigured ? dbTrades : inMemoryTrades;
     return NextResponse.json({ success: true, trades: finalTrades });
   } catch (error) {
+    console.error("Trades API Error:", error);
     const isDbConfigured = !!process.env.DATABASE_URL;
     if (isDbConfigured) {
       return NextResponse.json({ success: false, error: 'Database query failed' }, { status: 500 });
