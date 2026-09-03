@@ -312,7 +312,21 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
             
             const baseSl = isBuy ? thirdCandleLow : thirdCandleHigh;
             const slBufferVal = baseSl * (slBufferPct / 100);
-            const slPriceRaw = isBuy ? baseSl - slBufferVal : baseSl + slBufferVal;
+            const candleSlPriceRaw = isBuy ? baseSl - slBufferVal : baseSl + slBufferVal;
+
+            // ---- Tighter SL Logic (Candle vs Admin Config) ----
+            const configSlPercent = config?.stoploss?.type === 'Trailing SL' 
+              ? (config?.stoploss?.trailingSL || 1) 
+              : (config?.stoploss?.fixedPercent || 1);
+              
+            const configSlPriceRaw = isBuy 
+              ? entryPriceRaw * (1 - (configSlPercent / 100))
+              : entryPriceRaw * (1 + (configSlPercent / 100));
+
+            // Select the tighter SL (closer to entry price to minimize max loss)
+            const slPriceRaw = isBuy 
+              ? Math.max(candleSlPriceRaw, configSlPriceRaw)  // BUY: Higher SL price is tighter
+              : Math.min(candleSlPriceRaw, configSlPriceRaw); // SELL: Lower SL price is tighter
 
             // ---- Quantity (rounded to tick size, calculated by Risk / SL diff) ----
             let difference = Math.abs(entryPriceRaw - slPriceRaw);
