@@ -23,7 +23,12 @@ async function main() {
     const columns = Object.keys(rows[0]);
     
     for (const row of rows) {
-      const values = columns.map(col => row[col]);
+      const values = columns.map(col => {
+        if (typeof row[col] === 'object' && row[col] !== null) {
+          return JSON.stringify(row[col]);
+        }
+        return row[col];
+      });
       
       const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
       
