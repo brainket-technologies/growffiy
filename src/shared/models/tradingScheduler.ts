@@ -797,8 +797,11 @@ export class TradingScheduler {
                     // Try to acquire lock to prevent duplicate SL/Tgt orders
                     const lockRes = await prisma.trade.updateMany({
                       where: { 
-                        id: trade.id, 
-                        slOrderStatus: { not: 'PROCESSING_SL_TGT' },
+                        id: trade.id,
+                        OR: [
+                          { slOrderStatus: null },
+                          { slOrderStatus: { not: 'PROCESSING_SL_TGT' } }
+                        ],
                         slOrderId: null
                       },
                       data: { slOrderStatus: 'PROCESSING_SL_TGT' }

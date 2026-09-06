@@ -423,10 +423,10 @@ export default function GrowffiyLanding() {
           {/* Logo */}
           <Link href="/" className="navbar-logo" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', background: 'none', WebkitTextFillColor: 'initial', color: 'initial' }}>
             <div className="navbar-logo-icon" style={{ width: '48px', height: '48px' }}>
-              <img src="/logo.png" alt="Growffiy Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', transform: 'scale(1.25)' }} />
+              <img src={brandLogo || "/logo.png"} alt={`${brandName} Logo`} style={{ width: '100%', height: '100%', objectFit: 'contain', transform: 'scale(1.25)' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', lineHeight: '1.15' }}>
-              <span style={{ fontSize: '22px', fontWeight: '900', color: '#2563eb', letterSpacing: '0.2px', fontFamily: 'var(--font-title)', textTransform: 'uppercase' }}>GROWFFI</span>
+              <span style={{ fontSize: '22px', fontWeight: '900', color: '#2563eb', letterSpacing: '0.2px', fontFamily: 'var(--font-title)', textTransform: 'uppercase' }}>{brandName}</span>
               <span style={{ fontSize: '9px', color: '#334155', fontWeight: '700', letterSpacing: '-0.1px', whiteSpace: 'nowrap' }}>Automate. Trade. Grow.</span>
             </div>
           </Link>
