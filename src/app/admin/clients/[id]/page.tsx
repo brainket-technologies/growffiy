@@ -1512,7 +1512,7 @@ export default function ClientDetailsPage() {
                       overflowY: 'auto',
                       backgroundColor: 'var(--bg-white)'
                     }}>
-                      {strategies.map((strat) => {
+                      {strategies.filter(s => s.status !== 'inactive' || selectedStrategyIds.includes(s.id)).map((strat) => {
                         const isChecked = selectedStrategyIds.includes(strat.id);
                         return (
                           <label key={strat.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: 'var(--text-heading)', userSelect: 'none' }}>
