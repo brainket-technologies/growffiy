@@ -416,7 +416,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                   await prisma.trade.create({
                     data: {
                       clientId: client.id, strategyId: group.strategyId,
-                      symbol: targetStock.symbol, orderType: 'CNC',
+                      symbol: targetStock.symbol, orderType: productParam,
                       entryPrice, quantity: qty,
                       stopLoss: slPrice, target: targetPrice,
                       slTriggerPrice: slPrice,
@@ -445,7 +445,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                 await prisma.trade.create({
                   data: {
                     clientId: client.id, strategyId: group.strategyId,
-                    symbol: targetStock.symbol, orderType: 'CNC',
+                    symbol: targetStock.symbol, orderType: productParam,
                     entryPrice, quantity: qty,
                     stopLoss: slPrice, target: targetPrice,
                     slTriggerPrice: slPrice,
@@ -473,7 +473,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                       clientId: client.id,
                       strategyId: group.strategyId,
                       symbol: targetStock.symbol,
-                      orderType: 'CNC',
+                      orderType: productParam,
                       entryPrice: entryPrice,
                       quantity: qty,
                       stopLoss: slPrice,
@@ -517,7 +517,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                       // Try to acquire lock to prevent duplicate SL/Tgt orders by TradingScheduler
                       if (tradeId) {
                         const lockRes = await prisma.trade.updateMany({
-                          where: { id: tradeId, slOrderStatus: { not: 'PROCESSING_SL_TGT' } },
+                          where: { id: tradeId, OR: [{ slOrderStatus: null }, { slOrderStatus: { not: 'PROCESSING_SL_TGT' } }] },
                           data: { slOrderStatus: 'PROCESSING_SL_TGT' }
                         });
                         if (lockRes.count === 0) {
@@ -568,7 +568,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                           exchange: 'NSE',
                           transaction_type: isBuy ? 'SELL' : 'BUY',
                           quantity: qty,
-                          product: 'CNC',
+                          product: productParam,
                           order_type: 'SL-M',
                           price: slPrice,
                           trigger_price: slPrice,
@@ -597,7 +597,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                             exchange: 'NSE',
                             transaction_type: isBuy ? 'SELL' : 'BUY',
                             quantity: qty,
-                            product: 'CNC',
+                            product: productParam,
                             order_type: 'LIMIT',
                             price: targetPrice,
                             validity: 'DAY',

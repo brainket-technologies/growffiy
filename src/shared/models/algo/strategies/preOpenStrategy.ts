@@ -927,7 +927,7 @@ export class PreOpenStrategy {
                   // Try to acquire lock to prevent duplicate SL/Tgt orders by TradingScheduler
                   if (tradeId) {
                     const lockRes = await prisma.trade.updateMany({
-                      where: { id: tradeId, slOrderStatus: { not: 'PROCESSING_SL_TGT' } },
+                      where: { id: tradeId, OR: [{ slOrderStatus: null }, { slOrderStatus: { not: 'PROCESSING_SL_TGT' } }] },
                       data: { slOrderStatus: 'PROCESSING_SL_TGT' }
                     });
                     if (lockRes.count === 0) {

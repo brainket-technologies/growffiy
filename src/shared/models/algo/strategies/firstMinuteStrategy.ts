@@ -146,18 +146,37 @@ export class FirstMinuteStrategy {
         for (const stock of list) {
           if (config?.conditions && !(await matchesConditions(stock, config.conditions, this.engine.wsLive))) continue;
 
+          const legEntry = config?.legs?.[0]?.entryTime;
+          let toTime = '09:30:00';
+          if (legEntry && typeof legEntry === 'string') {
+            toTime = legEntry.length === 5 ? legEntry + ':00' : legEntry;
+          }
           const from = dateStr + ' 09:15:00';
-          const to = dateStr + ' 09:30:00'; 
+          const to = dateStr + ' ' + toTime; 
           let liveToken = stock.instrumentToken;
           if (!liveToken && this.engine.wsLive?.instrumentToSymbol) {
             const instTokenStr = Object.entries(this.engine.wsLive.instrumentToSymbol).find(([, sym]) => sym === stock.symbol)?.[0];
             if (instTokenStr) liveToken = parseInt(instTokenStr, 10);
           }
+          let tfStr = '1m';
+          const uiTf = config?.legs?.[0]?.timeframe;
+          const n = (group.strategyName + ' ' + (group.configJson?.basicInfo?.name || '')).toLowerCase();
+          
+          if (uiTf) {
+            tfStr = uiTf;
+          } else if (n.includes('15m') || n.includes('15 m') || n.includes('15-m') || n.includes('15 min')) {
+            tfStr = '15m';
+          } else if (n.includes('5m') || n.includes('5 m') || n.includes('5-m') || n.includes('5 min')) {
+            tfStr = '5m';
+          } else if (n.includes('3m') || n.includes('3 m') || n.includes('3-m') || n.includes('3 min')) {
+            tfStr = '3m';
+          }
+
           const candles = await KiteClient.getHistoricalData(
             masterClient.zerodhaApiKey,
             masterClient.accessToken,
             liveToken || stock.instrumentToken || stock.symbol,
-            mapTimeframeToKiteInterval('1m'),
+            mapTimeframeToKiteInterval(tfStr),
             from,
             to
           );
@@ -267,8 +286,18 @@ export class FirstMinuteStrategy {
             const leg = activeLegs[li];
             
             const isBuy = leg.tradeAction?.action?.toLowerCase() === 'long' || leg.tradeAction?.action?.toLowerCase() === 'buy';
-            // Leg 0 is Gainers, Leg 1 is Losers
-            const targetStock = li === 0 ? targetGainer : targetLoser; 
+            
+            const selectionType = config?.basicInfo?.selectionType?.toLowerCase() || '';
+            let targetStock = null;
+
+            if (selectionType.includes('gapdown') || selectionType.includes('loser')) {
+              targetStock = targetLoser;
+            } else if (selectionType.includes('gapup') || selectionType.includes('gainer')) {
+              targetStock = targetGainer;
+            } else {
+              // Backward compatibility
+              targetStock = li === 0 ? targetGainer : targetLoser; 
+            }
             
             if (!targetStock) continue;
 
@@ -508,7 +537,7 @@ export class FirstMinuteStrategy {
                       // Try to acquire lock to prevent duplicate SL/Tgt orders by TradingScheduler
                       if (tradeId) {
                         const lockRes = await prisma.trade.updateMany({
-                          where: { id: tradeId, slOrderStatus: { not: 'PROCESSING_SL_TGT' } },
+                          where: { id: tradeId, OR: [{ slOrderStatus: null }, { slOrderStatus: { not: 'PROCESSING_SL_TGT' } }] },
                           data: { slOrderStatus: 'PROCESSING_SL_TGT' }
                         });
                         if (lockRes.count === 0) {

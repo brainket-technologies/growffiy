@@ -1272,7 +1272,7 @@ export default function StrategiesPage() {
                           <th>Strategy</th>
                           <th>Segment</th>
                           <th>Type</th>
-                          <th>Timeframe</th>
+                          <th>Engine Type</th>
                           <th>Clients</th>
                           <th>Trades</th>
                           <th>Status</th>
@@ -1288,12 +1288,12 @@ export default function StrategiesPage() {
                           </tr>
                         ) : (
                           paginated.map(strat => {
-                            let segment = 'N/A', tradeType = 'N/A', timeframe = 'N/A', entryTime = '', exitTime = '';
+                            let segment = 'N/A', tradeType = 'N/A', engineType = 'N/A', entryTime = '', exitTime = '';
                             try {
                               const p = JSON.parse(strat.configJson);
                               segment = p.basicInfo?.segment || segment;
                               tradeType = p.basicInfo?.tradeType || tradeType;
-                              timeframe = p.basicInfo?.timeframe || timeframe;
+                              engineType = p.basicInfo?.engineType || engineType;
                               entryTime = p.basicInfo?.entryTime || '';
                               exitTime = p.basicInfo?.exitTime || '';
                             } catch (e) {}
@@ -1320,7 +1320,7 @@ export default function StrategiesPage() {
                                 <td><span className="badge badge-blue" style={{ padding: '3px 8px', fontSize: '10px' }}>{segment}</span></td>
                                 <td><span className="badge" style={{ padding: '3px 8px', fontSize: '10px', background: 'rgba(139,92,246,0.1)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.2)', borderRadius: '4px' }}>{tradeType}</span></td>
                                 <td>
-                                   <span className="badge" style={{ padding: '3px 8px', fontSize: '10px', background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '4px' }}>{timeframe}</span>
+                                   <span className="badge" style={{ padding: '3px 8px', fontSize: '10px', background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '4px' }}>{engineType}</span>
                                 </td>
                                 <td style={{ fontWeight: 600, color: assignedCount > 0 ? '#eab308' : 'var(--text-secondary)' }}>{assignedCount}</td>
                                 <td style={{ fontWeight: 500 }}>{tradeCount}</td>
@@ -1541,7 +1541,7 @@ export default function StrategiesPage() {
                       </div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
-                      {(formData.basicInfo.name === 'Ten AM Strategy' || formData.basicInfo.name === 'First Minute Strategy' || formData.basicInfo.name === 'OH PREOPEN 1 MIN') && (
+                      {(formData.basicInfo.engineType === 'TEN_AM' || formData.basicInfo.engineType === 'FIRST_MINUTE') && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           <label style={{ fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>Top Stock Gainer/Loser Count</label>
                           <input
@@ -1614,7 +1614,7 @@ export default function StrategiesPage() {
                   </div>
 
                   {/* TRADE SELECTION */}
-                  {(formData.basicInfo.name !== 'Ten AM Strategy' && formData.basicInfo.name !== 'First Minute Strategy' && formData.basicInfo.name !== 'OH PREOPEN 1 MIN') && (
+                  {(formData.basicInfo.engineType !== 'TEN_AM' && formData.basicInfo.engineType !== 'FIRST_MINUTE') && (
                     <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '16px' }}>
                       <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>TRADE SELECTION</label>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
@@ -2014,7 +2014,7 @@ export default function StrategiesPage() {
                           <option value="Red">Red</option>
                         </select>
                       </div>
-                      {(formData.basicInfo.name === 'Ten AM Strategy' || formData.basicInfo.name === 'First Minute Strategy' || formData.basicInfo.name === 'OH PREOPEN 1 MIN') && (
+                      {(formData.basicInfo.engineType === 'TEN_AM' || formData.basicInfo.engineType === 'FIRST_MINUTE') && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                           <label style={{ fontSize: '11px', fontWeight: 600 }}>Select Position</label>
                           <select value={leg.tradeAction.selectPosition || 1} onChange={(e) => handleLegChange(legIdx, 'tradeAction.selectPosition', Number(e.target.value))}
