@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 async function main() {
   console.log("Connecting to databases...");
   const neon = new PrismaClient({
-    datasources: { db: { url: "postgresql://neondb_owner:npg_Qtok2RmWK4uT@ep-purple-frost-aimotyfv.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require" } }
+    datasourceUrl: "postgresql://neondb_owner:npg_Qtok2RmWK4uT@ep-purple-frost-aimotyfv.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require"
   });
   const live = new PrismaClient();
 
