@@ -172,22 +172,32 @@ export class FirstMinuteStrategy {
             tfStr = '3m';
           }
 
-          const candles = await KiteClient.getHistoricalData(
-            masterClient.zerodhaApiKey,
-            masterClient.accessToken,
-            liveToken || stock.instrumentToken || stock.symbol,
-            mapTimeframeToKiteInterval(tfStr),
-            from,
-            to
-          );
-          
-          await delay(350); 
-          if (!candles?.data?.candles?.length) continue;
-          
-          const hist = candles.data.candles as any[]; 
-          // Strict check: We ONLY check the exact Nth candle (where N = selectPos)
+          let candles: any = null;
+          let hist: any[] = [];
           const targetIndex = selectPos - 1;
-          if (targetIndex >= hist.length) continue;
+          const tokenStr = liveToken || stock.instrumentToken || stock.symbol;
+          
+          for (let attempt = 1; attempt <= 6; attempt++) {
+            candles = await KiteClient.getHistoricalData(
+              masterClient.zerodhaApiKey,
+              masterClient.accessToken,
+              tokenStr,
+              mapTimeframeToKiteInterval(tfStr),
+              from,
+              to
+            );
+            
+            if (candles?.data?.candles?.length > targetIndex) {
+              hist = candles.data.candles;
+              break;
+            }
+            if (attempt < 6) await delay(250); 
+          }
+          
+          if (!hist || hist.length <= targetIndex) {
+            console.log(`[FIRST MINUTE] ${stock.symbol} historical data not available for ${tfStr} at pos ${selectPos} after retries.`);
+            continue;
+          }
           
           const c = hist[targetIndex];
           const open = c[1];
