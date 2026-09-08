@@ -197,6 +197,19 @@ export class FirstMinuteStrategy {
             const instTokenStr = Object.entries(this.engine.wsLive.instrumentToSymbol).find(([, sym]) => sym === stock.symbol)?.[0];
             if (instTokenStr) liveToken = parseInt(instTokenStr, 10);
           }
+          if (!liveToken) {
+            try {
+              const fs = require('fs');
+              const path = require('path');
+              const cachePath = path.join(process.cwd(), 'instruments_cache.json');
+              if (fs.existsSync(cachePath)) {
+                const cacheData = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
+                if (cacheData[stock.symbol]) liveToken = parseInt(cacheData[stock.symbol].instrument_token, 10);
+              }
+            } catch (e) {
+              // ignore
+            }
+          }
           let tfStr = '1m';
           const uiTf = config?.legs?.[0]?.timeframe;
           const n = (group.strategyName + ' ' + (group.configJson?.basicInfo?.name || '')).toLowerCase();
