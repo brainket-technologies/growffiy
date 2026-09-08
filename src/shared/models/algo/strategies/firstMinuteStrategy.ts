@@ -43,6 +43,23 @@ export class FirstMinuteStrategy {
     const preOpenStocksRaw = await getPreOpenStocks();
     if (!preOpenStocksRaw || preOpenStocksRaw.length === 0) return;
 
+    let symbolToToken: any = {};
+    try {
+      console.log('AlgoEngine preSelect: Fetching instruments to map tokens...');
+      const res = await fetch('https://api.kite.trade/instruments');
+      const text = await res.text();
+      const lines = text.split('\n');
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',');
+        if (cols.length > 11 && (cols[11] === 'NSE' || cols[11] === 'NFO')) {
+          symbolToToken[cols[2]] = parseInt(cols[0], 10);
+        }
+      }
+      console.log(`AlgoEngine preSelect: Mapped ${Object.keys(symbolToToken).length} instruments.`);
+    } catch (e) {
+      console.error('AlgoEngine preSelect: Failed to fetch kite instruments', e);
+    }
+
     // Filter purely equity NSE stocks first
     const preOpenStocks: StockQuote[] = preOpenStocksRaw.map(s => ({
       symbol: s.symbol, name: s.name || s.symbol, ltp: s.ltp || 0,
@@ -51,7 +68,8 @@ export class FirstMinuteStrategy {
       change: s.change || 0, changePercent: s.changePercent || 0, iep: s.iep || s.ltp || 0,
       final: s.final || 0, finalQuantity: s.finalQuantity || 0, value: s.value || 0,
       ffmCap: s.ffmCap || 0, nm52wH: s.nm52wH || 0, nm52wL: s.nm52wL || 0,
-      isNifty50: s.isNifty50 || false, isNifty500: s.isNifty500 || false, isBankNifty: s.isBankNifty || false, isFo: s.isFo || false
+      isNifty50: s.isNifty50 || false, isNifty500: s.isNifty500 || false, isBankNifty: s.isBankNifty || false, isFo: s.isFo || false,
+      instrumentToken: symbolToToken[s.symbol] || s.instrumentToken || 0
     }));
 
     const strategyGroups = await fetchClientsByStrategy(true);
