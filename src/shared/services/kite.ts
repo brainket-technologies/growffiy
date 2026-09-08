@@ -336,14 +336,14 @@ export class KiteClient {
   /**
    * Fetches instruments master CSV for a given exchange.
    */
-  public static async getInstrumentsCSV(apiKey: string, accessToken: string, exchange: string): Promise<string> {
-    const response = await fetch(`${this.BASE_URL}/instruments/${exchange}`, {
+  public static async getInstrumentsCSV(apiKey: string, accessToken: string, exchange: string, dedicatedIp?: string | null): Promise<string> {
+    const response = await kiteFetch(`${this.BASE_URL}/instruments/${exchange}`, {
       method: 'GET',
       headers: {
         'Authorization': `token ${apiKey}:${accessToken}`,
         'X-Kite-Version': this.KITE_VERSION,
       },
-    });
+    }, dedicatedIp);
     return response.text();
   }
 }
