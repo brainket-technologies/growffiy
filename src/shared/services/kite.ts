@@ -9,7 +9,7 @@ if (typeof window === 'undefined') {
   } catch (e) { }
 }
 
-async function kiteFetch(url: string, options: any, dedicatedIp?: string | null) {
+export async function kiteFetch(url: string, options: any, dedicatedIp?: string | null) {
   const fetchOpts: any = { ...options };
   const ip = dedicatedIp ? String(dedicatedIp).trim() : '';
 
