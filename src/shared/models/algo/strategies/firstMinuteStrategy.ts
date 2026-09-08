@@ -204,7 +204,10 @@ export class FirstMinuteStrategy {
               const cachePath = path.join(process.cwd(), 'instruments_cache.json');
               if (fs.existsSync(cachePath)) {
                 const cacheData = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
-                if (cacheData[stock.symbol]) liveToken = parseInt(cacheData[stock.symbol].instrument_token, 10);
+                if (cacheData[stock.symbol]) {
+                  const val = cacheData[stock.symbol];
+                  liveToken = typeof val === 'object' ? parseInt(val.instrument_token, 10) : parseInt(val as any, 10);
+                }
               }
             } catch (e) {
               // ignore
