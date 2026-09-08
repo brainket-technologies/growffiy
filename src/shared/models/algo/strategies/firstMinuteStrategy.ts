@@ -50,9 +50,14 @@ export class FirstMinuteStrategy {
       const text = await res.text();
       const lines = text.split('\n');
       for (let i = 1; i < lines.length; i++) {
+        if (!lines[i]) continue;
         const cols = lines[i].split(',');
-        if (cols.length > 11 && (cols[11] === 'NSE' || cols[11] === 'NFO')) {
-          symbolToToken[cols[2]] = parseInt(cols[0], 10);
+        if (cols.length > 2) {
+          const exchange = cols[cols.length - 1].trim();
+          if (exchange === 'NSE' || exchange === 'NFO') {
+            const sym = cols[2].replace(/"/g, '').trim();
+            symbolToToken[sym] = parseInt(cols[0], 10);
+          }
         }
       }
       console.log(`AlgoEngine preSelect: Mapped ${Object.keys(symbolToToken).length} instruments.`);
