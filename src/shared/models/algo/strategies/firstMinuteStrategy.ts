@@ -48,23 +48,38 @@ export class FirstMinuteStrategy {
       console.log('AlgoEngine preSelect: Fetching instruments to map tokens via public proxy...');
       const masterClient = await getMasterClient();
       const res = await kiteFetch('https://api.kite.trade/instruments/NSE', { method: 'GET' }, masterClient?.dedicatedIp);
-      const text = await res.text();
-      const lines = text.split('\n');
-      for (let i = 1; i < lines.length; i++) {
-        if (!lines[i]) continue;
-        const cols = lines[i].split(',');
-        if (cols.length > 2) {
-          const exchange = cols[cols.length - 1].trim();
-          if (exchange === 'NSE' || exchange === 'NFO') {
-            const sym = cols[2].replace(/"/g, '').trim();
-            symbolToToken[sym] = parseInt(cols[0], 10);
+      if (res.ok && res.status === 200) {
+        const text = await res.text();
+        const lines = text.split('\n');
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i]) continue;
+          const cols = lines[i].split(',');
+          if (cols.length > 2) {
+            const exchange = cols[cols.length - 1].trim();
+            if (exchange === 'NSE' || exchange === 'NFO') {
+              const sym = cols[2].replace(/"/g, '').trim();
+              symbolToToken[sym] = parseInt(cols[0], 10);
+            }
           }
         }
+      } else {
+        throw new Error(`Kite returned status ${res.status}`);
       }
-      console.log(`AlgoEngine preSelect: Mapped ${Object.keys(symbolToToken).length} instruments.`);
     } catch (e: any) {
-      console.error('AlgoEngine preSelect: Failed to fetch kite instruments:', e.message);
+      console.error('AlgoEngine preSelect: Failed to fetch kite instruments remotely:', e.message);
+      console.log('AlgoEngine preSelect: Falling back to local instruments_cache.json...');
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const cachePath = path.join(process.cwd(), 'instruments_cache.json');
+        if (fs.existsSync(cachePath)) {
+          symbolToToken = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+        }
+      } catch (cacheErr: any) {
+        console.error('AlgoEngine preSelect: Failed to read local cache:', cacheErr.message);
+      }
     }
+    console.log(`AlgoEngine preSelect: Mapped ${Object.keys(symbolToToken).length} instruments.`);
 
     // Filter purely equity NSE stocks first
     const preOpenStocks: StockQuote[] = preOpenStocksRaw.map(s => ({
