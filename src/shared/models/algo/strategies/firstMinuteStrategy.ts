@@ -1,5 +1,5 @@
 import { prisma } from '../../../../database/db';
-import { KiteClient } from '../../../services/kite';
+import { KiteClient, kiteFetch } from '../../../services/kite';
 import { calculateClientCapitalAndRisk } from '../../../utils/marginHelper';
 import { logSystemEvent } from '../../../services/auditLogger';
 import { API_ENDPOINTS } from '../../../../core/constants';
@@ -45,27 +45,23 @@ export class FirstMinuteStrategy {
 
     let symbolToToken: any = {};
     try {
-      console.log('AlgoEngine preSelect: Fetching instruments to map tokens via KiteClient (Proxy/Auth)...');
+      console.log('AlgoEngine preSelect: Fetching instruments to map tokens via public proxy...');
       const masterClient = await getMasterClient();
-      if (masterClient && masterClient.accessToken && masterClient.zerodhaApiKey) {
-        // Fetch NSE instruments securely using master client's proxy/auth
-        const text = await KiteClient.getInstrumentsCSV(masterClient.zerodhaApiKey, masterClient.accessToken, 'NSE', masterClient.dedicatedIp);
-        const lines = text.split('\n');
-        for (let i = 1; i < lines.length; i++) {
-          if (!lines[i]) continue;
-          const cols = lines[i].split(',');
-          if (cols.length > 2) {
-            const exchange = cols[cols.length - 1].trim();
-            if (exchange === 'NSE' || exchange === 'NFO') {
-              const sym = cols[2].replace(/"/g, '').trim();
-              symbolToToken[sym] = parseInt(cols[0], 10);
-            }
+      const res = await kiteFetch('https://api.kite.trade/instruments/NSE', { method: 'GET' }, masterClient?.dedicatedIp);
+      const text = await res.text();
+      const lines = text.split('\n');
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i]) continue;
+        const cols = lines[i].split(',');
+        if (cols.length > 2) {
+          const exchange = cols[cols.length - 1].trim();
+          if (exchange === 'NSE' || exchange === 'NFO') {
+            const sym = cols[2].replace(/"/g, '').trim();
+            symbolToToken[sym] = parseInt(cols[0], 10);
           }
         }
-        console.log(`AlgoEngine preSelect: Mapped ${Object.keys(symbolToToken).length} instruments.`);
-      } else {
-        console.warn('AlgoEngine preSelect: Master client missing or unauthorized. Cannot fetch instruments.');
       }
+      console.log(`AlgoEngine preSelect: Mapped ${Object.keys(symbolToToken).length} instruments.`);
     } catch (e: any) {
       console.error('AlgoEngine preSelect: Failed to fetch kite instruments:', e.message);
     }
