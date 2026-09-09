@@ -14,9 +14,11 @@ type CategoryType = string;
 function formatDateToNSE(dateVal: string): string {
   const d = new Date(dateVal);
   if (isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('en-GB', {
-    day: '2-digit', month: 'short', year: 'numeric'
-  }); // e.g. "13 Jul 2026"
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = months[d.getMonth()];
+  const yyyy = d.getFullYear();
+  return `${dd} ${mm} ${yyyy}`; // e.g. "13 Jul 2026"
 }
 
 function parseNSEDate(nseDateStr: string): string {

@@ -18,7 +18,11 @@ type CategoryType = 'Nifty 50' | 'Bank Nifty' | 'F&O' | 'SME' | 'Others' | 'All'
 function formatDateToNSE(dateVal: string): string {
   const d = new Date(dateVal);
   if (isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = months[d.getMonth()];
+  const yyyy = d.getFullYear();
+  return `${dd} ${mm} ${yyyy}`; // day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function parseNSEDate(nseDateStr: string): string {
