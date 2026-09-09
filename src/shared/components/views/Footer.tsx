@@ -49,28 +49,24 @@ export default function Footer() {
       try {
         const res = await fetch('/api/settings/public', { cache: 'no-store' });
         const data = await res.json();
-        if (data.success && data.settings) {
-          const s = data.settings;
-          // Directly update state from API so logo/name is always fresh from admin
-          setBrandLogo(s.brand_logo || '');
-          setBrandName(s.brand_name || 'Growffiy');
-          setFooterText(s.footer_text || 'Advanced algorithmic trading middleware connecting directly with Zerodha Kite API. Built for mathematical discipline and speed.');
-          setFooterTagline(s.footer_tagline || 'Automate. Trade. Grow.');
-          setFooterDisclaimer(s.footer_disclaimer || '');
-          setFooterBottomTagline(s.footer_bottom_tagline || 'Growffi Fintech Private Limited. All rights reserved.');
-          setSupportEmail(s.support_email || 'growffi.official@gmail.com');
-          setSupportPhone(s.support_phone || '+91 8866182864');
-          setSupportWhatsapp(s.support_whatsapp || '+91 8866182864');
-          setSupportAddress(s.support_address || 'Lucknow');
-          setSocialTelegram(s.social_telegram || 'https://t.me/growffiy');
-          setSocialYoutube(s.social_youtube || 'https://youtube.com/@growffiy');
-          setSocialTwitter(s.social_twitter || 'https://x.com/growffiy');
-          setSocialInstagram(s.social_instagram || 'https://instagram.com/growffiy');
-          setSocialFacebook(s.social_facebook || 'https://facebook.com/growffiy');
+        if (data.success !== false) {
+          // Directly update state from API — field names match /api/settings/public response
+          setBrandLogo(data.appLogo || '');
+          setBrandName(data.appName || 'Growffiy');
+          setSupportEmail(data.supportEmail || 'growffi.official@gmail.com');
+          setSupportPhone(data.supportPhone || '+91 8866182864');
+          setSupportWhatsapp(data.supportWhatsapp || '+91 8866182864');
+          setSocialTelegram(data.socialTelegram || 'https://t.me/growffiy');
+          setSocialYoutube(data.socialYoutube || 'https://youtube.com/@growffiy');
+          setSocialTwitter(data.socialTwitter || 'https://x.com/growffiy');
+          setSocialInstagram(data.socialInstagram || 'https://instagram.com/growffiy');
+          setSocialFacebook(data.socialFacebook || 'https://facebook.com/growffiy');
 
-          // Also cache in localStorage as fallback
-          localStorage.setItem('brand_logo', s.brand_logo || '');
-          localStorage.setItem('brand_name', s.brand_name || 'Growffiy');
+          // Cache in localStorage as fallback
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('brand_logo', data.appLogo || '');
+            localStorage.setItem('brand_name', data.appName || '');
+          }
         }
       } catch (err) {
         console.error('Failed to fetch public settings in Footer:', err);
@@ -155,27 +151,27 @@ export default function Footer() {
                 <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap' }}>
                   {socialTelegram && (
                     <a href={socialTelegram} target="_blank" rel="noopener noreferrer" className="footer-social-btn" title="Telegram">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-15deg)' }}><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-15deg)' }}><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
                     </a>
                   )}
                   {socialYoutube && (
                     <a href={socialYoutube} target="_blank" rel="noopener noreferrer" className="footer-social-btn" title="YouTube">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17Z"/><polygon points="10 15 15 12 10 9"/></svg>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17Z" /><polygon points="10 15 15 12 10 9" /></svg>
                     </a>
                   )}
                   {socialTwitter && (
                     <a href={socialTwitter} target="_blank" rel="noopener noreferrer" className="footer-social-btn" title="Twitter / X">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z"/><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z" /><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772" /></svg>
                     </a>
                   )}
                   {socialInstagram && (
                     <a href={socialInstagram} target="_blank" rel="noopener noreferrer" className="footer-social-btn" title="Instagram">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" x2="17.51" y1="6.5" y2="6.5" /></svg>
                     </a>
                   )}
                   {socialFacebook && (
                     <a href={socialFacebook} target="_blank" rel="noopener noreferrer" className="footer-social-btn" title="Facebook">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
                     </a>
                   )}
                 </div>
@@ -219,7 +215,7 @@ export default function Footer() {
               <div className="footer-link" style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <MapPin size={13} style={{ marginTop: 2, flexShrink: 0 }} /> {supportAddress || 'Mumbai, India'}
               </div>
-              <button 
+              <button
                 onClick={() => window.dispatchEvent(new CustomEvent('open-consultation-modal'))}
                 style={{
                   marginTop: '16px',
@@ -251,7 +247,7 @@ export default function Footer() {
 
           <div className="footer-bottom">
             <span>{footerText || '© 2026 Growffiy Inc. All rights reserved.'}</span>
-            
+
             {/* Centered Clean Integration Badge - In the middle */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 500 }}>Partner With</span>
@@ -355,7 +351,7 @@ export default function Footer() {
           onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.animation = 'floatPulseGreen 3s infinite ease-in-out 1.5s'; }}
           title={`Chat on WhatsApp: ${supportWhatsapp}`}
         >
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.963C16.59 2.016 14.12 1.01 11.516 1.01c-5.44 0-9.866 4.372-9.87 9.802 0 1.689.451 3.337 1.309 4.793L1.99 21.019l5.656-1.865zm10.985-7.79c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.963C16.59 2.016 14.12 1.01 11.516 1.01c-5.44 0-9.866 4.372-9.87 9.802 0 1.689.451 3.337 1.309 4.793L1.99 21.019l5.656-1.865zm10.985-7.79c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" /></svg>
         </a>
       </div>
 

@@ -35,15 +35,25 @@ export default function PublicHeader() {
   ]);
 
   useEffect(() => {
-    // Load Branding
-    const loadBrand = () => {
-      const storedLogo = localStorage.getItem('growffiy_brand_logo');
-      const storedName = localStorage.getItem('growffiy_brand_name');
-      if (storedLogo) setBrandLogo(storedLogo);
-      if (storedName) setBrandName(storedName);
+    // Fetch branding from API directly (appName, appLogo are the correct field names)
+    const fetchBranding = async () => {
+      try {
+        const res = await fetch('/api/settings/public', { cache: 'no-store' });
+        const data = await res.json();
+        if (data.success !== false) {
+          if (data.appLogo) setBrandLogo(data.appLogo);
+          if (data.appName) setBrandName(data.appName);
+        }
+      } catch (err) {
+        // Fallback: try localStorage
+        const storedLogo = localStorage.getItem('brand_logo');
+        const storedName = localStorage.getItem('brand_name');
+        if (storedLogo) setBrandLogo(storedLogo);
+        if (storedName) setBrandName(storedName);
+      }
     };
-    loadBrand();
-    window.addEventListener('branding-updated', loadBrand);
+    fetchBranding();
+    window.addEventListener('branding-updated', fetchBranding);
 
     // Scroll Handler
     const handleScroll = () => {
@@ -67,7 +77,7 @@ export default function PublicHeader() {
     const interval = setInterval(fetchStocks, 60000);
 
     return () => {
-      window.removeEventListener('branding-updated', loadBrand);
+      window.removeEventListener('branding-updated', fetchBranding);
       window.removeEventListener('scroll', handleScroll);
       clearInterval(interval);
     };
