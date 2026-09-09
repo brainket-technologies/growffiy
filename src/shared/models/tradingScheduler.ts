@@ -1,4 +1,4 @@
-import { prisma } from '../../database/db';
+import { prisma } from '@/database/db';
 import { SCHEDULER_INTERVALS } from '../../core/constants';
 import { KiteClient } from '../services/kite';
 import { performKiteAutoLogin } from '../services/kiteAutoLogin';

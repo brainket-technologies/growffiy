@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../database/db';
+import { prisma } from '@/database/db';
 import { KiteClient } from '../../../../shared/services/kite';
 
 export async function GET() {

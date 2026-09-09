@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { prisma } from '../../database/db';
+import { prisma } from '@/database/db';
 
 interface SendMailOptions {
   to: string;

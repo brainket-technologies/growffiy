@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../database/db';
+import { prisma } from '@/database/db';
 import { performKiteAutoLogin } from '../../../../shared/services/kiteAutoLogin';
 
 export const dynamic = 'force-dynamic';

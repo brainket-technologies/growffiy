@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { performKiteAutoLogin } from '../../../../../shared/services/kiteAutoLogin';
-import { prisma } from '../../../../../database/db';
+import { prisma } from '@/database/db';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

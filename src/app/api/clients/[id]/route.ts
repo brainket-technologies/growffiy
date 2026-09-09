@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../database/db';
+import { prisma } from '@/database/db';
 import { inMemoryClients } from '../route';
 import { KiteClient } from '../../../../shared/services/kite';
 import { sendEmail } from '../../../../shared/services/mailer';

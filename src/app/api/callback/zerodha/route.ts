@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../database/db';
+import { prisma } from '@/database/db';
 import { inMemoryClients } from '../../clients/route';
 import { KiteClient } from '../../../../shared/services/kite';
 

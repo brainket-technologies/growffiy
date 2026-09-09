@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../database/db';
+import { prisma } from '@/database/db';
 
 // GET /api/testimonials - Public API to fetch active testimonials for landing page
 export async function GET() {

@@ -5,7 +5,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 dotenv.config({ path: path.join(__dirname, '../../../.env') });
 
-import { prisma } from '../../database/db';
+import { prisma } from '@/database/db';
 import { API_ENDPOINTS } from '../../core/constants';
 import { KiteClient } from '../services/kite';
 import { WsLiveFeed } from './wsLiveFeed';

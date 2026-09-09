@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../database/db';
+import { prisma } from '@/database/db';
 
 // Simulated trades database when DB is unconfigured
 let inMemoryTrades = [

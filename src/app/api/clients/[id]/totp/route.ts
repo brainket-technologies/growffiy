@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../../database/db';
+import { prisma } from '@/database/db';
 import { generateTOTP } from '../../../../../shared/services/totp';
 
 export async function GET(

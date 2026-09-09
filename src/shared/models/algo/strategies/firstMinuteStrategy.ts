@@ -1,4 +1,4 @@
-import { prisma } from '../../../../database/db';
+import { prisma } from '@/database/db';
 import { KiteClient, kiteFetch } from '../../../services/kite';
 import { calculateClientCapitalAndRisk } from '../../../utils/marginHelper';
 import { logSystemEvent } from '../../../services/auditLogger';

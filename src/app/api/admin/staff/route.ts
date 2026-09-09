@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../database/db';
+import { prisma } from '@/database/db';
 import { inMemoryStaff } from '../../../../shared/store/inMemoryStaff';
 import { getDefaultPermissions } from '../../../../core/constants';
 

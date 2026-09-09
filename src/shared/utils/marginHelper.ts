@@ -1,5 +1,5 @@
 import { KiteClient } from '../services/kite';
-import { prisma } from '../../database/db';
+import { prisma } from '@/database/db';
 
 export interface MarginParams {
   client: any;
