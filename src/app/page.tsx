@@ -9,7 +9,7 @@ import {
   ChevronDown, ChevronUp, Menu, X,
   BarChart2, Lock, Bell, Target, Cpu,
   Check, Phone, Mail, MapPin, User, MessageSquare, HelpCircle, Star,
-  ChevronLeft, ChevronRight, Rocket, LineChart, Diamond, Crown
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { API_ENDPOINTS } from '../core/constants';
 
@@ -360,7 +360,17 @@ export default function GrowffiyLanding() {
               
               const isPro = p.name.toLowerCase().includes('pro') || p.name.toLowerCase().includes('quarterly');
               const isEnterprise = p.name.toLowerCase().includes('enterprise') || p.name.toLowerCase().includes('yearly') || p.name.toLowerCase().includes('best');
-              const tag = isPro ? 'Most Popular' : isEnterprise ? 'Best Value' : 'Standard Access';
+              
+              let tag = isPro ? 'Most Popular' : isEnterprise ? 'Best Value' : 'Standard Access';
+              let displayFeatures = p.features;
+
+              if (Array.isArray(p.features)) {
+                const investmentFeature = p.features.find((f: string) => typeof f === 'string' && f.startsWith('INVESTMENT:'));
+                if (investmentFeature) {
+                  tag = investmentFeature.replace('INVESTMENT:', '').trim();
+                  displayFeatures = p.features.filter((f: string) => typeof f === 'string' && !f.startsWith('INVESTMENT:'));
+                }
+              }
               
               return {
                 tag,
@@ -368,7 +378,7 @@ export default function GrowffiyLanding() {
                 price: p.price,
                 per: `${p.durationDays} Days`,
                 popular: isPro,
-                features: p.features,
+                features: displayFeatures,
                 productType,
               };
             });
@@ -1297,137 +1307,42 @@ export default function GrowffiyLanding() {
                   marginTop: '36px',
                   alignItems: 'stretch'
                 }}>
-                  {filteredPlans.map(plan => {
-                    const isAlgo = activePlanTab.toLowerCase() === 'algo';
-
-                    if (isAlgo) {
-                      let Icon = Rocket;
-                      let isPopular = false;
-                      let themeColor = '#0284c7'; // Starter color
-
-                      if (plan.name.includes('PLUS')) { Icon = LineChart; themeColor = '#2563eb'; }
-                      else if (plan.name.includes('PRO')) { Icon = Target; isPopular = true; themeColor = '#1d4ed8'; }
-                      else if (plan.name.includes('PREMIUM')) { Icon = Diamond; themeColor = '#1e40af'; }
-                      else if (plan.name.includes('ELITE')) { Icon = Crown; themeColor = '#1e3a8a'; }
-
-                      const investmentFeature = plan.features.find((f: string) => typeof f === 'string' && f.startsWith('INVESTMENT:'));
-                      const investmentAmount = investmentFeature ? investmentFeature.replace('INVESTMENT:', '').trim() : 'N/A';
-                      const displayFeatures = plan.features.filter((f: string) => typeof f === 'string' && !f.startsWith('INVESTMENT:'));
-
-                      return (
-                        <div
-                          key={plan.name}
-                          className={`pricing-card${isPopular ? ' popular' : ''}`}
-                          style={{ 
-                            flex: '1 1 240px', maxWidth: '300px', minWidth: '220px', 
-                            padding: '0', position: 'relative', overflow: 'visible',
-                            border: isPopular ? `2px solid ${themeColor}` : '1.5px solid #e2e8f0',
-                            borderRadius: '16px',
-                            display: 'flex', flexDirection: 'column',
-                            boxShadow: isPopular ? '0 10px 40px -10px rgba(29,78,216,0.3)' : '0 4px 6px -1px rgba(0,0,0,0.05)'
-                          }}
-                        >
-                          {isPopular && (
-                            <div style={{
-                              position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)',
-                              background: themeColor, color: 'white', padding: '4px 20px', borderRadius: '99px',
-                              fontSize: '11px', fontWeight: 800, letterSpacing: '0.5px'
-                            }}>
-                              MOST POPULAR
-                            </div>
-                          )}
-                          
-                          <div style={{ padding: '32px 24px 24px', textAlign: 'center', borderBottom: '1px solid #f1f5f9' }}>
-                            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px', color: themeColor }}>
-                              <Icon size={44} strokeWidth={1.5} />
-                            </div>
-                            
-                            <div style={{ fontSize: '18px', fontWeight: 800, color: themeColor, marginBottom: '6px' }}>
-                              {plan.name}
-                            </div>
-                            
-                            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>
-                              Investment Amount
-                            </div>
-                            <div style={{ 
-                              display: 'inline-block', background: themeColor, color: 'white', 
-                              padding: '6px 16px', borderRadius: '99px', fontSize: '14px', fontWeight: 700, marginBottom: '24px' 
-                            }}>
-                              {investmentAmount}
-                            </div>
-                            
-                            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '4px' }}>
-                              Subscription Fee
-                            </div>
-                            <div style={{ fontSize: '36px', fontWeight: 800, color: themeColor, lineHeight: 1 }}>
-                              ₹{Number(plan.price).toLocaleString()}
-                            </div>
-                          </div>
-  
-                          <div style={{ padding: '24px', flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                            <ul className="pricing-features" style={{ marginBottom: '24px', flexGrow: 1 }}>
-                              {displayFeatures.map((f: string) => (
-                                <li key={f} className="pricing-feature-item" style={{ alignItems: 'flex-start', marginBottom: '12px' }}>
-                                  <div className="check-icon" style={{ background: themeColor, marginTop: '2px', flexShrink: 0 }}><Check size={11} strokeWidth={3} /></div>
-                                  <span style={{ fontSize: '13px', lineHeight: '1.4', color: '#334155', fontWeight: 500 }}>{f}</span>
-                                </li>
-                              ))}
-                            </ul>
-                            <Link href="/login" target="_blank" style={{ display: 'block', marginTop: 'auto' }}>
-                              <button style={{
-                                width: '100%', padding: '12px', borderRadius: '99px', fontWeight: 700,
-                                fontSize: '15px', cursor: 'pointer', transition: 'all 0.3s',
-                                background: isPopular ? themeColor : 'white',
-                                color: isPopular ? 'white' : themeColor,
-                                border: isPopular ? 'none' : `1.5px solid ${themeColor}`,
-                                boxShadow: isPopular ? '0 6px 20px rgba(29,78,216,0.3)' : 'none',
-                              }}>
-                                Choose Plan
-                              </button>
-                            </Link>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    // Original rendering for Scanner
-                    return (
-                      <div
-                        key={plan.name}
-                        className={`pricing-card${plan.popular ? ' popular' : ''}`}
-                        style={{ flex: '1 1 300px', maxWidth: '360px', minWidth: '260px' }}
-                      >
-                        {plan.popular && <div className="popular-badge">Most Popular</div>}
-                        <div className="pricing-tag">{plan.tag}</div>
-                        <div className="pricing-name">{plan.name}</div>
-                        <div className="pricing-amount">
-                          <span className="pricing-currency">₹</span>
-                          <span className="pricing-price">{Number(plan.price).toLocaleString()}</span>
-                          <span className="pricing-per">/ {plan.per}</span>
-                        </div>
-                        <ul className="pricing-features">
-                          {plan.features.map((f: string) => (
-                            <li key={f} className="pricing-feature-item">
-                              <div className="check-icon"><Check size={11} /></div>
-                              {f}
-                            </li>
-                          ))}
-                        </ul>
-                        <Link href="/login" target="_blank" style={{ display: 'block' }}>
-                          <button style={{
-                            width: '100%', padding: '13px', borderRadius: 99, fontWeight: 700,
-                            fontSize: 14, cursor: 'pointer', transition: 'all 0.3s',
-                            background: plan.popular ? 'linear-gradient(135deg, #1252AB, #1E88FF)' : 'white',
-                            color: plan.popular ? 'white' : '#334155',
-                            boxShadow: plan.popular ? '0 6px 20px rgba(18,82,171,0.25)' : 'none',
-                            border: plan.popular ? 'none' : '1.5px solid #e2e8f0',
-                          }}>
-                            Get Started →
-                          </button>
-                        </Link>
+                  {filteredPlans.map(plan => (
+                    <div
+                      key={plan.name}
+                      className={`pricing-card${plan.popular ? ' popular' : ''}`}
+                      style={{ flex: '1 1 300px', maxWidth: '360px', minWidth: '260px' }}
+                    >
+                      {plan.popular && <div className="popular-badge">Most Popular</div>}
+                      <div className="pricing-tag">{plan.tag}</div>
+                      <div className="pricing-name">{plan.name}</div>
+                      <div className="pricing-amount">
+                        <span className="pricing-currency">₹</span>
+                        <span className="pricing-price">{Number(plan.price).toLocaleString()}</span>
+                        <span className="pricing-per">/ {plan.per}</span>
                       </div>
-                    );
-                  })}
+                      <ul className="pricing-features">
+                        {plan.features.map((f: string) => (
+                          <li key={f} className="pricing-feature-item">
+                            <div className="check-icon"><Check size={11} /></div>
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                      <Link href="/login" target="_blank" style={{ display: 'block' }}>
+                        <button style={{
+                          width: '100%', padding: '13px', borderRadius: 99, fontWeight: 700,
+                          fontSize: 14, cursor: 'pointer', transition: 'all 0.3s',
+                          background: plan.popular ? 'linear-gradient(135deg, #1252AB, #1E88FF)' : 'white',
+                          color: plan.popular ? 'white' : '#334155',
+                          boxShadow: plan.popular ? '0 6px 20px rgba(18,82,171,0.25)' : 'none',
+                          border: plan.popular ? 'none' : '1.5px solid #e2e8f0',
+                        }}>
+                          Get Started →
+                        </button>
+                      </Link>
+                    </div>
+                  ))}
                 </div>
               </>
             );
