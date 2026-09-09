@@ -393,20 +393,41 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
               console.log(`AlgoEngine: KiteClient.placeOrder returned for ${targetStock.symbol}:`, orderRes);
               
               if (orderRes && orderRes.status === 'error') {
-                if (orderRes.message?.includes('Trigger price') || 
-                    orderRes.message?.includes('circuit') ||
-                    orderRes.message?.includes('stoploss') ||
-                    orderRes.message?.includes('lower than') ||
-                    orderRes.message?.includes('higher than')) {
-                  console.log(`AlgoEngine: Retrying with MARKET order due to circuit/trigger issue for ${targetStock.symbol}...`);
-                  const fallbackParams = {
-                    ...orderPayload,
-                    order_type: 'MARKET',
-                    price: undefined,
-                    trigger_price: undefined,
-                    market_protection: marketProtectionVal
-                  };
-                  orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, fallbackParams, (client.proxyUrl || client.dedicatedIp));
+                const msg = orderRes.message || '';
+                if (msg.toLowerCase().includes('tick size')) {
+                  const match = msg.match(/is\s+([0-9.]+)/i);
+                  if (match && match[1]) {
+                    const reqTick = parseFloat(match[1]);
+                    if (!isNaN(reqTick) && reqTick > 0) {
+                      console.log(`AlgoEngine: Detected Kite tick size ${reqTick}. Re-rounding prices.`);
+                      const roundedEntry = Math.round(entryPriceRaw / reqTick) * reqTick;
+                      orderPayload.price = Number(roundedEntry.toFixed(4));
+                      orderPayload.trigger_price = Number(roundedEntry.toFixed(4));
+                      slPrice = Number((Math.round(slPriceRaw / reqTick) * reqTick).toFixed(4));
+                      targetPrice = Number((Math.round(targetPriceRaw / reqTick) * reqTick).toFixed(4));
+                      
+                      orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, orderPayload, (client.proxyUrl || client.dedicatedIp));
+                    }
+                  }
+                }
+                
+                if (orderRes && orderRes.status === 'error') {
+                  const msgRetry = orderRes.message || '';
+                  if (msgRetry.toLowerCase().includes('trigger price') || 
+                      msgRetry.toLowerCase().includes('circuit') ||
+                      msgRetry.toLowerCase().includes('stoploss') ||
+                      msgRetry.toLowerCase().includes('lower than') ||
+                      msgRetry.toLowerCase().includes('higher than')) {
+                    console.log(`AlgoEngine: Retrying with MARKET order due to circuit/trigger issue for ${targetStock.symbol}...`);
+                    const fallbackParams = {
+                      ...orderPayload,
+                      order_type: 'MARKET',
+                      price: undefined,
+                      trigger_price: undefined,
+                      market_protection: marketProtectionVal
+                    };
+                    orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, fallbackParams, (client.proxyUrl || client.dedicatedIp));
+                  }
                 }
                 
                 if (orderRes && orderRes.status === 'error') {

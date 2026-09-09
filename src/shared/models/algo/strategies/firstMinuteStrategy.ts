@@ -391,18 +391,32 @@ export class FirstMinuteStrategy {
             const entryBufferVal = baseEntry * (entryBufferPct / 100);
             const entryPriceRaw = isBuy ? baseEntry + entryBufferVal : baseEntry - entryBufferVal;
             
-            const slType = config.stoploss?.type || 'Fixed %';
-            const slVal = slType === 'Fixed Points' ? (config.stoploss?.fixedPoints || 10) : (config.stoploss?.fixedPercent || 1);
-            let slPriceRaw = 0;
-            let slPoints = 0;
+            const exchangeParam = config?.basicInfo?.exchange || 'NSE';
+            const slBufferPct = leg.tradeAction?.slBufferPercent !== undefined && leg.tradeAction?.slBufferPercent !== -1 ? leg.tradeAction.slBufferPercent : 0;
             
+            const baseSl = isBuy ? targetStock.firstCandleLow : targetStock.firstCandleHigh;
+            const slBufferVal = baseSl * (slBufferPct / 100);
+            const candleSlPriceRaw = isBuy ? baseSl - slBufferVal : baseSl + slBufferVal;
+
+            const slType = config.stoploss?.type || 'Fixed %';
+            const slVal = slType === 'Fixed Points' ? (config.stoploss?.fixedPoints || 10) : 
+                          slType === 'Trailing SL' ? (config.stoploss?.trailingSL || 1) :
+                          (config.stoploss?.fixedPercent || 1);
+
+            let configSlPriceRaw = 0;
             if (slType === 'Fixed Points') {
-               slPoints = slVal;
-               slPriceRaw = isBuy ? entryPriceRaw - slVal : entryPriceRaw + slVal;
+               configSlPriceRaw = isBuy ? entryPriceRaw - slVal : entryPriceRaw + slVal;
             } else {
-               slPoints = entryPriceRaw * (slVal / 100);
-               slPriceRaw = isBuy ? entryPriceRaw - slPoints : entryPriceRaw + slPoints;
+               const points = entryPriceRaw * (slVal / 100);
+               configSlPriceRaw = isBuy ? entryPriceRaw - points : entryPriceRaw + points;
             }
+
+            // Tighter SL logic (Candle vs Admin Config)
+            let slPriceRaw = isBuy 
+              ? Math.max(candleSlPriceRaw, configSlPriceRaw)
+              : Math.min(candleSlPriceRaw, configSlPriceRaw);
+
+            let slPoints = Math.abs(entryPriceRaw - slPriceRaw);
             if (slPoints <= 0) slPoints = 1;
 
             let qty = Math.floor(capitalAtRiskPerLeg / slPoints);
@@ -476,7 +490,7 @@ export class FirstMinuteStrategy {
             try {
               const orderPayload: any = {
                 tradingsymbol: targetStock.symbol,
-                exchange: 'NSE',
+                exchange: exchangeParam,
                 transaction_type: isBuy ? 'BUY' : 'SELL',
                 quantity: qty,
                 order_type: orderTypeParam,
@@ -491,21 +505,42 @@ export class FirstMinuteStrategy {
 
               let orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, orderPayload, (client.proxyUrl || client.dedicatedIp));
               
-              if (orderRes && orderRes.status === 'error') {
-                if (orderRes.message?.includes('Trigger price') || 
-                    orderRes.message?.includes('circuit') ||
-                    orderRes.message?.includes('stoploss') ||
-                    orderRes.message?.includes('lower than') ||
-                    orderRes.message?.includes('higher than')) {
-                  const fallbackParams = {
-                    ...orderPayload,
-                    order_type: 'MARKET',
-                    price: undefined,
-                    trigger_price: undefined,
-                    market_protection: marketProtectionVal
-                  };
-                  orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, fallbackParams, (client.proxyUrl || client.dedicatedIp));
-                }
+                  if (orderRes && orderRes.status === 'error') {
+                    const msg = orderRes.message || '';
+                    if (msg.toLowerCase().includes('tick size')) {
+                      const match = msg.match(/is\s+([0-9.]+)/i);
+                      if (match && match[1]) {
+                        const reqTick = parseFloat(match[1]);
+                        if (!isNaN(reqTick) && reqTick > 0) {
+                          console.log(`AlgoEngine: Detected Kite tick size ${reqTick}. Re-rounding prices.`);
+                          const roundedEntry = Math.round(entryPriceRaw / reqTick) * reqTick;
+                          orderPayload.price = Number(roundedEntry.toFixed(4));
+                          orderPayload.trigger_price = Number(roundedEntry.toFixed(4));
+                          slPrice = Number((Math.round(slPriceRaw / reqTick) * reqTick).toFixed(4));
+                          targetPrice = Number((Math.round(targetPriceRaw / reqTick) * reqTick).toFixed(4));
+                          
+                          orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, orderPayload, (client.proxyUrl || client.dedicatedIp));
+                        }
+                      }
+                    }
+                    
+                    if (orderRes && orderRes.status === 'error') {
+                      const msgRetry = orderRes.message || '';
+                      if (msgRetry.toLowerCase().includes('trigger price') || 
+                          msgRetry.toLowerCase().includes('circuit') ||
+                          msgRetry.toLowerCase().includes('stoploss') ||
+                          msgRetry.toLowerCase().includes('lower than') ||
+                          msgRetry.toLowerCase().includes('higher than')) {
+                        const fallbackParams = {
+                          ...orderPayload,
+                          order_type: 'MARKET',
+                          price: undefined,
+                          trigger_price: undefined,
+                          market_protection: marketProtectionVal
+                        };
+                        orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, fallbackParams, (client.proxyUrl || client.dedicatedIp));
+                      }
+                    }
                 
                 if (orderRes && orderRes.status === 'error') {
                   const errMsg = orderRes?.message || 'Kite API error';
@@ -635,7 +670,7 @@ export class FirstMinuteStrategy {
                       try {
                         const slPayload: any = {
                           tradingsymbol: targetStock.symbol,
-                          exchange: 'NSE',
+                          exchange: exchangeParam,
                           transaction_type: isBuy ? 'SELL' : 'BUY',
                           quantity: qty,
                           product: productParam,
@@ -659,7 +694,7 @@ export class FirstMinuteStrategy {
                         try {
                           const tgtPayload: any = {
                             tradingsymbol: targetStock.symbol,
-                            exchange: 'NSE',
+                            exchange: exchangeParam,
                             transaction_type: isBuy ? 'SELL' : 'BUY',
                             quantity: qty,
                             product: productParam,
@@ -701,8 +736,10 @@ export class FirstMinuteStrategy {
                   });
                 }
               }
-            } catch (err) {
-              await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, productParam, entryPrice, 'Entry Fail', { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice });
+            } catch (err: any) {
+              console.error(`AlgoEngine: Error placing First Minute Strategy order for ${client.user?.name} (${targetStock.symbol}):`, err);
+              const errMsg = err?.message || 'Entry Fail (Unknown Error)';
+              await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, productParam, entryPrice, errMsg, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice });
               continue;
             }
           }
