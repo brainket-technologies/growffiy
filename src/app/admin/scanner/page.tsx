@@ -6,6 +6,8 @@ import { Card } from '../../../shared/components/views/Card';
 import { Button } from '../../../shared/components/views/Button';
 import { Loader } from '../../../shared/components/views/Loader';
 import { Zap, CheckCircle2, Download, Loader2, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ShieldAlert, Search } from 'lucide-react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 type CategoryType = string;
 
@@ -68,6 +70,20 @@ export default function PreOpenScannerPage() {
   const [historicalData, setHistoricalData] = useState<any[] | null>(null);
   const [historicalDate, setHistoricalDate] = useState<string | null>(null);
   const [loadingHistorical, setLoadingHistorical] = useState(false);
+  const [availableDates, setAvailableDates] = useState<Date[]>([]);
+
+  React.useEffect(() => {
+    fetch('/api/stocks/history/available')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          // Convert string dates to local Date objects for DatePicker
+          const dates = data.data.map((d: string) => new Date(d));
+          setAvailableDates(dates);
+        }
+      })
+      .catch(err => console.error('Failed to load available dates', err));
+  }, []);
 
   const fetchHistoricalData = async (dateVal: string) => {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -262,29 +278,37 @@ export default function PreOpenScannerPage() {
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             Pre-Open Scanner 
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              <input 
-                type="date"
-                value={selectedDateStr || parseNSEDate(preOpenDate)}
-                max={new Date().toISOString().split('T')[0]}
-                onChange={async (e) => {
-                  const val = e.target.value;
-                  if (!val) return;
-                  setSelectedDateStr(val);
-                  await fetchHistoricalData(val);
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', position: 'relative' }}>
+              <DatePicker
+                selected={selectedDateStr ? new Date(selectedDateStr) : (preOpenDate ? new Date(preOpenDate) : new Date())}
+                onChange={async (date: Date | null) => {
+                  if (!date) return;
+                  // Get local date string YYYY-MM-DD
+                  const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+                  const localISOTime = (new Date(date.getTime() - tzoffset)).toISOString().split('T')[0];
+                  setSelectedDateStr(localISOTime);
+                  await fetchHistoricalData(localISOTime);
                 }}
-                style={{
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: '#2563eb',
-                  backgroundColor: '#eff6ff',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid #bfdbfe',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit'
-                }}
+                maxDate={new Date()}
+                includeDates={availableDates.length > 0 ? availableDates : undefined}
+                dateFormat="dd/MM/yyyy"
+                customInput={
+                  <input 
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: '#2563eb',
+                      backgroundColor: '#eff6ff',
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #bfdbfe',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      width: '120px'
+                    }}
+                  />
+                }
               />
               {loadingHistorical && <Loader2 size={16} className="animate-spin" style={{ color: '#2563eb' }} />}
             </span>
