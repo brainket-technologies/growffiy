@@ -33,6 +33,16 @@ let preOpenCacheDate: string = '';
 
 const CACHE_EXPIRY_MS = 2 * 60 * 1000; // 2 minutes cache validity
 
+export const NSE_DATE_FORMAT = 'DD MMM YYYY';
+
+function formatNSEDate(d: Date): string {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = months[d.getMonth()];
+  const yyyy = d.getFullYear();
+  return `${dd} ${mm} ${yyyy}`;
+}
+
 /**
  * Fetch live Pre-Open stock list directly from the NSE website.
  */
@@ -173,9 +183,7 @@ export async function fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
     // Cache the parsed response
     preOpenCache = formattedQuotes;
     lastPreOpenFetchTime = Date.now();
-    preOpenCacheDate = new Date().toLocaleDateString('en-GB', {
-      day: '2-digit', month: 'short', year: 'numeric'
-    });
+    preOpenCacheDate = formatNSEDate(new Date());
 
     // Save to historical database
     try {
@@ -282,9 +290,7 @@ export async function fetchLivePreOpenFromKite(apiKey?: string, accessToken?: st
 
       preOpenCache = kiteQuotes;
       lastPreOpenFetchTime = Date.now();
-      preOpenCacheDate = new Date().toLocaleDateString('en-GB', {
-        day: '2-digit', month: 'short', year: 'numeric'
-      });
+      preOpenCacheDate = formatNSEDate(new Date());
 
       // Save to historical database
       try {
@@ -329,9 +335,7 @@ export async function fetchLivePreOpenFromKite(apiKey?: string, accessToken?: st
  */
 export async function getPreOpenStocks(forceFetch = false, apiKey?: string, accessToken?: string): Promise<StockQuote[]> {
   const isExpired = (Date.now() - lastPreOpenFetchTime) > CACHE_EXPIRY_MS;
-  const isDifferentDay = preOpenCacheDate !== new Date().toLocaleDateString('en-GB', {
-    day: '2-digit', month: 'short', year: 'numeric'
-  });
+  const isDifferentDay = preOpenCacheDate !== formatNSEDate(new Date());
 
   if (forceFetch || preOpenCache.length === 0 || isExpired || isDifferentDay) {
     try {
@@ -349,9 +353,7 @@ export function getCachedPreOpenStocks(): StockQuote[] {
 }
 
 export function getPreOpenDate(): string {
-  return preOpenCacheDate || new Date().toLocaleDateString('en-GB', {
-    day: '2-digit', month: 'short', year: 'numeric'
-  });
+  return preOpenCacheDate || formatNSEDate(new Date());
 }
 
 if (typeof module !== 'undefined' && module.exports) {
