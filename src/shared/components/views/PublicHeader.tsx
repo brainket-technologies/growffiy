@@ -253,6 +253,9 @@ export default function PublicHeader() {
           </span>
         </div>
       </div>
+
+      {/* Spacer to prevent content from hiding behind fixed header */}
+      <div style={{ height: '110px' }} aria-hidden="true" />
     </>
   );
 }
