@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { algoEngine } from '../../../shared/models/algoEngine';
 
-import { prisma } from '../../../database/db';
+import { prisma } from '@/database/db';
 
 export const dynamic = 'force-dynamic';
 

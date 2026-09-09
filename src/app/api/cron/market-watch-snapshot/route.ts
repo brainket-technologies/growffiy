@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import https from 'https';
 import zlib from 'zlib';
-import { prisma } from '../../../../database/db';
+import { prisma } from '@/database/db';
 
 export const dynamic = 'force-dynamic';
 

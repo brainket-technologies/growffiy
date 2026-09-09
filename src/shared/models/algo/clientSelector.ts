@@ -1,4 +1,4 @@
-import { prisma } from '../../../database/db';
+import { prisma } from '@/database/db';
 
 export interface SelectedClient {
   id: string;

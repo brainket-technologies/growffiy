@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import { prisma } from '../../database/db';
+import { prisma } from '@/database/db';
 import { API_ENDPOINTS } from '../../core/constants';
 import { KiteClient } from '../services/kite';
 import { performKiteAutoLogin } from '../services/kiteAutoLogin';

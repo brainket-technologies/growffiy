@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../database/db';
+import { prisma } from '@/database/db';
 
 // GET /api/admin/testimonials - Fetch all testimonials for admin panel
 export async function GET() {

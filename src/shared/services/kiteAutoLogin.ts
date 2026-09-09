@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 import { generateTOTP } from './totp';
-import { prisma } from '../../database/db';
+import { prisma } from '@/database/db';
 
 function extractCookies(res: Response): string {
   return res.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');

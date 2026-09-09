@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../database/db';
+import { prisma } from '@/database/db';
 import { sendEmail } from '../../../../shared/services/mailer';
 
 export const dynamic = 'force-dynamic';
