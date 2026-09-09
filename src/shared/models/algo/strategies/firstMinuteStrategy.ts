@@ -572,21 +572,10 @@ export class FirstMinuteStrategy {
               entryOrderId = orderRes?.data?.order_id;
               
               if (!entryOrderId) {
-                await prisma.trade.create({
-                  data: {
-                    clientId: client.id, strategyId: group.strategyId,
-                    symbol: targetStock.symbol, orderType: productParam,
-                    entryPrice, quantity: qty,
-                    stopLoss: slPrice, target: targetPrice,
-                    slTriggerPrice: slPrice,
-                    status: 'FAILED', entryTime: new Date(),
-                    entryOrderStatus: 'FAILED',
-                    kiteResponse: orderRes || {},
-                    direction: isBuy ? 'LONG' : 'SHORT',
-                    legName: leg.name || '',
-                    legTimeframe: '1m'
-                  }
-                });
+                // Log actual Kite response so reason is visible in UI
+                const noIdReason = orderRes?.message || orderRes?.data?.message || (orderRes ? JSON.stringify(orderRes) : 'No order_id returned by Kite');
+                console.error(`AlgoEngine: Entry order_id missing for ${client.user?.name} (${targetStock.symbol}). Kite response:`, JSON.stringify(orderRes));
+                await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, productParam, entryPrice, noIdReason, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice });
                 continue;
               }
 
@@ -737,8 +726,13 @@ export class FirstMinuteStrategy {
                 }
               }
             } catch (err: any) {
-              console.error(`AlgoEngine: Error placing First Minute Strategy order for ${client.user?.name} (${targetStock.symbol}):`, err);
-              const errMsg = err?.message || 'Entry Fail (Unknown Error)';
+              // Capture full error — Kite API error, network error, or any exception
+              const errMsg = err?.response?.data?.message
+                || err?.response?.message
+                || err?.data?.message
+                || err?.message
+                || (err ? String(err) : 'Entry Fail (Unknown Error)');
+              console.error(`AlgoEngine: Error placing First Minute Strategy order for ${client.user?.name} (${targetStock.symbol}): ${errMsg}`, err?.stack || '');
               await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, productParam, entryPrice, errMsg, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice });
               continue;
             }
