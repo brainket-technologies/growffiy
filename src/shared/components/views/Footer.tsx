@@ -104,14 +104,15 @@ export default function Footer() {
             {/* Brand */}
             <div>
               <div className="footer-brand-logo">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  {brandLogo ? (
-                    <img src={brandLogo} alt={brandName} style={{ height: '28px', width: 'auto', objectFit: 'contain' }} />
-                  ) : (
-                    <img src="/logo.png" alt={brandName} style={{ width: 24, height: 24, objectFit: 'contain' }} />
-                  )}
-                  <span className="footer-brand-name">{brandName.toUpperCase()}</span>
+                <div className="footer-brand-logo-icon">
+                  {/* Dynamic logo from admin — fallback to /logo.png */}
+                  <img
+                    src={brandLogo || '/logo.png'}
+                    alt={brandName || 'Logo'}
+                    style={{ width: 18, height: 18, objectFit: 'contain' }}
+                  />
                 </div>
+                <span className="footer-brand-name">{brandName ? brandName.toUpperCase() : ''}</span>
               </div>
               <p className="footer-brand-desc">
                 {footerTagline || 'Advanced algorithmic trading middleware connecting directly with Zerodha Kite API. Built for mathematical discipline and speed.'}
