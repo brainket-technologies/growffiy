@@ -47,27 +47,30 @@ export default function Footer() {
 
     const fetchPublicSettings = async () => {
       try {
-        const res = await fetch('/api/settings/public');
+        const res = await fetch('/api/settings/public', { cache: 'no-store' });
         const data = await res.json();
         if (data.success && data.settings) {
           const s = data.settings;
+          // Directly update state from API so logo/name is always fresh from admin
+          setBrandLogo(s.brand_logo || '');
+          setBrandName(s.brand_name || 'Growffiy');
+          setFooterText(s.footer_text || 'Advanced algorithmic trading middleware connecting directly with Zerodha Kite API. Built for mathematical discipline and speed.');
+          setFooterTagline(s.footer_tagline || 'Automate. Trade. Grow.');
+          setFooterDisclaimer(s.footer_disclaimer || '');
+          setFooterBottomTagline(s.footer_bottom_tagline || 'Growffi Fintech Private Limited. All rights reserved.');
+          setSupportEmail(s.support_email || 'growffi.official@gmail.com');
+          setSupportPhone(s.support_phone || '+91 8866182864');
+          setSupportWhatsapp(s.support_whatsapp || '+91 8866182864');
+          setSupportAddress(s.support_address || 'Lucknow');
+          setSocialTelegram(s.social_telegram || 'https://t.me/growffiy');
+          setSocialYoutube(s.social_youtube || 'https://youtube.com/@growffiy');
+          setSocialTwitter(s.social_twitter || 'https://x.com/growffiy');
+          setSocialInstagram(s.social_instagram || 'https://instagram.com/growffiy');
+          setSocialFacebook(s.social_facebook || 'https://facebook.com/growffiy');
+
+          // Also cache in localStorage as fallback
           localStorage.setItem('brand_logo', s.brand_logo || '');
           localStorage.setItem('brand_name', s.brand_name || 'Growffiy');
-          localStorage.setItem('footer_text', s.footer_text || '');
-          localStorage.setItem('footer_tagline', s.footer_tagline || '');
-          localStorage.setItem('footer_disclaimer', s.footer_disclaimer || '');
-          localStorage.setItem('footer_bottom_tagline', s.footer_bottom_tagline || '');
-          localStorage.setItem('support_email', s.support_email || '');
-          localStorage.setItem('support_phone', s.support_phone || '');
-          localStorage.setItem('support_whatsapp', s.support_whatsapp || '');
-          localStorage.setItem('support_address', s.support_address || '');
-
-          localStorage.setItem('social_telegram', s.social_telegram || '');
-          localStorage.setItem('social_youtube', s.social_youtube || '');
-          localStorage.setItem('social_twitter', s.social_twitter || '');
-          localStorage.setItem('social_instagram', s.social_instagram || '');
-          localStorage.setItem('social_facebook', s.social_facebook || '');
-          load();
         }
       } catch (err) {
         console.error('Failed to fetch public settings in Footer:', err);
@@ -134,10 +137,14 @@ export default function Footer() {
             {/* Brand */}
             <div>
               <div className="footer-brand-logo">
-                <div className="footer-brand-logo-icon">
-                  {brandLogo ? <img src={brandLogo} alt={brandName} style={{ width: 18, height: 18, objectFit: 'contain' }} /> : <img src="/logo.png" alt={brandName} style={{ width: 18, height: 18, objectFit: 'contain' }} />}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {brandLogo ? (
+                    <img src={brandLogo} alt={brandName} style={{ height: '28px', width: 'auto', objectFit: 'contain' }} />
+                  ) : (
+                    <img src="/logo.png" alt={brandName} style={{ width: 24, height: 24, objectFit: 'contain' }} />
+                  )}
+                  <span className="footer-brand-name">{brandName.toUpperCase()}</span>
                 </div>
-                <span className="footer-brand-name">{brandName.toUpperCase()}</span>
               </div>
               <p className="footer-brand-desc">
                 {footerTagline || 'Advanced algorithmic trading middleware connecting directly with Zerodha Kite API. Built for mathematical discipline and speed.'}
