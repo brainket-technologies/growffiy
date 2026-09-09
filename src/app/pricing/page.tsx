@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import PublicHeader from '../../shared/components/views/PublicHeader';
 import Link from 'next/link';
 import Footer from '../../shared/components/views/Footer';
 import { Menu, X, Check, ArrowRight, ShieldCheck, Zap, Cpu, Award, Users, RefreshCw, Sparkles, HelpCircle, User, Mail, Phone, Activity, ChevronDown, MessageSquare } from 'lucide-react';
@@ -190,109 +191,7 @@ export default function PricingPage() {
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
       color: '#0f172a',
     }}>
-      {/* Stock Ticker Bar at the very top */}
-      <div style={{
-        background: '#0f172a',
-        color: '#f8fafc',
-        height: '38px',
-        overflow: 'hidden',
-        display: 'flex',
-        alignItems: 'center',
-        whiteSpace: 'nowrap',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
-        position: 'relative',
-        zIndex: 1001,
-      }}>
-        <style dangerouslySetInnerHTML={{ __html: `
-          @keyframes ticker-scroll {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-          .ticker-track {
-            display: inline-flex;
-            animation: ticker-scroll 30s linear infinite;
-          }
-          .ticker-track:hover { animation-play-state: paused; }
-          .ticker-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 0 24px;
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            border-right: 1px solid rgba(255,255,255,0.1);
-          }
-        ` }} />
-        <div className="ticker-track">
-          {[...stocks, ...stocks].map((s, idx) => (
-            <span key={idx} className="ticker-item">
-              <span style={{ color: '#94a3b8' }}>{s.symbol}</span>
-              <span style={{ fontWeight: 700 }}>₹{s.ltp.toFixed(2)}</span>
-              <span style={{
-                color: isUp(s.change) ? '#4ade80' : '#f87171',
-                fontSize: 10, fontWeight: 700,
-              }}>
-                {isUp(s.change) ? '▲' : '▼'} {Math.abs(s.change).toFixed(2)}%
-              </span>
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Sticky Header Navbar */}
-      <nav style={{
-        position: 'sticky', top: 0, left: 0, right: 0, zIndex: 1000,
-        background: scrolled || mobileMenuOpen
-          ? 'rgba(255,255,255,0.97)'
-          : 'rgba(255,255,255,0.85)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderBottom: scrolled || mobileMenuOpen ? '1px solid rgba(226,232,240,0.8)' : '1px solid transparent',
-        boxShadow: scrolled || mobileMenuOpen ? '0 2px 20px rgba(0,0,0,0.06)' : 'none',
-        transition: 'all 0.35s ease',
-      }}>
-        <div className="navbar-inner">
-          {/* Logo */}
-          <Link href="/" className="navbar-logo" onClick={() => setMobileMenuOpen(false)}>
-            <div className="navbar-logo-icon">
-              <img src={brandLogo || '/logo.png'} alt={brandName} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-            </div>
-            {brandName.toUpperCase()}
-          </Link>
-
-          {/* Desktop Nav links */}
-          <div className="navbar-nav">
-            <Link href="/" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Home</Link>
-            <Link href="/products" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Products</Link>
-            <Link href="/pricing" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`} style={{ color: '#1E88FF', fontWeight: 600 }}>Pricing</Link>
-            <Link href="/about" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>About Us</Link>
-            <button onClick={() => setShowConsultationModal(true)} className="btn-nav" style={{ border: 'none', cursor: 'pointer' }}>Get Started →</button>
-          </div>
-
-          {/* Hamburger Button (mobile only) */}
-          <button
-            className="hamburger-btn"
-            onClick={() => setMobileMenuOpen(o => !o)}
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? <X size={22} color="#0f172a" /> : <Menu size={22} color={scrolled ? '#0f172a' : '#0f172a'} />}
-          </button>
-        </div>
-
-        {/* Mobile Dropdown Menu */}
-        {mobileMenuOpen && (
-          <div className="mobile-nav">
-            <Link href="/" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Home</Link>
-            <Link href="/products" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Products</Link>
-            <Link href="/pricing" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
-            <Link href="/about" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>About Us</Link>
-            <button className="mobile-nav-cta" onClick={() => { setShowConsultationModal(true); setMobileMenuOpen(false); }} style={{ border: 'none', textAlign: 'center', width: '100%', cursor: 'pointer' }}>
-              Get Started →
-            </button>
-          </div>
-        )}
-      </nav>
+      <PublicHeader />
 
       {/* Main Header / Badges */}
       <section className="pricing-header-section" style={{

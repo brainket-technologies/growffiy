@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import PublicHeader from '../../shared/components/views/PublicHeader';
 import Link from 'next/link';
 import Footer from '../../shared/components/views/Footer';
 import { Menu, X, Check, ArrowRight, User, Mail, Phone, Activity, Settings, TrendingUp, Zap, Shield, BarChart2 } from 'lucide-react';
@@ -130,95 +131,7 @@ export default function AlgoTradingPage() {
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
       color: '#0f172a'
     }}>
-      {/* Stock Ticker Bar */}
-      <div style={{
-        background: '#0f172a',
-        color: '#f8fafc',
-        height: '38px',
-        overflow: 'hidden',
-        display: 'flex',
-        alignItems: 'center',
-        whiteSpace: 'nowrap',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
-        position: 'relative',
-        zIndex: 1001,
-      }}>
-        <style dangerouslySetInnerHTML={{ __html: `
-          @keyframes ticker-scroll {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-          .ticker-track {
-            display: inline-flex;
-            animation: ticker-scroll 30s linear infinite;
-          }
-          .ticker-track:hover { animation-play-state: paused; }
-        `}}></style>
-        <div className="ticker-track">
-          {[...stocks, ...stocks].map((s, i) => (
-            <span key={i} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '0 28px',
-              borderRight: '1px solid rgba(255,255,255,0.08)',
-              fontSize: 12, fontWeight: 600,
-            }}>
-              <span style={{ color: '#94a3b8', fontWeight: 700, letterSpacing: '0.3px' }}>{s.symbol}</span>
-              <span style={{ color: '#f1f5f9', fontFamily: 'monospace', fontSize: 13 }}>₹{s.ltp.toFixed(2)}</span>
-              <span style={{
-                color: isUp(s.change) ? '#4ade80' : '#f87171',
-                fontSize: 11, fontWeight: 700,
-              }}>
-                {isUp(s.change) ? '▲' : '▼'} {Math.abs(s.change).toFixed(2)}%
-              </span>
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Navbar */}
-      <nav style={{
-        position: 'sticky', top: 0, left: 0, right: 0, zIndex: 1000,
-        background: 'rgba(255,255,255,0.97)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(226,232,240,0.8)',
-        boxShadow: '0 2px 20px rgba(0,0,0,0.06)',
-        transition: 'all 0.35s ease',
-      }}>
-        <div className="navbar-inner" style={{
-          maxWidth: '1280px',
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '16px 24px'
-        }}>
-          <Link href="/" className="navbar-logo" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '20px', fontWeight: '800', color: '#0052e0', textDecoration: 'none' }}>
-            {brandLogo ? (
-              <img src={brandLogo} alt={brandName} style={{ height: '32px', objectFit: 'contain' }} />
-            ) : (
-              <Activity size={24} color="#0052e0" />
-            )}
-            {brandName.toUpperCase()}
-          </Link>
-
-          <div className="navbar-nav" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-            <Link href="/" style={{ color: '#475569', textDecoration: 'none', fontWeight: '500', fontSize: '15px' }}>Home</Link>
-            <Link href="/products" style={{ color: '#475569', textDecoration: 'none', fontWeight: '500', fontSize: '15px' }}>Products</Link>
-            <Link href="/pricing" style={{ color: '#475569', textDecoration: 'none', fontWeight: '500', fontSize: '15px' }}>Pricing</Link>
-            <Link href="/about" style={{ color: '#475569', textDecoration: 'none', fontWeight: '500', fontSize: '15px' }}>About Us</Link>
-            <button onClick={() => setShowConsultationModal(true)} style={{
-              background: '#0052e0',
-              color: '#ffffff',
-              border: 'none',
-              padding: '8px 18px',
-              borderRadius: '6px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}>Get Started →</button>
-          </div>
-        </div>
-      </nav>
+      <PublicHeader />
 
       {/* Hero Section */}
       <section style={{

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import PublicHeader from '../../shared/components/views/PublicHeader';
 import Link from 'next/link';
 import Footer from '../../shared/components/views/Footer';
 import { Menu, X, Check, ArrowRight, User, Mail, Phone, Activity, ChevronDown, MessageSquare, ShieldCheck, Lock, Upload, PauseCircle, Headphones, HelpCircle } from 'lucide-react';
@@ -144,92 +145,7 @@ export default function AboutPage() {
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
       color: '#0f172a'
     }}>
-      {/* Stock Ticker Bar at the very top */}
-      <div style={{
-        background: '#0f172a',
-        color: '#f8fafc',
-        height: '38px',
-        overflow: 'hidden',
-        display: 'flex',
-        alignItems: 'center',
-        whiteSpace: 'nowrap',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
-        position: 'relative',
-        zIndex: 1001,
-      }}>
-        <style dangerouslySetInnerHTML={{ __html: `
-          @keyframes ticker-scroll {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-          .ticker-track {
-            display: inline-flex;
-            animation: ticker-scroll 30s linear infinite;
-          }
-          .ticker-track:hover { animation-play-state: paused; }
-        `}}></style>
-        <div className="ticker-track">
-          {[...stocks, ...stocks].map((s, i) => (
-            <span key={i} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '0 28px',
-              borderRight: '1px solid rgba(255,255,255,0.08)',
-              fontSize: 12, fontWeight: 600,
-            }}>
-              <span style={{ color: '#94a3b8', fontWeight: 700, letterSpacing: '0.3px' }}>{s.symbol}</span>
-              <span style={{ color: '#f1f5f9', fontFamily: 'monospace', fontSize: 13 }}>₹{s.ltp.toFixed(2)}</span>
-              <span style={{
-                color: isUp(s.change) ? '#4ade80' : '#f87171',
-                fontSize: 11, fontWeight: 700,
-              }}>
-                {isUp(s.change) ? '▲' : '▼'} {Math.abs(s.change).toFixed(2)}%
-              </span>
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Navbar */}
-      <nav style={{
-        position: 'sticky', top: 0, left: 0, right: 0, zIndex: 1000,
-        background: 'rgba(255,255,255,0.97)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(226,232,240,0.8)',
-        boxShadow: '0 2px 20px rgba(0,0,0,0.06)',
-        transition: 'all 0.35s ease',
-      }}>
-        <div className="navbar-inner">
-          <Link href="/" className="navbar-logo" onClick={() => setMobileMenuOpen(false)}>
-            <div className="navbar-logo-icon">
-              <img src={brandLogo || '/logo.png'} alt={brandName} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-            </div>
-            {brandName.toUpperCase()}
-          </Link>
-
-          <div className="navbar-nav">
-            <Link href="/" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Home</Link>
-            <Link href="/products" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Products</Link>
-            <Link href="/pricing" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`}>Pricing</Link>
-            <Link href="/about" className={`nav-link${!scrolled ? ' nav-link-dark' : ''}`} style={{ color: '#1E88FF', fontWeight: 600 }}>About Us</Link>
-            <button onClick={() => setShowConsultationModal(true)} className="btn-nav" style={{ border: 'none', cursor: 'pointer' }}>Get Started →</button>
-          </div>
-
-          <button className="hamburger-btn" onClick={() => setMobileMenuOpen(o => !o)}>
-            {mobileMenuOpen ? <X size={22} color="#0f172a" /> : <Menu size={22} color={scrolled ? '#0f172a' : '#0f172a'} />}
-          </button>
-        </div>
-
-        {mobileMenuOpen && (
-          <div className="mobile-nav">
-            <Link href="/" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Home</Link>
-            <Link href="/products" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Products</Link>
-            <Link href="/pricing" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
-            <Link href="/about" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>About Us</Link>
-            <button className="mobile-nav-cta" onClick={() => { setShowConsultationModal(true); setMobileMenuOpen(false); }} style={{ border: 'none', textAlign: 'center', width: '100%', cursor: 'pointer' }}>Get Started →</button>
-          </div>
-        )}
-      </nav>
+      <PublicHeader />
 
       {/* Main Container */}
       <div className="about-container" style={{
