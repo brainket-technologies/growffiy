@@ -575,7 +575,8 @@ export class FirstMinuteStrategy {
                 // Log actual Kite response so reason is visible in UI
                 const noIdReason = orderRes?.message || orderRes?.data?.message || (orderRes ? JSON.stringify(orderRes) : 'No order_id returned by Kite');
                 console.error(`AlgoEngine: Entry order_id missing for ${client.user?.name} (${targetStock.symbol}). Kite response:`, JSON.stringify(orderRes));
-                await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, productParam, entryPrice, noIdReason, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice });
+                // Pass full orderRes so UI shows complete Kite error
+                await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, productParam, entryPrice, noIdReason, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice }, orderRes || undefined);
                 continue;
               }
 
@@ -732,8 +733,10 @@ export class FirstMinuteStrategy {
                 || err?.data?.message
                 || err?.message
                 || (err ? String(err) : 'Entry Fail (Unknown Error)');
+              // Pass full raw response for UI display
+              const rawErrResponse = err?.response?.data || err?.data || (err?.message ? { message: err.message, stack: err?.stack } : undefined);
               console.error(`AlgoEngine: Error placing First Minute Strategy order for ${client.user?.name} (${targetStock.symbol}): ${errMsg}`, err?.stack || '');
-              await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, productParam, entryPrice, errMsg, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice });
+              await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, productParam, entryPrice, errMsg, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice }, rawErrResponse);
               continue;
             }
           }

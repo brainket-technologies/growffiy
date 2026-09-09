@@ -24,7 +24,8 @@ export async function logFailedTrade(
   orderType: string,
   entryPrice: number,
   reason: string,
-  legFields?: FailedTradeLegFields
+  legFields?: FailedTradeLegFields,
+  rawKiteResponse?: any    // Full Kite API response — saved directly in kiteResponse field
 ): Promise<void> {
   try {
     // Guard: Do not log duplicate if already exists today for same client+strategy+leg
@@ -48,6 +49,11 @@ export async function logFailedTrade(
       return;
     }
 
+    // Save full Kite response if provided, otherwise wrap reason in message object
+    const kiteResponseToSave = rawKiteResponse
+      ? { ...rawKiteResponse, _reason: reason }
+      : { message: reason };
+
     await prisma.trade.create({
       data: {
         clientId: client.id,
@@ -62,7 +68,7 @@ export async function logFailedTrade(
         status: 'FAILED',
         entryTime: new Date(),
         entryOrderStatus: 'FAILED',
-        kiteResponse: { message: reason },
+        kiteResponse: kiteResponseToSave,
         ...(legFields
           ? {
               direction: legFields.direction,
