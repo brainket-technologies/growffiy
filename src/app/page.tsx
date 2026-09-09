@@ -635,36 +635,7 @@ export default function GrowffiyLanding() {
               }}>
                 Start Trading Now <ArrowRight size={14} />
               </button>
-              <a href="#strategy" className="btn-secondary" style={{
-                background: '#ffffff',
-                color: '#2563eb',
-                border: '1px solid #bfdbfe',
-                padding: '12px 24px',
-                borderRadius: '8px',
-                fontWeight: '600',
-                fontSize: '14px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s',
-                textDecoration: 'none'
-              }}>
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '18px',
-                  height: '18px',
-                  borderRadius: '50%',
-                  border: '1.5px solid #2563eb',
-                  marginRight: '2px'
-                }}>
-                  <svg viewBox="0 0 24 24" width="8" height="8" stroke="currentColor" strokeWidth="3" fill="currentColor" style={{ marginLeft: '1px' }}>
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                  </svg>
-                </span>
-                View Strategy
-              </a>
+
             </div>
 
             {/* Trust badge */}
