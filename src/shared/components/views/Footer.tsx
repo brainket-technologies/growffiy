@@ -6,7 +6,7 @@ import { Activity, Mail, Phone, MapPin, Zap, RefreshCw, Shield, LayoutGrid } fro
 
 export default function Footer() {
   const [brandLogo, setBrandLogo] = useState('');
-  const [brandName, setBrandName] = useState('Growffiy');
+  const [brandName, setBrandName] = useState('');
   const [footerText, setFooterText] = useState('');
   const [footerTagline, setFooterTagline] = useState('');
   const [footerDisclaimer, setFooterDisclaimer] = useState('');
@@ -17,67 +17,38 @@ export default function Footer() {
   const [supportAddress, setSupportAddress] = useState('');
 
   // Social Links
-  const [socialTelegram, setSocialTelegram] = useState('https://t.me/growffiy');
-  const [socialYoutube, setSocialYoutube] = useState('https://youtube.com/@growffiy');
-  const [socialTwitter, setSocialTwitter] = useState('https://x.com/growffiy');
-  const [socialInstagram, setSocialInstagram] = useState('https://instagram.com/growffiy');
-  const [socialFacebook, setSocialFacebook] = useState('https://facebook.com/growffiy');
+  const [socialTelegram, setSocialTelegram] = useState('');
+  const [socialYoutube, setSocialYoutube] = useState('');
+  const [socialTwitter, setSocialTwitter] = useState('');
+  const [socialInstagram, setSocialInstagram] = useState('');
+  const [socialFacebook, setSocialFacebook] = useState('');
 
   useEffect(() => {
-    const load = () => {
-      if (typeof window !== 'undefined') {
-        setBrandLogo(localStorage.getItem('brand_logo') || '');
-        setBrandName(localStorage.getItem('brand_name') || 'Growffiy');
-        setFooterText(localStorage.getItem('footer_text') || 'Advanced algorithmic trading middleware connecting directly with Zerodha Kite API. Built for mathematical discipline and speed.');
-        setFooterTagline(localStorage.getItem('footer_tagline') || 'Automate. Trade. Grow.');
-        setFooterDisclaimer(localStorage.getItem('footer_disclaimer') || '');
-        setFooterBottomTagline(localStorage.getItem('footer_bottom_tagline') || 'Growffi Fintech Private Limited. All rights reserved.');
-        setSupportEmail(localStorage.getItem('support_email') || 'growffi.official@gmail.com');
-        setSupportPhone(localStorage.getItem('support_phone') || '+91 8866182864');
-        setSupportWhatsapp(localStorage.getItem('support_whatsapp') || '+91 8866182864');
-        setSupportAddress(localStorage.getItem('support_address') || 'Lucknow');
-
-        setSocialTelegram(localStorage.getItem('social_telegram') || 'https://t.me/growffiy');
-        setSocialYoutube(localStorage.getItem('social_youtube') || 'https://youtube.com/@growffiy');
-        setSocialTwitter(localStorage.getItem('social_twitter') || 'https://x.com/growffiy');
-        setSocialInstagram(localStorage.getItem('social_instagram') || 'https://instagram.com/growffiy');
-        setSocialFacebook(localStorage.getItem('social_facebook') || 'https://facebook.com/growffiy');
-      }
-    };
-
     const fetchPublicSettings = async () => {
       try {
         const res = await fetch('/api/settings/public', { cache: 'no-store' });
         const data = await res.json();
         if (data.success !== false) {
-          // Directly update state from API — field names match /api/settings/public response
           setBrandLogo(data.appLogo || '');
-          setBrandName(data.appName || 'Growffiy');
-          setSupportEmail(data.supportEmail || 'growffi.official@gmail.com');
-          setSupportPhone(data.supportPhone || '+91 8866182864');
-          setSupportWhatsapp(data.supportWhatsapp || '+91 8866182864');
-          setSocialTelegram(data.socialTelegram || 'https://t.me/growffiy');
-          setSocialYoutube(data.socialYoutube || 'https://youtube.com/@growffiy');
-          setSocialTwitter(data.socialTwitter || 'https://x.com/growffiy');
-          setSocialInstagram(data.socialInstagram || 'https://instagram.com/growffiy');
-          setSocialFacebook(data.socialFacebook || 'https://facebook.com/growffiy');
-
-          // Cache in localStorage as fallback
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('brand_logo', data.appLogo || '');
-            localStorage.setItem('brand_name', data.appName || '');
-          }
+          setBrandName(data.appName || '');
+          setSupportEmail(data.supportEmail || '');
+          setSupportPhone(data.supportPhone || '');
+          setSupportWhatsapp(data.supportWhatsapp || '');
+          setSupportAddress('');
+          setSocialTelegram(data.socialTelegram || '');
+          setSocialYoutube(data.socialYoutube || '');
+          setSocialTwitter(data.socialTwitter || '');
+          setSocialInstagram(data.socialInstagram || '');
+          setSocialFacebook(data.socialFacebook || '');
         }
       } catch (err) {
         console.error('Failed to fetch public settings in Footer:', err);
       }
     };
 
-    load();
     fetchPublicSettings();
-
-    window.addEventListener('branding-updated', load);
-    return () => window.removeEventListener('branding-updated', load);
+    window.addEventListener('branding-updated', fetchPublicSettings);
+    return () => window.removeEventListener('branding-updated', fetchPublicSettings);
   }, []);
 
   return (
