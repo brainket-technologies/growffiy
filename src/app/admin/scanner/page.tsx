@@ -296,6 +296,7 @@ export default function PreOpenScannerPage() {
                 dateFormat="dd/MM/yyyy"
                 customInput={
                   <input 
+                    readOnly
                     style={{
                       fontSize: '14px',
                       fontWeight: 600,
