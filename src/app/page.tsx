@@ -690,7 +690,7 @@ export default function GrowffiyLanding() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', lineHeight: '1.2' }}>
-                  <span style={{ color: '#22c55e' }}>{clientCount}+</span> Traders Trust Our Tools
+                  <span style={{ color: '#22c55e' }}>100+</span> Traders Trust Our Tools
                 </span>
                 <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '500', marginTop: '1px' }}>
                   Built by Traders, For Traders
