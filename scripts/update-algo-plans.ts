@@ -35,7 +35,7 @@ async function main() {
       name: 'ALGO STARTER',
       price: 1000,
       durationDays: 30,
-      features: JSON.stringify(commonFeatures),
+      features: JSON.stringify(['INVESTMENT: ₹20,000 - ₹50,000', ...commonFeatures]),
       status: 'active',
       productTypeId: 'prod-algo'
     },
@@ -44,7 +44,7 @@ async function main() {
       name: 'ALGO PLUS',
       price: 5000,
       durationDays: 30,
-      features: JSON.stringify(commonFeatures),
+      features: JSON.stringify(['INVESTMENT: ₹1,00,000 - ₹3,00,000', ...commonFeatures]),
       status: 'active',
       productTypeId: 'prod-algo'
     },
@@ -53,7 +53,7 @@ async function main() {
       name: 'ALGO PRO',
       price: 10000,
       durationDays: 30,
-      features: JSON.stringify(commonFeatures),
+      features: JSON.stringify(['INVESTMENT: ₹3,00,000 - ₹5,00,000', ...commonFeatures]),
       status: 'active',
       productTypeId: 'prod-algo'
     },
@@ -62,7 +62,7 @@ async function main() {
       name: 'ALGO PREMIUM',
       price: 25000,
       durationDays: 30,
-      features: JSON.stringify(commonFeatures),
+      features: JSON.stringify(['INVESTMENT: ₹5,00,000 - ₹10,00,000', ...commonFeatures]),
       status: 'active',
       productTypeId: 'prod-algo'
     },
@@ -71,16 +71,18 @@ async function main() {
       name: 'ALGO ELITE',
       price: 50000,
       durationDays: 30,
-      features: JSON.stringify(commonFeatures),
+      features: JSON.stringify(['INVESTMENT: ₹10,00,000 - ₹25,00,000', ...commonFeatures]),
       status: 'active',
       productTypeId: 'prod-algo'
     }
   ];
 
-  console.log('Inserting 5 new Algo plans...');
+  console.log('Inserting/Updating 5 new Algo plans...');
   for (const p of newPlans) {
-    await prisma.subscriptionPlan.create({
-      data: p
+    await prisma.subscriptionPlan.upsert({
+      where: { id: p.id },
+      update: p,
+      create: p
     });
   }
 
