@@ -304,7 +304,12 @@ export class KiteClient {
       body: bodyParams.toString(),
     }, dedicatedIp);
 
-    return response.json();
+    const rawText = await response.text();
+    try {
+      return JSON.parse(rawText);
+    } catch (e) {
+      throw new Error(`Kite API Non-JSON Error: ${rawText.substring(0, 200)}`);
+    }
   }
 
   /**
