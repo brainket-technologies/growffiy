@@ -308,7 +308,11 @@ export class KiteClient {
     try {
       return JSON.parse(rawText);
     } catch (e) {
-      throw new Error(`Kite API Non-JSON Error: ${rawText.substring(0, 200)}`);
+      const isProxyIssue = dedicatedIp && dedicatedIp !== '0.0.0.0' && dedicatedIp !== '' && dedicatedIp !== 'null';
+      const errorPrefix = isProxyIssue
+        ? `Proxy/IP Error (${dedicatedIp})`
+        : `Kite API Error`;
+      throw new Error(`${errorPrefix}: ${rawText.substring(0, 300)}`);
     }
   }
 
