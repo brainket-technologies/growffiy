@@ -203,6 +203,25 @@ def fetch_nse_instruments():
         return mapping
     except Exception as e:
         logger.error(f"Failed to fetch instrument tokens: {e}")
+        try:
+            cache_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '..', 'instruments_cache.json')
+            if os.path.exists(cache_path):
+                logger.info(f"Using local instruments_cache.json from {cache_path}")
+                with open(cache_path, 'r', encoding='utf-8') as cf:
+                    cache_data = json.load(cf)
+                    mapping = {}
+                    for sym, val in cache_data.items():
+                        if isinstance(val, dict):
+                            mapping[sym.upper()] = int(val.get('instrument_token', 0))
+                        else:
+                            mapping[sym.upper()] = int(val)
+                    logger.info(f"Loaded {len(mapping)} NSE instrument tokens from local cache.")
+                    return mapping
+        except Exception as cache_err:
+            logger.error(f"Failed to load from local cache: {cache_err}")
+        
+        logger.error("No local cache found. Waiting 60 seconds before retrying...")
+        time.sleep(60)
         sys.exit(1)
 
 def get_candle_pattern(open_val, high_val, low_val, close_val):
@@ -1144,6 +1163,16 @@ def main():
             # Run daily login and update credentials at 8:00 AM IST (or when daemon starts past 8:00 AM)
             today_str = now_ist.strftime("%Y-%m-%d")
             
+            # Check for Google Credentials before proceeding
+            config = load_config()
+            db_settings = load_google_settings_from_db()
+            creds_json = db_settings.get("google_credentials_json") or get_config_value(config, "google_credentials_json")
+            if not creds_json and not os.path.exists(get_config_value(config, "google_credentials_file", "credentials.json")):
+                logger.warning("Google Credentials missing from Admin Panel. Stock Scanner is paused...")
+                write_status("Paused (Missing Google Credentials)")
+                time.sleep(30)
+                continue
+
             # Check Neon DB stream status (active = force run, inactive = force stop)
             db_status = load_stream_status_from_db()
             
