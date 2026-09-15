@@ -125,6 +125,7 @@ class AlgoEngineService {
     this.tradingScheduler.startDailyTokenRefreshScheduler();
     this.tradingScheduler.startDailyPreOpenStrategyScheduler();
     this.tradingScheduler.startActiveTradesMonitoringScheduler();
+    this.tradingScheduler.startEODReconciliationScheduler();
   }
 
   private async restorePreselectedStocks(): Promise<void> {

@@ -1394,4 +1394,136 @@ export class TradingScheduler {
       console.error('AlgoEngine Scheduler: Failed to record Market Watch snapshot:', err);
     }
   }
+
+  startEODReconciliationScheduler() {
+    console.log('AlgoEngine: Initialized EOD Failed Trade Reconciliation Scheduler (15:35 IST)');
+
+    if ((global as any).eodReconciliationInterval) {
+      clearInterval((global as any).eodReconciliationInterval);
+    }
+
+    let lastReconciledDate = '';
+
+    const checkAndReconcile = async () => {
+      try {
+        const istDateStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+        const istDate = new Date(istDateStr);
+        const hours = istDate.getHours();
+        const minutes = istDate.getMinutes();
+        const currentDateKey = istDate.toLocaleDateString();
+        const currentTimeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+
+        // Run exactly at 15:35 IST once per day
+        if (currentTimeStr === '15:35' && lastReconciledDate !== currentDateKey) {
+          console.log(`AlgoEngine Scheduler: EOD Reconciliation time reached. Checking for failed intraday trades...`);
+          lastReconciledDate = currentDateKey;
+
+          const todayStart = new Date();
+          todayStart.setHours(0, 0, 0, 0);
+
+          // 1. Fetch FAILED trades from today with "Exit failed" reason
+          const failedTrades = await prisma.trade.findMany({
+            where: {
+              status: 'FAILED',
+              exitReason: { contains: 'Exit failed' },
+              createdAt: { gte: todayStart }
+            },
+            include: { client: { include: { user: true } }, strategy: true }
+          });
+
+          if (failedTrades.length === 0) {
+            console.log(`AlgoEngine Scheduler: No failed trades to reconcile today.`);
+            return;
+          }
+
+          console.log(`AlgoEngine Scheduler: Found ${failedTrades.length} failed trades to reconcile.`);
+
+          // 2. Group by client to minimize API calls (1 getOrders per client)
+          const tradesByClient = new Map<string, typeof failedTrades>();
+          for (const trade of failedTrades) {
+            const clientId = trade.clientId;
+            if (!tradesByClient.has(clientId)) tradesByClient.set(clientId, []);
+            tradesByClient.get(clientId)!.push(trade);
+          }
+
+          // 3. Process each client sequentially
+          for (const [clientId, trades] of tradesByClient) {
+            const client = trades[0].client;
+            if (!client.zerodhaApiKey || !client.accessToken) continue;
+
+            try {
+              // Fetch full order book from Kite
+              const ordersRes = await KiteClient.getOrders(client.zerodhaApiKey, client.accessToken, (client.proxyUrl || client.dedicatedIp));
+              if (ordersRes?.status === 'success' && Array.isArray(ordersRes.data)) {
+                const kiteOrders = ordersRes.data;
+
+                for (const trade of trades) {
+                  const isShortTrade = (trade.direction === 'SHORT');
+                  const expectedExitTransactionType = isShortTrade ? 'BUY' : 'SELL';
+                  const expectedProduct = trade.orderType || 'MIS';
+
+                  // Find a matching order
+                  const matchingOrder = kiteOrders.find((o: any) =>
+                    o.tradingsymbol === trade.symbol &&
+                    o.transaction_type === expectedExitTransactionType &&
+                    o.product === expectedProduct &&
+                    o.status === 'COMPLETE' &&
+                    new Date(o.order_timestamp).getTime() > new Date(trade.createdAt).getTime()
+                  );
+
+                  if (matchingOrder && matchingOrder.average_price > 0) {
+                    const actualExitPrice = Number(matchingOrder.average_price);
+                    const entryPrice = Number(trade.entryPrice);
+                    const pnlValue = isShortTrade
+                      ? (entryPrice - actualExitPrice) * trade.quantity
+                      : (actualExitPrice - entryPrice) * trade.quantity;
+
+                    // Update Trade in DB
+                    await prisma.trade.update({
+                      where: { id: trade.id },
+                      data: {
+                        status: 'closed',
+                        exitPrice: actualExitPrice,
+                        exitReason: 'Broker Auto-Square Off (Reconciled)',
+                        pnl: pnlValue,
+                        exitTime: new Date(matchingOrder.order_timestamp),
+                      }
+                    });
+
+                    // Log the reconciliation
+                    await prisma.strategyLog.create({
+                      data: {
+                        strategyId: trade.strategyId,
+                        message: `Trade Reconciled for ${client.user?.name}: ${isShortTrade ? 'Covered (Short)' : 'Sold (Long)'} ${trade.quantity} ${trade.symbol} @ ₹${actualExitPrice.toFixed(2)} (Broker Auto-Square Off). P&L: ₹${pnlValue.toFixed(2)}`,
+                        logType: 'trade'
+                      }
+                    });
+
+                    await logSystemEvent({
+                      action: 'EOD TRADE RECONCILED',
+                      oldValue: `Trade ID: ${trade.id} | Status: FAILED | Fallback Exit: ₹${trade.exitPrice}`,
+                      newValue: `Status: closed | Actual Exit: ₹${actualExitPrice.toFixed(2)} | P&L: ₹${pnlValue.toFixed(2)}`
+                    });
+
+                    console.log(`AlgoEngine Scheduler: Successfully reconciled trade ${trade.id} for ${client.user?.name} at ₹${actualExitPrice}.`);
+                  } else {
+                    console.log(`AlgoEngine Scheduler: No matching completed exit order found in Kite for trade ${trade.id}.`);
+                  }
+                }
+              } else {
+                console.warn(`AlgoEngine Scheduler: Failed to fetch Kite orders for reconciliation for client ${client.user?.name}.`);
+              }
+            } catch (kiteErr) {
+              console.error(`AlgoEngine Scheduler: API error during reconciliation for client ${client.user?.name}:`, kiteErr);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('AlgoEngine Scheduler: Error in EOD Reconciliation cron interval execution:', err);
+      }
+    };
+
+    // Check every minute if it's 15:35
+    (global as any).eodReconciliationInterval = setInterval(checkAndReconcile, 60000);
+  }
 }
