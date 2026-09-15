@@ -10,9 +10,7 @@ async function main() {
 
   const failedTrades = await prisma.trade.findMany({
     where: {
-      status: 'FAILED',
-      exitReason: { contains: 'Exit failed' },
-      createdAt: { gte: todayStart }
+      exitReason: { contains: 'Manual Sync' }
     },
     include: { client: { include: { user: true } }, strategy: true }
   });
@@ -57,10 +55,18 @@ async function main() {
 
           if (matchingOrder && matchingOrder.average_price > 0) {
             const actualExitPrice = Number(matchingOrder.average_price);
-            const entryPrice = Number(trade.entryPrice);
+            
+            let exactEntryPrice = Number(trade.entryPrice);
+            if (trade.entryOrderId) {
+              const entryOrder = kiteOrders.find((o: any) => o.order_id === trade.entryOrderId);
+              if (entryOrder && entryOrder.average_price > 0) {
+                exactEntryPrice = Number(entryOrder.average_price);
+              }
+            }
+
             const pnlValue = isShortTrade
-              ? (entryPrice - actualExitPrice) * trade.quantity
-              : (actualExitPrice - entryPrice) * trade.quantity;
+              ? (exactEntryPrice - actualExitPrice) * trade.quantity
+              : (actualExitPrice - exactEntryPrice) * trade.quantity;
 
             await prisma.trade.update({
               where: { id: trade.id },

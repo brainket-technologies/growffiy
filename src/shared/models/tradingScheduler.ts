@@ -1473,10 +1473,19 @@ export class TradingScheduler {
 
                   if (matchingOrder && matchingOrder.average_price > 0) {
                     const actualExitPrice = Number(matchingOrder.average_price);
-                    const entryPrice = Number(trade.entryPrice);
+                    
+                    // Fetch exact entry price from Kite orderbook to prevent precision loss (Decimal 12,2 rounding)
+                    let exactEntryPrice = Number(trade.entryPrice);
+                    if (trade.entryOrderId) {
+                      const entryOrder = kiteOrders.find((o: any) => o.order_id === trade.entryOrderId);
+                      if (entryOrder && entryOrder.average_price > 0) {
+                        exactEntryPrice = Number(entryOrder.average_price);
+                      }
+                    }
+
                     const pnlValue = isShortTrade
-                      ? (entryPrice - actualExitPrice) * trade.quantity
-                      : (actualExitPrice - entryPrice) * trade.quantity;
+                      ? (exactEntryPrice - actualExitPrice) * trade.quantity
+                      : (actualExitPrice - exactEntryPrice) * trade.quantity;
 
                     // Update Trade in DB
                     await prisma.trade.update({
