@@ -7,8 +7,7 @@ dotenv.config({ path: path.join(__dirname, '../../../.env') });
 
 import { prisma } from '@/database/db';
 import { API_ENDPOINTS } from '../../core/constants';
-import { StockQuote, getPreOpenStocks, fetchLivePreOpenFromKite, getCachedPreOpenStocks, getPreOpenDate, fetchLivePreOpenFromNSE } from '../utils/preOpenFetcher';
-import { InstrumentCache } from './instrumentCache';
+import { StockQuote, getPreOpenStocks as fetchPreOpenStocks, fetchLivePreOpenFromKite, getCachedPreOpenStocks as fetchCachedPreOpenStocks, getPreOpenDate as fetchPreOpenDate, fetchLivePreOpenFromNSE } from '../utils/preOpenFetcher';
 import { KiteClient } from '../services/kite';
 import { WsLiveFeed } from './wsLiveFeed';
 import { TradingScheduler } from './tradingScheduler';
@@ -251,15 +250,15 @@ class AlgoEngineService {
   }
 
   public async getPreOpenStocks(forceFetch = false): Promise<StockQuote[]> {
-    return getPreOpenStocks(forceFetch);
+    return fetchPreOpenStocks(forceFetch);
   }
 
   public getCachedPreOpenStocks(): StockQuote[] {
-    return getCachedPreOpenStocks();
+    return fetchCachedPreOpenStocks();
   }
 
   public getPreOpenDate(): string {
-    return getPreOpenDate();
+    return fetchPreOpenDate();
   }
 
   public async updateLiveQuotesFromKiteHTTP() {
