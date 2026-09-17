@@ -1,5 +1,6 @@
 import { API_ENDPOINTS } from '../../core/constants';
 import { KiteClient } from '../services/kite';
+import { prisma } from '../../database/db';
 
 export interface StockQuote {
   symbol: string;
@@ -188,7 +189,6 @@ export async function fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
     // Save to historical database asynchronously so we don't block the API
     (async () => {
       try {
-        const { prisma } = require('../../database/db');
         console.log(`Saving ${formattedQuotes.length} pre-open records to historical database for ${preOpenCacheDate}...`);
         
         // Run upserts in batches to avoid overwhelming the database connection pool
@@ -297,7 +297,6 @@ export async function fetchLivePreOpenFromKite(apiKey?: string, accessToken?: st
       // Save to historical database asynchronously
       (async () => {
         try {
-          const { prisma } = require('../../database/db');
           console.log(`Saving ${kiteQuotes.length} pre-open records (Kite Fallback) to historical database for ${preOpenCacheDate}...`);
           
           const batchSize = 50;
