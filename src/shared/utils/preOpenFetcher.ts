@@ -1,6 +1,7 @@
 import { API_ENDPOINTS } from '../../core/constants';
 import { KiteClient } from '../services/kite';
 import { prisma } from '../../database/db';
+import { getMasterClient } from './masterClient';
 
 export interface StockQuote {
   symbol: string;
@@ -235,7 +236,6 @@ export async function fetchLivePreOpenFromKite(apiKey?: string, accessToken?: st
     let finalToken = accessToken;
 
     if (!finalApiKey || !finalToken) {
-      const { getMasterClient } = require('./masterClient');
       const master = await getMasterClient();
       if (master) {
         finalApiKey = master.zerodhaApiKey;
