@@ -380,10 +380,7 @@ class AlgoEngineService {
     return this.isTradingActive;
   }
 
-  public getPreOpenDate(): string {
-    const fetcher = require('../utils/preOpenFetcher');
-    return fetcher.getPreOpenDate();
-  }
+
 
   public async logFailedTrade(
     client: any,
