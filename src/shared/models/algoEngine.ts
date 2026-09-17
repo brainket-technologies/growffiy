@@ -7,7 +7,7 @@ dotenv.config({ path: path.join(__dirname, '../../../.env') });
 
 import { prisma } from '@/database/db';
 import { API_ENDPOINTS } from '../../core/constants';
-import { StockQuote, getPreOpenStocks, fetchLivePreOpenFromKite, getCachedPreOpenStocks, getPreOpenDate, fetchLivePreOpenFromNSE, getNifty50Snapshot, getBankNiftySnapshot } from '../utils/preOpenFetcher';
+import { StockQuote, getPreOpenStocks, fetchLivePreOpenFromKite, getCachedPreOpenStocks, getPreOpenDate, fetchLivePreOpenFromNSE } from '../utils/preOpenFetcher';
 import { InstrumentCache } from './instrumentCache';
 import { KiteClient } from '../services/kite';
 import { WsLiveFeed } from './wsLiveFeed';
