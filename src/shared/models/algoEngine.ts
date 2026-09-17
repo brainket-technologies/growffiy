@@ -7,6 +7,8 @@ dotenv.config({ path: path.join(__dirname, '../../../.env') });
 
 import { prisma } from '@/database/db';
 import { API_ENDPOINTS } from '../../core/constants';
+import { StockQuote, getPreOpenStocks, fetchLivePreOpenFromKite, getCachedPreOpenStocks, getPreOpenDate, fetchLivePreOpenFromNSE, getNifty50Snapshot, getBankNiftySnapshot } from '../utils/preOpenFetcher';
+import { InstrumentCache } from './instrumentCache';
 import { KiteClient } from '../services/kite';
 import { WsLiveFeed } from './wsLiveFeed';
 import { TradingScheduler } from './tradingScheduler';
@@ -19,31 +21,6 @@ import { PreOpenStrategy } from './algo/strategies/preOpenStrategy';
 import { TenAmStrategy } from './algo/strategies/tenAmStrategy';
 import { FirstMinuteStrategy } from './algo/strategies/firstMinuteStrategy';
 
-
-export interface StockQuote {
-  symbol: string;
-  name: string;
-  ltp: number;
-  open: number;
-  high: number;
-  low: number;
-  prevClose: number;
-  volume: number;
-  change: number;
-  changePercent: number;
-  iep: number;
-  final: number;
-  finalQuantity: number;
-  value: number;
-  ffmCap: number;
-  nm52wH: number;
-  nm52wL: number;
-  isNifty50?: boolean;
-  isNifty500?: boolean;
-  isBankNifty?: boolean;
-  isFo?: boolean;
-  isSme?: boolean;
-}
 
 class AlgoEngineService {
   private isTradingActive: boolean = false;
@@ -254,8 +231,7 @@ class AlgoEngineService {
   }
 
   public async fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
-    const fetcher = require('../utils/preOpenFetcher');
-    return fetcher.fetchLivePreOpenFromNSE();
+    return fetchLivePreOpenFromNSE();
   }
 
   public async getPreOpenStocksByDate(dateStr: string): Promise<StockQuote[]> {
@@ -271,13 +247,19 @@ class AlgoEngineService {
   }
 
   public async fetchLivePreOpenFromKite(): Promise<StockQuote[]> {
-    const fetcher = require('../utils/preOpenFetcher');
-    return fetcher.fetchLivePreOpenFromKite();
+    return fetchLivePreOpenFromKite();
   }
 
   public async getPreOpenStocks(forceFetch = false): Promise<StockQuote[]> {
-    const fetcher = require('../utils/preOpenFetcher');
-    return fetcher.getPreOpenStocks(forceFetch);
+    return getPreOpenStocks(forceFetch);
+  }
+
+  public getCachedPreOpenStocks(): StockQuote[] {
+    return getCachedPreOpenStocks();
+  }
+
+  public getPreOpenDate(): string {
+    return getPreOpenDate();
   }
 
   public async updateLiveQuotesFromKiteHTTP() {
