@@ -26,7 +26,7 @@ if (!global.WebSocket) {
 import { PrismaClient } from '@prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool as PgPool } from 'pg';
+import { Pool as PgPool } from '../../node_modules/@types/pg';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
@@ -34,7 +34,7 @@ let activePrisma: PrismaClient | null = null;
 
 function getPrisma(): PrismaClient {
   if (activePrisma) return activePrisma;
-  
+
   if (globalForPrisma.prisma) {
     activePrisma = globalForPrisma.prisma;
     return activePrisma;
