@@ -28,10 +28,9 @@ export async function POST(request: Request) {
     });
 
     if (!user) {
-      // Don't leak whether user exists or not for security reasons
       return NextResponse.json(
-        { success: true, message: 'If an account exists, an OTP has been sent to the registered email.' },
-        { status: 200 }
+        { success: false, error: 'User not found with this identifier' },
+        { status: 404 }
       );
     }
 
@@ -93,14 +92,24 @@ export async function POST(request: Request) {
       console.warn("SMTP credentials not set, OTP not emailed:", otp);
     }
 
+    // Mask email for user friendly response
+    const emailParts = user.email.split('@');
+    let maskedEmail = user.email;
+    if (emailParts.length === 2) {
+      const name = emailParts[0];
+      const domain = emailParts[1];
+      if (name.length > 2) {
+        maskedEmail = `${name[0]}***${name[name.length - 1]}@${domain}`;
+      } else {
+        maskedEmail = `${name[0]}***@${domain}`;
+      }
+    }
+
     return NextResponse.json(
       {
         success: true,
-        message: 'If an account exists, an OTP has been sent to the registered email.',
-        data: {
-          // You might not want to return this in production, but helpful for testing
-          // email: user.email 
-        }
+        message: `OTP has been sent to your registered email (${maskedEmail})`,
+        data: {}
       },
       { status: 200 }
     );
