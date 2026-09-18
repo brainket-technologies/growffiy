@@ -26,6 +26,8 @@ export default function SettingsPage() {
   const [razorpayLiveKeyId, setRazorpayLiveKeyId] = useState('');
   const [razorpayLiveKeySecret, setRazorpayLiveKeySecret] = useState('');
   const [razorpayMode, setRazorpayMode] = useState('test');
+  const [gstPercentage, setGstPercentage] = useState('18');
+  const [gstEnabled, setGstEnabled] = useState('true');
 
   // Firebase
   const [firebaseServiceAccount, setFirebaseServiceAccount] = useState('');
@@ -130,6 +132,8 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
           setRazorpayLiveKeyId(res.settings.razorpay_live_key_id || '');
           setRazorpayLiveKeySecret(res.settings.razorpay_live_key_secret || '');
           setRazorpayMode(res.settings.razorpay_mode || 'test');
+          setGstPercentage(res.settings.gst_percentage || '18');
+          setGstEnabled(res.settings.gst_enabled || 'true');
           
           setSmtpHost(res.settings.smtp_host || '');
           setSmtpPort(res.settings.smtp_port || '587');
@@ -222,6 +226,8 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
         razorpay_live_key_id: razorpayLiveKeyId,
         razorpay_live_key_secret: razorpayLiveKeySecret,
         razorpay_mode: razorpayMode,
+        gst_percentage: gstPercentage,
+        gst_enabled: gstEnabled,
         smtp_host: smtpHost,
         smtp_port: smtpPort,
         smtp_user: smtpUser,
@@ -348,7 +354,8 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '16px' }}>
         <div className="live-dot" style={{ width: '16px', height: '16px', backgroundColor: 'var(--primary)' }}></div>
-        <div style={{ color: 'var(--text-secondary)', fontWeight: 500, fontSize: '15px' }}>Loading settings...</div>
+        <div style={{ color: 'var(--text-secondary)', fontWeight: 500, fontSize: '15px' }}>Loading settings... Please wait...</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>If you are stuck here, there is a JS Error or the API is hanging. (Build checked)</div>
       </div>
     );
   }
@@ -967,6 +974,54 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                       </button>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* GST Settings Column */}
+            <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border-light)' }}>
+              <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CreditCard size={16} style={{ color: 'var(--primary)' }} /> GST Configuration
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    GST Status (Enable/Disable)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setGstEnabled(gstEnabled === 'true' ? 'false' : 'true')}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      border: '1px solid var(--border-light)',
+                      background: 'var(--surface)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      color: gstEnabled === 'true' ? 'var(--accent-dark)' : 'var(--text-muted)'
+                    }}
+                  >
+                    {gstEnabled === 'true' ? <ToggleRight size={20} color="var(--accent)" /> : <ToggleLeft size={20} />}
+                    {gstEnabled === 'true' ? 'GST Enabled' : 'GST Disabled'}
+                  </button>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    GST Percentage (%)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={gstPercentage}
+                    onChange={(e) => setGstPercentage(e.target.value)}
+                    placeholder="18"
+                    style={{ width: '100%', padding: '0 12px', height: '38px', fontSize: '13px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }}
+                  />
                 </div>
               </div>
             </div>

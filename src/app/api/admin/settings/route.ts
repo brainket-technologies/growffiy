@@ -135,62 +135,6 @@ export async function GET() {
     const dbSettings = await prisma.appSettings.findMany();
     const settings: Record<string, string> = {};
     
-    // Set defaults
-    settings['razorpay_test_key_id'] = '';
-    settings['razorpay_test_key_secret'] = '';
-    settings['razorpay_live_key_id'] = '';
-    settings['razorpay_live_key_secret'] = '';
-    settings['razorpay_mode'] = 'test';
-    settings['smtp_host'] = '';
-    settings['smtp_port'] = '587';
-    settings['smtp_user'] = '';
-    settings['smtp_password'] = '';
-    settings['smtp_sender_name'] = 'Growffiy';
-    settings['smtp_encryption'] = 'tls'; // ssl, tls, none
-    settings['smtp_status'] = 'false'; // 'true' (on) or 'false' (off)
-    settings['support_email'] = 'support@growffiy.com';
-    settings['support_phone'] = '+91 98765 43210';
-    settings['support_whatsapp'] = '+91 902666305';
-    settings['support_timings'] = 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)';
-    settings['support_address'] = 'Mumbai, India';
-    settings['algo_preopen_fetch_time'] = '09:08';
-    settings['algo_token_refresh_time'] = '08:00';
-    settings['auto_trade_enabled'] = 'true';
-    settings['trading_days'] = '["Mon","Tue","Wed","Thu","Fri"]';
-    settings['special_market_days'] = '[]';
-    settings['market_holidays'] = '[]';
-    settings['app_name'] = 'Growffiy';
-    settings['app_title'] = 'Growffiy — Algo Trading Terminal';
-    settings['app_favicon'] = '';
-    settings['app_logo'] = '';
-    settings['meta_description'] = '';
-    settings['meta_keywords'] = '';
-    settings['footer_text'] = '';
-    settings['footer_tagline'] = 'Advanced algorithmic trading middleware connecting directly with Zerodha Kite API. Built for mathematical discipline and speed.';
-    settings['footer_disclaimer'] = 'Algorithmic trading involves substantial financial risk. Growffiy is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.';
-    settings['footer_bottom_tagline'] = 'Designed for NSE/BSE Intraday Algo Traders';
-    settings['google_analytics_id'] = '';
-    settings['google_sheet_url'] = '';
-    settings['google_credentials_json'] = '';
-    settings['firebase_service_account'] = '';
-    settings['show_zerodha_connect'] = 'true';
-    settings['show_client_profile'] = 'true';
-    settings['show_client_strategy'] = 'true';
-    settings['social_telegram'] = 'https://t.me/growffiy';
-    settings['social_youtube'] = 'https://youtube.com/@growffiy';
-    settings['social_twitter'] = 'https://x.com/growffiy';
-    settings['social_instagram'] = 'https://instagram.com/growffiy';
-    settings['social_facebook'] = 'https://facebook.com/growffiy';
-
-    settings['legal_privacy_content'] = defaultPrivacyContent;
-    settings['legal_terms_content'] = defaultTermsContent;
-    settings['legal_refund_content'] = defaultRefundContent;
-    settings['legal_disclaimer_content'] = defaultDisclaimerContent;
-    settings['legal_about_content'] = defaultAboutContent;
-    settings['legal_faq_content'] = defaultFaqContent;
-    settings['hero_title'] = 'Automate Your<br /><span class="text-gradient">Stock Market</span><br />Trades Smarter';
-    settings['hero_subtitle'] = 'Growffiy connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.';
-
     dbSettings.forEach((s) => {
       settings[s.settingKey] = s.settingValue;
     });
@@ -198,56 +142,9 @@ export async function GET() {
     return NextResponse.json({ success: true, settings });
   } catch (error) {
     return NextResponse.json({ 
-      success: true, 
-      settings: {
-        razorpay_test_key_id: '',
-        razorpay_test_key_secret: '',
-        razorpay_live_key_id: '',
-        razorpay_live_key_secret: '',
-        razorpay_mode: 'test',
-        smtp_host: '',
-        smtp_port: '587',
-        smtp_user: '',
-        smtp_password: '',
-        smtp_sender_name: 'Growffiy',
-        smtp_encryption: 'tls',
-        smtp_status: 'false',
-        support_email: 'support@growffiy.com',
-        support_phone: '+91 98765 43210',
-        support_timings: 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)',
-        support_address: 'Mumbai, India',
-        algo_preopen_fetch_time: '09:08',
-        algo_token_refresh_time: '08:00',
-        auto_trade_enabled: 'true',
-        trading_days: '["Mon","Tue","Wed","Thu","Fri"]',
-        special_market_days: '[]',
-        market_holidays: '[]',
-        app_name: 'Growffiy',
-        app_title: 'Growffiy — Algo Trading Terminal',
-        app_favicon: '',
-        app_logo: '',
-        meta_description: '',
-        meta_keywords: '',
-        footer_text: '',
-        footer_tagline: 'Advanced algorithmic trading middleware connecting directly with Zerodha Kite API. Built for mathematical discipline and speed.',
-        footer_disclaimer: 'Algorithmic trading involves substantial financial risk. Growffiy is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.',
-        footer_bottom_tagline: 'Designed for NSE/BSE Intraday Algo Traders',
-        google_analytics_id: '',
-        firebase_service_account: '',
-        social_telegram: 'https://t.me/growffiy',
-        social_youtube: 'https://youtube.com/@growffiy',
-        social_twitter: 'https://x.com/growffiy',
-        social_instagram: 'https://instagram.com/growffiy',
-        social_facebook: 'https://facebook.com/growffiy',
-        legal_privacy_content: defaultPrivacyContent,
-        legal_terms_content: defaultTermsContent,
-        legal_refund_content: defaultRefundContent,
-        legal_disclaimer_content: defaultDisclaimerContent,
-        legal_about_content: defaultAboutContent,
-        legal_faq_content: defaultFaqContent,
-        hero_title: 'Automate Your<br /><span class="text-gradient">Stock Market</span><br />Trades Smarter',
-        hero_subtitle: 'Growffiy connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.',
-      } 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      settings: {} 
     });
   }
 }
@@ -261,6 +158,8 @@ export async function PUT(request: Request) {
       razorpay_live_key_id, 
       razorpay_live_key_secret, 
       razorpay_mode,
+      gst_percentage,
+      gst_enabled,
       smtp_host,
       smtp_port,
       smtp_user,
@@ -316,6 +215,8 @@ export async function PUT(request: Request) {
       show_client_profile,
       show_client_strategy,
       razorpay_mode,
+      gst_percentage,
+      gst_enabled,
       smtp_host,
       smtp_port,
       smtp_user,

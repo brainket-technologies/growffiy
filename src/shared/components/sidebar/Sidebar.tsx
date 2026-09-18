@@ -65,6 +65,7 @@ const adminGroups: MenuGroup[] = [
     label: 'Management',
     items: [
       { name: 'Clients', path: '/admin/clients', icon: Users, badge: 12 },
+      { name: 'KYC Requests', path: '/admin/kyc-requests', icon: ShieldCheck },
       { name: 'Subscription Plans', path: '/admin/plans', icon: CreditCard },
       { name: 'Enquiries', path: '/admin/enquiries', icon: MessageSquare },
       { name: 'Testimonials', path: '/admin/testimonials', icon: Star },
