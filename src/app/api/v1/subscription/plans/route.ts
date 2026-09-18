@@ -17,8 +17,9 @@ export async function GET(request: Request) {
 
     const token = authHeader.split(' ')[1];
     
+    let decoded: any;
     try {
-      jwt.verify(token, JWT_SECRET);
+      decoded = jwt.verify(token, JWT_SECRET);
     } catch (error) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized: Invalid token' },
@@ -26,8 +27,20 @@ export async function GET(request: Request) {
       );
     }
 
+    // Fetch the client to get their productTypeId
+    const client = await prisma.client.findUnique({
+      where: { userId: decoded.id }
+    });
+
+    const whereClause: any = { status: 'active' };
+    
+    // Only return plans matching the client's product type, if they have one assigned
+    if (client && client.productTypeId) {
+      whereClause.productTypeId = client.productTypeId;
+    }
+
     const plans = await prisma.subscriptionPlan.findMany({
-      where: { status: 'active' },
+      where: whereClause,
       orderBy: { price: 'asc' }
     });
 
