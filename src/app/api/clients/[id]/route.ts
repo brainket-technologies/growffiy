@@ -6,6 +6,7 @@ import { inMemoryClients } from '../route';
 import { KiteClient } from '../../../../shared/services/kite';
 import { sendEmail } from '../../../../shared/services/mailer';
 import { performKiteAutoLogin } from '../../../../shared/services/kiteAutoLogin';
+import { encryptText, decryptText } from '../../../../shared/utils/crypto';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -17,6 +18,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       });
       if (!client) {
         return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
+      }
+
+      if (client.user && client.user.password) {
+        client.user.password = decryptText(client.user.password);
       }
 
       let profileData: any = null;
@@ -130,6 +135,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
          }
        }
  
+       // Handle password encryption
+       let finalPassword = password;
+       if (password && !password.startsWith('$2b$') && !password.startsWith('aes:')) {
+         finalPassword = encryptText(password);
+       }
+
        // Update associated user account
        await prisma.user.update({
          where: { id: client.userId },
@@ -137,7 +148,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
            name: name !== undefined ? name : undefined,
            email: email !== undefined ? email : undefined,
            userId: userId !== undefined ? userId : undefined,
-           password: password !== undefined ? password : undefined,
+           password: finalPassword !== undefined ? finalPassword : undefined,
          }
        });
  

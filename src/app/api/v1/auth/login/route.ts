@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { decryptText } from '../../../../../shared/utils/crypto';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'growffi-secret-key-fallback';
 
@@ -42,14 +43,26 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if the provided password matches the hashed password in DB
-    // Handle plain text fallback for existing users whose passwords are not hashed
     let isMatch = false;
-    try {
-      isMatch = await bcrypt.compare(password, user.password);
-    } catch(e) {}
     
-    // Fallback: If bcrypt fails or doesn't match, check if it's plain text directly
+    // 1. Try AES Decryption (New Standard)
+    if (!isMatch) {
+      try {
+        const decryptedDbPassword = decryptText(user.password);
+        if (decryptedDbPassword === password) {
+          isMatch = true;
+        }
+      } catch(e) {}
+    }
+    
+    // 2. Try Bcrypt Compare (Legacy fallback)
+    if (!isMatch) {
+      try {
+        isMatch = await bcrypt.compare(password, user.password);
+      } catch(e) {}
+    }
+    
+    // 3. Fallback: If both fail, check if it's plain text directly
     if (!isMatch && password === user.password) {
       isMatch = true;
     }
