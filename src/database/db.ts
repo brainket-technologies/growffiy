@@ -26,7 +26,7 @@ if (!global.WebSocket) {
 import { PrismaClient } from '@prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool as PgPool } from '../../node_modules/@types/pg';
+import { Pool as PgPool } from 'pg';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
