@@ -8,6 +8,30 @@ const JWT_SECRET = process.env.JWT_SECRET || 'growffi-secret-key-fallback';
 
 export async function POST(request: Request) {
   try {
+    const headers = request.headers;
+    const deviceType = headers.get('x-device-type');
+    const appVersion = headers.get('x-app-version');
+    const deviceId = headers.get('x-device-id');
+    const apiKey = headers.get('x-api-key');
+    const fcmToken = headers.get('x-fcm-token'); // Optional FCM Token
+
+    // Expected API Key from environment or fallback for testing
+    const EXPECTED_API_KEY = process.env.MOBILE_API_KEY || 'YOUR_API_KEY';
+
+    if (!deviceType || !appVersion || !deviceId || !apiKey) {
+      return NextResponse.json(
+        { success: false, error: 'Missing required device or app headers' },
+        { status: 400 }
+      );
+    }
+
+    if (apiKey !== EXPECTED_API_KEY) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid API Key' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { identifier, password } = body;
 
@@ -85,6 +109,29 @@ export async function POST(request: Request) {
       JWT_SECRET,
       { expiresIn: '30d' }
     );
+
+    // Upsert user device info in database
+    if (deviceId) {
+      await prisma.userDevice.upsert({
+        where: { deviceId: deviceId },
+        update: {
+          deviceType,
+          appVersion,
+          fcmToken,
+          token,
+          userId: user.id,
+          lastActive: new Date()
+        },
+        create: {
+          deviceId,
+          deviceType,
+          appVersion,
+          fcmToken,
+          token,
+          userId: user.id
+        }
+      });
+    }
 
     return NextResponse.json(
       {
