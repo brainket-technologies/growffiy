@@ -1153,7 +1153,7 @@ export default function ClientDetailsPage() {
                     <Lock size={15} className="premium-input-icon" />
                     <input 
                       type={showPassword ? 'text' : 'password'} 
-                      required 
+                      placeholder="Leave blank to keep current"
                       value={password} 
                       onChange={(e) => setPassword(e.target.value)} 
                       className="premium-input"

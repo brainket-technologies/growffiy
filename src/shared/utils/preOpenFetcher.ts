@@ -192,8 +192,8 @@ export async function fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
       try {
         console.log(`Saving ${formattedQuotes.length} pre-open records to historical database for ${preOpenCacheDate}...`);
         
-        // Run upserts in batches to avoid overwhelming the database connection pool
-        const batchSize = 50;
+        // Run upserts in small batches to avoid overwhelming the database connection pool
+        const batchSize = 10;
         for (let i = 0; i < formattedQuotes.length; i += batchSize) {
           const batch = formattedQuotes.slice(i, i + batchSize);
           await Promise.all(batch.map(stock => 
@@ -212,6 +212,8 @@ export async function fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
               }
             }).catch((e: any) => console.error(`DB save failed for ${stock.symbol}`, e.message))
           ));
+          // Sleep to yield event loop and DB connection pool for incoming API requests
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
         console.log(`Successfully saved historical pre-open data for ${preOpenCacheDate}`);
       } catch (dbErr) {

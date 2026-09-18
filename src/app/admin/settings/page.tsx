@@ -121,6 +121,10 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [infoModal, setInfoModal] = useState<{ title: string; content: React.ReactNode } | null>(null);
 
+  // FCM Test States
+  const [testFcmToken, setTestFcmToken] = useState('');
+  const [isSendingTestFcm, setIsSendingTestFcm] = useState(false);
+
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -1828,6 +1832,48 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                   outline: 'none'
                 }}
               />
+            </div>
+
+            <div style={{ padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--surface)', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-heading)', marginBottom: '16px' }}>Test Push Notification</h3>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>FCM Token (Leave blank to broadcast to all)</label>
+                  <input
+                    type="text"
+                    value={testFcmToken}
+                    onChange={(e) => setTestFcmToken(e.target.value)}
+                    placeholder="Enter device FCM token"
+                    style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', outline: 'none' }}
+                  />
+                </div>
+                <Button 
+                  type="button" 
+                  onClick={async () => {
+                    setIsSendingTestFcm(true);
+                    try {
+                      const res = await api.post('/api/admin/fcm-test', {
+                        token: testFcmToken.trim() || undefined,
+                        title: 'Test Notification',
+                        body: 'End-to-end receipt successful! Push notifications are working.',
+                      });
+                      if (res.success) {
+                        setNotification({ type: 'success', message: 'Test notification sent successfully!' });
+                      } else {
+                        setNotification({ type: 'error', message: res.error || 'Failed to send notification.' });
+                      }
+                    } catch (e: any) {
+                      setNotification({ type: 'error', message: e.message || 'Error sending test notification.' });
+                    } finally {
+                      setIsSendingTestFcm(false);
+                    }
+                  }} 
+                  isLoading={isSendingTestFcm}
+                  style={{ height: '40px', padding: '0 20px', background: 'var(--success, #10b981)', color: '#fff', border: 'none', borderRadius: '6px' }}
+                >
+                  Send Test Notification
+                </Button>
+              </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '30px' }}>

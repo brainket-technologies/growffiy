@@ -13,22 +13,51 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Device-Type", "value": "android" },
-              { "key": "X-App-Version", "value": "1.0.0" },
-              { "key": "X-Device-ID", "value": "{{deviceId}}" },
-              { "key": "X-API-Key", "value": "{{mobileApiKey}}" },
-              { "key": "X-FCM-Token", "value": "{{fcmToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Type",
+                "value": "android"
+              },
+              {
+                "key": "X-App-Version",
+                "value": "1.0.0"
+              },
+              {
+                "key": "X-Device-ID",
+                "value": "{{deviceId}}"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{mobileApiKey}}"
+              },
+              {
+                "key": "X-FCM-Token",
+                "value": "{{fcmToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"identifier\": \"UTE055\",\n  \"password\": \"123456\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
             },
             "description": "Authenticate a user with email / username / ZerodhaID and password. Returns a JWT token and full user profile on success."
           },
@@ -38,12 +67,30 @@
               "originalRequest": {
                 "method": "POST",
                 "header": [
-                  { "key": "Content-Type", "value": "application/json" },
-                  { "key": "X-Device-Type", "value": "android" },
-                  { "key": "X-App-Version", "value": "1.0.0" },
-                  { "key": "X-Device-ID", "value": "{{deviceId}}" },
-                  { "key": "X-API-Key", "value": "{{mobileApiKey}}" },
-                  { "key": "X-FCM-Token", "value": "{{fcmToken}}" }
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Device-Type",
+                    "value": "android"
+                  },
+                  {
+                    "key": "X-App-Version",
+                    "value": "1.0.0"
+                  },
+                  {
+                    "key": "X-Device-ID",
+                    "value": "{{deviceId}}"
+                  },
+                  {
+                    "key": "X-API-Key",
+                    "value": "{{mobileApiKey}}"
+                  },
+                  {
+                    "key": "X-FCM-Token",
+                    "value": "{{fcmToken}}"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
@@ -51,14 +98,26 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/auth/login",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "v1", "auth", "login"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
                 }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"token\": \"mocked.jwt.token.string\",\n    \"user\": {\n      \"id\": \"4715c8e9-84fd-430b-b3fa-a29c50ed48e6\",\n      \"name\": \"Anand Kumar Sharma\",\n      \"email\": \"firozm613@gmail.com\",\n      \"userId\": \"anand123\",\n      \"mobile\": null,\n      \"role\": \"client\",\n      \"status\": \"active\",\n      \"createdAt\": \"2026-08-02T10:15:10.539Z\",\n      \"client\": {\n        \"id\": \"6d09b371-945a-4814-b3bd-4ee1d5e599c7\",\n        \"tradingStatus\": \"active\",\n        \"subscriptionStatus\": \"active\",\n        \"kycStatus\": \"verified\",\n        \"panNumber\": \"\",\n        \"aadhaarNumber\": \"\",\n        \"dob\": \"\",\n        \"network\": {\n          \"dedicatedIp\": \"82.112.229.108\",\n          \"proxyUrl\": null\n        },\n        \"zerodha\": {\n          \"clientId\": \"UTE055\",\n          \"apiKey\": \"gc8sm3knmuju8tgc\",\n          \"apiSecret\": \"k95dk8cqgkn2g18dbai7otfl50pfetst\",\n          \"password\": \"123456789\",\n          \"totpSecret\": \"5TDR5COTAXJK2LJUGCHSOJXO6Z4Q6N3G\"\n        },\n        \"trade\": {\n          \"perDayTradeAmount\": \"200\",\n          \"capital\": \"10000\",\n          \"strategyId\": [\"717106c3-4a04-4e19-b066-ea831332a691\"]\n        }\n      }\n    }\n  }\n}"
             },
             {
@@ -66,11 +125,26 @@
               "originalRequest": {
                 "method": "POST",
                 "header": [
-                  { "key": "Content-Type", "value": "application/json" },
-                  { "key": "X-Device-Type", "value": "android" },
-                  { "key": "X-App-Version", "value": "1.0.0" },
-                  { "key": "X-Device-ID", "value": "{{deviceId}}" },
-                  { "key": "X-API-Key", "value": "{{mobileApiKey}}" }
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Device-Type",
+                    "value": "android"
+                  },
+                  {
+                    "key": "X-App-Version",
+                    "value": "1.0.0"
+                  },
+                  {
+                    "key": "X-Device-ID",
+                    "value": "{{deviceId}}"
+                  },
+                  {
+                    "key": "X-API-Key",
+                    "value": "{{mobileApiKey}}"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
@@ -78,47 +152,37 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/auth/login",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "v1", "auth", "login"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
                 }
               },
               "status": "Unauthorized",
               "code": 401,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": false,\n  \"error\": \"Invalid credentials\"\n}"
             },
             {
               "name": "Login - 400 Missing Headers",
               "originalRequest": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"identifier\": \"UTE055\",\n  \"password\": \"123456\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/auth/login",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "v1", "auth", "login"]
-                }
-              },
-              "status": "Bad Request",
-              "code": 400,
-              "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"success\": false,\n  \"error\": \"Missing required device or app headers\"\n}"
-            },
-            {
-              "name": "Login - 401 Invalid API Key",
-              "originalRequest": {
-                "method": "POST",
                 "header": [
-                  { "key": "Content-Type", "value": "application/json" },
-                  { "key": "X-Device-Type", "value": "android" },
-                  { "key": "X-App-Version", "value": "1.0.0" },
-                  { "key": "X-Device-ID", "value": "{{deviceId}}" },
-                  { "key": "X-API-Key", "value": "WRONG_KEY" }
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
@@ -126,14 +190,80 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/auth/login",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "v1", "auth", "login"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"error\": \"Missing required device or app headers\"\n}"
+            },
+            {
+              "name": "Login - 401 Invalid API Key",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Device-Type",
+                    "value": "android"
+                  },
+                  {
+                    "key": "X-App-Version",
+                    "value": "1.0.0"
+                  },
+                  {
+                    "key": "X-Device-ID",
+                    "value": "{{deviceId}}"
+                  },
+                  {
+                    "key": "X-API-Key",
+                    "value": "WRONG_KEY"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"identifier\": \"UTE055\",\n  \"password\": \"123456\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
                 }
               },
               "status": "Unauthorized",
               "code": 401,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": false,\n  \"error\": \"Invalid API Key\"\n}"
             }
           ]
@@ -143,18 +273,46 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{authToken}}" },
-              { "key": "X-API-Key", "value": "{{mobileApiKey}}" },
-              { "key": "X-Device-Type", "value": "android" },
-              { "key": "X-App-Version", "value": "1.0.0" },
-              { "key": "X-Device-ID", "value": "{{deviceId}}" },
-              { "key": "X-FCM-Token", "value": "{{fcmToken}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{mobileApiKey}}"
+              },
+              {
+                "key": "X-Device-Type",
+                "value": "android"
+              },
+              {
+                "key": "X-App-Version",
+                "value": "1.0.0"
+              },
+              {
+                "key": "X-Device-ID",
+                "value": "{{deviceId}}"
+              },
+              {
+                "key": "X-FCM-Token",
+                "value": "{{fcmToken}}"
+              }
             ],
-            "body": { "mode": "raw", "raw": "" },
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/logout",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "auth", "logout"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
             },
             "description": "Logs out the current user. Verifies JWT, clears the FCM token from the DB so no push notifications are sent post-logout. The client must clear local storage independently."
           },
@@ -164,40 +322,87 @@
               "originalRequest": {
                 "method": "POST",
                 "header": [
-                  { "key": "Authorization", "value": "Bearer {{authToken}}" },
-                  { "key": "X-API-Key", "value": "{{mobileApiKey}}" },
-                  { "key": "X-Device-Type", "value": "android" },
-                  { "key": "X-App-Version", "value": "1.0.0" },
-                  { "key": "X-Device-ID", "value": "{{deviceId}}" },
-                  { "key": "X-FCM-Token", "value": "{{fcmToken}}" }
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  },
+                  {
+                    "key": "X-API-Key",
+                    "value": "{{mobileApiKey}}"
+                  },
+                  {
+                    "key": "X-Device-Type",
+                    "value": "android"
+                  },
+                  {
+                    "key": "X-App-Version",
+                    "value": "1.0.0"
+                  },
+                  {
+                    "key": "X-Device-ID",
+                    "value": "{{deviceId}}"
+                  },
+                  {
+                    "key": "X-FCM-Token",
+                    "value": "{{fcmToken}}"
+                  }
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/auth/logout",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "v1", "auth", "logout"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "logout"
+                  ]
                 }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": true,\n  \"message\": \"Logged out successfully\"\n}"
             },
             {
               "name": "Logout - 401 Missing Token",
               "originalRequest": {
                 "method": "POST",
-                "header": [{ "key": "X-API-Key", "value": "{{mobileApiKey}}" }],
+                "header": [
+                  {
+                    "key": "X-API-Key",
+                    "value": "{{mobileApiKey}}"
+                  }
+                ],
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/auth/logout",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "v1", "auth", "logout"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "logout"
+                  ]
                 }
               },
               "status": "Unauthorized",
               "code": 401,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": false,\n  \"error\": \"Missing or invalid Authorization header\"\n}"
             },
             {
@@ -205,19 +410,37 @@
               "originalRequest": {
                 "method": "POST",
                 "header": [
-                  { "key": "Authorization", "value": "InvalidToken123" },
-                  { "key": "X-API-Key", "value": "{{mobileApiKey}}" }
+                  {
+                    "key": "Authorization",
+                    "value": "InvalidToken123"
+                  },
+                  {
+                    "key": "X-API-Key",
+                    "value": "{{mobileApiKey}}"
+                  }
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/auth/logout",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "v1", "auth", "logout"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "logout"
+                  ]
                 }
               },
               "status": "Unauthorized",
               "code": 401,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": false,\n  \"error\": \"Invalid or expired token\"\n}"
             }
           ]
@@ -227,18 +450,35 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-API-Key", "value": "{{mobileApiKey}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{mobileApiKey}}"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"identifier\": \"test@example.com\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/forgot-password",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "auth", "forgot-password"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "forgot-password"
+              ]
             },
             "description": "Sends a 6-digit OTP to the registered email address for password reset. Does not require authentication."
           },
@@ -248,8 +488,14 @@
               "originalRequest": {
                 "method": "POST",
                 "header": [
-                  { "key": "Content-Type", "value": "application/json" },
-                  { "key": "X-API-Key", "value": "{{mobileApiKey}}" }
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-API-Key",
+                    "value": "{{mobileApiKey}}"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
@@ -257,14 +503,26 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/auth/forgot-password",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "v1", "auth", "forgot-password"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "forgot-password"
+                  ]
                 }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": true,\n  \"message\": \"OTP sent to registered email\"\n}"
             },
             {
@@ -272,8 +530,14 @@
               "originalRequest": {
                 "method": "POST",
                 "header": [
-                  { "key": "Content-Type", "value": "application/json" },
-                  { "key": "X-API-Key", "value": "{{mobileApiKey}}" }
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-API-Key",
+                    "value": "{{mobileApiKey}}"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
@@ -281,14 +545,26 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/auth/forgot-password",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "v1", "auth", "forgot-password"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "forgot-password"
+                  ]
                 }
               },
               "status": "Not Found",
               "code": 404,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": false,\n  \"error\": \"User not found\"\n}"
             }
           ]
@@ -298,18 +574,35 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-API-Key", "value": "{{mobileApiKey}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{mobileApiKey}}"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"identifier\": \"test@example.com\",\n  \"otp\": \"123456\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/verify-otp",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "auth", "verify-otp"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "verify-otp"
+              ]
             },
             "description": "Verifies the OTP sent to the user's email. Returns a short-lived reset token on success. Use this token in the Reset Password request."
           },
@@ -319,8 +612,14 @@
               "originalRequest": {
                 "method": "POST",
                 "header": [
-                  { "key": "Content-Type", "value": "application/json" },
-                  { "key": "X-API-Key", "value": "{{mobileApiKey}}" }
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-API-Key",
+                    "value": "{{mobileApiKey}}"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
@@ -328,14 +627,26 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/auth/verify-otp",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "v1", "auth", "verify-otp"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "verify-otp"
+                  ]
                 }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": true,\n  \"message\": \"OTP verified successfully\",\n  \"data\": {\n    \"resetToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n  }\n}"
             },
             {
@@ -343,8 +654,14 @@
               "originalRequest": {
                 "method": "POST",
                 "header": [
-                  { "key": "Content-Type", "value": "application/json" },
-                  { "key": "X-API-Key", "value": "{{mobileApiKey}}" }
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-API-Key",
+                    "value": "{{mobileApiKey}}"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
@@ -352,14 +669,26 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/auth/verify-otp",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "v1", "auth", "verify-otp"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "verify-otp"
+                  ]
                 }
               },
               "status": "Bad Request",
               "code": 400,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": false,\n  \"error\": \"Invalid or expired OTP\"\n}"
             }
           ]
@@ -369,19 +698,39 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{resetToken}}" },
-              { "key": "X-API-Key", "value": "{{mobileApiKey}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{resetToken}}"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{mobileApiKey}}"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"newPassword\": \"NewSecurePassword@123\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/reset-password",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "auth", "reset-password"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "reset-password"
+              ]
             },
             "description": "Resets the user's password using the reset token received from the Verify OTP step. The reset token is short-lived (expires in ~15 mins)."
           },
@@ -391,9 +740,18 @@
               "originalRequest": {
                 "method": "POST",
                 "header": [
-                  { "key": "Content-Type", "value": "application/json" },
-                  { "key": "Authorization", "value": "Bearer {{resetToken}}" },
-                  { "key": "X-API-Key", "value": "{{mobileApiKey}}" }
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{resetToken}}"
+                  },
+                  {
+                    "key": "X-API-Key",
+                    "value": "{{mobileApiKey}}"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
@@ -401,14 +759,26 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/auth/reset-password",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "v1", "auth", "reset-password"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "reset-password"
+                  ]
                 }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": true,\n  \"message\": \"Password reset successfully\"\n}"
             },
             {
@@ -416,9 +786,18 @@
               "originalRequest": {
                 "method": "POST",
                 "header": [
-                  { "key": "Content-Type", "value": "application/json" },
-                  { "key": "Authorization", "value": "InvalidResetToken123" },
-                  { "key": "X-API-Key", "value": "{{mobileApiKey}}" }
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "InvalidResetToken123"
+                  },
+                  {
+                    "key": "X-API-Key",
+                    "value": "{{mobileApiKey}}"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
@@ -426,14 +805,26 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/auth/reset-password",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "v1", "auth", "reset-password"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "reset-password"
+                  ]
                 }
               },
               "status": "Unauthorized",
               "code": 401,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": false,\n  \"error\": \"Invalid or expired reset token\"\n}"
             }
           ]
@@ -443,13 +834,26 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{authToken}}" },
-              { "key": "X-API-Key", "value": "{{mobileApiKey}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{mobileApiKey}}"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/profile",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "auth", "profile"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "profile"
+              ]
             },
             "description": "Fetches the current user profile."
           }
@@ -459,19 +863,40 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{authToken}}" },
-              { "key": "X-API-Key", "value": "{{mobileApiKey}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{mobileApiKey}}"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"panNumber\": \"ABCDE1234F\",\n  \"aadhaarNumber\": \"123412341234\",\n  \"dob\": \"22/09/2000\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/profile/kyc",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "auth", "profile", "kyc"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "profile",
+                "kyc"
+              ]
             },
             "description": "Updates the KYC details for the user."
           }
@@ -481,19 +906,40 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{authToken}}" },
-              { "key": "X-API-Key", "value": "{{mobileApiKey}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{mobileApiKey}}"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"clientId\": \"XX1234\",\n  \"apiKey\": \"your_api_key\",\n  \"apiSecret\": \"your_api_secret\",\n  \"password\": \"your_password\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/profile/broker",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "auth", "profile", "broker"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "profile",
+                "broker"
+              ]
             },
             "description": "Updates Zerodha broker API credentials."
           }
@@ -503,19 +949,40 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{authToken}}" },
-              { "key": "X-API-Key", "value": "{{mobileApiKey}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{mobileApiKey}}"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"totpSecret\": \"YOUR_TOTP_SECRET_CODE\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/profile/totp",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "auth", "profile", "totp"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "profile",
+                "totp"
+              ]
             },
             "description": "Updates the TOTP secret for automated login."
           }
@@ -525,21 +992,112 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{authToken}}" },
-              { "key": "X-API-Key", "value": "{{mobileApiKey}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{mobileApiKey}}"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"currentPassword\": \"old_password123\",\n  \"newPassword\": \"new_password123\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/profile/password",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "auth", "profile", "password"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "profile",
+                "password"
+              ]
             },
             "description": "Updates the user's login password."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Subscriptions",
+      "item": [
+        {
+          "name": "Get Payment History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{mobileApiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscription/history",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscription",
+                "history"
+              ]
+            },
+            "description": "Fetches the payment history for the current user."
+          }
+        },
+        {
+          "name": "Download Invoice PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{mobileApiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscription/invoice/:paymentId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscription",
+                "invoice",
+                ":paymentId"
+              ],
+              "variable": [
+                {
+                  "key": "paymentId",
+                  "value": "payment-uuid"
+                }
+              ]
+            },
+            "description": "Downloads the PDF invoice for a specific payment."
           }
         }
       ]
@@ -568,7 +1126,7 @@
       "key": "mobileApiKey",
       "value": "growffi_mob_sec_api_9k2vL8pQ4zN1wX7",
       "type": "string",
-      "description": "Static API key — value from server .env MOBILE_API_KEY"
+      "description": "Static API key \u2014 value from server .env MOBILE_API_KEY"
     },
     {
       "key": "deviceId",

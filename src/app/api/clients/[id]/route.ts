@@ -21,7 +21,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       }
 
       if (client.user && client.user.password) {
-        client.user.password = decryptText(client.user.password);
+        client.user.password = ''; // Do not send encrypted or decrypted password to frontend for security
       }
 
       let profileData: any = null;
@@ -142,14 +142,18 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
        }
 
        // Update associated user account
+       const userDataToUpdate: any = {
+         name: name !== undefined ? name : undefined,
+         email: email !== undefined ? email : undefined,
+         userId: userId !== undefined ? userId : undefined,
+       };
+       if (finalPassword) {
+         userDataToUpdate.password = finalPassword;
+       }
+
        await prisma.user.update({
          where: { id: client.userId },
-         data: {
-           name: name !== undefined ? name : undefined,
-           email: email !== undefined ? email : undefined,
-           userId: userId !== undefined ? userId : undefined,
-           password: finalPassword !== undefined ? finalPassword : undefined,
-         }
+         data: userDataToUpdate
        });
  
        // Invalidate Zerodha session if we are disconnecting or changing status to inactive
@@ -222,7 +226,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
              name: name ?? current.user.name,
              email: email ?? current.user.email,
              userId: userId ?? current.user.userId,
-             password: password ?? current.user.password,
+             password: password ? password : current.user.password,
            },
            zerodhaClientId: zerodhaClientId !== undefined ? zerodhaClientId : current.zerodhaClientId,
            zerodhaApiKey: zerodhaApiKey !== undefined ? zerodhaApiKey : current.zerodhaApiKey,
