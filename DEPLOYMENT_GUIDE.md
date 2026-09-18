@@ -60,10 +60,18 @@ Iss document mein har client setup, unke server infrastructure, database, aur de
    ```
 2. Build output (`.next` ya export build) aur required configuration files (`package.json`, `prisma`, etc.) ka `.zip` archive banayein.
 3. Hostinger File Manager / Panel mein jaakar puraane code/zip ko replace karein.
-4. Agar DB Schema change hua hai toh Neon DB connection URL ke saath Prisma push run karein:
    ```bash
    npx prisma db push
    ```
+
+#### Existing Database Schema Update (Bina Data Delete kiye naye table/column add karna) - TESTING:
+Agar Neon DB me naye columns/tables add karne hain bina existing data hataye:
+1. Apne local `.env` me `DATABASE_URL` aur `DIRECT_URL` ko Neon DB connection URL se set karein.
+2. Local terminal me ye command chalayein:
+   ```bash
+   npx prisma db push
+   ```
+   *(Note: Ye safely naye columns add karega. Data delete nahi hoga. Agar koi conflicting schema hoga toh Prisma warning dega).*
 
 ---
 
@@ -128,6 +136,7 @@ sshpass -p 'Q}K)H~l8i@=XwC' ssh root@66.116.210.206
 #### Fresh Database Setup (Clean DB without old clients or trade history):
 Naye server pe clean schema push karne ke liye (seed data/old clients mat run karna):
 1. **DB Clean Schema Push**:
+   *(⚠️ **CRITICAL CHECK**: Run karne se pehle ensure karo ki server ki `.env` me `DATABASE_URL` ke sath-sath `DIRECT_URL` dono hi local database ko point kar rahe hon, warna Neon testing DB pe push chala jayega.)*
    ```bash
    sshpass -p 'Q}K)H~l8i@=XwC' ssh root@66.116.210.206 "cd /path/to/project && npx prisma db push --skip-generate"
    ```
@@ -136,6 +145,14 @@ Naye server pe clean schema push karne ke liye (seed data/old clients mat run ka
 2. **Deploy / Update Code**:
    ```bash
    sshpass -p 'Q}K)H~l8i@=XwC' ssh root@66.116.210.206 "cd /var/www/growffiy && git pull origin main && npm install && npm run build && pm2 restart growffiy"
+   ```
+
+#### Existing Database Schema Update (Bina Data Delete kiye naye table/column add karna) - PRODUCTION:
+Agar future mein kabhi naye tables ya columns add hote hain, toh existing data ko preserve karte hue sirf schema update karne ke liye ye command chalayein:
+1. Pehle server ki `.env` me check karein ki `DIRECT_URL` correct local DB ko point kar raha hai.
+2. Phir server par ye command chalayein (ye safely naye changes apply karega bina data loss ke):
+   ```bash
+   sshpass -p 'Q}K)H~l8i@=XwC' ssh root@66.116.210.206 "cd /var/www/growffiy && npx prisma db push"
    ```
 
 3. **Stock Scanner (Python) Update / Restart**:
@@ -159,5 +176,5 @@ Jab bhi koi naya client aaye, is format ke anusar details add karein:
 - [ ] Server Hosting Provider select karein (Hostinger / VPS / Other)
 - [ ] Database create karein (Neon PostgreSQL / VPS DB)
 - [ ] Deployment Script / Access Credentials document karein
-- [ ] Environment variables (`.env`) properly configure karein
+- [ ] Environment variables (`.env`) properly configure karein *(Ensure `DIRECT_URL` is the same as `DATABASE_URL` if not using a connection pooler, otherwise Prisma will push to the wrong DB)*
 
