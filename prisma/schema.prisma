@@ -14,6 +14,8 @@ model User {
   mobile        String?
   userId        String          @unique @map("user_id")
   password      String
+  resetOtp      String?
+  resetOtpExpiry DateTime?
   role          String          @default("client")
   status        String          @default("active")
   createdAt     DateTime        @default(now()) @map("created_at")
