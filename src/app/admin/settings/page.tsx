@@ -4,13 +4,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '../../../shared/components/views/Card';
 import { Button } from '../../../shared/components/views/Button';
 import RichTextEditor from '../../../shared/components/views/RichTextEditor';
-import { Shield, Server, RefreshCw, Key, Eye, EyeOff, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight, Mail, CreditCard, Globe, Info, LifeBuoy, Clock, Calendar, Plus, Trash2, Image, Search, FileText, Upload } from 'lucide-react';
+import { Shield, Server, RefreshCw, Key, Eye, EyeOff, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight, Mail, CreditCard, Globe, Info, LifeBuoy, Clock, Calendar, Plus, Trash2, Image, Search, FileText, Upload, Bell } from 'lucide-react';
 import { api } from '../../../shared/services/api';
 import { Modal } from '../../../shared/components/views/Modal';
 import { API_ENDPOINTS } from '../../../core/constants';
 
 
-type TabType = 'payments' | 'smtp' | 'support' | 'algo' | 'calendar' | 'client_portal' | 'branding' | 'website' | 'legal';
+type TabType = 'payments' | 'smtp' | 'support' | 'algo' | 'calendar' | 'client_portal' | 'firebase' | 'branding' | 'website' | 'legal';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('payments');
@@ -26,6 +26,9 @@ export default function SettingsPage() {
   const [razorpayLiveKeyId, setRazorpayLiveKeyId] = useState('');
   const [razorpayLiveKeySecret, setRazorpayLiveKeySecret] = useState('');
   const [razorpayMode, setRazorpayMode] = useState('test');
+
+  // Firebase
+  const [firebaseServiceAccount, setFirebaseServiceAccount] = useState('');
 
   // SMTP
   const [smtpHost, setSmtpHost] = useState('');
@@ -149,6 +152,8 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
           setShowZerodhaConnect(res.settings.show_zerodha_connect ?? 'true');
           setShowClientProfile(res.settings.show_client_profile ?? 'true');
           setShowClientStrategy(res.settings.show_client_strategy ?? 'true');
+
+          setFirebaseServiceAccount(res.settings.firebase_service_account || '');
           setGoogleSheetUrl(res.settings.google_sheet_url || '');
           setGoogleCredentialsJson(res.settings.google_credentials_json || '');
           setSelectedMasterClientId(res.settings.master_scanner_client_id || '');
@@ -233,6 +238,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
         show_zerodha_connect: showZerodhaConnect,
         show_client_profile: showClientProfile,
         show_client_strategy: showClientStrategy,
+        firebase_service_account: firebaseServiceAccount,
         google_sheet_url: googleSheetUrl,
         google_credentials_json: googleCredentialsJson,
         master_scanner_client_id: selectedMasterClientId,
@@ -558,6 +564,28 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
         >
           <ToggleRight size={15} />
           Client Portal Controls
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('firebase')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            border: 'none',
+            background: activeTab === 'firebase' ? 'var(--bg-white)' : 'transparent',
+            color: activeTab === 'firebase' ? 'var(--text-heading)' : 'var(--text-muted)',
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: activeTab === 'firebase' ? 700 : 600,
+            cursor: 'pointer',
+            boxShadow: activeTab === 'firebase' ? 'var(--shadow-sm)' : 'none',
+          }}
+        >
+          <Bell size={15} />
+          Push Notifications
         </button>
       </div>
 
@@ -1710,6 +1738,50 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
             </Modal>
 
           </>)}
+
+        {/* Firebase Tab */}
+        {activeTab === 'firebase' && (
+          <Card style={{ padding: '28px', borderRadius: '16px' }}>
+            <div style={{ marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Firebase Admin SDK JSON <Info size={16} color="var(--text-muted)" style={{ cursor: 'pointer' }} onClick={() => setInfoModal({ title: 'Firebase Admin SDK', content: <p>Paste the content of your Firebase Service Account JSON file here. This is required to send push notifications to clients via FCM.</p> })} />
+              </h2>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Configure push notifications for mobile applications.
+              </p>
+            </div>
+
+            <div style={{ background: 'var(--bg-secondary)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Service Account JSON
+              </label>
+              <textarea
+                value={firebaseServiceAccount}
+                onChange={(e) => setFirebaseServiceAccount(e.target.value)}
+                placeholder='{\n  "type": "service_account",\n  "project_id": "...",\n  ...\n}'
+                style={{
+                  width: '100%',
+                  height: '250px',
+                  fontFamily: 'monospace',
+                  fontSize: '13px',
+                  padding: '16px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  resize: 'vertical',
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '30px' }}>
+              <Button type="submit" isLoading={saving} style={{ padding: '10px 24px', fontSize: '14px', fontWeight: 600, borderRadius: '8px', background: 'var(--accent)', color: '#fff', border: 'none' }}>
+                Save & Apply Settings
+              </Button>
+            </div>
+          </Card>
+        )}
 
       </form>
 

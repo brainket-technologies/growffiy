@@ -172,6 +172,7 @@ export async function GET() {
     settings['google_analytics_id'] = '';
     settings['google_sheet_url'] = '';
     settings['google_credentials_json'] = '';
+    settings['firebase_service_account'] = '';
     settings['show_zerodha_connect'] = 'true';
     settings['show_client_profile'] = 'true';
     settings['show_client_strategy'] = 'true';
@@ -232,6 +233,7 @@ export async function GET() {
         footer_disclaimer: 'Algorithmic trading involves substantial financial risk. Growffiy is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.',
         footer_bottom_tagline: 'Designed for NSE/BSE Intraday Algo Traders',
         google_analytics_id: '',
+        firebase_service_account: '',
         social_telegram: 'https://t.me/growffiy',
         social_youtube: 'https://youtube.com/@growffiy',
         social_twitter: 'https://x.com/growffiy',
@@ -286,6 +288,7 @@ export async function PUT(request: Request) {
       footer_disclaimer,
       footer_bottom_tagline,
       google_analytics_id,
+      firebase_service_account,
       legal_privacy_content,
       legal_terms_content,
       legal_refund_content,
@@ -345,6 +348,7 @@ export async function PUT(request: Request) {
       footer_disclaimer,
       footer_bottom_tagline,
       google_analytics_id,
+      firebase_service_account: body.firebase_service_account,
       legal_privacy_content,
       legal_terms_content,
       legal_refund_content,
