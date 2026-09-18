@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
+import { encryptText } from '../../../shared/utils/crypto';
 import { sendClientWelcomeEmail } from '../../../shared/services/mail';
 import { KiteClient } from '../../../shared/services/kite';
 
@@ -119,12 +120,14 @@ export async function POST(request: Request) {
         }
       }
 
+      const encryptedPassword = encryptText(finalPassword);
+
       const newUser = await prisma.user.create({
         data: {
           name,
           email,
           userId: generatedUserId,
-          password: finalPassword, // Client logs in with this generated password
+          password: encryptedPassword, // Client logs in with this generated password
           role: 'client',
         },
       });
