@@ -56,3 +56,4 @@ stock-scanner/.env
 # Large backup/zip files — do not push to git
 database/*.sql
 *.zip
+.env
