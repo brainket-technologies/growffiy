@@ -44,8 +44,9 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: false, error: 'Provide userIds array or broadcast=true' }, { status: 400 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }
 
@@ -58,7 +59,8 @@ export async function GET(request: Request) {
       include: { user: { select: { name: true, email: true } } }
     });
     return NextResponse.json({ success: true, data: notifications });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }
