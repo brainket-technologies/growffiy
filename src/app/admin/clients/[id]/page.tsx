@@ -1168,7 +1168,7 @@ export default function ClientDetailsPage() {
                           // Fetch from server
                           setIsRevealingPassword(true);
                           try {
-                            const res = await api.get(`/clients/${id}/reveal-password`);
+                            const res = await api.get(`/api/clients/${id}/reveal-password`);
                             if (res.success) {
                               setPassword(res.password || '');
                               setShowPassword(true);
