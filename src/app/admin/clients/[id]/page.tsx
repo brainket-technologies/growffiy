@@ -198,6 +198,7 @@ export default function ClientDetailsPage() {
 
   // UI Visibility States
   const [showPassword, setShowPassword] = useState(false);
+  const [isRevealingPassword, setIsRevealingPassword] = useState(false);
   const [showApiSecret, setShowApiSecret] = useState(false);
   const [showZerodhaPassword, setShowZerodhaPassword] = useState(false);
   const [alertModal, setAlertModal] = useState<{ title: string; message: React.ReactNode; onConfirm?: () => void } | null>(null);
@@ -215,7 +216,7 @@ export default function ClientDetailsPage() {
           setName(c.user?.name || c.name || '');
           setEmail(c.user?.email || c.email || '');
           setUserId(c.user?.userId || c.userId || '');
-          setPassword(c.user?.password || '');
+          setPassword(''); // Password intentionally blank; use eye icon to reveal
           setZerodhaClientId(c.zerodhaClientId || '');
           setZerodhaApiKey(c.zerodhaApiKey || '');
           setZerodhaApiSecret(c.zerodhaApiSecret || '');
@@ -1161,7 +1162,28 @@ export default function ClientDetailsPage() {
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={isRevealingPassword}
+                      onClick={async () => {
+                        if (!showPassword && !password) {
+                          // Fetch from server
+                          setIsRevealingPassword(true);
+                          try {
+                            const res = await api.get(`/clients/${id}/reveal-password`);
+                            if (res.success) {
+                              setPassword(res.password || '');
+                              setShowPassword(true);
+                            } else {
+                              alert(res.error || 'Could not reveal password');
+                            }
+                          } catch {
+                            alert('Failed to fetch password');
+                          } finally {
+                            setIsRevealingPassword(false);
+                          }
+                        } else {
+                          setShowPassword(!showPassword);
+                        }
+                      }}
                       style={{
                         position: 'absolute',
                         right: '12px',
@@ -1176,7 +1198,10 @@ export default function ClientDetailsPage() {
                         justifyContent: 'center'
                       }}
                     >
-                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                      {isRevealingPassword 
+                        ? <span style={{ width: 15, height: 15, border: '2px solid var(--text-subtle)', borderTopColor: 'var(--primary)', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.6s linear infinite' }} />
+                        : showPassword ? <EyeOff size={15} /> : <Eye size={15} />
+                      }
                     </button>
                   </div>
                 </div>
