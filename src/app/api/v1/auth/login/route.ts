@@ -156,6 +156,8 @@ export async function POST(request: Request) {
               panNumber: user.client.panNumber,
               aadhaarNumber: user.client.aadhaarNumber,
               dob: user.client.dob,
+              productTypeId: user.client.productTypeId,
+              accessToken: user.client.accessToken,
               network: {
                 dedicatedIp: user.client.dedicatedIp,
                 proxyUrl: user.client.proxyUrl

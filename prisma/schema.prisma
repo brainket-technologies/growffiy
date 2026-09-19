@@ -26,8 +26,24 @@ model User {
   payments      Payment[]
   subscriptions Subscription[]
   tickets       SupportTicket[]
+  notifications Notification[]
 
   @@map("users")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String
+  body      String
+  type      String   @default("info")
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
 }
 
 model UserDevice {
