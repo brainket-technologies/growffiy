@@ -86,6 +86,8 @@ interface StrategyConfig {
     exitTime: string;
     maxTradesPerDay: number;
     selectPosition: number;
+    numberOfStocks?: number;
+    engineType?: string;
     stockSelectionType?: 'Gapdown (Losers)' | 'Gapup (Gainers)';
     checkIntervalSec: number;
     status: 'active' | 'inactive';
@@ -163,6 +165,7 @@ const INITIAL_CONFIG: StrategyConfig = {
     exitTime: '15:15',
     maxTradesPerDay: 3,
     selectPosition: 1,
+    numberOfStocks: 1,
     checkIntervalSec: 60,
     status: 'inactive',
     topCount: 20,
@@ -1552,6 +1555,22 @@ export default function StrategiesPage() {
                             onChange={(e) => setFormData({
                               ...formData,
                               basicInfo: { ...formData.basicInfo, topCount: Number(e.target.value) }
+                            })}
+                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                          />
+                        </div>
+                      )}
+                      {formData.basicInfo.engineType === 'FIRST_MINUTE' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{ fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>Number of Stocks to Trade</label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={10}
+                            value={formData.basicInfo.numberOfStocks || 1}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              basicInfo: { ...formData.basicInfo, numberOfStocks: Number(e.target.value) }
                             })}
                             style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                           />

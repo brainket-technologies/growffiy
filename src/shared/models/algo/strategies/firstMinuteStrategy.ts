@@ -180,7 +180,8 @@ export class FirstMinuteStrategy {
       const gainers = preselectedStocks.filter(s => s.changePercent > 0).sort((a, b) => b.changePercent - a.changePercent).slice(0, topCount);
       const losers = preselectedStocks.filter(s => s.changePercent < 0).sort((a, b) => a.changePercent - b.changePercent).slice(0, topCount);
 
-      const findMatchingStock = async (list: any[], requiredPattern: 'Green' | 'Red' | 'None', selectPos: number, ohlcCondition: string = 'None') => {
+      const findMatchingStocks = async (list: any[], requiredPattern: 'Green' | 'Red' | 'None', selectPos: number, ohlcCondition: string = 'None', maxStocks: number = 1) => {
+        const matches: any[] = [];
         let matchesFound = 0;
         for (const stock of list) {
           if (config?.conditions && !(await matchesConditions(stock, config.conditions, this.engine.wsLive))) continue;
@@ -280,10 +281,13 @@ export class FirstMinuteStrategy {
              stock.firstCandleOpen = open;
              stock.firstCandleClose = close;
              stock.firstCandleTimestamp = c[0];
-             return stock;
+             matches.push(stock);
+             if (matches.length >= maxStocks) {
+               return matches;
+             }
           }
         }
-        return null;
+        return matches;
       };
 
       let gainerLegPattern: 'Green' | 'Red' | 'None' = 'Green';
@@ -306,8 +310,10 @@ export class FirstMinuteStrategy {
          if (leg2.tradeAction?.selectPosition) loserSelectPos = Number(leg2.tradeAction.selectPosition) || 1;
       }
 
-      const targetGainer = await findMatchingStock(gainers, gainerLegPattern, gainerSelectPos, gainerOhlc);
-      const targetLoser = await findMatchingStock(losers, loserLegPattern, loserSelectPos, loserOhlc);
+      const maxStocksToTrade = config?.basicInfo?.numberOfStocks || 1;
+
+      const targetGainers = await findMatchingStocks(gainers, gainerLegPattern, gainerSelectPos, gainerOhlc, maxStocksToTrade);
+      const targetLosers = await findMatchingStocks(losers, loserLegPattern, loserSelectPos, loserOhlc, maxStocksToTrade);
 
       await Promise.all(
         group.assignedClients.map(async (client) => {
@@ -344,7 +350,7 @@ export class FirstMinuteStrategy {
           if (!marginResult.success) return;
 
           const legDivisor = activeLegs.length;
-          const capitalAtRiskPerLeg = marginResult.capitalAtRisk / legDivisor;
+          const capitalAtRiskPerStock = (marginResult.capitalAtRisk / legDivisor) / maxStocksToTrade;
 
           for (let li = 0; li < activeLegs.length; li++) {
             if (legIndex !== undefined && legIndex !== null && li !== legIndex) continue;
@@ -353,21 +359,22 @@ export class FirstMinuteStrategy {
             const isBuy = leg.tradeAction?.action?.toLowerCase() === 'long' || leg.tradeAction?.action?.toLowerCase() === 'buy';
             
             const selectionType = config?.basicInfo?.selectionType?.toLowerCase() || '';
-            let targetStock = null;
+            let targetStocks: any[] = [];
 
             if (selectionType.includes('gapdown') || selectionType.includes('loser')) {
-              targetStock = targetLoser;
+              targetStocks = targetLosers;
             } else if (selectionType.includes('gapup') || selectionType.includes('gainer')) {
-              targetStock = targetGainer;
+              targetStocks = targetGainers;
             } else {
               // Backward compatibility
-              targetStock = li === 0 ? targetGainer : targetLoser; 
+              targetStocks = li === 0 ? targetGainers : targetLosers; 
             }
             
-            if (!targetStock) continue;
+            if (!targetStocks || targetStocks.length === 0) continue;
 
+            for (const targetStock of targetStocks) {
             const todayStr = new Date().toISOString().split('T')[0];
-            const dbLockKey = `trade_lock_${client.id}_${group.strategyId}_leg${li}_${todayStr}`;
+            const dbLockKey = `trade_lock_${client.id}_${group.strategyId}_leg${li}_${targetStock.symbol}_${todayStr}`;
             try {
               await prisma.appSettings.create({
                 data: { settingKey: dbLockKey, settingValue: 'locked', type: 'lock' }
@@ -419,19 +426,19 @@ export class FirstMinuteStrategy {
             let slPoints = Math.abs(entryPriceRaw - slPriceRaw);
             if (slPoints <= 0) slPoints = 1;
 
-            let qty = Math.floor(capitalAtRiskPerLeg / slPoints);
+            let qty = Math.floor(capitalAtRiskPerStock / slPoints);
             if (qty <= 0) {
               console.log(`AlgoEngine: Quantity calculated as 0 for ${client.user?.name} in ${targetStock.symbol}. Risk capital too low for SL difference. Skipping leg.`);
               continue;
             }
 
             if (marginResult.marginRate !== undefined && marginResult.marginRate !== null && marginResult.marginRate > 0) {
-              const qtyByBuyingPower = Math.floor((marginResult.clientCapital / legDivisor) / (entryPriceRaw * marginResult.marginRate));
+              const qtyByBuyingPower = Math.floor((marginResult.clientCapital / legDivisor / maxStocksToTrade) / (entryPriceRaw * marginResult.marginRate));
               qty = Math.min(qty, qtyByBuyingPower);
             }
             
             if (qty <= 0) {
-              await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, 'MIS', entryPriceRaw, `Qty calculation resulted in 0 (Risk: ₹${capitalAtRiskPerLeg.toFixed(2)} / SL Points: ₹${slPoints.toFixed(2)})`, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: 0, stopLoss: slPriceRaw, target: 0, slTriggerPrice: slPriceRaw });
+              await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, 'MIS', entryPriceRaw, `Qty calculation resulted in 0 (Risk: ₹${capitalAtRiskPerStock.toFixed(2)} / SL Points: ₹${slPoints.toFixed(2)})`, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: 0, stopLoss: slPriceRaw, target: 0, slTriggerPrice: slPriceRaw });
               continue;
             }
 
@@ -738,6 +745,7 @@ export class FirstMinuteStrategy {
               console.error(`AlgoEngine: Error placing First Minute Strategy order for ${client.user?.name} (${targetStock.symbol}): ${errMsg}`, err?.stack || '');
               await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, productParam, entryPrice, errMsg, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice }, rawErrResponse);
               continue;
+            }
             }
           }
         })
