@@ -47,7 +47,7 @@ export class FirstMinuteStrategy {
     try {
       console.log('AlgoEngine preSelect: Fetching instruments to map tokens via public proxy...');
       const masterClient = await getMasterClient();
-      const res = await kiteFetch('https://api.kite.trade/instruments/NSE', { method: 'GET' }, masterClient?.dedicatedIp);
+      const res = await kiteFetch('https://api.kite.trade/instruments/NSE', { method: 'GET' }, (masterClient as any)?.dedicatedIp);
       if (res.ok && res.status === 200) {
         const text = await res.text();
         const lines = text.split('\n');

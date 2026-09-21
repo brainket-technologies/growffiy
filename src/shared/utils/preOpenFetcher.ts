@@ -23,6 +23,7 @@ export interface StockQuote {
   nm52wL: number;
   isNifty50?: boolean;
   isNifty500?: boolean;
+  instrumentToken?: number;
   isBankNifty?: boolean;
   isFo?: boolean;
   isSme?: boolean;
