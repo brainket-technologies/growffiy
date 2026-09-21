@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
+import { decryptText } from '@/shared/utils/crypto';
 
 export async function POST(request: Request) {
   try {
@@ -53,7 +54,9 @@ export async function POST(request: Request) {
       }
     }
 
-    if (!user || user.password !== password) {
+    const isPasswordValid = user && (user.password === password || decryptText(user.password) === password);
+
+    if (!user || !isPasswordValid) {
       return NextResponse.json({ success: false, error: 'Invalid User ID/Email/Zerodha ID or Password' }, { status: 401 });
     }
 

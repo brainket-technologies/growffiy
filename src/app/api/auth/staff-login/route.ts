@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
+import { decryptText } from '@/shared/utils/crypto';
 import { inMemoryStaff } from '../../../../shared/store/inMemoryStaff';
 import { getDefaultPermissions } from '../../../../core/constants';
 
@@ -35,7 +36,9 @@ export async function POST(request: Request) {
       ) || null;
     }
 
-    if (!staff || staff.password !== password) {
+    const isPasswordValid = staff && (staff.password === password || decryptText(staff.password) === password);
+
+    if (!staff || !isPasswordValid) {
       return NextResponse.json({ success: false, error: 'Invalid Staff ID/Email or Password' }, { status: 401 });
     }
 
