@@ -6,6 +6,7 @@ import { Card } from '../../../../shared/components/views/Card';
 import { Loader } from '../../../../shared/components/views/Loader';
 import { Button } from '../../../../shared/components/views/Button';
 import { Modal } from '../../../../shared/components/views/Modal';
+import { api } from '../../../../shared/services/api';
 import {
   Activity, Download,
   Search, TrendingUp, TrendingDown, CheckCircle, AlertCircle, XCircle, ArrowUpRight, ArrowDownRight
@@ -169,8 +170,30 @@ function formatDateTime(timeStr: string | Date | null) {
 }
 
 export default function LiveTradeTransactionsPage() {
-  const { trades = [], loading } = useAppViewModel();
+  const { trades = [], loading, refreshAllData } = useAppViewModel();
   const [selectedTrade, setSelectedTrade] = useState<any | null>(null);
+
+  const [tradeToForceExit, setTradeToForceExit] = useState<any | null>(null);
+  const [isExiting, setIsExiting] = useState(false);
+
+  const handleForceExit = async () => {
+    if (!tradeToForceExit) return;
+    setIsExiting(true);
+    try {
+      const res = await api.post('/api/admin/trades/force-exit', { tradeId: tradeToForceExit.id || tradeToForceExit.legs?.[0]?.id });
+      if (res.success) {
+        alert('Trade force exited successfully');
+        refreshAllData();
+      } else {
+        alert(res.error || 'Failed to force exit trade');
+      }
+    } catch (e: any) {
+      alert('An error occurred while force exiting trade');
+    } finally {
+      setIsExiting(false);
+      setTradeToForceExit(null);
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [clientFilter, setClientFilter] = useState('all');
@@ -548,6 +571,7 @@ export default function LiveTradeTransactionsPage() {
                 <th style={{ whiteSpace: 'nowrap' }}>Exit Time</th>
                 <th style={{ whiteSpace: 'nowrap' }}>OCO Status</th>
                 <th style={{ whiteSpace: 'nowrap' }}>P&L (₹)</th>
+                <th style={{ whiteSpace: 'nowrap' }}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -601,6 +625,13 @@ export default function LiveTradeTransactionsPage() {
                         <td style={{ fontWeight: 600, fontSize: '13px', color: totalPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)', whiteSpace: 'nowrap' }}>
                           {totalPnl >= 0 ? `+₹${totalPnl.toFixed(2)}` : `-₹${Math.abs(totalPnl).toFixed(2)}`}
                         </td>
+                        <td>
+                          {row.status === 'open' && (
+                            <Button size="sm" variant="danger" onClick={(e) => { e.stopPropagation(); setTradeToForceExit(row); }}>
+                              Force Exit
+                            </Button>
+                          )}
+                        </td>
                       </tr>
                     );
                   }
@@ -643,6 +674,13 @@ export default function LiveTradeTransactionsPage() {
                       </td>
                       <td style={{ fontWeight: 600, fontSize: '13px', color: pnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)', whiteSpace: 'nowrap' }}>
                         {pnl >= 0 ? `+₹${pnl.toFixed(2)}` : `-₹${Math.abs(pnl).toFixed(2)}`}
+                      </td>
+                      <td>
+                        {(row.status || '').toLowerCase() === 'open' && (
+                          <Button size="sm" variant="danger" onClick={(e) => { e.stopPropagation(); setTradeToForceExit(row); }}>
+                            Force Exit
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -713,6 +751,29 @@ export default function LiveTradeTransactionsPage() {
           </div>
         </div>
       </Card>
+
+      {/* Force Exit Modal */}
+      <Modal
+        isOpen={!!tradeToForceExit}
+        onClose={() => setTradeToForceExit(null)}
+        title="Confirm Force Exit"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.5' }}>
+            Are you sure you want to force exit this trade ({tradeToForceExit?.symbol})? 
+            <br/><br/>
+            <strong>Warning:</strong> This will cancel any open SL/Target orders on Kite and place a market order to close the position immediately.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
+            <Button variant="secondary" onClick={() => setTradeToForceExit(null)} disabled={isExiting}>
+              No, Cancel
+            </Button>
+            <Button variant="danger" onClick={handleForceExit} disabled={isExiting}>
+              {isExiting ? 'Exiting...' : 'Yes, Force Exit'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Trade Details Modal */}
       <Modal
