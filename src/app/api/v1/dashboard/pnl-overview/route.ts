@@ -33,6 +33,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
     }
 
+    if (user.isBlocked) {
+      return NextResponse.json({ success: false, error: 'Your account has been blocked. Please contact support.' }, { status: 403 });
+    }
+
+    if (user.isDeleted) {
+      return NextResponse.json({ success: false, error: 'This account no longer exists. Please contact support.' }, { status: 403 });
+    }
+
     const period = req.nextUrl.searchParams.get('period') || 'Weekly';
     const client = user.client;
 

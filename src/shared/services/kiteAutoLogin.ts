@@ -32,7 +32,7 @@ function extractRedirectFromBody(body: string): string | null {
 const KITE = 'https://kite.zerodha.com';
 const API = 'https://api.kite.trade';
 
-export async function performKiteAutoLogin(clientId: string): Promise<{ success: boolean; accessToken?: string; error?: string; user_name?: string }> {
+export async function performKiteAutoLogin(clientId: string, totpSecretOverride?: string): Promise<{ success: boolean; accessToken?: string; error?: string; user_name?: string }> {
   try {
     if (process.env.KITE_AUTO_LOGIN_ENABLED !== 'true') {
       return { success: false, error: 'Auto-login is disabled via environment configuration' };
@@ -47,7 +47,10 @@ export async function performKiteAutoLogin(clientId: string): Promise<{ success:
 
     const { zerodhaClientId: userId, zerodhaPassword: password, zerodhaTotpSecret: totpSecret } = client;
 
-    if (!userId || !password || !totpSecret) {
+    // Use override secret (e.g. from TOTP save flow) or fall back to DB value
+    const effectiveTotpSecret = totpSecretOverride ? totpSecretOverride.trim().toUpperCase().replace(/\s+/g, '') : totpSecret;
+
+    if (!userId || !password || !effectiveTotpSecret) {
       return { success: false, error: 'Missing client credentials (User ID, Password, or TOTP Secret)' };
     }
 
@@ -77,7 +80,7 @@ export async function performKiteAutoLogin(clientId: string): Promise<{ success:
     allCookies = mergeCookies(allCookies, extractCookies(res));
 
     // ── Step 3: 2FA with skip_session=true ──
-    const totp = generateTOTP(totpSecret);
+    const totp = generateTOTP(effectiveTotpSecret);
     res = await fetch(`${KITE}/api/twofa`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': allCookies },
@@ -151,6 +154,8 @@ export async function performKiteAutoLogin(clientId: string): Promise<{ success:
 
     // ── Step 5: Exchange for access token ──
     const checksum = createHash('sha256').update(apiKey + requestToken + apiSecret).digest('hex');
+    console.log(`[AutoLogin Debug] apiKey len: ${apiKey.length}, reqToken len: ${requestToken.length}, apiSecret len: ${apiSecret.length}`);
+    console.log(`[AutoLogin Debug] reqToken startsWith: ${requestToken.substring(0,4)}, apiKey startsWith: ${apiKey.substring(0,4)}`);
     const sessionRes = await fetch(`${API}/session/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Kite-Version': '3' },
@@ -158,6 +163,7 @@ export async function performKiteAutoLogin(clientId: string): Promise<{ success:
     });
     const sessionData = await sessionRes.json();
     if (sessionData.status !== 'success' || !sessionData.data?.access_token) {
+      console.error('[AutoLogin Debug] Session exchange failed:', sessionData);
       return { success: false, error: `Session exchange failed: ${sessionData.message || 'Invalid request_token'}` };
     }
 

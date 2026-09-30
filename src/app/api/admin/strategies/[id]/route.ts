@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
-import { inMemoryStrategies } from '../route';
+import { inMemoryStrategies } from '@/shared/mockDB';
 
 export async function GET(
   request: Request,

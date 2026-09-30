@@ -5,11 +5,16 @@ class ApiClient {
       ...options.headers,
     };
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
     try {
       const response = await fetch(path, {
         ...options,
         headers: defaultHeaders,
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       // Parse JSON payload safely
       const text = await response.text();

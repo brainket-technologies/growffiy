@@ -18,6 +18,8 @@ model User {
   resetOtpExpiry DateTime?
   role          String          @default("client")
   status        String          @default("active")
+  isBlocked     Boolean         @default(false) @map("is_blocked")
+  isDeleted     Boolean         @default(false) @map("is_deleted")
   createdAt     DateTime        @default(now()) @map("created_at")
   updatedAt     DateTime        @updatedAt @map("updated_at")
   auditLogs     AuditLog[]

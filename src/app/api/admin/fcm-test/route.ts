@@ -30,18 +30,19 @@ export async function POST(request: Request) {
       });
     }
 
-    const message: admin.messaging.Message = {
+    const message: admin.messaging.Message = token ? {
+      token: token,
+      notification: {
+        title: title || 'Test Notification',
+        body: notificationBody || 'This is a test push notification from Growffiy Admin Panel.',
+      },
+    } : {
+      topic: 'all_users', // fallback topic if token is not provided
       notification: {
         title: title || 'Test Notification',
         body: notificationBody || 'This is a test push notification from Growffiy Admin Panel.',
       },
     };
-
-    if (token) {
-      message.token = token;
-    } else {
-      message.topic = 'all_users'; // fallback topic if token is not provided
-    }
 
     const response = await admin.messaging().send(message);
 

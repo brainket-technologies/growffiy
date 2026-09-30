@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
+import { KiteClient } from '@/shared/services/kite';
 
 export async function GET(request: Request) {
   try {
     const clients = await prisma.client.findMany({
       where: {
-        kycStatus: 'pending'
+        kycStatus: { in: ['pending', 'under_review'] }
       },
       include: {
         user: {
@@ -21,9 +22,33 @@ export async function GET(request: Request) {
       }
     });
 
+    // Enrich with live margin where access token exists
+    const enriched = await Promise.all(
+      clients.map(async (client) => {
+        let liveMargin: number | null = null;
+        let kiteSessionActive = false;
+
+        if (client.accessToken && client.zerodhaApiKey) {
+          try {
+            const margins = await KiteClient.getMargins(client.zerodhaApiKey, client.accessToken);
+            liveMargin = margins?.net ?? null;
+            kiteSessionActive = true;
+          } catch {
+            kiteSessionActive = false;
+          }
+        }
+
+        return {
+          ...client,
+          liveMargin,
+          kiteSessionActive,
+        };
+      })
+    );
+
     return NextResponse.json({
       success: true,
-      data: clients
+      data: enriched
     });
   } catch (error: any) {
     console.error('Fetch pending KYC requests error:', error);

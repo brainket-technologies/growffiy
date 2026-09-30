@@ -47,8 +47,9 @@ export async function GET(request: Request) {
     });
 
     const formattedPayments = payments.map(payment => {
-      const baseAmount = payment.amount / (1 + gstRate);
-      const gstAmount = payment.amount - baseAmount;
+      const amountNum = Number(payment.amount);
+      const baseAmount = amountNum / (1 + gstRate);
+      const gstAmount = amountNum - baseAmount;
       return {
         ...payment,
         baseAmount,

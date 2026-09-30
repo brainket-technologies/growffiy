@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
-import { inMemoryClients } from '../../clients/route';
+import { inMemoryClients } from '@/shared/mockDB';
 import { sendClientOtpEmail } from '../../../../shared/services/mail';
 
 // In-memory OTP store (Key: zerodhaClientId, Value: { otp, email, expires })

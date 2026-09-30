@@ -2,7 +2,7 @@ import { prisma } from '@/database/db';
 import { SCHEDULER_INTERVALS } from '../../core/constants';
 import { KiteClient } from '../services/kite';
 import { performKiteAutoLogin } from '../services/kiteAutoLogin';
-import type { StockQuote } from './algoEngine';
+import { StockQuote } from '../utils/preOpenFetcher';
 import type { WsLiveFeed } from './wsLiveFeed';
 import { getTickSizeAndRound } from '../utils/tickSizeUtil';
 import { concurrentMap } from '../../core/helpers';
@@ -329,7 +329,8 @@ export class TradingScheduler {
               zerodhaApiKey: { not: null },
               zerodhaApiSecret: { not: null },
               zerodhaPassword: { not: null },
-              zerodhaTotpSecret: { not: null }
+              zerodhaTotpSecret: { not: null },
+              user: { is: { isBlocked: false, isDeleted: false } }
             },
             include: { user: true }
           });
@@ -343,14 +344,16 @@ export class TradingScheduler {
           console.log(`AlgoEngine Scheduler: Auto-login ${clients.length} clients with concurrency ${CONCURRENCY}...`);
           await concurrentMap(clients, async (client) => {
             try {
-              console.log(`AlgoEngine Scheduler: Auto-logging in client ${client.user.name} (${client.zerodhaClientId})...`);
+              const clientAny = client as any;
+              console.log(`AlgoEngine Scheduler: Auto-logging in client ${clientAny.user.name} (${client.zerodhaClientId})...`);
               const loginRes = await performKiteAutoLogin(client.id);
               if (loginRes.success) {
                 this.engine.todayTokenRefreshed.add(client.id);
               }
-              console.log(`AlgoEngine Scheduler: Auto-login result for ${client.user.name}:`, loginRes.success);
+              console.log(`AlgoEngine Scheduler: Auto-login result for ${clientAny.user.name}:`, loginRes.success);
             } catch (err: any) {
-              console.error(`AlgoEngine Scheduler: Error auto-logging in client ${client.user.name}:`, err);
+              const clientAny = client as any;
+              console.error(`AlgoEngine Scheduler: Error auto-logging in client ${clientAny.user.name}:`, err);
             }
           }, CONCURRENCY, LOGIN_TIMEOUT);
           console.log(`AlgoEngine Scheduler: Auto-login completed for ${clients.length} clients.`);

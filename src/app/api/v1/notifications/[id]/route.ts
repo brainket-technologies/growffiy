@@ -17,7 +17,7 @@ async function getUserId(request: Request) {
 }
 
 // GET /api/v1/notifications/[id]
-export async function GET(request: Request, context: { params: { id: string } }) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const userId = await getUserId(request);
     if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
@@ -40,7 +40,7 @@ export async function GET(request: Request, context: { params: { id: string } })
 }
 
 // PATCH /api/v1/notifications/[id]
-export async function PATCH(request: Request, context: { params: { id: string } }) {
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const userId = await getUserId(request);
     if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
@@ -67,7 +67,7 @@ export async function PATCH(request: Request, context: { params: { id: string } 
 }
 
 // DELETE /api/v1/notifications/[id]
-export async function DELETE(request: Request, context: { params: { id: string } }) {
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const userId = await getUserId(request);
     if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });

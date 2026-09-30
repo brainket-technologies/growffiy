@@ -46,8 +46,8 @@ export async function POST(request: Request) {
     const fcmToken = headers.get('x-fcm-token');
     if (fcmToken && userId) {
       try {
-        await prisma.user.update({
-          where: { id: userId },
+        await prisma.userDevice.updateMany({
+          where: { userId: userId, fcmToken: fcmToken },
           data: { fcmToken: null },
         });
       } catch (_) {

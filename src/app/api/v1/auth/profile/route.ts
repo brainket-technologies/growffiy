@@ -45,6 +45,20 @@ export async function GET(request: Request) {
       );
     }
 
+    if (user.isBlocked) {
+      return NextResponse.json(
+        { success: false, error: 'Your account has been blocked. Please contact support.' },
+        { status: 403 }
+      );
+    }
+
+    if (user.isDeleted) {
+      return NextResponse.json(
+        { success: false, error: 'This account no longer exists. Please contact support.' },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json(
       {
         success: true,

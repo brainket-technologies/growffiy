@@ -141,6 +141,7 @@ export async function fetchClientsByStrategy(
         subscriptionStatus: 'active',   // CONDITION 3
         kycStatus: 'verified',          // CONDITION 4
         productTypeId: algoType.id,     // CONDITION 5
+        user: { is: { isBlocked: false, isDeleted: false } }, // Ensure user is not blocked or deleted
         ...(requireAccessToken ? { accessToken: { not: null } } : {})
       }
     },

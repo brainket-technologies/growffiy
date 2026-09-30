@@ -5,8 +5,9 @@ import PDFDocument from 'pdfkit';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'growffi-secret-key-fallback';
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await context.params;
     const authHeader = request.headers.get('authorization');
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -29,7 +30,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
 
     const userId = decoded.id;
-    const paymentId = (await params).id;
+    const paymentId = id;
 
     const payment = await prisma.payment.findUnique({
       where: {

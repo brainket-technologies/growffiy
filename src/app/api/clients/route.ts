@@ -49,6 +49,9 @@ let inMemoryClients: any[] = [
 export async function GET() {
   try {
     const dbClients = await prisma.client.findMany({
+      where: {
+        user: { is: { isDeleted: false } }
+      },
       include: { user: true, productType: true, assignments: { include: { strategy: true } } },
     });
     
@@ -62,13 +65,16 @@ export async function GET() {
         let liveMargin = null;
         if (c.accessToken && c.zerodhaApiKey) {
           try {
-            const mRes = await KiteClient.getMargins(c.zerodhaApiKey, c.accessToken);
+            const marginPromise = KiteClient.getMargins(c.zerodhaApiKey, c.accessToken);
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000));
+            const mRes: any = await Promise.race([marginPromise, timeoutPromise]);
+            
             if (mRes.status === 'success' && mRes.data?.equity) {
               const eq = mRes.data.equity;
               liveMargin = eq.net ?? eq.available?.live_balance ?? eq.available?.cash ?? null;
             }
           } catch (err) {
-            // Ignore margin fetch error
+            // Ignore margin fetch error or timeout
           }
         }
         return {
@@ -79,11 +85,12 @@ export async function GET() {
     );
 
     return NextResponse.json({ success: true, clients: enrichedClients });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('CLIENTS API ERROR:', error);
     // Fallback to in-memory store if DB is not configured
     const isDbConfigured = !!process.env.DATABASE_URL;
     if (isDbConfigured) {
-      return NextResponse.json({ success: false, error: 'Database query failed' }, { status: 500 });
+      return NextResponse.json({ success: false, error: 'Database query failed: ' + error.message }, { status: 500 });
     }
     return NextResponse.json({ success: true, clients: inMemoryClients, isDemoMode: true });
   }
@@ -226,4 +233,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
-export { inMemoryClients };
+

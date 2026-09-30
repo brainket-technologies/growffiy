@@ -649,7 +649,7 @@ export default function LiveTradeTransactionsPage() {
                         </td>
                         <td>
                           {row.status === 'open' && (
-                            <Button size="sm" variant="danger" onClick={(e) => { e.stopPropagation(); setTradeToForceExit(row); }}>
+                            <Button variant="danger" onClick={(e) => { e.stopPropagation(); setTradeToForceExit(row); }}>
                               Force Exit
                             </Button>
                           )}
@@ -716,7 +716,7 @@ export default function LiveTradeTransactionsPage() {
                       </td>
                       <td>
                         {(row.status || '').toLowerCase() === 'open' && (
-                          <Button size="sm" variant="danger" onClick={(e) => { e.stopPropagation(); setTradeToForceExit(row); }}>
+                          <Button variant="danger" onClick={(e) => { e.stopPropagation(); setTradeToForceExit(row); }}>
                             Force Exit
                           </Button>
                         )}

@@ -34,6 +34,20 @@ export async function POST(request: Request) {
       );
     }
 
+    if (user.isBlocked) {
+      return NextResponse.json(
+        { success: false, error: 'Your account has been blocked. Please contact support.' },
+        { status: 403 }
+      );
+    }
+
+    if (user.isDeleted) {
+      return NextResponse.json(
+        { success: false, error: 'This account no longer exists. Please contact support.' },
+        { status: 403 }
+      );
+    }
+
     // Generate 4 digit OTP
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
     const expiry = new Date(Date.now() + 10 * 60000); // 10 minutes from now

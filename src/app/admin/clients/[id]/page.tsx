@@ -61,6 +61,7 @@ export default function ClientDetailsPage() {
   const [aadhaarNumber, setAadhaarNumber] = useState('');
   const [dob, setDob] = useState('');
   const [kycStatus, setKycStatus] = useState('pending');
+  const [accountStatus, setAccountStatus] = useState('active');
   const [productTypeId, setProductTypeId] = useState('');
   const [productTypes, setProductTypes] = useState<any[]>([]);
   const [strategyId, setStrategyId] = useState('');
@@ -239,6 +240,13 @@ export default function ClientDetailsPage() {
           setAadhaarNumber(c.aadhaarNumber || '');
           setDob(c.dob || '');
           setKycStatus(c.kycStatus || 'pending');
+          if (c.user) {
+            if (c.user.isDeleted) setAccountStatus('deleted');
+            else if (c.user.isBlocked) setAccountStatus('blocked');
+            else setAccountStatus('active');
+          } else {
+            setAccountStatus('active');
+          }
           setProductTypeId(c.productTypeId || '');
           setStrategyId(c.strategyId || '');
           if (c.assignments && Array.isArray(c.assignments)) {
@@ -347,6 +355,38 @@ export default function ClientDetailsPage() {
   );
   const isDuplicateIp = !!duplicateClient;
   const duplicateClientName = duplicateClient ? (duplicateClient.user?.name || duplicateClient.name || duplicateClient.zerodhaClientId || 'another client') : '';
+
+  const handleUpdateAccountStatus = async (newStatus: string) => {
+    if (!window.confirm(`Are you sure you want to change account status to ${newStatus.toUpperCase()}?`)) {
+      return;
+    }
+    
+    try {
+      const res = await fetch(`/api/admin/clients/${id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAccountStatus(newStatus);
+        setAlertModal({
+          title: '✅ Success',
+          message: data.message
+        });
+      } else {
+        setAlertModal({
+          title: '❌ Failed',
+          message: data.error || 'Failed to update account status'
+        });
+      }
+    } catch (err: any) {
+      setAlertModal({
+        title: '❌ Error',
+        message: 'Internal server error while updating status'
+      });
+    }
+  };
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -921,6 +961,23 @@ export default function ClientDetailsPage() {
             }}>
               {accessToken ? 'Kite Session Live' : 'Kite Session Expired'}
             </span>
+
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 12px',
+              borderRadius: '12px',
+              fontSize: '12px',
+              fontWeight: 600,
+              textTransform: 'capitalize',
+              backgroundColor: accountStatus === 'active' ? 'var(--success-light, #dcfce7)' : 'var(--danger-light, #fee2e2)',
+              color: accountStatus === 'active' ? 'var(--success-dark, #166534)' : 'var(--danger-dark, #991b1b)',
+              border: `1px solid ${accountStatus === 'active' ? '#86efac' : '#fca5a5'}`
+            }}>
+              {accountStatus === 'active' ? <Check size={12}/> : <Lock size={12}/>}
+              Account {accountStatus}
+            </span>
           </div>
           <div>
             {accessToken ? (
@@ -1033,6 +1090,23 @@ export default function ClientDetailsPage() {
                 >
                   <TrendingUp size={14} /> View Performance
                 </Button>
+
+                <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {accountStatus === 'active' ? (
+                    <Button type="button" variant="danger" style={{ width: '100%', fontSize: '13px' }} onClick={() => handleUpdateAccountStatus('blocked')}>
+                      <Lock size={14} style={{ marginRight: 6 }}/> Block Account
+                    </Button>
+                  ) : (
+                    <Button type="button" variant="success" style={{ width: '100%', fontSize: '13px' }} onClick={() => handleUpdateAccountStatus('active')}>
+                      <Check size={14} style={{ marginRight: 6 }}/> {accountStatus === 'deleted' ? 'Restore Account' : 'Unblock Account'}
+                    </Button>
+                  )}
+                  {accountStatus !== 'deleted' && (
+                    <Button type="button" variant="secondary" style={{ width: '100%', fontSize: '13px', color: 'var(--danger)', borderColor: 'var(--danger)', background: 'transparent' }} onClick={() => handleUpdateAccountStatus('deleted')}>
+                      Soft Delete Account
+                    </Button>
+                  )}
+                </div>
               </div>
             </Card>
 

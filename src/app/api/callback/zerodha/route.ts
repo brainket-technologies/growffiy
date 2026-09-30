@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
-import { inMemoryClients } from '../../clients/route';
+import { inMemoryClients } from '@/shared/mockDB';
 import { KiteClient } from '../../../../shared/services/kite';
 
 function getRedirectUrl(path: string, request: Request): string {

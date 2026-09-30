@@ -1066,6 +1066,92 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "Signup OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Rahul Kumar\",\n  \"email\": \"rahul@example.com\",\n  \"password\": \"Password123!\",\n  \"productType\": \"prod-algo\",\n  \"tradingStrategies\": [\"717106c3-4a04-4e19-b066-ea831332a691\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/signup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "signup"
+              ]
+            },
+            "description": "Send OTP for registration."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Signup OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Type",
+                "value": "android"
+              },
+              {
+                "key": "X-App-Version",
+                "value": "1.0.0"
+              },
+              {
+                "key": "X-Device-ID",
+                "value": "{{deviceId}}"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{mobileApiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"rahul@example.com\",\n  \"otp\": \"1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/signup-verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "signup-verify"
+              ]
+            },
+            "description": "Verify the OTP and auto login the user."
+          },
+          "response": []
         }
       ]
     },
@@ -1615,7 +1701,7 @@
       "key": "mobileApiKey",
       "value": "growffi_mob_sec_api_9k2vL8pQ4zN1wX7",
       "type": "string",
-      "description": "Static API key \u2014 value from server .env MOBILE_API_KEY"
+      "description": "Static API key — value from server .env MOBILE_API_KEY"
     },
     {
       "key": "deviceId",

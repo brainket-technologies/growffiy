@@ -97,6 +97,41 @@ export async function POST(request: Request) {
         { status: 401 }
       );
     }
+    // Generate token for blocked/deleted users so they can contact support
+    const tempToken = jwt.sign(
+      { 
+        id: user.id, 
+        userId: user.userId, 
+        email: user.email,
+        role: user.role 
+      },
+      JWT_SECRET,
+      { expiresIn: '1d' } // Temporary token valid for 1 day
+    );
+
+    // Check account status using the new columns
+    if (user.isBlocked) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Your account has been blocked. Please contact support.',
+          data: { token: tempToken }
+        },
+        { status: 403 }
+      );
+    }
+
+    if (user.isDeleted) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'This account no longer exists. Please contact support.',
+          data: { token: tempToken }
+        },
+        { status: 403 }
+      );
+    }
+
 
     // Generate JWT Token
     const token = jwt.sign(
