@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && next build --webpack",
     "start": "npx prisma generate && node server.js",
     "lint": "eslint"
   },
