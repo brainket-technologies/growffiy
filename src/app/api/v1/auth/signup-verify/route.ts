@@ -31,7 +31,10 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { email, otp } = body;
+    let { email, otp } = body;
+
+    if (email) email = email.trim();
+    if (otp) otp = otp.trim();
 
     if (!email || !otp) {
       return NextResponse.json(
@@ -41,7 +44,7 @@ export async function POST(request: Request) {
     }
 
     const user = await prisma.user.findFirst({
-      where: { email: email }
+      where: { email: { equals: email, mode: 'insensitive' } }
     });
 
     if (!user) {

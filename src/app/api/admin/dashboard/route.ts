@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
+import { getCachedData } from '../../../../shared/utils/redis';
 
 export async function GET(request: Request) {
   try {
-
     const { searchParams } = new URL(request.url);
     const startDateStr = searchParams.get('startDate');
     const endDateStr = searchParams.get('endDate');
+
+    const cacheKey = `admin_dashboard:${startDateStr || 'default'}:${endDateStr || 'default'}`;
+
+    const result = await getCachedData(cacheKey, async () => {
 
     const today = new Date();
     // Default to start of current month to end of current month
@@ -52,7 +56,14 @@ export async function GET(request: Request) {
     const activeStrategies = await prisma.strategy.count({ where: { status: 'active' } });
     const strategies = await prisma.strategy.findMany({
       include: { 
-        trades: true
+        trades: {
+          where: {
+            createdAt: {
+              gte: startFilter,
+              lte: endFilter
+            }
+          }
+        }
       }
     });
 
@@ -61,13 +72,7 @@ export async function GET(request: Request) {
     let breakevenStrategies = 0;
 
     strategies.forEach(strat => {
-      const stratFilteredTrades = (strat.trades || []).filter(t => {
-        const dStr = t.createdAt || t.entryTime;
-        if (!dStr) return false;
-        const d = new Date(dStr);
-        return d >= startFilter && d <= endFilter;
-      });
-      const stratPnl = stratFilteredTrades.reduce((sum, t) => sum + helperCalcPnl(t), 0);
+      const stratPnl = strat.trades.reduce((sum, t) => sum + helperCalcPnl(t), 0);
       if (stratPnl > 0) {
         winningStrategies++;
       } else if (stratPnl < 0) {
@@ -78,7 +83,13 @@ export async function GET(request: Request) {
     });
 
     // 3. Trade metrics calculations
-    const allDbTrades = await prisma.trade.findMany({
+    const filteredTrades = await prisma.trade.findMany({
+      where: {
+        createdAt: {
+          gte: startFilter,
+          lte: endFilter
+        }
+      },
       include: {
         client: {
           include: {
@@ -90,14 +101,6 @@ export async function GET(request: Request) {
       orderBy: {
         createdAt: 'desc'
       }
-    });
-
-    // Date-filtered trades strictly matching startFilter and endFilter
-    const filteredTrades = allDbTrades.filter(t => {
-      const dStr = t.createdAt || t.entryTime;
-      if (!dStr) return false;
-      const d = new Date(dStr);
-      return d >= startFilter && d <= endFilter;
     });
 
     const sanitizedTrades = filteredTrades.map(t => ({
@@ -115,16 +118,18 @@ export async function GET(request: Request) {
     let closedTrades = 0;
 
     // Calculate real-time Open Positions & Exposure across all currently open trades
-    allDbTrades.forEach(trade => {
+    const openDbTrades = await prisma.trade.findMany({
+      where: { status: 'open' }
+    });
+
+    openDbTrades.forEach(trade => {
       const entryPrice = Number(trade.entryPrice || 0);
       const qty = Number(trade.quantity || 0);
       const pnl = helperCalcPnl(trade);
 
-      if ((trade.status || '').toLowerCase() === 'open') {
-        openPositions++;
-        totalExposure += entryPrice * qty;
-        unrealizedPnl += pnl;
-      }
+      openPositions++;
+      totalExposure += entryPrice * qty;
+      unrealizedPnl += pnl;
     });
 
     // Calculate Total P&L and Realized P&L STRICTLY for the selected Date Filter period (including profits + losses)
@@ -159,6 +164,13 @@ export async function GET(request: Request) {
       pnlHistoryLabels = ['Start', 'Today'];
     }
 
+    // Count today's trades
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const todayTrades = await prisma.trade.count({
+      where: { createdAt: { gte: startOfToday } }
+    });
+
     const statsResult = {
       totalClients,
       activeClients,
@@ -174,16 +186,15 @@ export async function GET(request: Request) {
       realizedPnl,
       openTrades: openPositions,
       closedTrades,
-      todayTrades: allDbTrades.length,
+      todayTrades,
       pnlHistoryData,
       pnlHistoryLabels
     };
 
-    return NextResponse.json({
-      success: true,
-      stats: statsResult,
-      trades: sanitizedTrades
-    });
+      return { stats: statsResult, trades: sanitizedTrades };
+    }, 10); // 10s TTL — dashboard has live-ish data
+
+    return NextResponse.json({ success: true, ...result });
   } catch (error: any) {
     console.error('Dashboard API Error:', error);
     return NextResponse.json({

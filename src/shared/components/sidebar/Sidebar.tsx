@@ -400,6 +400,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true, staffPermissio
   const [collapsed, setCollapsed] = useState(false);
   const [userName, setUserName] = useState('');
   const [userId, setUserId] = useState('');
+  const [sidebarEmail, setSidebarEmail] = useState('');
   const [openTicketsCount, setOpenTicketsCount] = useState(0);
   const [strategiesCount, setStrategiesCount] = useState(0);
   const [brandLogo, setBrandLogo] = useState('');
@@ -495,12 +496,31 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true, staffPermissio
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const impersonateId = searchParams.get('impersonate');
+
       const storedName = localStorage.getItem('growffiy_logged_in_user_name');
-      const storedId = localStorage.getItem('growffiy_logged_in_user_id');
+      const storedId = impersonateId || localStorage.getItem('growffiy_logged_in_user_id');
       const storedRole = localStorage.getItem('growffiy_logged_in_user_role');
-      
-      setUserName(storedName || (isAdmin ? 'Admin' : storedRole === 'staff' ? 'Staff' : 'Client'));
-      setUserId(storedId || '');
+
+      if (impersonateId) {
+        setUserId(impersonateId);
+        // Fetch real profile for impersonated user
+        fetch(`/api/auth/profile?userId=${impersonateId}`)
+          .then(r => r.json())
+          .then((res: any) => {
+            if (res.success && res.user) {
+              setUserName(res.user.name || impersonateId);
+              setSidebarEmail(res.user.email || '');
+            } else {
+              setUserName(impersonateId);
+            }
+          })
+          .catch(() => setUserName(impersonateId));
+      } else {
+        setUserName(storedName || (isAdmin ? 'Admin' : storedRole === 'staff' ? 'Staff' : 'Client'));
+        setUserId(storedId || '');
+      }
     }
   }, [isAdmin, staffPermissions]);
 
@@ -673,7 +693,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true, staffPermissio
     setOpenGroups(initialState);
   }, [pathname, groups]);
 
-  const userEmail = typeof window !== 'undefined' ? (localStorage.getItem('growffiy_logged_in_user_email') || activeUser?.email || '') : (activeUser?.email || '');
+  const userEmail = sidebarEmail || (typeof window !== 'undefined'
+    ? (localStorage.getItem('growffiy_logged_in_user_email') || activeUser?.email || '')
+    : (activeUser?.email || ''));
   const userInitial = userName.charAt(0).toUpperCase();
 
   return (

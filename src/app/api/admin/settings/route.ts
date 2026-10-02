@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
 
+import { getCachedData, invalidateCache } from '../../../../shared/utils/redis';
+
 export const dynamic = 'force-dynamic';
 
 const defaultAboutContent = `<h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 16px;">Empowering Traders with Intelligent Technology</h2>
@@ -132,19 +134,21 @@ const defaultFaqContent = JSON.stringify([
 
 export async function GET() {
   try {
-    const dbSettings = await prisma.appSettings.findMany();
-    const settings: Record<string, string> = {};
-    
-    dbSettings.forEach((s) => {
-      settings[s.settingKey] = s.settingValue;
-    });
+    const settings = await getCachedData('admin_settings', async () => {
+      const dbSettings = await prisma.appSettings.findMany();
+      const result: Record<string, string> = {};
+      dbSettings.forEach((s) => {
+        result[s.settingKey] = s.settingValue;
+      });
+      return result;
+    }, 30); // 30s cache
 
     return NextResponse.json({ success: true, settings });
   } catch (error) {
-    return NextResponse.json({ 
-      success: false, 
+    return NextResponse.json({
+      success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
-      settings: {} 
+      settings: {}
     });
   }
 }
@@ -262,23 +266,37 @@ export async function PUT(request: Request) {
       social_youtube,
       social_twitter,
       social_instagram,
-      social_facebook
+      social_facebook,
+      app_playstore_url: body.app_playstore_url,
+      app_appstore_url: body.app_appstore_url,
+      app_version_android: body.app_version_android,
+      app_version_ios: body.app_version_ios,
+      app_build_android: body.app_build_android,
+      app_build_ios: body.app_build_ios,
+      maintenance_mode: body.maintenance_mode,
+      maintenance_message: body.maintenance_message
     };
 
 
-    for (const [key, value] of Object.entries(updates)) {
-      if (value !== undefined) {
-        await prisma.appSettings.upsert({
+    const upsertPromises = Object.entries(updates)
+      .filter(([_, value]) => value !== undefined)
+      .map(([key, value]) => 
+        prisma.appSettings.upsert({
           where: { settingKey: key },
           update: { settingValue: String(value) },
           create: {
             settingKey: key,
             settingValue: String(value),
           },
-        });
-      }
-    }
+        })
+      );
 
+    await Promise.all(upsertPromises);
+
+    // Invalidate all settings caches when admin updates settings
+    await invalidateCache('admin_settings');
+    await invalidateCache('public_settings');
+    await invalidateCache('legal_settings');
     return NextResponse.json({ success: true });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

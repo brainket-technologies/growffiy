@@ -25,9 +25,7 @@ export default function ClientMarketWatchPage() {
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string | null>(stocks[0]?.symbol || null);
   const [timeframe, setTimeframe] = useState<'1m' | '5m' | '15m' | '1h'>('5m');
 
-  if (loading) {
-    return <Loader title="Loading Market Watch" text="Securing real-time streams and syncing live indices..." fullscreen={false} />;
-  }
+
 
   const selectedStock = stocks.find(s => s.symbol === (selectedStockSymbol || stocks[0]?.symbol));
 
@@ -236,7 +234,15 @@ export default function ClientMarketWatchPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredStocks.map((stock) => {
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+                        <RefreshCw size={20} className="spin" /> Loading market data...
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredStocks.map((stock) => {
                   const isPositive = stock.changePercent >= 0;
                   const isSelected = selectedStockSymbol === stock.symbol;
                   

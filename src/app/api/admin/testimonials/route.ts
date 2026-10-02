@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
+import { getCachedData, invalidateCache } from '../../../../shared/utils/redis';
 
 // GET /api/admin/testimonials - Fetch all testimonials for admin panel
 export async function GET() {
   try {
-    const testimonials = await prisma.testimonial.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
+    const testimonials = await getCachedData('admin_testimonials', () =>
+      prisma.testimonial.findMany({ orderBy: { createdAt: 'desc' } }),
+    60);
     return NextResponse.json({ testimonials });
   } catch (error: any) {
     console.error('Error fetching admin testimonials:', error);
@@ -37,6 +38,8 @@ export async function POST(req: Request) {
       },
     });
 
+    await invalidateCache('admin_testimonials');
+    await invalidateCache('public_testimonials');
     return NextResponse.json({ testimonial, message: 'Testimonial created successfully' }, { status: 201 });
   } catch (error: any) {
     console.error('Error creating testimonial:', error);

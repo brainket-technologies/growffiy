@@ -69,27 +69,22 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    // 4. Fetch Trades
-    const trades = await prisma.trade.findMany({
-      where,
-      select: {
-        pnl: true,
-      },
-    });
-
-    // 5. Calculate Metrics
-    let realizedPnl = 0;
-    let winningTrades = 0;
-
-    trades.forEach((trade) => {
-      const pnlValue = Number(trade.pnl);
-      realizedPnl += pnlValue;
-      if (pnlValue > 0) {
-        winningTrades++;
+    // 4. Calculate Metrics via Aggregation
+    const totalTrades = await prisma.trade.count({ where });
+    
+    const winningTrades = await prisma.trade.count({
+      where: {
+        ...where,
+        pnl: { gt: 0 }
       }
     });
 
-    const totalTrades = trades.length;
+    const agg = await prisma.trade.aggregate({
+      where,
+      _sum: { pnl: true }
+    });
+
+    const realizedPnl = Number(agg._sum.pnl || 0);
     const winAccuracy = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
 
     return NextResponse.json({

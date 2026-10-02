@@ -8,7 +8,7 @@ import { Button } from '../../../shared/components/views/Button';
 import { 
   LifeBuoy, MessageSquare, AlertCircle, 
   Send, CheckCircle2, User, Clock, Search, Filter, 
-  Eye, Inbox, AlertTriangle, UserCheck
+  Eye, Inbox, AlertTriangle, UserCheck, RefreshCw
 } from 'lucide-react';
 import { API_ENDPOINTS } from '../../../core/constants';
 
@@ -37,6 +37,18 @@ export default function SupportPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
 
   const [activeTicket, setActiveTicket] = useState<any | null>(null);
   const [replyText, setReplyText] = useState('');
@@ -125,6 +137,20 @@ export default function SupportPage() {
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
+  const sortedTickets = React.useMemo(() => {
+    if (!sortKey) return filteredTickets;
+    return [...filteredTickets].sort((a, b) => {
+      let aVal: any, bVal: any;
+      if (sortKey === 'client') { aVal = a.user?.name || ''; bVal = b.user?.name || ''; }
+      else if (sortKey === 'details') { aVal = a.subject || ''; bVal = b.subject || ''; }
+      else if (sortKey === 'date') { aVal = new Date(a.createdAt).getTime(); bVal = new Date(b.createdAt).getTime(); }
+      else if (sortKey === 'status') { aVal = a.status || ''; bVal = b.status || ''; }
+      else { aVal = ''; bVal = ''; }
+      const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [filteredTickets, sortKey, sortDir]);
+
   const totalCount = tickets.length;
   const openCount = tickets.filter(t => t.status === 'open').length;
   const inProgressCount = tickets.filter(t => t.status === 'in-progress').length;
@@ -137,9 +163,7 @@ export default function SupportPage() {
     return { bg: 'rgba(239, 68, 68, 0.1)', text: 'var(--danger)' };
   };
 
-  if (loading) {
-    return <Loader title="Loading helpdesk" text="Fetching support tickets from all clients..." fullscreen={false} />;
-  }
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '1200px', margin: '0 auto' }}>
@@ -200,18 +224,44 @@ export default function SupportPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '850px' }}>
             <thead>
               <tr style={{ backgroundColor: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-                {['Client', 'Ticket Details', 'Date', 'Status', 'Actions'].map((h, i) => (
-                  <th key={h} style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: i === 4 ? 'right' : 'left' }}>{h}</th>
-                ))}
+                {[
+                  { key: 'client', label: 'Client' },
+                  { key: 'details', label: 'Ticket Details' },
+                  { key: 'date', label: 'Date' },
+                  { key: 'status', label: 'Status' },
+                ].map((h, i) => {
+                  const isActive = sortKey === h.key;
+                  return (
+                    <th key={h.key} onClick={() => handleSort(h.key)}
+                      style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: isActive ? '#6366f1' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', cursor: 'pointer', userSelect: 'none', transition: 'color 0.15s' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <span>{h.label}</span>
+                        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
+                          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                          <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                        </svg>
+                      </span>
+                    </th>
+                  );
+                })}
+                <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredTickets.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                      <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading helpdesk tickets...
+                    </div>
+                  </td>
+                </tr>
+              ) : sortedTickets.length === 0 ? (
                 <tr><td colSpan={5} style={{ padding: '60px 24px', textAlign: 'center' }}>
                   <LifeBuoy size={42} style={{ margin: '0 auto 16px', opacity: 0.35, color: 'var(--primary)', display: 'block' }} />
                   <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-heading)' }}>No matching support tickets</p>
                 </td></tr>
-              ) : filteredTickets.map((t) => {
+              ) : sortedTickets.map((t) => {
                 const sc = statusColor(t.status);
                 // Get first user message for preview
                 let previewMsg = t.message;

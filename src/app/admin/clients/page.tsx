@@ -6,12 +6,12 @@ import { Card } from '../../../shared/components/views/Card';
 import { Button } from '../../../shared/components/views/Button';
 import { Modal } from '../../../shared/components/views/Modal';
 import Link from 'next/link';
-import { Plus, Eye, EyeOff, Trash2, Search, Filter, Download, TrendingUp, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { Plus, Eye, EyeOff, Trash2, Search, Filter, Download, TrendingUp, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, LogIn } from 'lucide-react';
 import { api } from '../../../shared/services/api';
 import { API_ENDPOINTS } from '../../../core/constants';
 
 export default function ClientsPage() {
-  const { clients, addClient, deleteClient, updateClient } = useAppViewModel();
+  const { clients, addClient, deleteClient, updateClient, loading } = useAppViewModel();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [generatedCreds, setGeneratedCreds] = useState<{ userId: string; password: string } | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; id: string; nextStatus: string } | null>(null);
@@ -162,6 +162,18 @@ export default function ClientsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
   // Add Form State
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -265,43 +277,64 @@ export default function ClientsPage() {
   };
 
   // Filter clients logic
-  const filteredClients = clients.filter(client => {
-    const nameStr = (client.user?.name || client.name || '').toLowerCase();
-    const emailStr = (client.user?.email || client.email || '').toLowerCase();
-    const idStr = (client.zerodhaClientId || '').toLowerCase();
-    const capitalStr = String(client.capital);
-    const query = searchQuery.toLowerCase();
+  const filteredAndSortedClients = React.useMemo(() => {
+    const filtered = clients.filter(client => {
+      const nameStr = (client.user?.name || client.name || '').toLowerCase();
+      const emailStr = (client.user?.email || client.email || '').toLowerCase();
+      const idStr = (client.zerodhaClientId || '').toLowerCase();
+      const capitalStr = String(client.capital);
+      const query = searchQuery.toLowerCase();
 
-    const matchesSearch = 
-      nameStr.includes(query) || 
-      emailStr.includes(query) || 
-      idStr.includes(query) || 
-      capitalStr.includes(query);
-    
-    const matchesConnection = connectionFilter === 'all' 
-      ? true 
-      : connectionFilter === 'connected' 
-        ? !!client.accessToken 
-        : !client.accessToken;
+      const matchesSearch = 
+        nameStr.includes(query) || 
+        emailStr.includes(query) || 
+        idStr.includes(query) || 
+        capitalStr.includes(query);
+      
+      const matchesConnection = connectionFilter === 'all' 
+        ? true 
+        : connectionFilter === 'connected' 
+          ? !!client.accessToken 
+          : !client.accessToken;
 
-    const matchesStatus = statusFilter === 'all'
-      ? true
-      : client.tradingStatus === statusFilter;
+      const matchesStatus = statusFilter === 'all'
+        ? true
+        : client.tradingStatus === statusFilter;
 
-    const matchesCapital = capitalFilter === 'all'
-      ? true
-      : capitalFilter === 'under_50k'
-        ? Number(client.capital) < 50000
-        : capitalFilter === '50k_100k'
-          ? Number(client.capital) >= 50000 && Number(client.capital) <= 100000
-          : Number(client.capital) > 100000;
+      const matchesCapital = capitalFilter === 'all'
+        ? true
+        : capitalFilter === 'under_50k'
+          ? Number(client.capital) < 50000
+          : capitalFilter === '50k_100k'
+            ? Number(client.capital) >= 50000 && Number(client.capital) <= 100000
+            : Number(client.capital) > 100000;
 
-    const matchesProductType = productTypeFilter === 'all'
-      ? true
-      : client.productTypeId === productTypeFilter;
+      const matchesProductType = productTypeFilter === 'all'
+        ? true
+        : client.productTypeId === productTypeFilter;
 
-    return matchesSearch && matchesConnection && matchesStatus && matchesCapital && matchesProductType;
-  });
+      return matchesSearch && matchesConnection && matchesStatus && matchesCapital && matchesProductType;
+    });
+
+    if (!sortKey) return filtered;
+    return [...filtered].sort((a, b) => {
+      let aVal: any, bVal: any;
+      if (sortKey === 'name') { aVal = a.user?.name || a.name || ''; bVal = b.user?.name || b.name || ''; }
+      else if (sortKey === 'clientId') { aVal = a.zerodhaClientId || ''; bVal = b.zerodhaClientId || ''; }
+      else if (sortKey === 'productType') { aVal = a.productType?.name || ''; bVal = b.productType?.name || ''; }
+      else if (sortKey === 'strategy') { aVal = a.assignments?.[0]?.strategy?.name || ''; bVal = b.assignments?.[0]?.strategy?.name || ''; }
+      else if (sortKey === 'margin') { aVal = Number(a.capital || 0); bVal = Number(b.capital || 0); }
+      else if (sortKey === 'session') { aVal = a.accessToken ? 1 : 0; bVal = b.accessToken ? 1 : 0; }
+      else if (sortKey === 'subscription') { aVal = a.subscriptions?.some((s:any)=>s.status==='active') ? 1 : 0; bVal = b.subscriptions?.some((s:any)=>s.status==='active') ? 1 : 0; }
+      else if (sortKey === 'status') { aVal = a.tradingStatus || ''; bVal = b.tradingStatus || ''; }
+      else { aVal = ''; bVal = ''; }
+      
+      const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [clients, searchQuery, connectionFilter, statusFilter, capitalFilter, productTypeFilter, sortKey, sortDir]);
+
+  const filteredClients = filteredAndSortedClients;
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
@@ -520,19 +553,52 @@ export default function ClientsPage() {
           <table className="table-compact">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Zerodha Client ID</th>
-                <th>Product Type</th>
-                <th>Strategy</th>
-                <th>Live Margin (INR)</th>
-                <th>Kite Session</th>
-                <th>Subscription</th>
-                <th>Trading Status</th>
+                {[
+                  { key: 'name', label: 'Name' },
+                  { key: 'clientId', label: 'Zerodha Client ID' },
+                  { key: 'productType', label: 'Product Type' },
+                  { key: 'strategy', label: 'Strategy' },
+                  { key: 'margin', label: 'Live Margin (INR)' },
+                  { key: 'session', label: 'Kite Session' },
+                  { key: 'subscription', label: 'Subscription' },
+                  { key: 'status', label: 'Trading Status' },
+                ].map(col => {
+                  const isActive = sortKey === col.key;
+                  return (
+                    <th
+                      key={col.key}
+                      onClick={() => handleSort(col.key)}
+                      style={{
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        transition: 'background 0.15s, color 0.15s',
+                        background: isActive ? 'rgba(99,102,241,0.08)' : undefined,
+                        color: isActive ? '#6366f1' : undefined,
+                      }}
+                    >
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', width: '100%' }}>
+                        <span style={{ flex: 1 }}>{col.label}</span>
+                        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
+                          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                          <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                        </svg>
+                      </span>
+                    </th>
+                  );
+                })}
                 <th style={{ textAlign: 'right', minWidth: '120px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {currentClients.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                      <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading clients data...
+                    </div>
+                  </td>
+                </tr>
+              ) : currentClients.length === 0 ? (
                 <tr>
                   <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                     No client accounts match the search or filter criteria.
@@ -691,6 +757,23 @@ export default function ClientsPage() {
                           >
                             <TrendingUp size={17} style={{ width: '17px', height: '17px', flexShrink: 0 }} />
                           </Link>
+                          <button
+                            onClick={() => window.open(`/clients?impersonate=${client.user?.userId || client.id}`, '_blank')}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--success, #10b981)',
+                              cursor: 'pointer',
+                              padding: '6px',
+                              borderRadius: '6px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              flexShrink: 0,
+                            }}
+                            title="Login as Client"
+                          >
+                            <LogIn size={17} style={{ width: '17px', height: '17px', flexShrink: 0 }} />
+                          </button>
                           <Link
                             href={`/admin/clients/${client.id}`}
                             style={{

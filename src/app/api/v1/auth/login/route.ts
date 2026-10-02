@@ -33,7 +33,9 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { identifier, password } = body;
+    let { identifier, password } = body;
+
+    if (identifier) identifier = identifier.trim();
 
     if (!identifier || !password) {
       return NextResponse.json(
@@ -46,9 +48,9 @@ export async function POST(request: Request) {
     let user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: identifier },
-          { userId: identifier },
-          { client: { zerodhaClientId: identifier } }
+          { email: { equals: identifier, mode: 'insensitive' } },
+          { userId: { equals: identifier, mode: 'insensitive' } },
+          { client: { zerodhaClientId: { equals: identifier, mode: 'insensitive' } } }
         ]
       },
       include: {
@@ -67,8 +69,43 @@ export async function POST(request: Request) {
       );
     }
 
+    // Generate token for blocked/deleted users so they can contact support
+    const tempToken = jwt.sign(
+      { 
+        id: user.id, 
+        userId: user.userId, 
+        email: user.email,
+        role: user.role 
+      },
+      JWT_SECRET,
+      { expiresIn: '1d' } // Temporary token valid for 1 day
+    );
+
+    // Check account status using the new columns and status field
+    if (user.isBlocked || user.status === 'blocked' || user.status === 'inactive') {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Your account has been blocked or is inactive. Please contact support.',
+          data: { token: tempToken }
+        },
+        { status: 403 }
+      );
+    }
+
+    if (user.isDeleted || user.status === 'deleted') {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'This account no longer exists. Please contact support.',
+          data: { token: tempToken }
+        },
+        { status: 403 }
+      );
+    }
+
     let isMatch = false;
-    
+
     // 1. Try AES Decryption (New Standard)
     if (!isMatch) {
       try {
@@ -97,42 +134,6 @@ export async function POST(request: Request) {
         { status: 401 }
       );
     }
-    // Generate token for blocked/deleted users so they can contact support
-    const tempToken = jwt.sign(
-      { 
-        id: user.id, 
-        userId: user.userId, 
-        email: user.email,
-        role: user.role 
-      },
-      JWT_SECRET,
-      { expiresIn: '1d' } // Temporary token valid for 1 day
-    );
-
-    // Check account status using the new columns
-    if (user.isBlocked) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Your account has been blocked. Please contact support.',
-          data: { token: tempToken }
-        },
-        { status: 403 }
-      );
-    }
-
-    if (user.isDeleted) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'This account no longer exists. Please contact support.',
-          data: { token: tempToken }
-        },
-        { status: 403 }
-      );
-    }
-
-
     // Generate JWT Token
     const token = jwt.sign(
       { 

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '../../../shared/components/views/Card';
 import { Button } from '../../../shared/components/views/Button';
 import { Modal } from '../../../shared/components/views/Modal';
-import { Send, Users, CheckCircle, Plus } from 'lucide-react';
+import { Send, Users, CheckCircle, Plus, RefreshCw } from 'lucide-react';
 import { api } from '../../../shared/services/api';
 import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
 
@@ -20,6 +20,35 @@ export default function AdminNotificationsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const sortedHistory = React.useMemo(() => {
+    if (!sortKey) return history;
+
+    return [...history].sort((a, b) => {
+      let aVal: any, bVal: any;
+      if (sortKey === 'date') { aVal = new Date(a.createdAt).getTime(); bVal = new Date(b.createdAt).getTime(); }
+      else if (sortKey === 'user') { aVal = a.user?.name || a.user?.email || ''; bVal = b.user?.name || b.user?.email || ''; }
+      else if (sortKey === 'title') { aVal = a.title || ''; bVal = b.title || ''; }
+      else if (sortKey === 'message') { aVal = a.body || ''; bVal = b.body || ''; }
+      else if (sortKey === 'status') { aVal = a.isRead ? 1 : 0; bVal = b.isRead ? 1 : 0; }
+      else { aVal = ''; bVal = ''; }
+
+      const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [history, sortKey, sortDir]);
 
   const fetchHistory = async () => {
     setHistoryLoading(true);
@@ -263,28 +292,60 @@ export default function AdminNotificationsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Date</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>User</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Title</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Message</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Status</th>
+                  {[
+                    { key: 'date', label: 'Date' },
+                    { key: 'user', label: 'User' },
+                    { key: 'title', label: 'Title' },
+                    { key: 'message', label: 'Message' },
+                    { key: 'status', label: 'Status' }
+                  ].map(col => {
+                    const isActive = sortKey === col.key;
+                    return (
+                      <th
+                        key={col.key}
+                        onClick={() => handleSort(col.key)}
+                        style={{
+                          padding: '12px 16px',
+                          textAlign: 'left',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          transition: 'color 0.15s, background 0.15s',
+                          background: isActive ? 'rgba(99,102,241,0.08)' : undefined,
+                          color: isActive ? '#6366f1' : 'var(--text-secondary)',
+                        }}
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                          <span>{col.label}</span>
+                          <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
+                            <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                            <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                          </svg>
+                        </span>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody id="notifications-table-body">
                 {historyLoading ? (
                   <tr>
                     <td colSpan={5} style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-                      Loading history...
+                      <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                        <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading history...
+                      </div>
                     </td>
                   </tr>
-                ) : history.length === 0 ? (
+                ) : sortedHistory.length === 0 ? (
                   <tr>
                     <td colSpan={5} style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
                       No recent notifications.
                     </td>
                   </tr>
                 ) : (
-                  history.map((item) => (
+                  sortedHistory.map((item) => (
                     <tr key={item.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
                       <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--text-secondary)' }}>
                         {new Date(item.createdAt).toLocaleString()}

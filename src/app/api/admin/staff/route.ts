@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
-import { inMemoryStaff } from '../../../../shared/store/inMemoryStaff';
 import { getDefaultPermissions } from '../../../../core/constants';
-
-export { inMemoryStaff };
 
 import dotenv from 'dotenv';
 import path from 'path';
@@ -13,24 +10,18 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 // Seed removed. Relying on DB only.
 
+import { getCachedData, invalidateCache } from '../../../../shared/utils/redis';
+
 export async function GET() {
   try {
-    const staff = await prisma.staff.findMany({
-      include: { permissions: true },
-    });
-    // Sync in-memory store with DB so fallback has current data
-    inMemoryStaff.length = 0;
-    inMemoryStaff.push(...staff.map((s: any) => ({
-      ...s,
-      permissions: s.permissions.map((p: any) => ({
-        module: p.module,
-        permission: p.permission,
-        granted: p.granted,
-      })),
-    })));
+    const staff = await getCachedData('all_staff', async () => {
+      return await prisma.staff.findMany({
+        include: { permissions: true },
+      });
+    }, 30);
     return NextResponse.json({ success: true, staff });
-  } catch (e) {
-    return NextResponse.json({ success: true, staff: inMemoryStaff, isDemoMode: true });
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: 'Database query failed: ' + e.message }, { status: 500 });
   }
 }
 
@@ -62,45 +53,9 @@ export async function POST(request: Request) {
         include: { permissions: true },
       });
 
-      // Sync in-memory store with DB
-      const memIdx = inMemoryStaff.findIndex((s: any) => s.id === newStaff.id);
-      if (memIdx !== -1) {
-        Object.assign(inMemoryStaff[memIdx], newStaff, {
-          permissions: newStaff.permissions.map((p: any) => ({
-            module: p.module,
-            permission: p.permission,
-            granted: p.granted,
-          })),
-        });
-      } else {
-        inMemoryStaff.push({ ...newStaff, permissions: newStaff.permissions.map((p: any) => ({
-          module: p.module,
-          permission: p.permission,
-          granted: p.granted,
-        })) });
-      }
-
       return NextResponse.json({ success: true, staff: newStaff });
     } catch (e: any) {
-      const mockStaff = {
-        id: `staff_${Date.now()}`,
-        name,
-        email,
-        mobile,
-        userId: generatedUserId,
-        password: finalPassword,
-        status: 'active',
-        adminId: 'admin',
-        permissions: permissions.map((p: any) => ({
-          id: `perm_${Date.now()}_${p.module}_${p.permission}`,
-          staffId: `staff_${Date.now()}`,
-          module: p.module,
-          permission: p.permission,
-          granted: p.granted ?? false,
-        })),
-      };
-      inMemoryStaff.push(mockStaff);
-      return NextResponse.json({ success: true, staff: mockStaff, isDemoMode: true });
+      return NextResponse.json({ success: false, error: e.message }, { status: 500 });
     }
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

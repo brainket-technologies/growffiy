@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
+import { getCachedData } from '../../../../shared/utils/redis';
 
 // POST /api/admin/notifications
 export async function POST(request: Request) {
@@ -53,11 +54,13 @@ export async function POST(request: Request) {
 // GET /api/admin/notifications
 export async function GET(request: Request) {
   try {
-    const notifications = await prisma.notification.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-      include: { user: { select: { name: true, email: true } } }
-    });
+    const notifications = await getCachedData('admin_notifications', () =>
+      prisma.notification.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+        include: { user: { select: { name: true, email: true } } }
+      }),
+    15);
     return NextResponse.json({ success: true, data: notifications });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';

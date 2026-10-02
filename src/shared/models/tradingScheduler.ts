@@ -91,16 +91,18 @@ export class TradingScheduler {
         const specialDaysStr = await this.engine.getAlgoSetting('special_market_days', '[]');
         const holidaysStr = await this.engine.getAlgoSetting('market_holidays', '[]');
 
-        let tradingDays: string[], specialDays: string[], holidays: string[];
+        let tradingDays: string[], specialDays: any[], holidays: any[];
         try { tradingDays = JSON.parse(tradingDaysStr); } catch { tradingDays = ['Mon','Tue','Wed','Thu','Fri']; }
         try { specialDays = JSON.parse(specialDaysStr); } catch { specialDays = []; }
         try { holidays = JSON.parse(holidaysStr); } catch { holidays = []; }
 
-        if (holidays.includes(todayStr)) {
-          console.log(`AlgoEngine Scheduler: Today ${todayStr} is a market holiday. Skipping all strategies.`);
+        const isHoliday = Array.isArray(holidays) ? holidays.find(h => h.date === todayStr) : null;
+        if (isHoliday) {
+          console.log(`AlgoEngine Scheduler: Today ${todayStr} is a market holiday (${isHoliday.name}). Skipping all strategies.`);
           return;
         }
-        if (!tradingDays.includes(dayName) && !specialDays.includes(todayStr)) {
+        const isSpecialDay = Array.isArray(specialDays) ? specialDays.find(s => s.date === todayStr) : null;
+        if (!tradingDays.includes(dayName) && !isSpecialDay) {
           console.log(`AlgoEngine Scheduler: Today ${todayStr} (${dayName}) is not a trading day. Skipping all strategies.`);
           return;
         }

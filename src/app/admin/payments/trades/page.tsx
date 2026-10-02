@@ -9,7 +9,7 @@ import { Modal } from '../../../../shared/components/views/Modal';
 import { api } from '../../../../shared/services/api';
 import {
   Activity, Download,
-  Search, TrendingUp, TrendingDown, CheckCircle, AlertCircle, XCircle, ArrowUpRight, ArrowDownRight
+  Search, TrendingUp, TrendingDown, CheckCircle, AlertCircle, XCircle, ArrowUpRight, ArrowDownRight, RefreshCw
 } from 'lucide-react';
 
 function LegCell({ leg }: { leg: any }) {
@@ -417,9 +417,7 @@ export default function LiveTradeTransactionsPage() {
     document.body.removeChild(link);
   };
 
-  if (loading) {
-    return <Loader title="Loading trade transactions" text="Compiling broker logs and transaction records..." fullscreen={false} />;
-  }
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -587,7 +585,15 @@ export default function LiveTradeTransactionsPage() {
               </tr>
             </thead>
             <tbody>
-              {paginatedTrades.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={4 + maxLegCount + 6} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                      <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading trade transactions...
+                    </div>
+                  </td>
+                </tr>
+              ) : paginatedTrades.length === 0 ? (
                 <tr>
                   <td colSpan={4 + maxLegCount + 6} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
                     {searchQuery || clientFilter !== 'all' || strategyFilter !== 'all' || typeFilter !== 'all' || statusFilter !== 'all'

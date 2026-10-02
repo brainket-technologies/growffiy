@@ -1,17 +1,20 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
+import { getCachedData, invalidateCache } from '../../../shared/utils/redis';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const plans = await prisma.subscriptionPlan.findMany({
-      include: { productType: true },
-      orderBy: { price: 'asc' }
-    });
+    const dbPlans = await getCachedData('admin_plans', async () => {
+      return prisma.subscriptionPlan.findMany({
+        include: { productType: true },
+        orderBy: { price: 'asc' }
+      });
+    }, 120); // 2 min cache
     
     // Parse features JSON for convenience
-    const mappedPlans = plans.map(p => {
+    const mappedPlans = dbPlans.map((p: any) => {
       let parsedFeatures = [];
       try {
         parsedFeatures = p.features ? JSON.parse(p.features) : [];
@@ -55,6 +58,8 @@ export async function POST(request: Request) {
       }
     });
 
+    await invalidateCache('admin_plans');
+    await invalidateCache('client_plans:*');
     return NextResponse.json({ success: true, plan: newPlan });
   } catch (error: any) {
     console.error('Failed to create subscription plan:', error);

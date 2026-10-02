@@ -23,6 +23,7 @@
     "dotenv": "^17.4.2",
     "firebase-admin": "^13.10.0",
     "https-proxy-agent": "^9.1.0",
+    "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "kite-auto-login": "^1.0.0",
     "lightweight-charts": "^5.2.0",

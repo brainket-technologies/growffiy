@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card } from '../../../shared/components/views/Card';
-import { Plus, Edit2, Trash2, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, RefreshCw } from 'lucide-react';
 import { api } from '../../../shared/services/api';
 import Link from 'next/link';
 
@@ -10,6 +10,37 @@ export default function StaffListPage() {
   const [staffList, setStaffList] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const filtered = React.useMemo(() => {
+    const f = staffList.filter((s) =>
+      s.name?.toLowerCase().includes(search.toLowerCase()) ||
+      s.email?.toLowerCase().includes(search.toLowerCase()) ||
+      s.userId?.toLowerCase().includes(search.toLowerCase())
+    );
+    if (!sortKey) return f;
+    return [...f].sort((a, b) => {
+      let aVal: any, bVal: any;
+      if (sortKey === 'name') { aVal = a.name || ''; bVal = b.name || ''; }
+      else if (sortKey === 'email') { aVal = a.email || ''; bVal = b.email || ''; }
+      else if (sortKey === 'userId') { aVal = a.userId || ''; bVal = b.userId || ''; }
+      else if (sortKey === 'status') { aVal = a.status || ''; bVal = b.status || ''; }
+      else { aVal = ''; bVal = ''; }
+      const cmp = String(aVal).localeCompare(String(bVal));
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [staffList, search, sortKey, sortDir]);
 
   const fetchStaff = async () => {
     try {
@@ -33,12 +64,6 @@ export default function StaffListPage() {
       console.error(e);
     }
   };
-
-  const filtered = staffList.filter((s) =>
-    s.name?.toLowerCase().includes(search.toLowerCase()) ||
-    s.email?.toLowerCase().includes(search.toLowerCase()) ||
-    s.userId?.toLowerCase().includes(search.toLowerCase())
-  );
 
   return (
     <div>
@@ -72,17 +97,35 @@ export default function StaffListPage() {
         </div>
 
         {loading ? (
-          <p style={{ color: '#94a3b8', fontSize: 14 }}>Loading...</p>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
+            <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading staff data...
+          </div>
         ) : filtered.length === 0 ? (
           <p style={{ color: '#94a3b8', fontSize: 14 }}>No staff found.</p>
         ) : (
           <div className="table-responsive"><table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '1.5px solid #e2e8f0', textAlign: 'left' }}>
-                <th style={{ padding: '10px 12px', fontWeight: 600, color: '#64748b' }}>Name</th>
-                <th style={{ padding: '10px 12px', fontWeight: 600, color: '#64748b' }}>Email</th>
-                <th style={{ padding: '10px 12px', fontWeight: 600, color: '#64748b' }}>User ID</th>
-                <th style={{ padding: '10px 12px', fontWeight: 600, color: '#64748b' }}>Status</th>
+                {[
+                  { key: 'name', label: 'Name' },
+                  { key: 'email', label: 'Email' },
+                  { key: 'userId', label: 'User ID' },
+                  { key: 'status', label: 'Status' },
+                ].map(col => {
+                  const isActive = sortKey === col.key;
+                  return (
+                    <th key={col.key} onClick={() => handleSort(col.key)}
+                      style={{ padding: '10px 12px', fontWeight: 600, color: isActive ? '#6366f1' : '#64748b', cursor: 'pointer', userSelect: 'none', transition: 'color 0.15s' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <span>{col.label}</span>
+                        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
+                          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                          <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                        </svg>
+                      </span>
+                    </th>
+                  );
+                })}
                 <th style={{ padding: '10px 12px', fontWeight: 600, color: '#64748b' }}>Modules</th>
                 <th style={{ padding: '10px 12px', fontWeight: 600, color: '#64748b' }}>Actions</th>
               </tr>

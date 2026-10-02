@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
+import { getCachedData } from '../../../../shared/utils/redis';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,23 +14,18 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: 'User ID is required or specify all=true' }, { status: 400 });
     }
 
+    const cacheKey = all ? 'payments_history:all' : `payments_history:user:${userId}`;
+    const ttl = all ? 30 : 15;
+
     let payments;
     if (all) {
-      payments = await prisma.payment.findMany({
+      payments = await getCachedData(cacheKey, () => prisma.payment.findMany({
         include: {
           plan: true,
-          user: {
-            select: {
-              name: true,
-              email: true,
-              userId: true
-            }
-          }
+          user: { select: { name: true, email: true, userId: true } }
         },
-        orderBy: {
-          createdAt: 'desc'
-        }
-      });
+        orderBy: { createdAt: 'desc' }
+      }), ttl);
     } else {
       const user = await prisma.user.findFirst({
         where: {

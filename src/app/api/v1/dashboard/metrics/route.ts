@@ -36,24 +36,22 @@ export async function GET(req: NextRequest) {
 
     const client = user.client;
 
-    const allTrades = await prisma.trade.findMany({
+    const totalAgg = await prisma.trade.aggregate({
       where: { clientId: client.id },
-      select: { pnl: true, createdAt: true },
+      _sum: { pnl: true },
     });
+    const totalPnl = Number(totalAgg._sum.pnl || 0);
 
-    let totalPnl = 0;
-    let todayPnl = 0;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
-    allTrades.forEach((trade) => {
-      const pnlValue = Number(trade.pnl) || 0;
-      totalPnl += pnlValue;
-      
-      if (trade.createdAt >= today) {
-        todayPnl += pnlValue;
-      }
+    const todayAgg = await prisma.trade.aggregate({
+      where: { 
+        clientId: client.id,
+        createdAt: { gte: today }
+      },
+      _sum: { pnl: true },
     });
+    const todayPnl = Number(todayAgg._sum.pnl || 0);
 
     const isPnlPositive = totalPnl >= 0;
     

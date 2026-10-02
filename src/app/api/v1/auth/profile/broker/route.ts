@@ -20,7 +20,12 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { clientId, apiKey, apiSecret, password } = body;
+    let { clientId, apiKey, apiSecret, password } = body;
+    
+    if (clientId) clientId = clientId.trim();
+    if (apiKey) apiKey = apiKey.trim();
+    if (apiSecret) apiSecret = apiSecret.trim();
+    if (password) password = password.trim();
 
     await prisma.client.update({
       where: { userId: decoded.id },

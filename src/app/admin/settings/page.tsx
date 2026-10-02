@@ -10,7 +10,7 @@ import { Modal } from '../../../shared/components/views/Modal';
 import { API_ENDPOINTS } from '../../../core/constants';
 
 
-type TabType = 'payments' | 'smtp' | 'support' | 'algo' | 'calendar' | 'client_portal' | 'firebase' | 'branding' | 'website' | 'legal';
+type TabType = 'payments' | 'smtp' | 'support' | 'algo' | 'calendar' | 'client_portal' | 'firebase' | 'app_links' | 'branding' | 'website' | 'legal';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('payments');
@@ -19,6 +19,8 @@ export default function SettingsPage() {
   const [showZerodhaConnect, setShowZerodhaConnect] = useState('true');
   const [showClientProfile, setShowClientProfile] = useState('true');
   const [showClientStrategy, setShowClientStrategy] = useState('true');
+  const [maintenanceMode, setMaintenanceMode] = useState('false');
+  const [maintenanceMessage, setMaintenanceMessage] = useState('');
 
   // Razorpay
   const [razorpayTestKeyId, setRazorpayTestKeyId] = useState('');
@@ -42,14 +44,14 @@ export default function SettingsPage() {
   const [smtpStatus, setSmtpStatus] = useState('false'); // 'true' or 'false'
 
   // Support contact info
-  const [supportEmail, setSupportEmail] = useState('support@growffiy.com');
-  const [supportPhone, setSupportPhone] = useState('+91 98765 43210');
-  const [supportTimings, setSupportTimings] = useState('Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)');
-  const [supportAddress, setSupportAddress] = useState('Mumbai, India');
+  const [supportEmail, setSupportEmail] = useState('');
+  const [supportPhone, setSupportPhone] = useState('');
+  const [supportTimings, setSupportTimings] = useState('');
+  const [supportAddress, setSupportAddress] = useState('');
 
   // Algo Timings (global infrastructure only)
-  const [algoPreopenFetchTime, setAlgoPreopenFetchTime] = useState('09:08');
-  const [algoTokenRefreshTime, setAlgoTokenRefreshTime] = useState('08:00');
+  const [algoPreopenFetchTime, setAlgoPreopenFetchTime] = useState('');
+  const [algoTokenRefreshTime, setAlgoTokenRefreshTime] = useState('');
   const [googleSheetUrl, setGoogleSheetUrl] = useState('');
   const [googleCredentialsJson, setGoogleCredentialsJson] = useState('');
   const [selectedMasterClientId, setSelectedMasterClientId] = useState('');
@@ -77,20 +79,20 @@ const [deleteTarget, setDeleteTarget] = useState<{ type: 'special' | 'holiday'; 
 const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Branding
-  const [appName, setAppName] = useState('Growffiy');
-  const [appTitle, setAppTitle] = useState('Growffiy — Algo Trading Terminal');
+  const [appName, setAppName] = useState('');
+  const [appTitle, setAppTitle] = useState('');
   const [appFavicon, setAppFavicon] = useState('');
   const [appLogo, setAppLogo] = useState('');
 
   // Website / SEO
-  const [heroTitle, setHeroTitle] = useState('Automate Your<br /><span class="text-gradient">Stock Market</span><br />Trades Smarter');
-  const [heroSubtitle, setHeroSubtitle] = useState('Growffiy connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.');
+  const [heroTitle, setHeroTitle] = useState('');
+  const [heroSubtitle, setHeroSubtitle] = useState('');
   const [metaDescription, setMetaDescription] = useState('');
   const [metaKeywords, setMetaKeywords] = useState('');
   const [footerText, setFooterText] = useState('');
-  const [footerTagline, setFooterTagline] = useState('Advanced algorithmic trading middleware connecting directly with Zerodha Kite API. Built for mathematical discipline and speed.');
-  const [footerDisclaimer, setFooterDisclaimer] = useState('Algorithmic trading involves substantial financial risk. Growffiy is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.');
-  const [footerBottomTagline, setFooterBottomTagline] = useState('Designed for NSE/BSE Intraday Algo Traders');
+  const [footerTagline, setFooterTagline] = useState('');
+  const [footerDisclaimer, setFooterDisclaimer] = useState('');
+  const [footerBottomTagline, setFooterBottomTagline] = useState('');
   const [googleAnalyticsId, setGoogleAnalyticsId] = useState('');
 
   // Legal Pages
@@ -101,15 +103,17 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [legalDisclaimerContent, setLegalDisclaimerContent] = useState('');
   const [legalAboutContent, setLegalAboutContent] = useState('');
   const [legalFaqContent, setLegalFaqContent] = useState('');
-  const defaultFaqItems: {q: string; a: string}[] = [
-    {q: "How does the Pre-Open Momentum Breakout strategy work?", a: "<p style=\"font-size:14px;line-height:1.75;color:#475569;margin:0;\">The Pre-Open Momentum Breakout strategy scans NSE/BSE stocks during the pre-open session (9:00-9:08 AM) to identify high-momentum candidates based on volume and price thresholds. Once identified, it places automated MIS (Margin Intraday Squared-off) orders at market open. All orders are squared off by 3:15 PM automatically.</p>"},
-    {q: "How is position sizing calculated?", a: "<p style=\"font-size:14px;line-height:1.75;color:#475569;margin:0;\">Position sizing is calculated based on your configured risk per trade (default 5-8% of available capital) and the stock's current market price. The system automatically calculates the number of lots or shares to allocate to each trade, ensuring no single position exceeds your predefined risk tolerance.</p>"},
-    {q: "Do I need a Zerodha Kite Connect subscription?", a: "<p style=\"font-size:14px;line-height:1.75;color:#475569;margin:0;\">Yes, Growffiy requires an active Zerodha Kite Connect subscription (API access). Your Zerodha account must have Kite Connect enabled, and you will need to generate API Key, API Secret, and Access Token from the Zerodha Kite Console. The free tier of Kite Connect (3 tokens) is sufficient for getting started.</p>"},
-    {q: "Can I pause the bot at any time?", a: "<p style=\"font-size:14px;line-height:1.75;color:#475569;margin:0;\">Absolutely. You can pause or stop the automated trading bot at any time from your client dashboard. When paused, no new trades will be placed. Any open positions held at the time of pausing will continue until their configured square-off time (3:15 PM) unless manually closed from your broker terminal.</p>"},
-    {q: "What happens if my internet goes down during a trade?", a: "<p style=\"font-size:14px;line-height:1.75;color:#475569;margin:0;\">Growffiy runs on cloud servers, not your local machine. Once a strategy is deployed and active, trade execution continues server-side regardless of your internet connectivity. However, you may lose visibility of real-time updates on your dashboard until your connection is restored. All trades follow their pre-configured square-off schedule.</p>"},
-  ];
+  const defaultFaqItems: {q: string; a: string}[] = [];
   const [faqItems, setFaqItems] = useState<{q: string; a: string}[]>(defaultFaqItems);
   const [legalPreview, setLegalPreview] = useState(false);
+
+  // App Links
+  const [appPlaystoreUrl, setAppPlaystoreUrl] = useState('');
+  const [appAppstoreUrl, setAppAppstoreUrl] = useState('');
+  const [appVersionAndroid, setAppVersionAndroid] = useState('');
+  const [appBuildAndroid, setAppBuildAndroid] = useState('');
+  const [appVersionIos, setAppVersionIos] = useState('');
+  const [appBuildIos, setAppBuildIos] = useState('');
 
   // UI Status
   const [loading, setLoading] = useState(true);
@@ -143,23 +147,25 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
           setSmtpPort(res.settings.smtp_port || '587');
           setSmtpUser(res.settings.smtp_user || '');
           setSmtpPassword(res.settings.smtp_password || '');
-          setSmtpSenderName(res.settings.smtp_sender_name || 'Growffiy');
+          setSmtpSenderName(res.settings.smtp_sender_name || '');
           setSmtpEncryption(res.settings.smtp_encryption || 'tls');
           setSmtpStatus(res.settings.smtp_status || 'false');
 
-          setSupportEmail(res.settings.support_email || 'support@growffiy.com');
-          setSupportPhone(res.settings.support_phone || '+91 98765 43210');
-          setSupportTimings(res.settings.support_timings || 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)');
-          setSupportAddress(res.settings.support_address || 'Mumbai, India');
-          localStorage.setItem('growffiy_support_email', res.settings.support_email || 'support@growffiy.com');
-          localStorage.setItem('growffiy_support_phone', res.settings.support_phone || '+91 98765 43210');
-          localStorage.setItem('growffiy_support_address', res.settings.support_address || 'Mumbai, India');
+          setSupportEmail(res.settings.support_email || '');
+          setSupportPhone(res.settings.support_phone || '');
+          setSupportTimings(res.settings.support_timings || '');
+          setSupportAddress(res.settings.support_address || '');
+          localStorage.setItem('growffiy_support_email', res.settings.support_email || '');
+          localStorage.setItem('growffiy_support_phone', res.settings.support_phone || '');
+          localStorage.setItem('growffiy_support_address', res.settings.support_address || '');
 
-          setAlgoPreopenFetchTime(res.settings.algo_preopen_fetch_time || '09:08');
-          setAlgoTokenRefreshTime(res.settings.algo_token_refresh_time || '08:00');
+          setAlgoPreopenFetchTime(res.settings.algo_preopen_fetch_time || '');
+          setAlgoTokenRefreshTime(res.settings.algo_token_refresh_time || '');
           setShowZerodhaConnect(res.settings.show_zerodha_connect ?? 'true');
           setShowClientProfile(res.settings.show_client_profile ?? 'true');
           setShowClientStrategy(res.settings.show_client_strategy ?? 'true');
+          setMaintenanceMode(res.settings.maintenance_mode ?? 'false');
+          setMaintenanceMessage(res.settings.maintenance_message ?? '');
 
           setFirebaseServiceAccount(res.settings.firebase_service_account || '');
           setGoogleSheetUrl(res.settings.google_sheet_url || '');
@@ -180,21 +186,21 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
           try { setSpecialDays(JSON.parse(res.settings.special_market_days || '[]')); } catch {}
           try { setHolidays(JSON.parse(res.settings.market_holidays || '[]')); } catch {}
 
-          setAppName(res.settings.app_name || 'Growffiy');
-          setAppTitle(res.settings.app_title || 'Growffiy — Algo Trading Terminal');
+          setAppName(res.settings.app_name || '');
+          setAppTitle(res.settings.app_title || '');
           setAppFavicon(res.settings.app_favicon || '');
           setAppLogo(res.settings.app_logo || '');
-          setHeroTitle(res.settings.hero_title || 'Automate Your<br /><span class="text-gradient">Stock Market</span><br />Trades Smarter');
-          setHeroSubtitle(res.settings.hero_subtitle || 'Growffiy connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.');
+          setHeroTitle(res.settings.hero_title || '');
+          setHeroSubtitle(res.settings.hero_subtitle || '');
           setMetaDescription(res.settings.meta_description || '');
           setMetaKeywords(res.settings.meta_keywords || '');
           setFooterText(res.settings.footer_text || '');
-          setFooterTagline(res.settings.footer_tagline || 'Advanced algorithmic trading middleware connecting directly with Zerodha Kite API. Built for mathematical discipline and speed.');
-          setFooterDisclaimer(res.settings.footer_disclaimer || 'Algorithmic trading involves substantial financial risk. Growffiy is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.');
-          setFooterBottomTagline(res.settings.footer_bottom_tagline || 'Designed for NSE/BSE Intraday Algo Traders');
-          localStorage.setItem('growffiy_footer_tagline', res.settings.footer_tagline || 'Advanced algorithmic trading middleware connecting directly with Zerodha Kite API. Built for mathematical discipline and speed.');
-          localStorage.setItem('growffiy_footer_disclaimer', res.settings.footer_disclaimer || 'Algorithmic trading involves substantial financial risk. Growffiy is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.');
-          localStorage.setItem('growffiy_footer_bottom_tagline', res.settings.footer_bottom_tagline || 'Designed for NSE/BSE Intraday Algo Traders');
+          setFooterTagline(res.settings.footer_tagline || '');
+          setFooterDisclaimer(res.settings.footer_disclaimer || '');
+          setFooterBottomTagline(res.settings.footer_bottom_tagline || '');
+          localStorage.setItem('growffiy_footer_tagline', res.settings.footer_tagline || '');
+          localStorage.setItem('growffiy_footer_disclaimer', res.settings.footer_disclaimer || '');
+          localStorage.setItem('growffiy_footer_bottom_tagline', res.settings.footer_bottom_tagline || '');
           setGoogleAnalyticsId(res.settings.google_analytics_id || '');
           setLegalPrivacyContent(res.settings.legal_privacy_content || '');
           setLegalTermsContent(res.settings.legal_terms_content || '');
@@ -202,6 +208,12 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
           setLegalDisclaimerContent(res.settings.legal_disclaimer_content || '');
           setLegalAboutContent(res.settings.legal_about_content || '');
           setLegalFaqContent(res.settings.legal_faq_content || '');
+          setAppPlaystoreUrl(res.settings.app_playstore_url || '');
+          setAppAppstoreUrl(res.settings.app_appstore_url || '');
+          setAppVersionAndroid(res.settings.app_version_android || '');
+          setAppBuildAndroid(res.settings.app_build_android || '');
+          setAppVersionIos(res.settings.app_version_ios || '');
+          setAppBuildIos(res.settings.app_build_ios || '');
           try {
             const parsed = JSON.parse(res.settings.legal_faq_content || '[]');
             if (Array.isArray(parsed) && parsed.length > 0) {
@@ -248,6 +260,8 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
         show_zerodha_connect: showZerodhaConnect,
         show_client_profile: showClientProfile,
         show_client_strategy: showClientStrategy,
+        maintenance_mode: maintenanceMode,
+        maintenance_message: maintenanceMessage,
         firebase_service_account: firebaseServiceAccount,
         google_sheet_url: googleSheetUrl,
         google_credentials_json: googleCredentialsJson,
@@ -275,6 +289,12 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
         legal_disclaimer_content: legalDisclaimerContent,
         legal_about_content: legalAboutContent,
         legal_faq_content: JSON.stringify(faqItems),
+        app_playstore_url: appPlaystoreUrl,
+        app_appstore_url: appAppstoreUrl,
+        app_version_android: appVersionAndroid,
+        app_version_ios: appVersionIos,
+        app_build_android: appBuildAndroid,
+        app_build_ios: appBuildIos,
       });
 
 
@@ -598,6 +618,28 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
           <Bell size={15} />
           Push Notifications
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('app_links')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            border: 'none',
+            background: activeTab === 'app_links' ? 'var(--bg-white)' : 'transparent',
+            color: activeTab === 'app_links' ? 'var(--text-heading)' : 'var(--text-muted)',
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: activeTab === 'app_links' ? 700 : 600,
+            cursor: 'pointer',
+            boxShadow: activeTab === 'app_links' ? 'var(--shadow-sm)' : 'none',
+          }}
+        >
+          <Server size={15} />
+          Mobile App Links
+        </button>
       </div>
 
 
@@ -647,7 +689,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                         alignItems: 'center',
                         gap: '6px',
                         transition: 'all 0.2s ease',
-                        backgroundColor: showZerodhaConnect === 'true' ? '#10b981' : '#ef4444',
+                        backgroundColor: showZerodhaConnect === 'true' ? 'var(--accent)' : 'var(--danger)',
                         color: '#ffffff',
                         boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
                       }}
@@ -660,7 +702,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                     Controls whether clients can see and connect/disconnect their Zerodha Kite Demat account from the client portal.
                   </p>
                 </div>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: showZerodhaConnect === 'true' ? '#10b981' : '#ef4444' }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: showZerodhaConnect === 'true' ? 'var(--accent)' : 'var(--danger)' }}>
                   {showZerodhaConnect === 'true' ? '✓ Visible on Client Panel' : '✕ Hidden from Client Panel'}
                 </div>
               </div>
@@ -695,7 +737,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                         alignItems: 'center',
                         gap: '6px',
                         transition: 'all 0.2s ease',
-                        backgroundColor: showClientProfile === 'true' ? '#10b981' : '#ef4444',
+                        backgroundColor: showClientProfile === 'true' ? 'var(--accent)' : 'var(--danger)',
                         color: '#ffffff',
                         boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
                       }}
@@ -708,7 +750,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                     Controls whether the Profile page link and account profile settings are visible in the Client Portal.
                   </p>
                 </div>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: showClientProfile === 'true' ? '#10b981' : '#ef4444' }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: showClientProfile === 'true' ? 'var(--accent)' : 'var(--danger)' }}>
                   {showClientProfile === 'true' ? '✓ Visible on Client Panel' : '✕ Hidden from Client Panel'}
                 </div>
               </div>
@@ -743,7 +785,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                         alignItems: 'center',
                         gap: '6px',
                         transition: 'all 0.2s ease',
-                        backgroundColor: showClientStrategy === 'true' ? '#10b981' : '#ef4444',
+                        backgroundColor: showClientStrategy === 'true' ? 'var(--accent)' : 'var(--danger)',
                         color: '#ffffff',
                         boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
                       }}
@@ -756,11 +798,89 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                     Controls whether the Strategy menu group (Strategy & Add Strategy) is visible in the client sidebar navigation.
                   </p>
                 </div>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: showClientStrategy === 'true' ? '#10b981' : '#ef4444' }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: showClientStrategy === 'true' ? 'var(--accent)' : 'var(--danger)' }}>
                   {showClientStrategy === 'true' ? '✓ Visible on Client Panel' : '✕ Hidden from Client Panel'}
                 </div>
               </div>
+              
+              {/* 4. App Maintenance Mode */}
+              <div style={{
+                padding: '20px',
+                borderRadius: '12px',
+                border: '1px solid var(--border-light)',
+                background: 'var(--surface)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                gridColumn: '1 / -1' // Span full width
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '4px' }}>
+                      4. App Maintenance Mode
+                    </h4>
+                    <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                      When enabled, users opening the mobile app will be forced to a maintenance screen with your custom message.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMaintenanceMode(maintenanceMode === 'true' ? 'false' : 'true')}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '20px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s ease',
+                      backgroundColor: maintenanceMode === 'true' ? 'var(--danger)' : 'var(--text-muted)',
+                      color: '#ffffff',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    {maintenanceMode === 'true' ? (
+                      <><ToggleRight size={16} /> UNDER MAINTENANCE</>
+                    ) : (
+                      <><ToggleLeft size={16} /> APP IS LIVE</>
+                    )}
+                  </button>
+                </div>
+                
+                {maintenanceMode === 'true' && (
+                  <div style={{ marginTop: '8px' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Maintenance Message
+                    </label>
+                    <textarea
+                      value={maintenanceMessage}
+                      onChange={(e) => setMaintenanceMessage(e.target.value)}
+                      placeholder="e.g. We are currently under maintenance. Please check back later."
+                      rows={3}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        border: '1px solid var(--border-light)',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontFamily: 'inherit',
+                        color: 'var(--text-heading)',
+                        resize: 'vertical'
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
 
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '30px', borderTop: '1px solid var(--border-light)', paddingTop: '20px' }}>
+              <Button type="submit" isLoading={saving} style={{ padding: '10px 24px', fontSize: '14px', fontWeight: 600, borderRadius: '8px', background: 'var(--accent)', color: '#fff', border: 'none' }}>
+                Save & Apply Settings
+              </Button>
             </div>
           </Card>
         )}
@@ -1869,7 +1989,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                     }
                   }} 
                   isLoading={isSendingTestFcm}
-                  style={{ height: '40px', padding: '0 20px', background: 'var(--success, #10b981)', color: '#fff', border: 'none', borderRadius: '6px' }}
+                  style={{ height: '40px', padding: '0 20px', background: 'var(--success, var(--accent))', color: '#fff', border: 'none', borderRadius: '6px' }}
                 >
                   Send Test Notification
                 </Button>
@@ -1877,6 +1997,60 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '30px' }}>
+              <Button type="submit" isLoading={saving} style={{ padding: '10px 24px', fontSize: '14px', fontWeight: 600, borderRadius: '8px', background: 'var(--accent)', color: '#fff', border: 'none' }}>
+                Save & Apply Settings
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Mobile App Links Tab */}
+        {activeTab === 'app_links' && (
+          <Card style={{ padding: '24px 28px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', borderBottom: '1px solid var(--border-light)', paddingBottom: '20px' }}>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  Mobile App Configuration
+                </h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                  Manage Play Store and App Store links along with current app versions.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-heading)', letterSpacing: '0.5px' }}>PLAY STORE URL</label>
+                  <input type="url" value={appPlaystoreUrl} onChange={e => setAppPlaystoreUrl(e.target.value)} placeholder="https://play.google.com/store/apps/details?id=..." style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '14px', outline: 'none' }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-heading)', letterSpacing: '0.5px' }}>ANDROID VERSION</label>
+                  <input type="text" value={appVersionAndroid} onChange={e => setAppVersionAndroid(e.target.value)} placeholder="1.0.0" style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '14px', outline: 'none' }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-heading)', letterSpacing: '0.5px' }}>ANDROID BUILD NO.</label>
+                  <input type="number" value={appBuildAndroid} onChange={e => setAppBuildAndroid(e.target.value)} placeholder="1" style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '14px', outline: 'none' }} />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-heading)', letterSpacing: '0.5px' }}>APP STORE URL</label>
+                  <input type="url" value={appAppstoreUrl} onChange={e => setAppAppstoreUrl(e.target.value)} placeholder="https://apps.apple.com/app/id..." style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '14px', outline: 'none' }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-heading)', letterSpacing: '0.5px' }}>IOS VERSION</label>
+                  <input type="text" value={appVersionIos} onChange={e => setAppVersionIos(e.target.value)} placeholder="1.0.0" style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '14px', outline: 'none' }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-heading)', letterSpacing: '0.5px' }}>IOS BUILD NO.</label>
+                  <input type="number" value={appBuildIos} onChange={e => setAppBuildIos(e.target.value)} placeholder="1" style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '14px', outline: 'none' }} />
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '30px', borderTop: '1px solid var(--border-light)', paddingTop: '20px' }}>
               <Button type="submit" isLoading={saving} style={{ padding: '10px 24px', fontSize: '14px', fontWeight: 600, borderRadius: '8px', background: 'var(--accent)', color: '#fff', border: 'none' }}>
                 Save & Apply Settings
               </Button>

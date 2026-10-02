@@ -27,7 +27,11 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { panNumber, aadhaarNumber, dob } = body;
+    let { panNumber, aadhaarNumber, dob } = body;
+    
+    if (panNumber) panNumber = panNumber.trim();
+    if (aadhaarNumber) aadhaarNumber = aadhaarNumber.trim();
+    if (dob) dob = dob.trim();
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },

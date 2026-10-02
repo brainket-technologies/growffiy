@@ -5,7 +5,7 @@ import { Card } from '../../../../shared/components/views/Card';
 import { Loader } from '../../../../shared/components/views/Loader';
 import { Button } from '../../../../shared/components/views/Button';
 import { Modal } from '../../../../shared/components/views/Modal';
-import { CreditCard, Download, Search, TrendingUp, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { CreditCard, Download, Search, TrendingUp, CheckCircle, AlertCircle, Clock, RefreshCw } from 'lucide-react';
 import { API_ENDPOINTS } from '../../../../core/constants';
 import { api } from '../../../../shared/services/api';
 
@@ -18,6 +18,14 @@ export default function SubscriptionTransactionsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
+
+  const [sortKey, setSortKey] = useState<string | null>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
 
   const fetchPayments = async () => {
     try {
@@ -87,7 +95,7 @@ export default function SubscriptionTransactionsPage() {
   };
 
   const filteredPayments = useMemo(() => {
-    return payments.filter(p => {
+    const list = payments.filter(p => {
       const clientName = (p.user?.name || '').toLowerCase();
       const clientEmail = (p.user?.email || '').toLowerCase();
       const planName = (p.plan?.name || '').toLowerCase();
@@ -100,7 +108,20 @@ export default function SubscriptionTransactionsPage() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [payments, searchQuery, statusFilter]);
+
+    if (!sortKey) return list;
+    return list.sort((a, b) => {
+      let aVal: any, bVal: any;
+      if (sortKey === 'client') { aVal = a.user?.name || ''; bVal = b.user?.name || ''; }
+      else if (sortKey === 'plan') { aVal = a.plan?.name || ''; bVal = b.plan?.name || ''; }
+      else if (sortKey === 'amount') { aVal = Number(a.amount || 0); bVal = Number(b.amount || 0); }
+      else if (sortKey === 'date') { aVal = new Date(a.createdAt).getTime(); bVal = new Date(b.createdAt).getTime(); }
+      else if (sortKey === 'status') { aVal = a.status || ''; bVal = b.status || ''; }
+      else { aVal = ''; bVal = ''; }
+      const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [payments, searchQuery, statusFilter, sortKey, sortDir]);
 
   const totalPages = Math.ceil(filteredPayments.length / pageSize) || 1;
   const startIndex = (currentPage - 1) * pageSize;
@@ -134,9 +155,7 @@ export default function SubscriptionTransactionsPage() {
     document.body.removeChild(link);
   };
 
-  if (loading) {
-    return <Loader title="Loading subscription transactions" text="Fetching billing logs and payment gateway receipts..." fullscreen={false} />;
-  }
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -271,16 +290,40 @@ export default function SubscriptionTransactionsPage() {
             <thead>
               <tr>
                 <th>Txn ID</th>
-                <th>Client</th>
-                <th>Description</th>
-                <th>Amount</th>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Status</th>
+                {[
+                  { key: 'client', label: 'Client' },
+                  { key: 'plan', label: 'Description' },
+                  { key: 'amount', label: 'Amount' },
+                  { key: 'date', label: 'Date' },
+                  { key: 'type', label: 'Type' },
+                  { key: 'status', label: 'Status' },
+                ].map(col => {
+                  const isActive = sortKey === col.key;
+                  return (
+                    <th key={col.key} onClick={() => handleSort(col.key)}
+                      style={{ cursor: 'pointer', userSelect: 'none', color: isActive ? '#6366f1' : undefined, transition: 'color 0.15s' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <span>{col.label}</span>
+                        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
+                          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                          <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                        </svg>
+                      </span>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
-              {paginatedPayments.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                      <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading subscription transactions...
+                    </div>
+                  </td>
+                </tr>
+              ) : paginatedPayments.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
                     {searchQuery || statusFilter !== 'all'

@@ -23,8 +23,8 @@ export const Header: React.FC<HeaderProps> = ({
   const { isTradingActive } = useAppViewModel();
   const [autoTradeEnabled, setAutoTradeEnabled] = useState(true);
   const [tradingDays, setTradingDays] = useState<string[]>([]);
-  const [holidays, setHolidays] = useState<string[]>([]);
-  const [specialDays, setSpecialDays] = useState<string[]>([]);
+  const [holidays, setHolidays] = useState<any[]>([]);
+  const [specialDays, setSpecialDays] = useState<any[]>([]);
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -48,9 +48,14 @@ export const Header: React.FC<HeaderProps> = ({
     const todayStr = new Date().toLocaleDateString('en-CA');
     const weekday = new Date().toLocaleDateString('en-US', { weekday: 'short' });
 
-    if (holidays.includes(todayStr)) return 'Holiday';
-    if (specialDays.includes(todayStr) || tradingDays.includes(weekday)) return 'Trading Day';
-    return 'Off-Day';
+    const holidayObj = holidays.find(h => h.date === todayStr);
+    if (holidayObj) return `${holidayObj.name} (Market Closed)`;
+    
+    const specialObj = specialDays.find(s => s.date === todayStr);
+    if (specialObj) return `${specialObj.name} (Market Open)`;
+
+    if (tradingDays.includes(weekday)) return 'Market Day';
+    return 'Market Closed';
   };
 
   const tradingDayLabel = getTradingDayLabel();
@@ -99,14 +104,18 @@ export const Header: React.FC<HeaderProps> = ({
 
   useEffect(() => {
     if (profileModalOpen && typeof window !== 'undefined') {
-      const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
+      const searchParams = new URLSearchParams(window.location.search);
+      const impersonateId = searchParams.get('impersonate');
+      const activeUser = impersonateId || localStorage.getItem('growffiy_logged_in_user_id');
       if (activeUser) {
         api.get(`${API_ENDPOINTS.AUTH_PROFILE}?userId=${activeUser}`)
           .then(res => {
             if (res.success && res.user) {
               setProfileName(res.user.name);
               setProfileEmail(res.user.email);
-              localStorage.setItem('growffiy_logged_in_user_name', res.user.name);
+              if (!impersonateId) {
+                localStorage.setItem('growffiy_logged_in_user_name', res.user.name);
+              }
             } else {
               setProfileName(userName);
               setProfileEmail(activeUser.includes('@') ? activeUser : `${activeUser}@growffiy.com`);
@@ -267,7 +276,7 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
               <span style={{ width: '1px', height: '10px', background: 'var(--border-color)' }} />
               <span style={{ color: 'var(--text-secondary)' }}>
-                {tradingDayLabel === 'Trading Day' ? 'Market Day' : 'Market Off'}
+                {tradingDayLabel}
               </span>
             </div>
           )}

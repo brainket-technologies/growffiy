@@ -2,10 +2,10 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
-import { inMemoryClients } from '@/shared/mockDB';
 import { KiteClient } from '../../../../shared/services/kite';
 import { sendEmail } from '../../../../shared/services/mailer';
 import { performKiteAutoLogin } from '../../../../shared/services/kiteAutoLogin';
+import { invalidateCache } from '../../../../shared/utils/redis';
 import { encryptText, decryptText } from '../../../../shared/utils/crypto';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -67,12 +67,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
       return NextResponse.json({ success: true, client, profile: profileData, margin: marginData, marginError, zerodhaApiKey: clientApiKey });
     } catch {
-      let client = inMemoryClients.find((c) => c.id === id);
-      if (client) {
-        // Fallback checks for demo mode
-        return NextResponse.json({ success: true, client, isDemoMode: true });
-      }
-      return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'Database query failed' }, { status: 500 });
     }
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
@@ -213,41 +208,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
          },
          include: { user: true, productType: true, assignments: { include: { strategy: true } } },
        });
+       await invalidateCache('all_clients');
        return NextResponse.json({ success: true, client: updatedClient });
-     } catch {
-       // Fallback update in-memory
-       const clientIndex = inMemoryClients.findIndex((c) => c.id === id);
-       if (clientIndex !== -1) {
-         const current = inMemoryClients[clientIndex];
-         inMemoryClients[clientIndex] = {
-           ...current,
-           user: {
-             ...current.user,
-             name: name ?? current.user.name,
-             email: email ?? current.user.email,
-             userId: userId ?? current.user.userId,
-             password: password ? password : current.user.password,
-           },
-           zerodhaClientId: zerodhaClientId !== undefined ? zerodhaClientId : current.zerodhaClientId,
-           zerodhaApiKey: zerodhaApiKey !== undefined ? zerodhaApiKey : current.zerodhaApiKey,
-           zerodhaApiSecret: zerodhaApiSecret !== undefined ? zerodhaApiSecret : current.zerodhaApiSecret,
-           zerodhaPassword: zerodhaPassword !== undefined ? zerodhaPassword : current.zerodhaPassword,
-           zerodhaTotpSecret: zerodhaTotpSecret !== undefined ? zerodhaTotpSecret : current.zerodhaTotpSecret,
-           tradingStatus: tradingStatus ?? current.tradingStatus,
-           subscriptionStatus: subscriptionStatus ?? current.subscriptionStatus,
-           strategyId: strategyId ?? current.strategyId,
-            capital: capital ? Math.max(-1, Number(capital)) : current.capital,
-           riskPercentage: riskPercentage ? Number(riskPercentage) : current.riskPercentage,
-           accessToken: (tradingStatus === 'inactive' || accessToken === null) ? null : (accessToken !== undefined ? accessToken : current.accessToken),
-           zerodhaSession: (tradingStatus === 'inactive' || accessToken === null) ? null : current.zerodhaSession,
-           panNumber: panNumber !== undefined ? panNumber : current.panNumber,
-           aadhaarNumber: aadhaarNumber !== undefined ? aadhaarNumber : current.aadhaarNumber,
-           dob: dob !== undefined ? dob : current.dob,
-           kycStatus: kycStatus !== undefined ? kycStatus : current.kycStatus,
-         };
-         return NextResponse.json({ success: true, client: inMemoryClients[clientIndex], isDemoMode: true });
-       }
-      return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
+    } catch {
+      return NextResponse.json({ success: false, error: 'Database update failed' }, { status: 500 });
     }
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
@@ -262,15 +226,11 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       if (client) {
         await prisma.client.delete({ where: { id } });
         await prisma.user.delete({ where: { id: client.userId } });
+        await invalidateCache('all_clients');
       }
       return NextResponse.json({ success: true });
     } catch {
-      const index = inMemoryClients.findIndex((c) => c.id === id);
-      if (index !== -1) {
-        inMemoryClients.splice(index, 1);
-        return NextResponse.json({ success: true, isDemoMode: true });
-      }
-      return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'Failed to delete client' }, { status: 500 });
     }
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

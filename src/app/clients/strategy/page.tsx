@@ -23,6 +23,7 @@ import { Card } from '../../../shared/components/views/Card';
 import { Button } from '../../../shared/components/views/Button';
 import { Loader } from '../../../shared/components/views/Loader';
 import {
+  RefreshCw,
   Play,
   TrendingUp,
   Eye,
@@ -473,13 +474,7 @@ export default function ClientStrategyPage({ initialViewMode = 'list' }: ClientS
     });
   };
 
-  if (!activeUser) {
-    return <Loader title="Loading profile" text="Please wait..." fullscreen={false} />;
-  }
 
-  if (dbLoading) {
-    return <Loader title="Loading strategies" text="Syncing configuration details from the server..." fullscreen={false} />;
-  }
 
   return (
     <div className="client-strategy-container" style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '100%', overflowX: 'hidden' }}>
@@ -710,7 +705,15 @@ export default function ClientStrategyPage({ initialViewMode = 'list' }: ClientS
                   </tr>
                 </thead>
                 <tbody>
-                  {strategies.length === 0 ? (
+                  {(dbLoading || !activeUser) ? (
+                    <tr>
+                      <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+                          <RefreshCw size={20} className="spin" /> Loading strategies...
+                        </div>
+                      </td>
+                    </tr>
+                  ) : strategies.length === 0 ? (
                     <tr>
                       <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
                         No strategies found. Click <strong>Add Strategy</strong> in the sidebar to get started.

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
 import { Card } from '../../../shared/components/views/Card';
 import { Loader } from '../../../shared/components/views/Loader';
-import { Search, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Clock, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const YEARS = [2024, 2025, 2026];
@@ -21,9 +21,7 @@ export default function ClientTradesPage() {
   const [customEnd, setCustomEnd] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  if (loading || !activeUser) {
-    return <Loader title="Loading trades" text="Fetching your trade transactions..." fullscreen={false} />;
-  }
+
 
   const matchedClient = clients.find(c =>
     c.user?.userId?.toLowerCase() === activeUser.id.toLowerCase() ||
@@ -202,7 +200,15 @@ export default function ClientTradesPage() {
               </tr>
             </thead>
             <tbody>
-              {currentTrades.length === 0 ? (
+              {(loading || !activeUser) ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+                      <RefreshCw size={20} className="spin" /> Loading trades...
+                    </div>
+                  </td>
+                </tr>
+              ) : currentTrades.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                     No trades match the search or filter criteria.

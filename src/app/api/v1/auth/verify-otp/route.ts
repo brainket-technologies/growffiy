@@ -7,7 +7,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'growffi-secret-key-fallback';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { identifier, otp } = body;
+    let { identifier, otp } = body;
+
+    if (identifier) identifier = identifier.trim();
+    if (otp) otp = otp.trim();
 
     if (!identifier || !otp) {
       return NextResponse.json(
@@ -20,9 +23,9 @@ export async function POST(request: Request) {
     const user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: identifier },
-          { userId: identifier },
-          { client: { zerodhaClientId: identifier } }
+          { email: { equals: identifier, mode: 'insensitive' } },
+          { userId: { equals: identifier, mode: 'insensitive' } },
+          { client: { zerodhaClientId: { equals: identifier, mode: 'insensitive' } } }
         ]
       }
     });

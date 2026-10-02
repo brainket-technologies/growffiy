@@ -43,7 +43,8 @@ import {
   ChevronDown,
   Save,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  RefreshCw
 } from 'lucide-react';
 import { Modal } from '../../../shared/components/views/Modal';
 import StrategyFlowPreview from '../../../shared/components/StrategyFlowPreview';
@@ -274,6 +275,18 @@ export default function StrategiesPage() {
   const [filterType, setFilterType] = useState<string>('all');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [stratPage, setStratPage] = useState<number>(1);
+
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
 
   // Synchronize viewMode state with browser history (Back button support)
   const isFirstRender = useRef(true);
@@ -1257,14 +1270,10 @@ export default function StrategiesPage() {
 
             {/* Table */}
             {(() => {
-              const filtered = strategies.filter(s =>
-                (filterType === 'all' || s.status === filterType) &&
-                (searchQuery === '' || s.name.toLowerCase().includes(searchQuery.toLowerCase()) || (s.description || '').toLowerCase().includes(searchQuery.toLowerCase()))
-              );
               const stratPageSize = 15;
-              const stratTotalPages = Math.ceil(filtered.length / stratPageSize) || 1;
+              const stratTotalPages = Math.ceil(sortedStrategies.length / stratPageSize) || 1;
               const stratStart = (stratPage - 1) * stratPageSize;
-              const paginated = filtered.slice(stratStart, stratStart + stratPageSize);
+              const paginated = sortedStrategies.slice(stratStart, stratStart + stratPageSize);
 
               return (
                 <>
@@ -1272,18 +1281,50 @@ export default function StrategiesPage() {
                     <table>
                       <thead>
                         <tr>
-                          <th>Strategy</th>
-                          <th>Segment</th>
-                          <th>Type</th>
-                          <th>Engine Type</th>
-                          <th>Clients</th>
-                          <th>Trades</th>
-                          <th>Status</th>
+                          {[
+                            { key: 'strategy', label: 'Strategy' },
+                            { key: 'segment', label: 'Segment' },
+                            { key: 'type', label: 'Type' },
+                            { key: 'engine', label: 'Engine Type' },
+                            { key: 'clients', label: 'Clients' },
+                            { key: 'trades', label: 'Trades' },
+                            { key: 'status', label: 'Status' }
+                          ].map(col => {
+                            const isActive = sortKey === col.key;
+                            return (
+                              <th
+                                key={col.key}
+                                onClick={() => handleSort(col.key)}
+                                style={{
+                                  cursor: 'pointer',
+                                  userSelect: 'none',
+                                  transition: 'color 0.15s',
+                                  color: isActive ? '#6366f1' : undefined,
+                                }}
+                              >
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                                  <span>{col.label}</span>
+                                  <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
+                                    <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                                    <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                                  </svg>
+                                </span>
+                              </th>
+                            );
+                          })}
                           <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {paginated.length === 0 ? (
+                        {isLoading ? (
+                          <tr>
+                            <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
+                              <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                                <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading strategies...
+                              </div>
+                            </td>
+                          </tr>
+                        ) : paginated.length === 0 ? (
                           <tr>
                             <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
                               No strategies found.

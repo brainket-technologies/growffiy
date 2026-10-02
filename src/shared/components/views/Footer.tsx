@@ -22,6 +22,8 @@ export default function Footer() {
   const [socialTwitter, setSocialTwitter] = useState('');
   const [socialInstagram, setSocialInstagram] = useState('');
   const [socialFacebook, setSocialFacebook] = useState('');
+  const [playStoreUrl, setPlayStoreUrl] = useState('');
+  const [appStoreUrl, setAppStoreUrl] = useState('');
 
   useEffect(() => {
     const fetchPublicSettings = async () => {
@@ -40,6 +42,8 @@ export default function Footer() {
           setSocialTwitter(data.socialTwitter || '');
           setSocialInstagram(data.socialInstagram || '');
           setSocialFacebook(data.socialFacebook || '');
+          setPlayStoreUrl(data.appPlaystoreUrl || '');
+          setAppStoreUrl(data.appAppstoreUrl || '');
         }
       } catch (err) {
         console.error('Failed to fetch public settings in Footer:', err);
@@ -148,6 +152,100 @@ export default function Footer() {
                   )}
                 </div>
               )}
+
+
+              {/* App Download Section */}
+              <div style={{ marginTop: '28px' }}>
+                <p style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  color: '#64748b',
+                  letterSpacing: '1.5px',
+                  textTransform: 'uppercase',
+                  marginBottom: '12px',
+                  margin: '0 0 12px 0'
+                }}>Download Our App</p>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+
+                  {/* Google Play Badge */}
+                  <a href={playStoreUrl || '#'} target="_blank" rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      background: '#111827',
+                      border: '1px solid #374151',
+                      borderRadius: '12px',
+                      padding: '9px 14px',
+                      textDecoration: 'none',
+                      color: '#ffffff',
+                      transition: 'all 0.25s ease',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.borderColor = '#1E88FF';
+                      e.currentTarget.style.background = '#1a2742';
+                      e.currentTarget.style.boxShadow = '0 0 0 1px #1E88FF40';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.borderColor = '#374151';
+                      e.currentTarget.style.background = '#111827';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M4 3L19.5 12L4 21V3Z" fill="url(#fgp0_f)"/>
+                      <path d="M4 3L15 15L4 21V3Z" fill="url(#fgp1_f)"/>
+                      <path d="M4 3L11 11L4 21V3Z" fill="url(#fgp2_f)"/>
+                      <defs>
+                        <linearGradient id="fgp0_f" x1="4" y1="3" x2="19.5" y2="12" gradientUnits="userSpaceOnUse"><stop stopColor="#EA4335"/><stop offset="1" stopColor="#FBBC04"/></linearGradient>
+                        <linearGradient id="fgp1_f" x1="4" y1="3" x2="15" y2="15" gradientUnits="userSpaceOnUse"><stop stopColor="#4285F4"/><stop offset="1" stopColor="#34A853"/></linearGradient>
+                        <linearGradient id="fgp2_f" x1="4" y1="3" x2="11" y2="11" gradientUnits="userSpaceOnUse"><stop stopColor="#34A853"/><stop offset="1" stopColor="#0F9D58"/></linearGradient>
+                      </defs>
+                    </svg>
+                    <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3 }}>
+                      <span style={{ fontSize: '9px', fontWeight: 500, color: '#9ca3af', letterSpacing: '0.5px' }}>GET IT ON</span>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#f9fafb' }}>Google Play</span>
+                    </div>
+                  </a>
+
+                  {/* App Store Badge */}
+                  <a href={appStoreUrl || '#'} target="_blank" rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      background: '#111827',
+                      border: '1px solid #374151',
+                      borderRadius: '12px',
+                      padding: '9px 14px',
+                      textDecoration: 'none',
+                      color: '#ffffff',
+                      transition: 'all 0.25s ease',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.borderColor = '#1E88FF';
+                      e.currentTarget.style.background = '#1a2742';
+                      e.currentTarget.style.boxShadow = '0 0 0 1px #1E88FF40';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.borderColor = '#374151';
+                      e.currentTarget.style.background = '#111827';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#f9fafb" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.54 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701z"/>
+                    </svg>
+                    <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3 }}>
+                      <span style={{ fontSize: '9px', fontWeight: 500, color: '#9ca3af', letterSpacing: '0.5px' }}>DOWNLOAD ON THE</span>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#f9fafb' }}>App Store</span>
+                    </div>
+                  </a>
+
+                </div>
+              </div>
             </div>
 
             {/* Services */}

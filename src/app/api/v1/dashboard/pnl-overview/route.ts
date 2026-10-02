@@ -44,13 +44,27 @@ export async function GET(req: NextRequest) {
     const period = req.nextUrl.searchParams.get('period') || 'Weekly';
     const client = user.client;
 
+    const now = new Date();
+    let startDate: Date;
+    if (period === 'Weekly') {
+      startDate = new Date(now);
+      startDate.setDate(startDate.getDate() - 6);
+      startDate.setHours(0,0,0,0);
+    } else if (period === 'Monthly') {
+      startDate = new Date(now.getFullYear(), 0, 1);
+    } else {
+      startDate = new Date(now.getFullYear() - 2, 0, 1);
+    }
+
     const allTrades = await prisma.trade.findMany({
-      where: { clientId: client.id },
+      where: { 
+        clientId: client.id,
+        createdAt: { gte: startDate }
+      },
       select: { pnl: true, createdAt: true },
     });
 
     let dataPoints: any[] = [];
-    const now = new Date();
 
     if (period === 'Weekly') {
       // Last 7 days including today

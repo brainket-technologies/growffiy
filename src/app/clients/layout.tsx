@@ -17,8 +17,11 @@ export default function ClientDashboardLayout({
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedId = localStorage.getItem('growffiy_logged_in_user_id');
-      const storedRole = localStorage.getItem('growffiy_logged_in_user_role');
+      const searchParams = new URLSearchParams(window.location.search);
+      const impersonateId = searchParams.get('impersonate');
+
+      const storedId = impersonateId || localStorage.getItem('growffiy_logged_in_user_id');
+      const storedRole = impersonateId ? 'client' : localStorage.getItem('growffiy_logged_in_user_role');
       if (!storedId || storedRole !== 'client') {
         if (storedRole === 'admin') {
           window.location.href = '/admin';
@@ -28,13 +31,31 @@ export default function ClientDashboardLayout({
           window.location.href = '/login';
         }
       } else {
-        const storedName = localStorage.getItem('growffiy_logged_in_user_name');
-        const cleanName = storedName || storedId
-          .split(/[_-]/)
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(' ');
-        setActiveUser({ name: cleanName, id: storedId });
         setIsAuthenticated(true);
+        if (impersonateId) {
+          // Fetch real user profile via API for impersonation
+          fetch(`/api/auth/profile?userId=${impersonateId}`)
+            .then(r => r.json())
+            .then((res: any) => {
+              if (res.success && res.user) {
+                setActiveUser({ name: res.user.name, id: impersonateId, email: res.user.email });
+              } else {
+                const cleanName = impersonateId.split(/[_-]/).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                setActiveUser({ name: cleanName, id: impersonateId });
+              }
+            })
+            .catch(() => {
+              const cleanName = impersonateId.split(/[_-]/).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+              setActiveUser({ name: cleanName, id: impersonateId });
+            });
+        } else {
+          const storedName = localStorage.getItem('growffiy_logged_in_user_name');
+          const cleanName = storedName || storedId
+            .split(/[_-]/)
+            .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+          setActiveUser({ name: cleanName, id: storedId });
+        }
       }
     }
   }, []);

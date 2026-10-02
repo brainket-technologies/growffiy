@@ -7,7 +7,8 @@ import nodemailer from 'nodemailer';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { identifier } = body;
+    let { identifier } = body;
+    if (identifier) identifier = identifier.trim();
 
     if (!identifier) {
       return NextResponse.json(
@@ -20,9 +21,9 @@ export async function POST(request: Request) {
     const user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: identifier },
-          { userId: identifier },
-          { client: { zerodhaClientId: identifier } }
+          { email: { equals: identifier, mode: 'insensitive' } },
+          { userId: { equals: identifier, mode: 'insensitive' } },
+          { client: { zerodhaClientId: { equals: identifier, mode: 'insensitive' } } }
         ]
       }
     });

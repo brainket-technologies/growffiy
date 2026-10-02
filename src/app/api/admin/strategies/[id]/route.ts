@@ -2,8 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
-import { inMemoryStrategies } from '@/shared/mockDB';
-
+import { invalidateCache } from '../../../../../shared/utils/redis';
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -13,23 +12,19 @@ export async function GET(
     let strategy: any;
 
     try {
-      strategy = await prisma.strategy.findUnique({
+      const strategy = await prisma.strategy.findUnique({
         where: { id },
         include: { conditions: true, assignments: { include: { client: { include: { user: true } } } }, trades: true }
       });
+
+      if (!strategy) {
+        return NextResponse.json({ success: false, error: 'Strategy not found' }, { status: 404 });
+      }
+
+      return NextResponse.json({ success: true, strategy });
     } catch (e) {
-      strategy = inMemoryStrategies.find(s => s.id === id);
-    }
-
-    if (!strategy) {
-      strategy = inMemoryStrategies.find(s => s.id === id);
-    }
-
-    if (!strategy) {
       return NextResponse.json({ success: false, error: 'Strategy not found' }, { status: 404 });
     }
-
-    return NextResponse.json({ success: true, strategy });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
@@ -133,22 +128,11 @@ export async function PUT(
         }
       } catch (auditErr) {}
 
+      await invalidateCache('all_strategies');
       return NextResponse.json({ success: true, strategy: updatedStrategy });
     } catch (dbErr) {
-      console.error('DB Update failed, updating in-memory:', dbErr);
-      const index = inMemoryStrategies.findIndex(s => s.id === id);
-      if (index !== -1) {
-        inMemoryStrategies[index] = {
-          ...inMemoryStrategies[index],
-          name: name ?? inMemoryStrategies[index].name,
-          description: description ?? inMemoryStrategies[index].description,
-          status: status ?? inMemoryStrategies[index].status,
-          configJson: configJson ?? inMemoryStrategies[index].configJson,
-          updatedAt: new Date().toISOString()
-        };
-        return NextResponse.json({ success: true, strategy: inMemoryStrategies[index], isDemoMode: true });
-      }
-      return NextResponse.json({ success: false, error: 'Strategy not found' }, { status: 404 });
+      console.error('DB Update failed:', dbErr);
+      return NextResponse.json({ success: false, error: 'Strategy not found or update failed' }, { status: 404 });
     }
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
@@ -179,17 +163,10 @@ export async function DELETE(
       await tx.strategy.delete({ where: { id } });
     });
 
+    await invalidateCache('all_strategies');
     return NextResponse.json({ success: true });
   } catch (dbErr: any) {
     console.error('DB Delete failed:', dbErr);
-
-    // Fallback: try to delete from in-memory store
-    const index = inMemoryStrategies.findIndex(s => s.id === id);
-    if (index !== -1) {
-      inMemoryStrategies.splice(index, 1);
-      return NextResponse.json({ success: true, isDemoMode: true });
-    }
-
     return NextResponse.json(
       { success: false, error: dbErr.message || 'Delete failed' },
       { status: 500 }
@@ -219,7 +196,7 @@ export async function POST(
         include: { conditions: true }
       });
     } catch (e) {
-      sourceStrategy = inMemoryStrategies.find(s => s.id === id);
+      return NextResponse.json({ success: false, error: 'Source strategy not found' }, { status: 404 });
     }
 
     if (!sourceStrategy) {
@@ -275,20 +252,11 @@ export async function POST(
         }
       } catch (auditErr) {}
 
+      await invalidateCache('all_strategies');
       return NextResponse.json({ success: true, strategy: clonedStrategy });
     } catch (dbErr) {
-      console.error('DB Clone failed, cloning in-memory:', dbErr);
-      const newMock = {
-        id: `strat_clone_${Date.now()}`,
-        name: newName,
-        description: sourceStrategy.description,
-        status: 'inactive',
-        configJson: newConfigJson,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      inMemoryStrategies.unshift(newMock);
-      return NextResponse.json({ success: true, strategy: newMock, isDemoMode: true });
+      console.error('DB Clone failed:', dbErr);
+      return NextResponse.json({ success: false, error: 'Failed to clone strategy' }, { status: 500 });
     }
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

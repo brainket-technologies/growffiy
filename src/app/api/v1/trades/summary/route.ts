@@ -73,29 +73,28 @@ export async function GET(request: Request) {
       };
     }
 
-    // Query DB for trades
-    const trades = await prisma.trade.findMany({
-      where,
-      select: {
-        pnl: true,
-      },
+    const totalTrades = await prisma.trade.count({ where });
+
+    const winningTrades = await prisma.trade.count({
+      where: {
+        ...where,
+        pnl: { gt: 0 }
+      }
     });
 
-    const totalTrades = trades.length;
-    let winningTrades = 0;
-    let losingTrades = 0;
-    let netPnl = 0;
-
-    for (const trade of trades) {
-      const pnlValue = trade.pnl ? Number(trade.pnl) : 0;
-      netPnl += pnlValue;
-
-      if (pnlValue > 0) {
-        winningTrades++;
-      } else if (pnlValue < 0) {
-        losingTrades++;
+    const losingTrades = await prisma.trade.count({
+      where: {
+        ...where,
+        pnl: { lt: 0 }
       }
-    }
+    });
+
+    const agg = await prisma.trade.aggregate({
+      where,
+      _sum: { pnl: true }
+    });
+
+    const netPnl = Number(agg._sum.pnl || 0);
 
     const winningTradesPercent = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
     const losingTradesPercent = totalTrades > 0 ? (losingTrades / totalTrades) * 100 : 0;

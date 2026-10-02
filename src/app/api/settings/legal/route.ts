@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
 
+import { getCachedData } from '../../../../shared/utils/redis';
+
 export const dynamic = 'force-dynamic';
 
 const defaultAboutContent = `<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin-bottom:16px;letter-spacing:-0.5px;">Empowering Traders with Intelligent Technology</h2>
@@ -245,28 +247,31 @@ const defaultFaqContent = JSON.stringify([
 
 export async function GET() {
   try {
-    const dbSettings = await prisma.appSettings.findMany({
-      where: {
-        settingKey: {
-          in: ['legal_privacy_content', 'legal_terms_content', 'legal_refund_content', 'legal_disclaimer_content', 'legal_about_content', 'legal_faq_content'],
+    const settings = await getCachedData('legal_settings', async () => {
+      const dbSettings = await prisma.appSettings.findMany({
+        where: {
+          settingKey: {
+            in: ['legal_privacy_content', 'legal_terms_content', 'legal_refund_content', 'legal_disclaimer_content', 'legal_about_content', 'legal_faq_content'],
+          },
         },
-      },
-    });
+      });
 
-    const settings: Record<string, string> = {
-      legal_privacy_content: defaultPrivacyContent,
-      legal_terms_content: defaultTermsContent,
-      legal_refund_content: defaultRefundContent,
-      legal_disclaimer_content: defaultDisclaimerContent,
-      legal_about_content: defaultAboutContent,
-      legal_faq_content: defaultFaqContent,
-    };
+      const result: Record<string, string> = {
+        legal_privacy_content: defaultPrivacyContent,
+        legal_terms_content: defaultTermsContent,
+        legal_refund_content: defaultRefundContent,
+        legal_disclaimer_content: defaultDisclaimerContent,
+        legal_about_content: defaultAboutContent,
+        legal_faq_content: defaultFaqContent,
+      };
 
-    dbSettings.forEach((s) => {
-      settings[s.settingKey] = s.settingValue;
-    });
+      dbSettings.forEach((s) => {
+        result[s.settingKey] = s.settingValue;
+      });
+      return result;
+    }, 300); // 5 min — legal content almost never changes
 
-    return NextResponse.json({ success: true, settings }, { headers: { 'Cache-Control': 'no-store, must-revalidate' } });
+    return NextResponse.json({ success: true, settings });
   } catch (error) {
     return NextResponse.json({
       success: true,
@@ -277,7 +282,6 @@ export async function GET() {
         legal_disclaimer_content: defaultDisclaimerContent,
         legal_about_content: defaultAboutContent,
         legal_faq_content: defaultFaqContent,
-      },
-    }, { headers: { 'Cache-Control': 'no-store, must-revalidate' } });
+    }, });
   }
 }

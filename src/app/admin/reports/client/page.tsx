@@ -5,7 +5,7 @@ import { useAppViewModel } from '../../../../shared/viewmodels/AppContext';
 import { Card } from '../../../../shared/components/views/Card';
 import { Button } from '../../../../shared/components/views/Button';
 import { Loader } from '../../../../shared/components/views/Loader';
-import { Users, DollarSign, Award, Download, Search, TrendingUp, TrendingDown } from 'lucide-react';
+import { Users, DollarSign, Award, Download, Search, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
 
 export default function ClientReportPage() {
   const { clients = [], trades = [], loading } = useAppViewModel();
@@ -13,7 +13,13 @@ export default function ClientReportPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [subscriptionFilter, setSubscriptionFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('name');
+  const [sortKey, setSortKey] = useState<string | null>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  
+  const handleSort = (key: string) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
@@ -69,16 +75,18 @@ export default function ClientReportPage() {
     });
 
     list.sort((a, b) => {
-      if (sortBy === 'name') return a.name.localeCompare(b.name);
-      if (sortBy === 'capital') return b.capital - a.capital;
-      if (sortBy === 'todayPnl') return b.todayPnl - a.todayPnl;
-      if (sortBy === 'pnl') return b.totalPnl - a.totalPnl;
-      if (sortBy === 'trades') return b.totalTrades - a.totalTrades;
-      return 0;
+      let cmp = 0;
+      if (sortKey === 'name') cmp = a.name.localeCompare(b.name);
+      else if (sortKey === 'capital') cmp = a.capital - b.capital;
+      else if (sortKey === 'todayPnl') cmp = a.todayPnl - b.todayPnl;
+      else if (sortKey === 'pnl') cmp = a.totalPnl - b.totalPnl;
+      else if (sortKey === 'trades') cmp = a.totalTrades - b.totalTrades;
+      else if (sortKey === 'pnlPercent') cmp = a.totalPnlPercent - b.totalPnlPercent;
+      return sortDir === 'asc' ? cmp : -cmp;
     });
 
     return list;
-  }, [clientStats, searchQuery, statusFilter, subscriptionFilter, sortBy]);
+  }, [clientStats, searchQuery, statusFilter, subscriptionFilter, sortKey, sortDir]);
 
   const totalPages = Math.ceil(filteredList.length / pageSize) || 1;
   const startIndex = (currentPage - 1) * pageSize;
@@ -103,9 +111,7 @@ export default function ClientReportPage() {
     document.body.removeChild(link);
   };
 
-  if (loading) {
-    return <Loader title="Loading client report" text="Compiling client balances and algorithmic performance..." fullscreen={false} />;
-  }
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -228,32 +234,49 @@ export default function ClientReportPage() {
             <option value="cancelled">Cancelled</option>
           </select>
 
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
-            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'var(--bg-white)', flex: '1 1 120px', minWidth: '100px' }}>
-            <option value="name">Sort by Name</option>
-            <option value="capital">Sort by Capital</option>
-            <option value="pnl">Sort by P&L</option>
-            <option value="trades">Sort by Trades</option>
-          </select>
         </div>
 
         <div className="table-responsive">
           <table>
             <thead>
               <tr>
-                <th>Client Name</th>
-                <th>Capital Deployed</th>
-                <th>Assigned Strategy</th>
-                <th style={{ width: '110px', textAlign: 'center' }}>Orders (Tot/Act)</th>
-                <th>Status</th>
-                <th>Subscription</th>
-                <th>Today P&L (INR)</th>
-                <th>Net P&L (INR)</th>
-                <th>Net P&L (%)</th>
+                {[
+                  { key: 'name', label: 'Client Name' },
+                  { key: 'capital', label: 'Capital Deployed' },
+                  { key: 'strategy', label: 'Assigned Strategy' },
+                  { key: 'trades', label: 'Orders (Tot/Act)' },
+                  { key: 'status', label: 'Status' },
+                  { key: 'subscription', label: 'Subscription' },
+                  { key: 'todayPnl', label: 'Today P&L (INR)' },
+                  { key: 'pnl', label: 'Net P&L (INR)' },
+                  { key: 'pnlPercent', label: 'Net P&L (%)' }
+                ].map(col => {
+                  const isActive = sortKey === col.key;
+                  return (
+                    <th key={col.key} onClick={() => handleSort(col.key)}
+                      style={{ cursor: 'pointer', userSelect: 'none', color: isActive ? '#6366f1' : undefined, transition: 'color 0.15s', textAlign: col.key === 'trades' ? 'center' : 'left' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <span>{col.label}</span>
+                        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
+                          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                          <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                        </svg>
+                      </span>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
-              {paginatedList.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                      <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading client report...
+                    </div>
+                  </td>
+                </tr>
+              ) : paginatedList.length === 0 ? (
                 <tr>
                   <td colSpan={9} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
                     {searchQuery || statusFilter !== 'all' || subscriptionFilter !== 'all'

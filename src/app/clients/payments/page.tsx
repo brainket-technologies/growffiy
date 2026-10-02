@@ -1,16 +1,26 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
 import { Card } from '../../../shared/components/views/Card';
-import { Loader } from '../../../shared/components/views/Loader';
-import { Calendar, Tag, CreditCard, ShieldCheck } from 'lucide-react';
+import { Calendar, ShieldCheck, RefreshCw } from 'lucide-react';
 import { API_ENDPOINTS } from '../../../core/constants';
 
 export default function ClientPaymentHistory() {
   const { activeUser } = useAppViewModel();
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -37,10 +47,30 @@ export default function ClientPaymentHistory() {
       .finally(() => setLoading(false));
   }, [activeUser]);
 
+  const sortedPayments = useMemo(() => {
+    if (!sortKey) return payments;
+    return [...payments].sort((a, b) => {
+      let aVal: any, bVal: any;
+      if (sortKey === 'date') { aVal = new Date(a.createdAt || 0).getTime(); bVal = new Date(b.createdAt || 0).getTime(); }
+      else if (sortKey === 'plan') { aVal = a.plan?.name || ''; bVal = b.plan?.name || ''; }
+      else if (sortKey === 'amount') { aVal = Number(a.amount || 0); bVal = Number(b.amount || 0); }
+      else if (sortKey === 'paymentId') { aVal = a.razorpayPaymentId || ''; bVal = b.razorpayPaymentId || ''; }
+      else if (sortKey === 'orderId') { aVal = a.razorpayOrderId || ''; bVal = b.razorpayOrderId || ''; }
+      else if (sortKey === 'status') { aVal = a.status || ''; bVal = b.status || ''; }
+      else { aVal = ''; bVal = ''; }
+      const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [payments, sortKey, sortDir]);
 
-  if (loading || !activeUser) {
-    return <Loader title="Loading history" text="Fetching transaction logs and invoice metadata..." fullscreen={false} />;
-  }
+  const COLS = [
+    { key: 'date', label: 'Date & Time' },
+    { key: 'plan', label: 'Subscription Plan' },
+    { key: 'amount', label: 'Amount' },
+    { key: 'paymentId', label: 'Razorpay Payment ID' },
+    { key: 'orderId', label: 'Razorpay Order ID' },
+    { key: 'status', label: 'Status' },
+  ];
 
   return (
     <div className="page-payments" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -61,23 +91,49 @@ export default function ClientPaymentHistory() {
             <table>
               <thead>
                 <tr>
-                  <th>Date & Time</th>
-                  <th>Subscription Plan</th>
-                  <th>Amount</th>
-                  <th>Razorpay Payment ID</th>
-                  <th>Razorpay Order ID</th>
-                  <th>Status</th>
+                  {COLS.map(col => {
+                    const isActive = sortKey === col.key;
+                    return (
+                      <th
+                        key={col.key}
+                        onClick={() => handleSort(col.key)}
+                        style={{
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          transition: 'background 0.15s, color 0.15s',
+                          background: isActive ? 'rgba(99,102,241,0.08)' : undefined,
+                          color: isActive ? '#6366f1' : undefined,
+                        }}
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', width: '100%' }}>
+                          <span style={{ flex: 1 }}>{col.label}</span>
+                          <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
+                            <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                            <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                          </svg>
+                        </span>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
-                {payments.length === 0 ? (
+                {(loading || !activeUser) ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+                        <RefreshCw size={20} className="spin" /> Loading payment history...
+                      </div>
+                    </td>
+                  </tr>
+                ) : sortedPayments.length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
                       No payment transactions found. Select a plan to start auto trading.
                     </td>
                   </tr>
                 ) : (
-                  payments.map((p) => {
+                  sortedPayments.map((p) => {
                     const formattedDate = new Date(p.createdAt).toLocaleString('en-IN', {
                       day: '2-digit',
                       month: 'short',
@@ -148,3 +204,4 @@ export default function ClientPaymentHistory() {
     </div>
   );
 }
+

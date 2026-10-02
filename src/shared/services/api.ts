@@ -6,7 +6,7 @@ class ApiClient {
     };
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
     try {
       const response = await fetch(path, {

@@ -5,7 +5,7 @@ import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
 import { Card } from '../../../shared/components/views/Card';
 import { Button } from '../../../shared/components/views/Button';
 import { Loader } from '../../../shared/components/views/Loader';
-import { Zap, CheckCircle2, Download, Loader2, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ShieldAlert, Search } from 'lucide-react';
+import { Zap, CheckCircle2, Download, Loader2, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ShieldAlert, Search, RefreshCw } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
@@ -130,9 +130,7 @@ export default function PreOpenScannerPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [scannerResults.length, historicalData]);
 
-  if (loading) {
-    return <Loader title="Loading Pre-Open Scanner" text="Fetching indicative quotes and syncing pre-market feeds..." fullscreen={false} />;
-  }
+
 
   const getDenomConfig = () => {
     switch (denom) {
@@ -342,7 +340,7 @@ export default function PreOpenScannerPage() {
         {topGainer && (
           <Card style={{ padding: '16px', borderLeft: '4px solid var(--accent)' }}>
             <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <TrendingUp size={15} color="var(--accent)" /> Today's Top Gainer (Pre-Open)
+              <TrendingUp size={15} color="var(--accent)" /> Today&apos;s Top Gainer (Pre-Open)
             </span>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
               <div>
@@ -366,7 +364,7 @@ export default function PreOpenScannerPage() {
         {topLoser && (
           <Card style={{ padding: '16px', borderLeft: '4px solid var(--danger)' }}>
             <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <TrendingDown size={15} color="var(--danger)" /> Today's Top Loser (Pre-Open)
+              <TrendingDown size={15} color="var(--danger)" /> Today&apos;s Top Loser (Pre-Open)
             </span>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
               <div>
@@ -696,7 +694,15 @@ export default function PreOpenScannerPage() {
                     </tr>
                   );
                 })}
-                {visibleStocks.length === 0 && (
+                {loading ? (
+                  <tr>
+                    <td colSpan={11} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                        <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading scanner data...
+                      </div>
+                    </td>
+                  </tr>
+                ) : visibleStocks.length === 0 ? (
                   <tr>
                     <td colSpan={11} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
                       {historicalData !== null ? (
@@ -709,7 +715,7 @@ export default function PreOpenScannerPage() {
                       )}
                     </td>
                   </tr>
-                )}
+                ) : null}
               </tbody>
             </table>
           </div>

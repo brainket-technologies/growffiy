@@ -5,7 +5,7 @@ import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
 import { Card } from '../../../shared/components/views/Card';
 import { Loader } from '../../../shared/components/views/Loader';
 import { API_ENDPOINTS } from '../../../core/constants';
-import { LifeBuoy, Plus, Send, MessageSquare, Clock, Search, User, UserCheck, ChevronRight } from 'lucide-react';
+import { LifeBuoy, Plus, Send, MessageSquare, Clock, Search, User, UserCheck, ChevronRight, RefreshCw } from 'lucide-react';
 import { Modal } from '../../../shared/components/views/Modal';
 
 // Parse ticket messages safely (JSON array or legacy plain text)
@@ -97,9 +97,7 @@ export default function ClientSupportPage() {
     );
   });
 
-  if (loading || !activeUser) {
-    return <Loader title="Loading" text="Please wait..." fullscreen={false} />;
-  }
+
 
   const statusStyle = (s: string) => {
     if (s === 'open') return { bg: 'rgba(239,68,68,0.1)', color: 'var(--danger)' };
@@ -156,7 +154,11 @@ export default function ClientSupportPage() {
           </div>
         </div>
 
-        {filtered.length === 0 ? (
+        {(loading || !activeUser) ? (
+          <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+            <RefreshCw size={20} className="spin" /> Loading support tickets...
+          </div>
+        ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-muted)' }}>
             <LifeBuoy size={32} style={{ opacity: 0.4, marginBottom: '10px', display: 'block', margin: '0 auto 10px' }} />
             <p style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>No tickets yet.</p>

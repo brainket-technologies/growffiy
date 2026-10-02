@@ -99,6 +99,14 @@ export default function ClientPerformancePage() {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  
+  const [sortKey, setSortKey] = useState<string | null>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
 
   useEffect(() => {
     const fetchClientData = async () => {
@@ -364,38 +372,61 @@ export default function ClientPerformancePage() {
   ) as string[];
 
   // Filter transaction list
-  const filteredTransactions = dateFilteredTrades.filter(t => {
-    const strategyName = (t.strategy?.name || t.strategyName || '').toLowerCase();
-    const symbolStr = (t.symbol || '').toLowerCase();
-    const query = searchQuery.toLowerCase();
+  const filteredTransactions = useMemo(() => {
+    const list = dateFilteredTrades.filter(t => {
+      const strategyName = (t.strategy?.name || t.strategyName || '').toLowerCase();
+      const symbolStr = (t.symbol || '').toLowerCase();
+      const query = searchQuery.toLowerCase();
 
-    // Dynamically calculate transaction type from strategy config action
-    let txType = t.direction === 'SHORT' ? 'SELL' : 'BUY';
-    if (txType !== 'SELL') {
-      try {
-        const config = JSON.parse(t.strategy?.configJson || '{}');
-        const leg = config?.legs?.[0]?.tradeAction;
-        const action = leg?.action || config?.tradeAction?.action || 'Long';
-        if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
-          txType = 'SELL';
-        }
-      } catch (e) {}
-    }
+      // Dynamically calculate transaction type from strategy config action
+      let txType = t.direction === 'SHORT' ? 'SELL' : 'BUY';
+      if (txType !== 'SELL') {
+        try {
+          const config = JSON.parse(t.strategy?.configJson || '{}');
+          const leg = config?.legs?.[0]?.tradeAction;
+          const action = leg?.action || config?.tradeAction?.action || 'Long';
+          if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
+            txType = 'SELL';
+          }
+        } catch (e) {}
+      }
 
-    const matchesSearch = strategyName.includes(query) || symbolStr.includes(query);
-    const matchesStrategy = strategyFilter === 'all' || strategyName.includes(strategyFilter.toLowerCase());
-    const matchesType = typeFilter === 'all' || txType === typeFilter.toUpperCase();
+      const matchesSearch = strategyName.includes(query) || symbolStr.includes(query);
+      const matchesStrategy = strategyFilter === 'all' || strategyName.includes(strategyFilter.toLowerCase());
+      const matchesType = typeFilter === 'all' || txType === typeFilter.toUpperCase();
 
-    const pnlVal = Number(t.pnl || 0);
-    const matchesQuickFilter = 
-      statusQuickFilter === 'all' 
-        ? true 
-        : statusQuickFilter === 'profit' 
-          ? pnlVal > 0 
-          : pnlVal < 0;
+      const pnlVal = Number(t.pnl || 0);
+      const matchesQuickFilter = 
+        statusQuickFilter === 'all' 
+          ? true 
+          : statusQuickFilter === 'profit' 
+            ? pnlVal > 0 
+            : pnlVal < 0;
 
-    return matchesSearch && matchesStrategy && matchesType && matchesQuickFilter;
-  });
+      return matchesSearch && matchesStrategy && matchesType && matchesQuickFilter;
+    });
+
+    return list.sort((a, b) => {
+      let aVal: any, bVal: any;
+      if (sortKey === 'date') { aVal = new Date(a.createdAt || a.entryTime || 0).getTime(); bVal = new Date(b.createdAt || b.entryTime || 0).getTime(); }
+      else if (sortKey === 'strategy') { aVal = a.strategy?.name || a.strategyName || ''; bVal = b.strategy?.name || b.strategyName || ''; }
+      else if (sortKey === 'leg') { aVal = a.legName || ''; bVal = b.legName || ''; }
+      else if (sortKey === 'symbol') { aVal = a.symbol || ''; bVal = b.symbol || ''; }
+      else if (sortKey === 'qty') { aVal = Number(a.quantity || 0); bVal = Number(b.quantity || 0); }
+      else if (sortKey === 'entry') { aVal = Number(a.entryPrice || 0); bVal = Number(b.entryPrice || 0); }
+      else if (sortKey === 'exit') { aVal = Number(a.exitPrice || 0); bVal = Number(b.exitPrice || 0); }
+      else if (sortKey === 'pnl') { aVal = Number(a.pnl || 0); bVal = Number(b.pnl || 0); }
+      else if (sortKey === 'pnlPercent') {
+        aVal = Number(a.entryPrice || 0) > 0 ? (Number(a.pnl || 0) / (Number(a.entryPrice || 0) * Number(a.quantity || 0))) * 100 : 0;
+        bVal = Number(b.entryPrice || 0) > 0 ? (Number(b.pnl || 0) / (Number(b.entryPrice || 0) * Number(b.quantity || 0))) * 100 : 0;
+      }
+      else if (sortKey === 'status') { aVal = a.status || ''; bVal = b.status || ''; }
+      else { aVal = ''; bVal = ''; }
+      
+      const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [dateFilteredTrades, searchQuery, strategyFilter, typeFilter, statusQuickFilter, sortKey, sortDir]);
 
   // Paginated transactions
   const totalPages = Math.ceil(filteredTransactions.length / pageSize) || 1;
@@ -1266,17 +1297,33 @@ export default function ClientPerformancePage() {
           <table>
             <thead>
               <tr>
-                <th>Date & Time</th>
-                <th>Strategy</th>
-                <th>Leg</th>
-                <th>Type</th>
-                <th>Symbol</th>
-                <th>Qty</th>
-                <th>Entry Price</th>
-                <th>Exit Price</th>
-                <th>P&L (₹)</th>
-                <th>P&L (%)</th>
-                <th>Status</th>
+                {[
+                  { key: 'date', label: 'Date & Time' },
+                  { key: 'strategy', label: 'Strategy' },
+                  { key: 'leg', label: 'Leg' },
+                  { key: 'type', label: 'Type' },
+                  { key: 'symbol', label: 'Symbol' },
+                  { key: 'qty', label: 'Qty' },
+                  { key: 'entry', label: 'Entry Price' },
+                  { key: 'exit', label: 'Exit Price' },
+                  { key: 'pnl', label: 'P&L (₹)' },
+                  { key: 'pnlPercent', label: 'P&L (%)' },
+                  { key: 'status', label: 'Status' },
+                ].map(col => {
+                  const isActive = sortKey === col.key;
+                  return (
+                    <th key={col.key} onClick={() => handleSort(col.key)}
+                      style={{ cursor: 'pointer', userSelect: 'none', color: isActive ? '#6366f1' : undefined, transition: 'color 0.15s' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <span>{col.label}</span>
+                        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
+                          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                          <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                        </svg>
+                      </span>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>

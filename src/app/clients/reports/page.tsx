@@ -6,7 +6,7 @@ import { Card } from '../../../shared/components/views/Card';
 import { PerformanceChart } from '../../../shared/components/views/PerformanceChart';
 import { Loader } from '../../../shared/components/views/Loader';
 import { Button } from '../../../shared/components/views/Button';
-import { Calendar, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 
 export default function ClientTradingReports() {
   const { trades, clients, colors, loading, activeUser } = useAppViewModel();
@@ -39,9 +39,7 @@ export default function ClientTradingReports() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  if (loading || !activeUser) {
-    return <Loader title="Loading reports" text="Compiling execution records and computing win rates..." fullscreen={false} />;
-  }
+
 
   // Find client configurations
   const matchedClient = clients.find(c => 
@@ -428,7 +426,15 @@ export default function ClientTradingReports() {
               </tr>
             </thead>
             <tbody>
-              {paginatedTrades.length === 0 ? (
+              {(loading || !activeUser) ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+                      <RefreshCw size={20} className="spin" /> Loading reports...
+                    </div>
+                  </td>
+                </tr>
+              ) : paginatedTrades.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                     No execution matches for active filters.

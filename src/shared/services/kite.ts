@@ -12,6 +12,7 @@ if (typeof window === 'undefined') {
 export async function kiteFetch(url: string, options: any, dedicatedIp?: string | null) {
   const fetchOpts: any = { ...options };
   const ip = dedicatedIp ? String(dedicatedIp).trim() : '';
+  const timeoutMs = 4000; // 4 seconds timeout
 
   if (ip && ip !== 'null' && ip !== 'undefined' && ip !== '0.0.0.0') {
     try {
@@ -76,7 +77,12 @@ export async function kiteFetch(url: string, options: any, dedicatedIp?: string 
   }
 
   try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    fetchOpts.signal = controller.signal;
+    
     const res = await fetch(url, fetchOpts);
+    clearTimeout(id);
     return res;
   } catch (err: any) {
     if (fetchOpts.agent) {

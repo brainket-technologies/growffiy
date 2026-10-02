@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
-import { inMemoryClients } from '@/shared/mockDB';
+
 
 export async function GET() {
   try {
@@ -35,21 +35,7 @@ export async function GET() {
 
     return NextResponse.json({ success: true, clients: mappedClients });
   } catch (error) {
-    // Fallback in-memory map
-    const mappedClients = inMemoryClients.map((client: any) => ({
-      id: client.id,
-      name: client.user.name,
-      broker: client.zerodhaClientId ? 'Zerodha' : 'Not Connected',
-      clientId: client.zerodhaClientId || 'N/A',
-      segment: 'NSE F&O',
-      capital: Number(client.capital),
-      status: client.user.status || 'active',
-      strategyStatus: client.tradingStatus || 'inactive',
-      strategyId: client.strategyId,
-      strategyName: client.strategyId === 'pre-open-breakout' ? 'Pre-Open Momentum Breakout Strategy' : 'No Strategy Assigned'
-    }));
-
-    return NextResponse.json({ success: true, clients: mappedClients, isDemoMode: true });
+    return NextResponse.json({ success: false, error: 'Failed to fetch assignments' }, { status: 500 });
   }
 }
 
@@ -115,14 +101,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({ success: true });
     } catch (dbErr) {
-      console.error('DB Assignment failed, updating in-memory:', dbErr);
-      clientIds.forEach((cId) => {
-        const index = inMemoryClients.findIndex((c) => c.id === cId);
-        if (index !== -1) {
-          inMemoryClients[index].strategyId = targetStrategyId;
-        }
-      });
-      return NextResponse.json({ success: true, isDemoMode: true });
+      return NextResponse.json({ success: false, error: 'Database update failed' }, { status: 500 });
     }
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

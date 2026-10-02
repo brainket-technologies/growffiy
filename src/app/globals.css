@@ -255,6 +255,20 @@ input, button, select, textarea {
   border: 1px solid var(--border-light);
 }
 
+/* Loader Animation */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .search-wrap {
   position: relative;
   flex: 1;
@@ -306,8 +320,14 @@ input, button, select, textarea {
 }
 
 /* Sort indicator */
-.sortable { cursor: pointer; user-select: none; }
-.sortable:hover { color: var(--text-heading); }
+.sortable { cursor: pointer; user-select: none; transition: color 0.15s, background 0.15s !important; }
+.sortable:hover { color: var(--text-heading) !important; background: rgba(99,102,241,0.06) !important; }
+.sort-active { color: var(--primary, #6366f1) !important; background: rgba(99,102,241,0.08) !important; }
+.th-inner { display: inline-flex; align-items: center; gap: 6px; width: 100%; }
+.th-label { flex: 1; }
+.sort-arrows { display: inline-flex; align-items: center; flex-shrink: 0; opacity: 0.5; transition: opacity 0.15s; }
+.sortable:hover .sort-arrows { opacity: 1; }
+.sort-arrows-active { opacity: 1 !important; color: var(--primary, #6366f1); }
 .sort-indicator { font-size: 9px; margin-left: 2px; }
 
 /* Pagination */

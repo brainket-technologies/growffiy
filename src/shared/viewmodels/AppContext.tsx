@@ -68,8 +68,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedId = localStorage.getItem('growffiy_logged_in_user_id');
-      const storedName = localStorage.getItem('growffiy_logged_in_user_name');
+      const searchParams = new URLSearchParams(window.location.search);
+      const impersonateId = searchParams.get('impersonate');
+      
+      const storedId = impersonateId || localStorage.getItem('growffiy_logged_in_user_id');
+      const storedName = impersonateId ? 'Impersonated Client' : localStorage.getItem('growffiy_logged_in_user_name');
       if (storedId) {
         const cleanName = storedName || storedId
           .split(/[_-]/)

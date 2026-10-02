@@ -90,6 +90,18 @@ export default function ClientPerformancePage() {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [tableSortKey, setTableSortKey] = useState<string | null>(null);
+  const [tableSortDir, setTableSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleTableSort = (key: string) => {
+    if (tableSortKey === key) {
+      setTableSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setTableSortKey(key);
+      setTableSortDir('asc');
+    }
+    setCurrentPage(1);
+  };
 
   // Find dynamic client matching logged-in activeUser
   const matchedClient = activeUser?.client || clients.find(c => 
@@ -223,6 +235,62 @@ export default function ClientPerformancePage() {
     };
   }, [dateFilteredTrades, pnlPeriod]);
 
+  // --- SORT STATE (must be before early returns) ---
+  // filteredTransactions computed here so useMemo stays before early returns
+  const filteredAndSortedTransactions = useMemo(() => {
+    // 1. Filter
+    const filtered = dateFilteredTrades.filter(t => {
+      const strategyName = (t.strategy?.name || t.strategyName || '').toLowerCase();
+      const symbolStr = (t.symbol || '').toLowerCase();
+      const query = searchQuery.toLowerCase();
+
+      let txType = t.direction === 'SHORT' ? 'SELL' : 'BUY';
+      if (txType !== 'SELL') {
+        try {
+          const config = JSON.parse(t.strategy?.configJson || '{}');
+          const leg = config?.legs?.[0]?.tradeAction;
+          const action = leg?.action || config?.tradeAction?.action || 'Long';
+          if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') txType = 'SELL';
+        } catch (e) {}
+      }
+
+      const matchesSearch = strategyName.includes(query) || symbolStr.includes(query);
+      const matchesStrategy = strategyFilter === 'all' || strategyName.includes(strategyFilter.toLowerCase());
+      const matchesType = typeFilter === 'all' || txType === typeFilter.toUpperCase();
+
+      const pnlVal = Number(t.pnl || 0);
+      const rawStatus = (t.status || '').toUpperCase();
+      const isProfit = pnlVal > 0 || rawStatus.includes('TARGET') || rawStatus === 'PROFIT';
+      const isLoss = pnlVal < 0 || rawStatus.includes('SL') || rawStatus === 'LOSS';
+      const isIncludedTrade = isProfit || isLoss || rawStatus === 'CLOSED' || rawStatus === 'COMPLETED';
+      if (!isIncludedTrade) return false;
+
+      const matchesQuickFilter =
+        statusQuickFilter === 'all' ? true
+        : statusQuickFilter === 'profit' ? isProfit
+        : isLoss;
+
+      return matchesSearch && matchesStrategy && matchesType && matchesQuickFilter;
+    });
+
+    // 2. Sort
+    if (!tableSortKey) return filtered;
+    return [...filtered].sort((a, b) => {
+      let aVal: any, bVal: any;
+      if (tableSortKey === 'symbol') { aVal = a.symbol || ''; bVal = b.symbol || ''; }
+      else if (tableSortKey === 'qty') { aVal = Number(a.quantity || 0); bVal = Number(b.quantity || 0); }
+      else if (tableSortKey === 'entryPrice') { aVal = Number(a.entryPrice || 0); bVal = Number(b.entryPrice || 0); }
+      else if (tableSortKey === 'exitPrice') { aVal = Number(a.exitPrice || 0); bVal = Number(b.exitPrice || 0); }
+      else if (tableSortKey === 'pnl') { aVal = Number(a.pnl || 0); bVal = Number(b.pnl || 0); }
+      else if (tableSortKey === 'date') { aVal = new Date(a.entryTime || a.createdAt || 0).getTime(); bVal = new Date(b.entryTime || b.createdAt || 0).getTime(); }
+      else if (tableSortKey === 'type') { aVal = a.direction || ''; bVal = b.direction || ''; }
+      else if (tableSortKey === 'status') { aVal = a.status || ''; bVal = b.status || ''; }
+      else { aVal = ''; bVal = ''; }
+      const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+      return tableSortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [dateFilteredTrades, searchQuery, strategyFilter, typeFilter, statusQuickFilter, tableSortKey, tableSortDir]);
+
   if (loading || appLoading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', gap: '16px' }}>
@@ -350,50 +418,13 @@ export default function ClientPerformancePage() {
     )
   ) as string[];
 
-  // Filter transaction list
-  const filteredTransactions = dateFilteredTrades.filter(t => {
-    const strategyName = (t.strategy?.name || t.strategyName || '').toLowerCase();
-    const symbolStr = (t.symbol || '').toLowerCase();
-    const query = searchQuery.toLowerCase();
-
-    let txType = t.direction === 'SHORT' ? 'SELL' : 'BUY';
-    if (txType !== 'SELL') {
-      try {
-        const config = JSON.parse(t.strategy?.configJson || '{}');
-        const leg = config?.legs?.[0]?.tradeAction;
-        const action = leg?.action || config?.tradeAction?.action || 'Long';
-        if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
-          txType = 'SELL';
-        }
-      } catch (e) {}
-    }
-
-    const matchesSearch = strategyName.includes(query) || symbolStr.includes(query);
-    const matchesStrategy = strategyFilter === 'all' || strategyName.includes(strategyFilter.toLowerCase());
-    const matchesType = typeFilter === 'all' || txType === typeFilter.toUpperCase();
-
-    const pnlVal = Number(t.pnl || 0);
-    const rawStatus = (t.status || '').toUpperCase();
-    const isProfit = pnlVal > 0 || rawStatus.includes('TARGET') || rawStatus === 'PROFIT';
-    const isLoss = pnlVal < 0 || rawStatus.includes('SL') || rawStatus === 'LOSS';
-    const isProfitOrLossTrade = isProfit || isLoss;
-
-    if (!isProfitOrLossTrade) return false;
-
-    const matchesQuickFilter = 
-      statusQuickFilter === 'all' 
-        ? true 
-        : statusQuickFilter === 'profit' 
-          ? isProfit 
-          : isLoss;
-
-    return matchesSearch && matchesStrategy && matchesType && matchesQuickFilter;
-  });
+  // filteredTransactions alias for export/other references
+  const filteredTransactions = filteredAndSortedTransactions;
 
   // Paginated transactions
-  const totalPages = Math.ceil(filteredTransactions.length / pageSize) || 1;
+  const totalPages = Math.ceil(filteredAndSortedTransactions.length / pageSize) || 1;
   const startIndex = (currentPage - 1) * pageSize;
-  const paginatedTransactions = filteredTransactions.slice(startIndex, startIndex + pageSize);
+  const paginatedTransactions = filteredAndSortedTransactions.slice(startIndex, startIndex + pageSize);
 
   const getSparklinePath = (up: boolean) => {
     return up 
@@ -1101,17 +1132,39 @@ export default function ClientPerformancePage() {
         {/* Table */}
         <div className="table-responsive">
           <table>
-            <thead>
+          <thead>
               <tr>
-                <th>Date & Time</th>
-                <th>Type</th>
-                <th>Symbol</th>
-                <th>Qty</th>
-                <th>Entry Price</th>
-                <th>Exit Price</th>
-                <th>P&L (₹)</th>
-                <th>P&L (%)</th>
-                <th>Status</th>
+                {[
+                  { key: 'date', label: 'Date & Time' },
+                  { key: 'type', label: 'Type' },
+                  { key: 'symbol', label: 'Symbol' },
+                  { key: 'qty', label: 'Qty' },
+                  { key: 'entryPrice', label: 'Entry Price' },
+                  { key: 'exitPrice', label: 'Exit Price' },
+                  { key: 'pnl', label: 'P&L (₹)' },
+                  { key: 'pnlPct', label: 'P&L (%)' },
+                  { key: 'status', label: 'Status' },
+                ].map(col => {
+                  const isActive = tableSortKey === col.key;
+                  const noSort = col.key === 'pnlPct';
+                  return (
+                    <th
+                      key={col.key}
+                      onClick={() => !noSort && handleTableSort(col.key)}
+                      style={{ cursor: noSort ? 'default' : 'pointer', userSelect: 'none', transition: 'background 0.15s, color 0.15s', background: isActive ? 'rgba(99,102,241,0.08)' : undefined, color: isActive ? 'var(--primary, #6366f1)' : undefined }}
+                    >
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', width: '100%' }}>
+                        <span style={{ flex: 1 }}>{col.label}</span>
+                        {!noSort && (
+                          <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.4 }}>
+                            <path d="M4 0L7 4H1L4 0Z" fill={isActive && tableSortDir === 'asc' ? (typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--primary') || '#6366f1' : '#6366f1') : 'rgba(148,163,184,0.7)'}/>
+                            <path d="M4 12L1 8H7L4 12Z" fill={isActive && tableSortDir === 'desc' ? (typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--primary') || '#6366f1' : '#6366f1') : 'rgba(148,163,184,0.7)'}/>
+                          </svg>
+                        )}
+                      </span>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>

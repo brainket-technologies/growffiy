@@ -6,93 +6,29 @@ import { encryptText } from '../../../shared/utils/crypto';
 import { sendClientWelcomeEmail } from '../../../shared/services/mail';
 import { KiteClient } from '../../../shared/services/kite';
 
-// In-memory fallback array to guarantee immediate functionality without live DB
-let inMemoryClients: any[] = [
-  {
-    id: 'c1',
-    user: { name: 'Aman Sharma', email: 'aman.sharma@example.com', userId: 'aman_sharma', status: 'active' },
-    zerodhaClientId: 'IN30123456789012',
-    accessToken: 'tok_active_aman_123',
-    capital: 25000000.00,
-    riskPercentage: 1.00,
-    tradingStatus: 'active',
-    subscriptionStatus: 'active',
-    strategyId: 'pre-open-breakout',
-    zerodhaTotpSecret: 'ZTOTPAMAN123',
-  },
-  {
-    id: 'c2',
-    user: { name: 'Rahul Kumar', email: 'rahul.kumar@example.com', userId: 'rahul_kumar', status: 'active' },
-    zerodhaClientId: 'IN30223456789012',
-    accessToken: null,
-    capital: 12750000.00,
-    riskPercentage: 1.00,
-    tradingStatus: 'inactive',
-    subscriptionStatus: 'active',
-    strategyId: 'pre-open-breakout',
-    zerodhaTotpSecret: 'ZTOTPRAHUL456',
-  },
-  {
-    id: 'c3',
-    user: { name: 'Neha Patel', email: 'neha.patel@example.com', userId: 'neha_patel', status: 'active' },
-    zerodhaClientId: 'IN30323456789012',
-    accessToken: 'tok_expired_neha',
-    capital: 500000.00,
-    riskPercentage: 1.00,
-    tradingStatus: 'inactive',
-    subscriptionStatus: 'expired',
-    strategyId: 'pre-open-breakout',
-    zerodhaTotpSecret: 'ZTOTPNEHA789',
-  },
-];
+
+import { getCachedData, invalidateCache } from '../../../shared/utils/redis';
 
 export async function GET() {
   try {
-    const dbClients = await prisma.client.findMany({
-      where: {
-        user: { is: { isDeleted: false } }
-      },
-      include: { user: true, productType: true, assignments: { include: { strategy: true } } },
-    });
+    const dbClients = await getCachedData('all_clients', async () => {
+      return await prisma.client.findMany({
+        where: {
+          user: { is: { isDeleted: false } }
+        },
+        include: { user: true, productType: true, assignments: { include: { strategy: true } } },
+      });
+    }, 15);
     
-    // Only use mock/in-memory clients if the database is not configured
-    const isDbConfigured = !!process.env.DATABASE_URL;
-    const finalClients = isDbConfigured ? dbClients : inMemoryClients;
-
-    // Fetch live margins in parallel for clients with connected Zerodha session
-    const enrichedClients = await Promise.all(
-      finalClients.map(async (c: any) => {
-        let liveMargin = null;
-        if (c.accessToken && c.zerodhaApiKey) {
-          try {
-            const marginPromise = KiteClient.getMargins(c.zerodhaApiKey, c.accessToken);
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000));
-            const mRes: any = await Promise.race([marginPromise, timeoutPromise]);
-            
-            if (mRes.status === 'success' && mRes.data?.equity) {
-              const eq = mRes.data.equity;
-              liveMargin = eq.net ?? eq.available?.live_balance ?? eq.available?.cash ?? null;
-            }
-          } catch (err) {
-            // Ignore margin fetch error or timeout
-          }
-        }
-        return {
-          ...c,
-          liveMargin
-        };
-      })
-    );
+    const enrichedClients = dbClients.map((c: any) => ({
+      ...c,
+      liveMargin: null
+    }));
 
     return NextResponse.json({ success: true, clients: enrichedClients });
   } catch (error: any) {
     console.error('CLIENTS API ERROR:', error);
-    // Fallback to in-memory store if DB is not configured
-    const isDbConfigured = !!process.env.DATABASE_URL;
-    if (isDbConfigured) {
-      return NextResponse.json({ success: false, error: 'Database query failed: ' + error.message }, { status: 500 });
-    }
-    return NextResponse.json({ success: true, clients: inMemoryClients, isDemoMode: true });
+    return NextResponse.json({ success: false, error: 'Database query failed: ' + error.message }, { status: 500 });
   }
 }
 
@@ -193,6 +129,8 @@ export async function POST(request: Request) {
         console.error('Mail dispatch setup error:', mailErr);
       }
 
+      await invalidateCache('all_clients');
+
       return NextResponse.json({
         success: true,
         client: newClient,
@@ -203,31 +141,7 @@ export async function POST(request: Request) {
       });
     } catch (e: any) {
       console.error('Database client creation failed:', e);
-      // In-memory fallback logic
-      const newClientMock = {
-        id: `c_${Date.now()}`,
-        user: { name, email, userId: generatedUserId, status: 'active' },
-        zerodhaClientId,
-        zerodhaApiKey,
-        zerodhaApiSecret,
-        zerodhaPassword,
-        zerodhaTotpSecret,
-        capital: Math.max(-1, Number(capital)),
-        riskPercentage: Number(riskPercentage || 1.00),
-        tradingStatus: 'inactive',
-        subscriptionStatus: 'pending',
-        strategyId: strategyId || 'pre-open-breakout',
-      };
-      inMemoryClients.push(newClientMock);
-      return NextResponse.json({
-        success: true,
-        client: newClientMock,
-        isDemoMode: true,
-        generatedCredentials: {
-          userId: generatedUserId,
-          password: finalPassword
-        }
-      });
+      return NextResponse.json({ success: false, error: e.message }, { status: 500 });
     }
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

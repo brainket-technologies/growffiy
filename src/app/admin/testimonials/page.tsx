@@ -29,6 +29,19 @@ export default function AdminTestimonialsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [ratingFilter, setRatingFilter] = useState('all');
 
+  // Sorting State
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
   // Modals Open State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -142,18 +155,35 @@ export default function AdminTestimonialsPage() {
   };
 
   // Filtered List
-  const filteredTestimonials = testimonials.filter((t) => {
-    const matchesSearch =
-      t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (t.location && t.location.toLowerCase().includes(searchQuery.toLowerCase()));
+  const sortedTestimonials = React.useMemo(() => {
+    const filtered = testimonials.filter((t) => {
+      const matchesSearch =
+        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (t.location && t.location.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const matchesStatus = statusFilter === 'all' || t.status === statusFilter;
-    const matchesRating = ratingFilter === 'all' || t.rating === parseInt(ratingFilter, 10);
+      const matchesStatus = statusFilter === 'all' || t.status === statusFilter;
+      const matchesRating = ratingFilter === 'all' || t.rating === parseInt(ratingFilter, 10);
 
-    return matchesSearch && matchesStatus && matchesRating;
-  });
+      return matchesSearch && matchesStatus && matchesRating;
+    });
+
+    if (!sortKey) return filtered;
+
+    return [...filtered].sort((a, b) => {
+      let aVal: any, bVal: any;
+      if (sortKey === 'client') { aVal = a.name || ''; bVal = b.name || ''; }
+      else if (sortKey === 'role') { aVal = a.role || ''; bVal = b.role || ''; }
+      else if (sortKey === 'rating') { aVal = a.rating || 0; bVal = b.rating || 0; }
+      else if (sortKey === 'review') { aVal = a.text || ''; bVal = b.text || ''; }
+      else if (sortKey === 'status') { aVal = a.status || ''; bVal = b.status || ''; }
+      else { aVal = ''; bVal = ''; }
+
+      const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [testimonials, searchQuery, statusFilter, ratingFilter, sortKey, sortDir]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -286,11 +316,41 @@ export default function AdminTestimonialsPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
-                <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Client Info</th>
-                <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Role &amp; City</th>
-                <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Rating &amp; Badge</th>
-                <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Review Text</th>
-                <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status</th>
+                {[
+                  { key: 'client', label: 'Client Info' },
+                  { key: 'role', label: 'Role & City' },
+                  { key: 'rating', label: 'Rating & Badge' },
+                  { key: 'review', label: 'Review Text' },
+                  { key: 'status', label: 'Status' }
+                ].map(col => {
+                  const isActive = sortKey === col.key;
+                  return (
+                    <th
+                      key={col.key}
+                      onClick={() => handleSort(col.key)}
+                      style={{
+                        padding: '14px 20px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        transition: 'color 0.15s, background 0.15s',
+                        background: isActive ? 'rgba(99,102,241,0.08)' : undefined,
+                        color: isActive ? '#6366f1' : 'var(--text-secondary)',
+                      }}
+                    >
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <span>{col.label}</span>
+                        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
+                          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                          <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                        </svg>
+                      </span>
+                    </th>
+                  );
+                })}
                 <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
@@ -298,17 +358,19 @@ export default function AdminTestimonialsPage() {
               {loading && testimonials.length === 0 ? (
                 <tr>
                   <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-                    Loading testimonials...
+                    <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                      <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading testimonials...
+                    </div>
                   </td>
                 </tr>
-              ) : filteredTestimonials.length === 0 ? (
+              ) : sortedTestimonials.length === 0 ? (
                 <tr>
                   <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
                     No matching testimonials found.
                   </td>
                 </tr>
               ) : (
-                filteredTestimonials.map((t) => (
+                sortedTestimonials.map((t) => (
                   <tr key={t.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s' }}>
                     {/* Client Info */}
                     <td style={{ padding: '14px 20px' }}>

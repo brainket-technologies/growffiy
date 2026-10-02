@@ -250,6 +250,18 @@ export default function LiveTradingPage() {
 
   const mergedRows = React.useMemo(() => mergeOcoTrades(trades || []), [trades]);
 
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
   const filteredRows = mergedRows.filter(row => {
     const symbol = (row.symbol || '').toLowerCase();
     const strategy = (row.strategyName || '').toLowerCase();
@@ -266,9 +278,29 @@ export default function LiveTradingPage() {
     return matchesSearch && matchesClient && matchesStrategy && matchesSymbol && matchesStatus;
   });
 
-  const totalPages = Math.ceil(filteredRows.length / pageSize) || 1;
+  const sortedRows = React.useMemo(() => {
+    if (!sortKey) return filteredRows;
+    return [...filteredRows].sort((a, b) => {
+      let aVal: any, bVal: any;
+      if (sortKey === 'date') { aVal = new Date(a.entryTime || a.createdAt).getTime(); bVal = new Date(b.entryTime || b.createdAt).getTime(); }
+      else if (sortKey === 'client') { aVal = a.clientName || ''; bVal = b.clientName || ''; }
+      else if (sortKey === 'strategy') { aVal = a.strategyName || ''; bVal = b.strategyName || ''; }
+      else if (sortKey === 'symbol') { aVal = a.symbol || ''; bVal = b.symbol || ''; }
+      else if (sortKey === 'status') { aVal = a.status || ''; bVal = b.status || ''; }
+      else if (sortKey === 'pnl') {
+        const pnlA = a._isOcoMerged ? (Number(a.leg1?.pnl || 0) + Number(a.leg2?.pnl || 0)) : Number(a.pnl || 0);
+        const pnlB = b._isOcoMerged ? (Number(b.leg1?.pnl || 0) + Number(b.leg2?.pnl || 0)) : Number(b.pnl || 0);
+        aVal = pnlA; bVal = pnlB;
+      }
+      else { aVal = ''; bVal = ''; }
+      const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [filteredRows, sortKey, sortDir]);
+
+  const totalPages = Math.ceil(sortedRows.length / pageSize) || 1;
   const startIndex = (currentPage - 1) * pageSize;
-  const paginatedRows = filteredRows.slice(startIndex, startIndex + pageSize);
+  const paginatedRows = sortedRows.slice(startIndex, startIndex + pageSize);
 
   const handleExportCSV = () => {
     const headers = ['Date & Time', 'Client', 'Strategy', 'Symbol', 'Type', 'Leg', 'Qty', 'Entry Price', 'SL', 'Target', 'Exit Price', 'P&L', 'Status', 'Entry Order Status', 'SL Order Status', 'Target Order Status'];
@@ -371,14 +403,46 @@ export default function LiveTradingPage() {
           <table>
             <thead>
               <tr>
-                <th>Date & Time</th>
-                <th>Client</th>
-                <th>Strategy</th>
-                <th>Symbol</th>
+                {[
+                  { key: 'date', label: 'Date & Time' },
+                  { key: 'client', label: 'Client' },
+                  { key: 'strategy', label: 'Strategy' },
+                  { key: 'symbol', label: 'Symbol' },
+                ].map(col => {
+                  const isActive = sortKey === col.key;
+                  return (
+                    <th key={col.key} onClick={() => handleSort(col.key)}
+                      style={{ cursor: 'pointer', userSelect: 'none', color: isActive ? '#6366f1' : undefined, transition: 'color 0.15s' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <span>{col.label}</span>
+                        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
+                          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                          <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                        </svg>
+                      </span>
+                    </th>
+                  );
+                })}
                 <th style={{ minWidth: '130px' }}>Leg 1 (BUY) <span style={{fontWeight:400,fontSize:10,color:'var(--text-muted)'}}>Entry/SL/Tgt</span></th>
                 <th style={{ minWidth: '130px' }}>Leg 2 (SELL) <span style={{fontWeight:400,fontSize:10,color:'var(--text-muted)'}}>Entry/SL/Tgt</span></th>
-                <th>OCO Status</th>
-                <th>P&L (₹)</th>
+                <th onClick={() => handleSort('status')} style={{ cursor: 'pointer', userSelect: 'none', color: sortKey === 'status' ? '#6366f1' : undefined }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                    <span>OCO Status</span>
+                    <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: sortKey === 'status' ? 1 : 0.35 }}>
+                      <path d="M4 0L7 4H1L4 0Z" fill={sortKey === 'status' && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                      <path d="M4 12L1 8H7L4 12Z" fill={sortKey === 'status' && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                    </svg>
+                  </span>
+                </th>
+                <th onClick={() => handleSort('pnl')} style={{ cursor: 'pointer', userSelect: 'none', color: sortKey === 'pnl' ? '#6366f1' : undefined }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                    <span>P&L (₹)</span>
+                    <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: sortKey === 'pnl' ? 1 : 0.35 }}>
+                      <path d="M4 0L7 4H1L4 0Z" fill={sortKey === 'pnl' && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                      <path d="M4 12L1 8H7L4 12Z" fill={sortKey === 'pnl' && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                    </svg>
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody>

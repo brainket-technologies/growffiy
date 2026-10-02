@@ -23,6 +23,18 @@ export default function EnquiriesPage() {
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
 
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
   const fetchEnquiries = async (page = 1) => {
     setLoading(true);
     try {
@@ -45,6 +57,22 @@ export default function EnquiriesPage() {
   useEffect(() => {
     fetchEnquiries(currentPage);
   }, [currentPage]);
+
+  const sortedEnquiries = React.useMemo(() => {
+    if (!sortKey) return enquiries;
+    return [...enquiries].sort((a, b) => {
+      let aVal: any, bVal: any;
+      if (sortKey === 'time') { aVal = new Date(a.time).getTime() || 0; bVal = new Date(b.time).getTime() || 0; }
+      else if (sortKey === 'name') { aVal = a.name || ''; bVal = b.name || ''; }
+      else if (sortKey === 'contact') { aVal = a.email || ''; bVal = b.email || ''; }
+      else if (sortKey === 'type') { aVal = a.enquiry || ''; bVal = b.enquiry || ''; }
+      else if (sortKey === 'message') { aVal = a.message || ''; bVal = b.message || ''; }
+      else { aVal = ''; bVal = ''; }
+      
+      const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [enquiries, sortKey, sortDir]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -89,24 +117,53 @@ export default function EnquiriesPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: 'rgba(14, 165, 233, 0.03)', borderBottom: '1px solid var(--border-color)' }}>
-                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Submitted Time</th>
-                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Name</th>
-                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Contact Details</th>
-                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Enquiry Type</th>
-                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Message / Requirements</th>
+                {[
+                  { key: 'time', label: 'Submitted Time' },
+                  { key: 'name', label: 'Name' },
+                  { key: 'contact', label: 'Contact Details' },
+                  { key: 'type', label: 'Enquiry Type' },
+                  { key: 'message', label: 'Message / Requirements' }
+                ].map(col => {
+                  const isActive = sortKey === col.key;
+                  return (
+                    <th
+                      key={col.key}
+                      onClick={() => handleSort(col.key)}
+                      style={{
+                        padding: '16px 24px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        transition: 'background 0.15s, color 0.15s',
+                        background: isActive ? 'rgba(99,102,241,0.08)' : undefined,
+                        color: isActive ? '#6366f1' : 'var(--text-secondary)',
+                      }}
+                    >
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', width: '100%' }}>
+                        <span style={{ flex: 1 }}>{col.label}</span>
+                        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
+                          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                          <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                        </svg>
+                      </span>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
               {loading && enquiries.length === 0 ? (
                 <tr>
                   <td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                      <RefreshCw size={24} className="animate-spin" style={{ color: '#1E88FF' }} />
-                      <span>Fetching enquiries...</span>
+                    <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                      <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Fetching enquiries...
                     </div>
                   </td>
                 </tr>
-              ) : enquiries.length === 0 ? (
+              ) : sortedEnquiries.length === 0 ? (
                 <tr>
                   <td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-secondary)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
@@ -116,7 +173,7 @@ export default function EnquiriesPage() {
                   </td>
                 </tr>
               ) : (
-                enquiries.map((enquiry) => (
+                sortedEnquiries.map((enquiry) => (
                   <tr key={enquiry.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s' }} onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(14, 165, 233, 0.01)')} onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}>
                     <td style={{ padding: '18px 24px', fontSize: '13px', color: 'var(--text-secondary)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

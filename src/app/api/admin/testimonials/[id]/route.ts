@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
+import { invalidateCache } from '../../../../../shared/utils/redis';
 
 // PUT /api/admin/testimonials/[id] - Update testimonial
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -22,6 +23,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       },
     });
 
+    await invalidateCache('admin_testimonials');
+    await invalidateCache('public_testimonials');
     return NextResponse.json({ testimonial, message: 'Testimonial updated successfully' });
   } catch (error: any) {
     console.error('Error updating testimonial:', error);
@@ -37,6 +40,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       where: { id },
     });
 
+    await invalidateCache('admin_testimonials');
+    await invalidateCache('public_testimonials');
     return NextResponse.json({ message: 'Testimonial deleted successfully' });
   } catch (error: any) {
     console.error('Error deleting testimonial:', error);

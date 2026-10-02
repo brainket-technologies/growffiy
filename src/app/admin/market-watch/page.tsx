@@ -552,8 +552,14 @@ export default function MarketWatchPage() {
                 })}
                 {visibleStocks.length === 0 && (
                   <tr>
-                    <td colSpan={14} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
-                      {loading ? 'Loading market data...' : 'No stocks match the selected filters.'}
+                    <td colSpan={14} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
+                      {loading ? (
+                        <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                          <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading market data...
+                        </div>
+                      ) : (
+                        'No stocks match the selected filters.'
+                      )}
                     </td>
                   </tr>
                 )}

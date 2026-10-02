@@ -5,13 +5,19 @@ import { useAppViewModel } from '../../../../shared/viewmodels/AppContext';
 import { Card } from '../../../../shared/components/views/Card';
 import { Button } from '../../../../shared/components/views/Button';
 import { Loader } from '../../../../shared/components/views/Loader';
-import { TrendingUp, Award, Activity, Download, Search, Filter, TrendingDown, BarChart3 } from 'lucide-react';
+import { TrendingUp, Award, Activity, Download, Search, Filter, TrendingDown, BarChart3, RefreshCw } from 'lucide-react';
 
 export default function StrategyReportPage() {
   const { trades = [], loading } = useAppViewModel();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('pnl');
+  const [sortKey, setSortKey] = useState<string | null>('pnl');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  
+  const handleSort = (key: string) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
   const [minTrades, setMinTrades] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -54,23 +60,27 @@ export default function StrategyReportPage() {
     });
 
     list.sort((a, b) => {
-      if (sortBy === 'pnl') return b.totalPnl - a.totalPnl;
-      if (sortBy === 'trades') return b.totalTrades - a.totalTrades;
-      if (sortBy === 'winrate') {
+      let cmp = 0;
+      if (sortKey === 'name') cmp = a.name.localeCompare(b.name);
+      else if (sortKey === 'pnl') cmp = a.totalPnl - b.totalPnl;
+      else if (sortKey === 'trades') cmp = a.totalTrades - b.totalTrades;
+      else if (sortKey === 'winrate') {
         const wrA = a.totalTrades > 0 ? (a.winTrades / a.totalTrades) * 100 : 0;
         const wrB = b.totalTrades > 0 ? (b.winTrades / b.totalTrades) * 100 : 0;
-        return wrB - wrA;
+        cmp = wrA - wrB;
       }
-      if (sortBy === 'profitFactor') {
+      else if (sortKey === 'profitFactor') {
         const pfA = a.totalLoss > 0 ? (a.totalProfit / a.totalLoss) : a.totalProfit > 0 ? 99.9 : 0;
         const pfB = b.totalLoss > 0 ? (b.totalProfit / b.totalLoss) : b.totalProfit > 0 ? 99.9 : 0;
-        return pfB - pfA;
+        cmp = pfA - pfB;
       }
-      return 0;
+      else if (sortKey === 'maxWin') cmp = a.maxWin - b.maxWin;
+      else if (sortKey === 'maxLoss') cmp = Math.abs(a.maxLoss) - Math.abs(b.maxLoss);
+      return sortDir === 'asc' ? cmp : -cmp;
     });
 
     return list;
-  }, [strategyStats, searchQuery, sortBy, minTrades]);
+  }, [strategyStats, searchQuery, sortKey, sortDir, minTrades]);
 
   const totalPages = Math.ceil(filteredList.length / pageSize) || 1;
   const startIndex = (currentPage - 1) * pageSize;
@@ -95,9 +105,7 @@ export default function StrategyReportPage() {
     document.body.removeChild(link);
   };
 
-  if (loading) {
-    return <Loader title="Loading strategy report" text="Analyzing algorithmic executions and calculating stats..." fullscreen={false} />;
-  }
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -207,13 +215,6 @@ export default function StrategyReportPage() {
               style={{ paddingLeft: '32px', height: '34px', fontSize: '12px', width: '100%', outline: 'none', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-white)', color: 'var(--text-primary)' }} />
           </div>
 
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
-            style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'var(--bg-white)', flex: '1 1 140px', minWidth: '120px' }}>
-            <option value="pnl">Sort by P&L</option>
-            <option value="trades">Sort by Trades</option>
-            <option value="winrate">Sort by Win Rate</option>
-            <option value="profitFactor">Sort by Profit Factor</option>
-          </select>
 
           <select value={minTrades} onChange={(e) => { setMinTrades(Number(e.target.value)); setCurrentPage(1); }}
             style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px', height: '34px', outline: 'none', background: 'var(--bg-white)', flex: '1 1 120px', minWidth: '100px' }}>
@@ -230,17 +231,41 @@ export default function StrategyReportPage() {
           <table>
             <thead>
               <tr>
-                <th>Strategy Name</th>
-                <th>Total Signals</th>
-                <th>Win Ratio</th>
-                <th>Profit Factor</th>
-                <th>Max Profit Trade</th>
-                <th>Max Loss Trade</th>
-                <th>Net P&L (INR)</th>
+                {[
+                  { key: 'name', label: 'Strategy Name' },
+                  { key: 'trades', label: 'Total Signals' },
+                  { key: 'winrate', label: 'Win Ratio' },
+                  { key: 'profitFactor', label: 'Profit Factor' },
+                  { key: 'maxWin', label: 'Max Profit Trade' },
+                  { key: 'maxLoss', label: 'Max Loss Trade' },
+                  { key: 'pnl', label: 'Net P&L (INR)' }
+                ].map(col => {
+                  const isActive = sortKey === col.key;
+                  return (
+                    <th key={col.key} onClick={() => handleSort(col.key)}
+                      style={{ cursor: 'pointer', userSelect: 'none', color: isActive ? '#6366f1' : undefined, transition: 'color 0.15s' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <span>{col.label}</span>
+                        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
+                          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                          <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                        </svg>
+                      </span>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
-              {paginatedList.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                      <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading strategy report...
+                    </div>
+                  </td>
+                </tr>
+              ) : paginatedList.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
                     {searchQuery ? 'No strategies match your search.' : 'No strategy logs or active trade signals found.'}

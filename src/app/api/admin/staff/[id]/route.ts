@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
-import { inMemoryStaff } from '../../../../../shared/store/inMemoryStaff';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -10,28 +9,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       include: { permissions: true },
     });
     if (!staff) return NextResponse.json({ success: false, error: 'Staff not found' }, { status: 404 });
-    // Sync in-memory store with DB
-    const memIdx = inMemoryStaff.findIndex((s: any) => s.id === id);
-    if (memIdx !== -1) {
-      Object.assign(inMemoryStaff[memIdx], staff, {
-        permissions: staff.permissions.map((p: any) => ({
-          module: p.module,
-          permission: p.permission,
-          granted: p.granted,
-        })),
-      });
-    } else {
-      inMemoryStaff.push({ ...staff, permissions: staff.permissions.map((p: any) => ({
-        module: p.module,
-        permission: p.permission,
-        granted: p.granted,
-      })) });
-    }
     return NextResponse.json({ success: true, staff });
-  } catch (e) {
-    const staff = inMemoryStaff.find((s: any) => s.id === id);
-    if (!staff) return NextResponse.json({ success: false, error: 'Staff not found' }, { status: 404 });
-    return NextResponse.json({ success: true, staff, isDemoMode: true });
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: 'Database query failed: ' + e.message }, { status: 500 });
   }
 }
 
@@ -73,33 +53,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       include: { permissions: true },
     });
 
-    // Keep in-memory store in sync with DB
-    const memIdx = inMemoryStaff.findIndex((s: any) => s.id === id);
-    if (memIdx !== -1) {
-      if (name !== undefined) inMemoryStaff[memIdx].name = name;
-      if (email !== undefined) inMemoryStaff[memIdx].email = email;
-      if (mobile !== undefined) inMemoryStaff[memIdx].mobile = mobile;
-      if (userId !== undefined) inMemoryStaff[memIdx].userId = userId;
-      if (password !== undefined) inMemoryStaff[memIdx].password = password;
-      if (status !== undefined) inMemoryStaff[memIdx].status = status;
-      if (permissions !== undefined) inMemoryStaff[memIdx].permissions = permissions;
-    }
-
     return NextResponse.json({ success: true, staff: updated });
   } catch (err: any) {
-    // In-memory fallback for update
-    const idx = inMemoryStaff.findIndex((s: any) => s.id === id);
-    if (idx === -1) return NextResponse.json({ success: false, error: 'Staff not found' }, { status: 404 });
-
-    if (name !== undefined) inMemoryStaff[idx].name = name;
-    if (email !== undefined) inMemoryStaff[idx].email = email;
-    if (mobile !== undefined) inMemoryStaff[idx].mobile = mobile;
-    if (userId !== undefined) inMemoryStaff[idx].userId = userId;
-    if (password !== undefined) inMemoryStaff[idx].password = password;
-    if (status !== undefined) inMemoryStaff[idx].status = status;
-    if (permissions !== undefined) inMemoryStaff[idx].permissions = permissions;
-
-    return NextResponse.json({ success: true, staff: inMemoryStaff[idx], isDemoMode: true });
+    return NextResponse.json({ success: false, error: 'Failed to update: ' + err.message }, { status: 500 });
   }
 }
 
@@ -109,9 +65,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     await prisma.staff.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    const idx = inMemoryStaff.findIndex((s: any) => s.id === id);
-    if (idx === -1) return NextResponse.json({ success: false, error: 'Staff not found' }, { status: 404 });
-    inMemoryStaff.splice(idx, 1);
-    return NextResponse.json({ success: true, isDemoMode: true });
+    return NextResponse.json({ success: false, error: 'Failed to delete: ' + err.message }, { status: 500 });
   }
 }

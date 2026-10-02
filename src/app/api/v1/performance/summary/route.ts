@@ -74,6 +74,7 @@ export async function GET(request: Request) {
     // Fetch trades in chronological order to calculate drawdown correctly
     const trades = await prisma.trade.findMany({
       where,
+      select: { pnl: true, status: true },
       orderBy: { createdAt: 'asc' },
     });
 

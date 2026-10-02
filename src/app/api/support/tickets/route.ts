@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
+import { getCachedData, invalidateCache } from '../../../../shared/utils/redis';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,20 +30,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: 'User ID is required or specify all=true' }, { status: 400 });
     }
 
+    const cacheKey = all ? 'support_tickets:all' : `support_tickets:user:${userId}`;
+    const ttl = all ? 15 : 10;
+
     let tickets;
     if (all) {
-      tickets = await prisma.supportTicket.findMany({
-        include: {
-          user: {
-            select: {
-              name: true,
-              email: true,
-              userId: true
-            }
-          }
-        },
+      tickets = await getCachedData(cacheKey, () => prisma.supportTicket.findMany({
+        include: { user: { select: { name: true, email: true, userId: true } } },
         orderBy: { createdAt: 'desc' }
-      });
+      }), ttl);
     } else {
       const user = await prisma.user.findFirst({
         where: {
@@ -116,6 +112,7 @@ export async function POST(request: Request) {
       }
     });
 
+    await invalidateCache('support_tickets:all');
     return NextResponse.json({ success: true, ticket: newTicket });
   } catch (error: any) {
     console.error('Support ticket creation error:', error);
@@ -168,6 +165,8 @@ export async function PUT(request: Request) {
       data: updateData
     });
 
+    await invalidateCache('support_tickets:all');
+    await invalidateCache(`support_tickets:user:${existingTicket.userId}`);
     return NextResponse.json({ success: true, ticket: updatedTicket });
   } catch (error: any) {
     console.error('Support ticket update error:', error);

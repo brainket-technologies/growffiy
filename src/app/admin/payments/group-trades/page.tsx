@@ -8,7 +8,7 @@ import { Button } from '../../../../shared/components/views/Button';
 import { Modal } from '../../../../shared/components/views/Modal';
 import {
   Activity, ArrowUpRight, ArrowDownRight, Users, Calendar,
-  Briefcase, TrendingUp, TrendingDown, Layers, BarChart2
+  Briefcase, TrendingUp, TrendingDown, Layers, BarChart2, RefreshCw
 } from 'lucide-react';
 
 export default function GroupTradesPage() {
@@ -16,6 +16,14 @@ export default function GroupTradesPage() {
   const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  const [sortKey, setSortKey] = useState<string | null>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
 
   // Group trades dynamically based on execution block
   // We group by: Strategy, Symbol, Entry Price, and Entry Date (YYYY-MM-DD HH:MM)
@@ -112,8 +120,18 @@ export default function GroupTradesPage() {
       };
     });
 
-    return result.sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
-  }, [trades]);
+    return result.sort((a, b) => {
+      let aVal: any, bVal: any;
+      if (sortKey === 'date') { aVal = new Date(a.dateTime).getTime(); bVal = new Date(b.dateTime).getTime(); }
+      else if (sortKey === 'strategy') { aVal = a.strategy || ''; bVal = b.strategy || ''; }
+      else if (sortKey === 'symbol') { aVal = a.symbol || ''; bVal = b.symbol || ''; }
+      else if (sortKey === 'qty') { aVal = a.totalQty; bVal = b.totalQty; }
+      else if (sortKey === 'pnl') { aVal = a.totalPnl; bVal = b.totalPnl; }
+      else { aVal = ''; bVal = ''; }
+      const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [trades, sortKey, sortDir]);
 
   const totalTradesCount = groupedTrades.length;
   const totalPages = Math.ceil(totalTradesCount / pageSize) || 1;
@@ -142,9 +160,7 @@ export default function GroupTradesPage() {
     };
   }, [groupedTrades]);
 
-  if (loading) {
-    return <Loader title="Loading Master Trades" text="Aggregating batch client executions..." fullscreen={true} />;
-  }
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '12px', maxWidth: '1400px', margin: '0 auto' }}>
@@ -210,21 +226,45 @@ export default function GroupTradesPage() {
           <table className="dashboard-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1000px' }}>
             <thead>
               <tr style={{ background: 'var(--surface)', borderBottom: '1.5px solid var(--border)' }}>
-                <th style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Date & Time</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Strategy</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Symbol</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Direction</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Total Qty</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Avg Entry</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Exit Price</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Exit Reason</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>OCO Status</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Total P&L</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Clients Executed</th>
+                {[
+                  { key: 'date', label: 'Date & Time' },
+                  { key: 'strategy', label: 'Strategy' },
+                  { key: 'symbol', label: 'Symbol' },
+                  { key: 'direction', label: 'Direction' },
+                  { key: 'qty', label: 'Total Qty' },
+                  { key: 'entry', label: 'Avg Entry' },
+                  { key: 'exit', label: 'Exit Price' },
+                  { key: 'reason', label: 'Exit Reason' },
+                  { key: 'status', label: 'OCO Status' },
+                  { key: 'pnl', label: 'Total P&L' },
+                  { key: 'clients', label: 'Clients Executed' },
+                ].map(col => {
+                  const isActive = sortKey === col.key;
+                  return (
+                    <th key={col.key} onClick={() => handleSort(col.key)}
+                      style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer', userSelect: 'none', color: isActive ? '#6366f1' : 'var(--text-secondary)', transition: 'color 0.15s' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <span>{col.label}</span>
+                        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
+                          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                          <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                        </svg>
+                      </span>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
-              {paginatedTrades.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={11} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                      <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading group trades...
+                    </div>
+                  </td>
+                </tr>
+              ) : paginatedTrades.length === 0 ? (
                 <tr>
                   <td colSpan={11} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)', fontSize: '13px' }}>
                     No executed trades found in the log.

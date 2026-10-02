@@ -17,6 +17,18 @@ export default function AdminPlansPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [durationFilter, setDurationFilter] = useState('all');
 
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
   // Modals Open State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -209,23 +221,42 @@ export default function AdminPlansPage() {
   };
 
   // Filter plans in-memory
-  const filteredPlans = plans.filter(plan => {
-    const nameStr = (plan.name || '').toLowerCase();
-    const featuresStr = (Array.isArray(plan.features) ? plan.features.join(' ') : '').toLowerCase();
-    const query = searchQuery.toLowerCase();
+  const filteredAndSortedPlans = React.useMemo(() => {
+    const filtered = plans.filter(plan => {
+      const nameStr = (plan.name || '').toLowerCase();
+      const featuresStr = (Array.isArray(plan.features) ? plan.features.join(' ') : '').toLowerCase();
+      const query = searchQuery.toLowerCase();
 
-    const matchesSearch = nameStr.includes(query) || featuresStr.includes(query);
+      const matchesSearch = nameStr.includes(query) || featuresStr.includes(query);
 
-    const matchesStatus = statusFilter === 'all' 
-      ? true 
-      : plan.status === statusFilter;
+      const matchesStatus = statusFilter === 'all' 
+        ? true 
+        : plan.status === statusFilter;
 
-    const matchesDuration = durationFilter === 'all'
-      ? true
-      : String(plan.durationDays) === durationFilter;
+      const matchesDuration = durationFilter === 'all'
+        ? true
+        : String(plan.durationDays) === durationFilter;
 
-    return matchesSearch && matchesStatus && matchesDuration;
-  });
+      return matchesSearch && matchesStatus && matchesDuration;
+    });
+
+    if (!sortKey) return filtered;
+    return [...filtered].sort((a, b) => {
+      let aVal: any, bVal: any;
+      if (sortKey === 'name') { aVal = a.name || ''; bVal = b.name || ''; }
+      else if (sortKey === 'productType') { aVal = a.productType?.name || ''; bVal = b.productType?.name || ''; }
+      else if (sortKey === 'price') { aVal = Number(a.price || 0); bVal = Number(b.price || 0); }
+      else if (sortKey === 'duration') { aVal = Number(a.durationDays || 0); bVal = Number(b.durationDays || 0); }
+      else if (sortKey === 'features') { aVal = a.features?.length || 0; bVal = b.features?.length || 0; }
+      else if (sortKey === 'status') { aVal = a.status || ''; bVal = b.status || ''; }
+      else { aVal = ''; bVal = ''; }
+      
+      const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [plans, searchQuery, statusFilter, durationFilter, sortKey, sortDir]);
+
+  const filteredPlans = filteredAndSortedPlans;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', fontFamily: 'sans-serif', maxWidth: '100%', overflowX: 'hidden' }}>
@@ -399,12 +430,37 @@ export default function AdminPlansPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Plan Name</th>
-                  <th>Product Type</th>
-                  <th>Price (INR)</th>
-                  <th>Duration (Days)</th>
-                  <th>Included Features</th>
-                  <th>Status</th>
+                  {[
+                    { key: 'name', label: 'Plan Name' },
+                    { key: 'productType', label: 'Product Type' },
+                    { key: 'price', label: 'Price (INR)' },
+                    { key: 'duration', label: 'Duration (Days)' },
+                    { key: 'features', label: 'Included Features' },
+                    { key: 'status', label: 'Status' },
+                  ].map(col => {
+                    const isActive = sortKey === col.key;
+                    return (
+                      <th
+                        key={col.key}
+                        onClick={() => handleSort(col.key)}
+                        style={{
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          transition: 'background 0.15s, color 0.15s',
+                          background: isActive ? 'rgba(99,102,241,0.08)' : undefined,
+                          color: isActive ? '#6366f1' : undefined,
+                        }}
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', width: '100%' }}>
+                          <span style={{ flex: 1 }}>{col.label}</span>
+                          <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
+                            <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                            <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                          </svg>
+                        </span>
+                      </th>
+                    );
+                  })}
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>

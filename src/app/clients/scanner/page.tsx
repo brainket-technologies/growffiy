@@ -24,9 +24,7 @@ export default function ClientPreOpenScannerPage() {
   const { preOpenStocks: stocks, loading, isSyncing, isWsConnected, preOpenDate } = useAppViewModel();
   const [selectedFoTab, setSelectedFoTab] = useState<'oi' | 'longBuild' | 'shortBuild' | 'shortCover' | 'longUnwind'>('oi');
 
-  if (loading) {
-    return <Loader title="Loading Pre-Open Market" text="Fetching indicative quotes and syncing pre-market feeds..." fullscreen={false} />;
-  }
+
 
   // Derive Market Breadth from actual stock state
   const advancesList = stocks.filter(s => s.change > 0);
@@ -292,7 +290,15 @@ export default function ClientPreOpenScannerPage() {
                 </tr>
               </thead>
               <tbody>
-                {gapAnalysisList.map((s) => {
+                {loading ? (
+                  <tr>
+                    <td colSpan={4} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+                        <RefreshCw size={18} className="spin" /> Loading scanner data...
+                      </div>
+                    </td>
+                  </tr>
+                ) : gapAnalysisList.map((s) => {
                   const isUp = s.gapPercent >= 0;
                   return (
                     <tr key={s.symbol} style={{ borderBottom: '1px solid var(--surface)' }}>

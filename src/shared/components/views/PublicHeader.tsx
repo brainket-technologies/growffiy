@@ -15,9 +15,12 @@ interface Stock {
 export default function PublicHeader() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [brandLogo, setBrandLogo] = useState('');
   const [brandName, setBrandName] = useState('Growffiy');
+  const [playStoreUrl, setPlayStoreUrl] = useState('');
+  const [appStoreUrl, setAppStoreUrl] = useState('');
   
   // Default fallback stocks
   const [stocks, setStocks] = useState<Stock[]>([
@@ -43,6 +46,8 @@ export default function PublicHeader() {
         if (data.success !== false) {
           if (data.appLogo) setBrandLogo(data.appLogo);
           if (data.appName) setBrandName(data.appName);
+          if (data.appPlaystoreUrl) setPlayStoreUrl(data.appPlaystoreUrl);
+          if (data.appAppstoreUrl) setAppStoreUrl(data.appAppstoreUrl);
         }
       } catch (err) {
         // Fallback: try localStorage
@@ -155,6 +160,118 @@ export default function PublicHeader() {
               {pathname === '/about' && activeUnderline}
             </Link>
             <Link href="/login" className="nav-link" style={{ color: '#334155', fontWeight: 600, marginLeft: '8px' }}>Client Portal</Link>
+
+            {/* Download App Dropdown */}
+            <div
+              style={{ position: 'relative', marginLeft: '8px' }}
+              onMouseEnter={() => setDownloadOpen(true)}
+              onMouseLeave={() => setDownloadOpen(false)}
+            >
+              <button style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                color: '#334155',
+                fontWeight: 600,
+                fontSize: '14px',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                transition: 'all 0.2s',
+                color: downloadOpen ? '#2563eb' : '#334155',
+              } as React.CSSProperties}
+              >
+                Download App
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                  style={{ transition: 'transform 0.2s', transform: downloadOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
+              </button>
+
+              {/* Invisible bridge to prevent gap-triggered close */}
+              {downloadOpen && <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, height: '8px' }} />}
+
+              {/* Dropdown Panel */}
+              {downloadOpen && (
+                <div style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 8px)',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  boxShadow: '0 12px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05)',
+                  padding: '8px',
+                  minWidth: '220px',
+                  zIndex: 2000,
+                  animation: 'fadeInDown 0.15s ease',
+                }}>
+
+                  {/* Google Play - compact row */}
+                  <a href={playStoreUrl || '#'} target="_blank" rel="noopener noreferrer" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    textDecoration: 'none',
+                    color: '#0f172a',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                      <path d="M4 3L19.5 12L4 21V3Z" fill="url(#nhgp0)"/>
+                      <path d="M4 3L15 15L4 21V3Z" fill="url(#nhgp1)"/>
+                      <path d="M4 3L11 11L4 21V3Z" fill="url(#nhgp2)"/>
+                      <defs>
+                        <linearGradient id="nhgp0" x1="4" y1="3" x2="19.5" y2="12" gradientUnits="userSpaceOnUse"><stop stopColor="#EA4335"/><stop offset="1" stopColor="#FBBC04"/></linearGradient>
+                        <linearGradient id="nhgp1" x1="4" y1="3" x2="15" y2="15" gradientUnits="userSpaceOnUse"><stop stopColor="#4285F4"/><stop offset="1" stopColor="#34A853"/></linearGradient>
+                        <linearGradient id="nhgp2" x1="4" y1="3" x2="11" y2="11" gradientUnits="userSpaceOnUse"><stop stopColor="#34A853"/><stop offset="1" stopColor="#0F9D58"/></linearGradient>
+                      </defs>
+                    </svg>
+                    <div style={{ lineHeight: 1.3 }}>
+                      <div style={{ fontSize: '9px', color: '#94a3b8', fontWeight: 600, letterSpacing: '0.3px' }}>GET IT ON</div>
+                      <div style={{ fontSize: '13px', fontWeight: 700 }}>Google Play</div>
+                    </div>
+                  </a>
+
+                  {/* App Store - compact row */}
+                  <a href={appStoreUrl || '#'} target="_blank" rel="noopener noreferrer" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    textDecoration: 'none',
+                    color: '#0f172a',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="#0f172a" style={{ flexShrink: 0 }}>
+                      <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.54 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701z"/>
+                    </svg>
+                    <div style={{ lineHeight: 1.3 }}>
+                      <div style={{ fontSize: '9px', color: '#94a3b8', fontWeight: 600, letterSpacing: '0.3px' }}>DOWNLOAD ON THE</div>
+                      <div style={{ fontSize: '13px', fontWeight: 700 }}>App Store</div>
+                    </div>
+                  </a>
+
+                  <style>{`
+                    @keyframes fadeInDown {
+                      from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+                      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+                    }
+                  `}</style>
+                </div>
+              )}
+            </div>
             <button onClick={openConsultation} style={{
               marginLeft: '36px',
               background: '#2563eb',
@@ -190,6 +307,34 @@ export default function PublicHeader() {
             <Link href="/pricing" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
             <Link href="/about" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>About Us</Link>
             <Link href="/login" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)} style={{ color: '#2563eb', fontWeight: 700 }}>Client Portal</Link>
+
+            {/* Download links in mobile menu */}
+            <div style={{ borderTop: '1px solid #f1f5f9', marginTop: '8px', paddingTop: '12px' }}>
+              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', letterSpacing: '1px', textTransform: 'uppercase', margin: '0 16px 10px' }}>Download App</p>
+              <a href={playStoreUrl || '#'} target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)}
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px', textDecoration: 'none', color: '#0f172a' }}>
+                <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 3L19.5 12L4 21V3Z" fill="url(#mhgp0)"/>
+                    <path d="M4 3L15 15L4 21V3Z" fill="url(#mhgp1)"/>
+                    <path d="M4 3L11 11L4 21V3Z" fill="url(#mhgp2)"/>
+                    <defs>
+                      <linearGradient id="mhgp0" x1="4" y1="3" x2="19.5" y2="12" gradientUnits="userSpaceOnUse"><stop stopColor="#EA4335"/><stop offset="1" stopColor="#FBBC04"/></linearGradient>
+                      <linearGradient id="mhgp1" x1="4" y1="3" x2="15" y2="15" gradientUnits="userSpaceOnUse"><stop stopColor="#4285F4"/><stop offset="1" stopColor="#34A853"/></linearGradient>
+                      <linearGradient id="mhgp2" x1="4" y1="3" x2="11" y2="11" gradientUnits="userSpaceOnUse"><stop stopColor="#34A853"/><stop offset="1" stopColor="#0F9D58"/></linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+                <div><div style={{ fontSize: '9px', color: '#94a3b8', fontWeight: 600 }}>GET IT ON</div><div style={{ fontSize: '14px', fontWeight: 700 }}>Google Play</div></div>
+              </a>
+              <a href={appStoreUrl || '#'} target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)}
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px', textDecoration: 'none', color: '#0f172a' }}>
+                <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="white"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.54 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701z"/></svg>
+                </div>
+                <div><div style={{ fontSize: '9px', color: '#94a3b8', fontWeight: 600 }}>DOWNLOAD ON THE</div><div style={{ fontSize: '14px', fontWeight: 700 }}>App Store</div></div>
+              </a>
+            </div>
             <button className="mobile-nav-cta" onClick={() => { openConsultation(); setMobileMenuOpen(false); }} style={{ border: 'none', textAlign: 'center', width: '100%', cursor: 'pointer' }}>
               Get Started →
             </button>

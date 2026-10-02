@@ -173,19 +173,33 @@ export function DataTable<T extends Record<string, any>>({
         <table>
           <thead>
             <tr>
-              {columns.map(col => (
-                <th
-                  key={col.key}
-                  className={col.sortable ? 'sortable' : ''}
-                  onClick={() => col.sortable && handleSort(col.key)}
-                  style={col.className ? { textAlign: col.className === 'text-right' ? 'right' : 'left' } : undefined}
-                >
-                  {col.label}
-                  {col.sortable && sortKey === col.key && (
-                    <span className="sort-indicator">{sortDir === 'asc' ? ' ▲' : ' ▼'}</span>
-                  )}
-                </th>
-              ))}
+              {columns.map(col => {
+                // All columns sortable by default unless explicitly set to false
+                const isSortable = col.sortable !== false;
+                const isActive = sortKey === col.key;
+                return (
+                  <th
+                    key={col.key}
+                    className={isSortable ? `sortable${isActive ? ' sort-active' : ''}` : ''}
+                    onClick={() => isSortable && handleSort(col.key)}
+                    style={{
+                      ...(col.className === 'text-right' ? { textAlign: 'right' } : {}),
+                    }}
+                  >
+                    <span className="th-inner">
+                      <span className="th-label">{col.label}</span>
+                      {isSortable && (
+                        <span className={`sort-arrows${isActive ? ' sort-arrows-active' : ''}`}>
+                          <svg width="8" height="12" viewBox="0 0 8 12" fill="none">
+                            <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? 'currentColor' : 'rgba(148,163,184,0.5)'}/>
+                            <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? 'currentColor' : 'rgba(148,163,184,0.5)'}/>
+                          </svg>
+                        </span>
+                      )}
+                    </span>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>

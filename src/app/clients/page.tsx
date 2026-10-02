@@ -43,6 +43,17 @@ export default function ClientDashboardOverview() {
   const [isDisconnecting, setIsDisconnecting] = useState<boolean>(false);
   const [showZerodhaConnect, setShowZerodhaConnect] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [dashSortKey, setDashSortKey] = useState<string | null>(null);
+  const [dashSortDir, setDashSortDir] = useState<'asc' | 'desc'>('asc');
+  const handleDashSort = (key: string) => {
+    if (dashSortKey === key) {
+      setDashSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setDashSortKey(key);
+      setDashSortDir('asc');
+    }
+    setCurrentPage(1);
+  };
   const [performancePeriod, setPerformancePeriod] = useState<'Weekly' | 'Monthly' | 'Yearly'>('Weekly');
   const [selectedBarModal, setSelectedBarModal] = useState<{ label: string; index: number } | null>(null);
   const [modalTrades, setModalTrades] = useState<any[]>([]);
@@ -76,8 +87,11 @@ export default function ClientDashboardOverview() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedId = localStorage.getItem('growffiy_logged_in_user_id');
-      const storedRole = localStorage.getItem('growffiy_logged_in_user_role');
+      const searchParams = new URLSearchParams(window.location.search);
+      const impersonateId = searchParams.get('impersonate');
+
+      const storedId = impersonateId || localStorage.getItem('growffiy_logged_in_user_id');
+      const storedRole = impersonateId ? 'client' : localStorage.getItem('growffiy_logged_in_user_role');
       if (!storedId || storedRole !== 'client') {
         if (storedRole === 'admin') {
           window.location.href = '/admin';
@@ -305,9 +319,29 @@ export default function ClientDashboardOverview() {
   });
 
   const totalTradesCount = clientTrades.length;
+
+  // Sort client trades
+  const sortedTrades = React.useMemo(() => {
+    if (!dashSortKey) return clientTrades;
+    return [...clientTrades].sort((a, b) => {
+      let aVal: any, bVal: any;
+      if (dashSortKey === 'symbol') { aVal = a.symbol || ''; bVal = b.symbol || ''; }
+      else if (dashSortKey === 'qty') { aVal = Number(a.quantity || 0); bVal = Number(b.quantity || 0); }
+      else if (dashSortKey === 'entryTime') { aVal = new Date(a.entryTime || 0).getTime(); bVal = new Date(b.entryTime || 0).getTime(); }
+      else if (dashSortKey === 'entryPrice') { aVal = Number(a.entryPrice || 0); bVal = Number(b.entryPrice || 0); }
+      else if (dashSortKey === 'exitTime') { aVal = new Date(a.exitTime || 0).getTime(); bVal = new Date(b.exitTime || 0).getTime(); }
+      else if (dashSortKey === 'exitPrice') { aVal = Number(a.exitPrice || 0); bVal = Number(b.exitPrice || 0); }
+      else if (dashSortKey === 'pnl') { aVal = Number(a.pnl || 0); bVal = Number(b.pnl || 0); }
+      else if (dashSortKey === 'status') { aVal = a.status || ''; bVal = b.status || ''; }
+      else { aVal = ''; bVal = ''; }
+      const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+      return dashSortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [clientTrades, dashSortKey, dashSortDir]);
+
   const totalPages = Math.ceil(totalTradesCount / pageSize) || 1;
   const startIndex = (currentPage - 1) * pageSize;
-  const paginatedTrades = clientTrades.slice(startIndex, startIndex + pageSize);
+  const paginatedTrades = sortedTrades.slice(startIndex, startIndex + pageSize);
 
   const totalPnl = clientTrades.reduce((sum, t) => sum + getTradePnl(t), 0);
   
@@ -1028,7 +1062,12 @@ export default function ClientDashboardOverview() {
   }, [cardFilteredPnl]);
 
   if (loading || !activeUser) {
-    return <Loader title="Loading dashboard" text="Syncing executed breakout signals and checking active plans..." fullscreen={false} />;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh', gap: '12px', color: 'var(--text-muted)' }}>
+        <RefreshCw size={24} className="spin" />
+        <span style={{ fontSize: '15px', fontWeight: 500 }}>Loading dashboard...</span>
+      </div>
+    );
   }
 
   const stats = [
@@ -2353,14 +2392,39 @@ export default function ClientDashboardOverview() {
                   <table>
                     <thead>
                       <tr>
-                        <th>Symbol</th>
-                        <th>Qty</th>
-                        <th>Entry Time</th>
-                        <th>Entry Price</th>
-                        <th>Exit Time</th>
-                        <th>Exit Price</th>
-                        <th>P&L (₹)</th>
-                        <th>Status</th>
+                        {[
+                          { key: 'symbol', label: 'Symbol' },
+                          { key: 'qty', label: 'Qty' },
+                          { key: 'entryTime', label: 'Entry Time' },
+                          { key: 'entryPrice', label: 'Entry Price' },
+                          { key: 'exitTime', label: 'Exit Time' },
+                          { key: 'exitPrice', label: 'Exit Price' },
+                          { key: 'pnl', label: 'P&L (₹)' },
+                          { key: 'status', label: 'Status' },
+                        ].map(col => {
+                          const isActive = dashSortKey === col.key;
+                          return (
+                            <th
+                              key={col.key}
+                              onClick={() => handleDashSort(col.key)}
+                              style={{
+                                cursor: 'pointer',
+                                userSelect: 'none',
+                                transition: 'background 0.15s, color 0.15s',
+                                background: isActive ? 'rgba(99,102,241,0.08)' : undefined,
+                                color: isActive ? '#6366f1' : undefined,
+                              }}
+                            >
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', width: '100%' }}>
+                                <span style={{ flex: 1 }}>{col.label}</span>
+                                <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
+                                  <path d="M4 0L7 4H1L4 0Z" fill={isActive && dashSortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                                  <path d="M4 12L1 8H7L4 12Z" fill={isActive && dashSortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                                </svg>
+                              </span>
+                            </th>
+                          );
+                        })}
                       </tr>
                     </thead>
                     <tbody>

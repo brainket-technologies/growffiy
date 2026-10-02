@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
 import { Card } from '../../../shared/components/views/Card';
 import { Loader } from '../../../shared/components/views/Loader';
-import { Check, ShieldCheck, Sparkles, CreditCard, Zap, Shield } from 'lucide-react';
+import { Check, ShieldCheck, Sparkles, CreditCard, Zap, Shield, RefreshCw } from 'lucide-react';
 import { API_ENDPOINTS } from '../../../core/constants';
 
 
@@ -155,9 +155,7 @@ export default function ClientSubscriptionPlans() {
   };
 
 
-  if (loadingPlans || !activeUser) {
-    return <Loader title="Loading plans" text="Fetching active subscription pricing configurations..." fullscreen={false} />;
-  }
+
 
   return (
     <div className="page-subscription" style={{ display: 'flex', flexDirection: 'column', gap: '32px', maxWidth: '1000px', margin: '0 auto', padding: '12px' }}>
@@ -339,7 +337,11 @@ export default function ClientSubscriptionPlans() {
 
       {/* Grid of pricing plans */}
       <div className="plans-grid">
-        {plans.map((plan) => {
+        {(loadingPlans || !activeUser) ? (
+          <div style={{ textAlign: 'center', padding: '64px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', gridColumn: '1 / -1' }}>
+            <RefreshCw size={20} className="spin" /> Loading subscription plans...
+          </div>
+        ) : plans.map((plan) => {
           const isPurchasing = purchasingPlanId === plan.id;
           const isFeatured = plan.durationDays >= 90; // Highlight quarterly and yearly
           return (

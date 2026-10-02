@@ -7,7 +7,11 @@ import { encryptText } from '../../../../../shared/utils/crypto';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { fullName, email, password, productType, tradingStrategies, referralCode } = body;
+    let { fullName, email, password, productType, tradingStrategies, referralCode } = body;
+
+    if (email) email = email.trim();
+    if (fullName) fullName = fullName.trim();
+    if (referralCode) referralCode = referralCode.trim();
 
     if (!fullName || !email || !password) {
       return NextResponse.json(
@@ -18,7 +22,7 @@ export async function POST(request: Request) {
 
     // Check if user exists
     let user = await prisma.user.findFirst({
-      where: { email: email }
+      where: { email: { equals: email, mode: 'insensitive' } }
     });
 
     if (user) {
@@ -67,7 +71,7 @@ export async function POST(request: Request) {
       user = await prisma.user.create({
         data: {
           name: fullName,
-          email: email,
+          email: email.toLowerCase().trim(),
           userId: generatedUserId,
           password: encryptedPassword,
           status: 'pending',

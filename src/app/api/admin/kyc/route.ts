@@ -30,7 +30,10 @@ export async function GET(request: Request) {
 
         if (client.accessToken && client.zerodhaApiKey) {
           try {
-            const margins = await KiteClient.getMargins(client.zerodhaApiKey, client.accessToken);
+            const marginPromise = KiteClient.getMargins(client.zerodhaApiKey, client.accessToken);
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000));
+            const margins: any = await Promise.race([marginPromise, timeoutPromise]);
+            
             liveMargin = margins?.net ?? null;
             kiteSessionActive = true;
           } catch {

@@ -580,9 +580,48 @@ export default function AdminDashboard() {
     return tradeDate >= startLimit && tradeDate <= endLimit;
   });
 
-  const displayTrades = openTradesList.length > 0 
-    ? openTradesList.slice(0, 5) 
-    : filteredTrades.slice(0, 5);
+  const [liveStrategySortKey, setLiveStrategySortKey] = useState<string | null>(null);
+  const [liveStrategySortDir, setLiveStrategySortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleLiveStrategySort = (key: string) => {
+    if (liveStrategySortKey === key) {
+      setLiveStrategySortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setLiveStrategySortKey(key);
+      setLiveStrategySortDir('asc');
+    }
+  };
+
+  const displayTrades = useMemo(() => {
+    let sourceList = openTradesList.length > 0 ? openTradesList : filteredTrades;
+    
+    if (liveStrategySortKey) {
+      sourceList = [...sourceList].sort((a, b) => {
+        let aVal: any, bVal: any;
+        if (liveStrategySortKey === 'strategy') { aVal = a.strategy?.name || a.strategyName || ''; bVal = b.strategy?.name || b.strategyName || ''; }
+        else if (liveStrategySortKey === 'symbol') { aVal = a.symbol || ''; bVal = b.symbol || ''; }
+        else if (liveStrategySortKey === 'type') { 
+          const getType = (t:any) => {
+            let type = 'BUY';
+            try { const c = JSON.parse(t.strategy?.configJson || '{}'); const act = c?.tradeAction?.action || 'Long'; if(act.toLowerCase()==='short'||act.toLowerCase()==='sell') type = 'SELL'; } catch(e){}
+            return type;
+          };
+          aVal = getType(a); bVal = getType(b);
+        }
+        else if (liveStrategySortKey === 'qty') { aVal = Number(a.quantity || 0); bVal = Number(b.quantity || 0); }
+        else if (liveStrategySortKey === 'entry') { aVal = Number(a.entryPrice || 0); bVal = Number(b.entryPrice || 0); }
+        else if (liveStrategySortKey === 'ltp') { aVal = Number(a.exitPrice || 0); bVal = Number(b.exitPrice || 0); }
+        else if (liveStrategySortKey === 'pnl') { aVal = Number(a.pnl || 0); bVal = Number(b.pnl || 0); }
+        else if (liveStrategySortKey === 'status') { aVal = a.status || ''; bVal = b.status || ''; }
+        else { aVal = ''; bVal = ''; }
+        
+        const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+        return liveStrategySortDir === 'asc' ? cmp : -cmp;
+      });
+    }
+
+    return sourceList.slice(0, 5);
+  }, [openTradesList, filteredTrades, liveStrategySortKey, liveStrategySortDir]);
 
 
   return (
@@ -771,7 +810,11 @@ export default function AdminDashboard() {
             </div>
           </div>
           <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-            {totalClients}
+            {stats === null ? (
+              <div style={{ width: '20px', height: '20px', border: '3px solid var(--border-light)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+            ) : (
+              totalClients
+            )}
           </h2>
           <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
             <Activity size={12} /> ↑ 12.5%
@@ -786,7 +829,11 @@ export default function AdminDashboard() {
             </div>
           </div>
           <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-            {activeSubscriptions}
+            {stats === null ? (
+              <div style={{ width: '20px', height: '20px', border: '3px solid var(--border-light)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+            ) : (
+              activeSubscriptions
+            )}
           </h2>
           <span style={{ fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
             Active subscriptions
@@ -801,7 +848,11 @@ export default function AdminDashboard() {
             </div>
           </div>
           <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-            {activeStrategies}
+            {stats === null ? (
+              <div style={{ width: '20px', height: '20px', border: '3px solid var(--border-light)', borderTopColor: 'var(--purple)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+            ) : (
+              activeStrategies
+            )}
           </h2>
           <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
             <Activity size={12} /> ↑ 8.3%
@@ -816,7 +867,11 @@ export default function AdminDashboard() {
             </div>
           </div>
           <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-            {liveAccounts}
+            {stats === null ? (
+              <div style={{ width: '20px', height: '20px', border: '3px solid var(--border-light)', borderTopColor: 'var(--accent-dark)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+            ) : (
+              liveAccounts
+            )}
           </h2>
           <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
             <Activity size={12} /> ↑ 10.2%
@@ -831,7 +886,11 @@ export default function AdminDashboard() {
             </div>
           </div>
           <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: totalPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)', fontFamily: 'var(--font-title)', whiteSpace: 'nowrap' }}>
-            {totalPnl >= 0 ? '+₹' : '-₹'}{Math.abs(totalPnl).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            {stats === null ? (
+              <div style={{ width: '20px', height: '20px', border: '3px solid var(--border-light)', borderTopColor: 'var(--warning)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+            ) : (
+              <>{totalPnl >= 0 ? '+₹' : '-₹'}{Math.abs(totalPnl).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</>
+            )}
           </h2>
           <span style={{ fontSize: '11px', color: totalPnl >= 0 ? 'var(--accent)' : 'var(--danger)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
             <Activity size={12} /> {totalPnl >= 0 ? '↑' : '↓'} Live Net P&L
@@ -990,14 +1049,42 @@ export default function AdminDashboard() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--surface)', textAlign: 'left' }}>
-                  <th style={{ padding: '10px 0', fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Strategy</th>
-                  <th style={{ padding: '10px 0', fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Symbol</th>
-                  <th style={{ padding: '10px 0', fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Type</th>
-                  <th style={{ padding: '10px 0', fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Qty</th>
-                  <th style={{ padding: '10px 0', fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Avg. Price</th>
-                  <th style={{ padding: '10px 0', fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>LTP</th>
-                  <th style={{ padding: '10px 0', fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>P&L (₹)</th>
-                  <th style={{ padding: '10px 0', fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Status</th>
+                  {[
+                    { key: 'strategy', label: 'Strategy' },
+                    { key: 'symbol', label: 'Symbol' },
+                    { key: 'type', label: 'Type' },
+                    { key: 'qty', label: 'Qty' },
+                    { key: 'entry', label: 'Avg. Price' },
+                    { key: 'ltp', label: 'LTP' },
+                    { key: 'pnl', label: 'P&L (₹)' },
+                    { key: 'status', label: 'Status' }
+                  ].map(col => {
+                    const isActive = liveStrategySortKey === col.key;
+                    return (
+                      <th
+                        key={col.key}
+                        onClick={() => handleLiveStrategySort(col.key)}
+                        style={{
+                          padding: '10px 0',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          transition: 'color 0.15s',
+                          color: isActive ? '#6366f1' : 'var(--text-subtle)',
+                        }}
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                          <span>{col.label}</span>
+                          <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
+                            <path d="M4 0L7 4H1L4 0Z" fill={isActive && liveStrategySortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                            <path d="M4 12L1 8H7L4 12Z" fill={isActive && liveStrategySortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                          </svg>
+                        </span>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
