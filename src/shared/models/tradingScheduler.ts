@@ -953,7 +953,24 @@ export class TradingScheduler {
                   return;
                 }
               } // Closes if (entryStatus?.status === 'success' && latestEntryOrder)
-            } catch (e) { console.warn(`AlgoEngine Monitor: Entry status check failed for ${trade.symbol}:`, e); }
+            } catch (e) { 
+              console.warn(`AlgoEngine Monitor: Entry status check failed for ${trade.symbol}:`, e); 
+              // Fallback: If status check failed but we are past exit time, forcefully try to cancel it
+              const istTimeStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
+              if (config.basicInfo?.exitTime && istTimeStr >= config.basicInfo.exitTime) {
+                console.log(`AlgoEngine Monitor: Force cancelling entry order ${trade.entryOrderId} for ${trade.symbol} at market close despite status fetch failure.`);
+                try {
+                  await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.entryOrderId, 'regular', (client.proxyUrl || client.dedicatedIp));
+                  await prisma.trade.update({
+                    where: { id: trade.id },
+                    data: { status: 'FAILED', entryOrderStatus: 'CANCELLED_FORCEFULLY' }
+                  });
+                  console.log(`AlgoEngine Monitor: Force cancel successful for ${trade.entryOrderId}.`);
+                } catch (cancelErr) {
+                  console.error(`AlgoEngine Monitor: Force cancel failed for ${trade.entryOrderId}:`, cancelErr);
+                }
+              }
+            }
             } // Closes Priority 2 if statement
 
             // --- Priority 3: Fallback candle-based check (no SL/Target and no entry order) ---
