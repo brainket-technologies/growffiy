@@ -36,34 +36,57 @@ export async function GET(request: Request) {
 
     // Build the "where" clause
     let where: any = { 
-      clientId: client.id,
-      pnl: { not: 0 } // Only include profit or loss trades
+      clientId: client.id
+      // Removed pnl: { not: 0 } to include break-even trades in total
     };
 
     // Time Period Filter
-    const now = new Date();
     let startDate: Date | null = null;
     let endDate: Date | null = null;
+    let prevStartDate: Date | null = null;
+    let prevEndDate: Date | null = null;
 
     if (period === 'Daily') {
-      startDate = new Date(now.setHours(0, 0, 0, 0));
-      endDate = new Date(now.setHours(23, 59, 59, 999));
+      const today = new Date();
+      startDate = new Date(today.setHours(0, 0, 0, 0));
+      endDate = new Date(today.setHours(23, 59, 59, 999));
+      prevStartDate = new Date(startDate);
+      prevStartDate.setDate(prevStartDate.getDate() - 1);
+      prevEndDate = new Date(endDate);
+      prevEndDate.setDate(prevEndDate.getDate() - 1);
     } else if (period === 'Weekly') {
-      const firstDay = now.getDate() - now.getDay();
-      startDate = new Date(now.setDate(firstDay));
+      const today = new Date();
+      const firstDay = today.getDate() - today.getDay();
+      startDate = new Date(today.setDate(firstDay));
       startDate.setHours(0, 0, 0, 0);
-      endDate = new Date(now.setDate(firstDay + 6));
+      endDate = new Date(today.setDate(firstDay + 6));
       endDate.setHours(23, 59, 59, 999);
+      prevStartDate = new Date(startDate);
+      prevStartDate.setDate(prevStartDate.getDate() - 7);
+      prevEndDate = new Date(endDate);
+      prevEndDate.setDate(prevEndDate.getDate() - 7);
     } else if (period === 'Monthly') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      const today = new Date();
+      startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+      endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+      prevStartDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      prevEndDate = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59, 999);
     } else if (period === 'Yearly') {
-      startDate = new Date(now.getFullYear(), 0, 1);
-      endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+      const today = new Date();
+      startDate = new Date(today.getFullYear(), 0, 1);
+      endDate = new Date(today.getFullYear(), 11, 31, 23, 59, 59, 999);
+      prevStartDate = new Date(today.getFullYear() - 1, 0, 1);
+      prevEndDate = new Date(today.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
     } else if (period === 'Custom' && startDateParam && endDateParam) {
       startDate = new Date(startDateParam);
       endDate = new Date(endDateParam);
       endDate.setHours(23, 59, 59, 999);
+      const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      prevStartDate = new Date(startDate);
+      prevStartDate.setDate(prevStartDate.getDate() - diffDays);
+      prevEndDate = new Date(startDate);
+      prevEndDate.setMilliseconds(prevEndDate.getMilliseconds() - 1);
     }
 
     if (startDate && endDate) {
@@ -102,17 +125,58 @@ export async function GET(request: Request) {
     // Formatting netPnl
     const formattedNetPnl = `₹${netPnl.toFixed(2)}`;
 
+    let prevTotalTrades = 0;
+    let prevNetPnl = 0;
+
+    if (prevStartDate && prevEndDate) {
+      const prevWhere = {
+        ...where,
+        createdAt: {
+          gte: prevStartDate,
+          lte: prevEndDate,
+        }
+      };
+
+      prevTotalTrades = await prisma.trade.count({ where: prevWhere });
+      
+      const prevAgg = await prisma.trade.aggregate({
+        where: prevWhere,
+        _sum: { pnl: true }
+      });
+      prevNetPnl = Number(prevAgg._sum.pnl || 0);
+    }
+    
+    let totalTradesChange = 0.0;
+    let netPnlChange = 0.0;
+
+    if (prevStartDate && prevEndDate) {
+      if (prevTotalTrades === 0) {
+        totalTradesChange = totalTrades > 0 ? 100.0 : 0.0;
+      } else {
+        totalTradesChange = ((totalTrades - prevTotalTrades) / prevTotalTrades) * 100;
+      }
+
+      if (prevNetPnl === 0) {
+        netPnlChange = netPnl > 0 ? 100.0 : (netPnl < 0 ? -100.0 : 0.0);
+      } else {
+        netPnlChange = ((netPnl - prevNetPnl) / Math.abs(prevNetPnl)) * 100;
+      }
+    }
+
+    totalTradesChange = parseFloat(totalTradesChange.toFixed(1));
+    netPnlChange = parseFloat(netPnlChange.toFixed(1));
+
     return NextResponse.json({
       success: true,
       data: {
         totalTrades,
-        totalTradesChange: 0.0, // Hardcoded for now
+        totalTradesChange,
         winningTrades,
         winningTradesPercent: parseFloat(winningTradesPercent.toFixed(1)),
         losingTrades,
         losingTradesPercent: parseFloat(losingTradesPercent.toFixed(1)),
         netPnl: formattedNetPnl,
-        netPnlChange: 0.0, // Hardcoded for now
+        netPnlChange,
       },
     });
 

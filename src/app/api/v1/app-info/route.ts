@@ -17,6 +17,7 @@ export async function GET() {
         // ── App Info ──────────────────────────────────
         appName: settings['app_name'] || 'Growffiy',
         appLogo: settings['app_logo'] || '',
+        showZerodhaConnect: settings['show_zerodha_connect'] !== 'false', // Default to true if missing
 
         // ── Support Contact Details ───────────────────
         supportEmail:   settings['support_email']    || 'support@growffiy.com',

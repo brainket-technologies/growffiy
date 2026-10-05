@@ -73,6 +73,16 @@ export default function ClientDetailsPage() {
   const [isDetectingProxyIp, setIsDetectingProxyIp] = useState(false);
   const [serverIp, setServerIp] = useState('');
   const [copiedIp, setCopiedIp] = useState(false);
+  const [copiedTotp, setCopiedTotp] = useState(false);
+
+  // Proxy Config Modal States
+  const [isProxyModalOpen, setIsProxyModalOpen] = useState(false);
+  const [proxyConfigIp, setProxyConfigIp] = useState('');
+  const [proxyConfigHost, setProxyConfigHost] = useState('');
+  const [proxyConfigPort, setProxyConfigPort] = useState('');
+  const [proxyConfigUser, setProxyConfigUser] = useState('');
+  const [proxyConfigPass, setProxyConfigPass] = useState('');
+  const [isSavingProxy, setIsSavingProxy] = useState(false);
 
   // Test Stock Buy Modal States
   const [testOrderModalOpen, setTestOrderModalOpen] = useState(false);
@@ -444,6 +454,59 @@ export default function ClientDetailsPage() {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSaveProxyConfig = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    
+    let combinedUrl = '';
+    
+    if (proxyConfigHost || proxyConfigPort || proxyConfigUser || proxyConfigPass) {
+      const userPassPart = (proxyConfigUser || proxyConfigPass) 
+        ? `${encodeURIComponent(proxyConfigUser)}:${encodeURIComponent(proxyConfigPass)}@` 
+        : '';
+      const hostPart = proxyConfigHost || '';
+      const portPart = proxyConfigPort ? `:${proxyConfigPort}` : '';
+      
+      combinedUrl = `http://${userPassPart}${hostPart}${portPart}`;
+    }
+    
+    setDedicatedIp(proxyConfigIp);
+    setProxyUrl(combinedUrl);
+    
+    setIsSavingProxy(true);
+    
+    try {
+      const updateData = {
+        name, email, userId, password, zerodhaClientId,
+        zerodhaApiKey, zerodhaApiSecret, zerodhaPassword, zerodhaTotpSecret,
+        dedicatedIp: proxyConfigIp ? proxyConfigIp.trim() : null,
+        proxyUrl: combinedUrl ? combinedUrl.trim() : null,
+        capital: Number(capital),
+        perDayTradeAmount: perDayTradeAmount && Number(perDayTradeAmount) > 0 ? Number(perDayTradeAmount) : null,
+        tradingStatus, panNumber, aadhaarNumber, dob, kycStatus,
+        productTypeId: productTypeId || null,
+        strategyIds: selectedStrategyIds,
+      };
+      
+      const res = await api.put(`${API_ENDPOINTS.CLIENTS}/${id}`, updateData);
+      
+      if (res.success) {
+        // Also update the context to keep it in sync
+        await updateClient(id, updateData);
+        setAlertModal({
+          title: 'Success',
+          message: 'Proxy configuration saved successfully to Database!'
+        });
+        setIsProxyModalOpen(false);
+      } else {
+        setAlertModal({ title: 'Error', message: res.error || 'Failed to save proxy configuration' });
+      }
+    } catch (err: any) {
+      setAlertModal({ title: 'Error', message: err.message || 'Error saving proxy configuration' });
+    } finally {
+      setIsSavingProxy(false);
     }
   };
 
@@ -1460,6 +1523,33 @@ export default function ClientDetailsPage() {
                       <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                         {totpCode === '------' ? 'Invalid TOTP Secret' : 'Current TOTP — match this with your phone app'}
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (totpCode && totpCode !== '------') {
+                            navigator.clipboard.writeText(totpCode);
+                            setCopiedTotp(true);
+                            setTimeout(() => setCopiedTotp(false), 2000);
+                          }
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          backgroundColor: copiedTotp ? 'var(--success, #10b981)' : 'var(--surface-hover)',
+                          color: copiedTotp ? 'white' : 'var(--text-muted)',
+                          cursor: totpCode === '------' ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.2s ease',
+                          marginLeft: 'auto'
+                        }}
+                        title="Copy TOTP"
+                      >
+                        {copiedTotp ? <Check size={14} /> : <Copy size={14} />}
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1625,32 +1715,49 @@ export default function ClientDetailsPage() {
             <Card style={{ padding: '16px 20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '12px' }}>
                 <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-title)', margin: 0 }}>
-                  <Shield size={18} color="var(--primary)" /> Client Dedicated Static Outbound IP (Permanent / Fixed)
+                  <Shield size={18} color="var(--primary)" /> Dedicated Proxy & IP Settings
                 </h4>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
 
-                  {serverIp && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDedicatedIp(serverIp);
-                        setProxyUrl('');
-                      }}
-                      style={{
-                        fontSize: '11.5px',
-                        fontWeight: 600,
-                        padding: '5px 10px',
-                        borderRadius: '6px',
-                        backgroundColor: 'var(--surface)',
-                        color: 'var(--primary)',
-                        border: '1px solid var(--border-light)',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Use Server IP ({serverIp})
-                    </button>
-                  )}
 
+                  {/* Configure Proxy Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProxyConfigIp(dedicatedIp || '');
+                      setProxyConfigUser('');
+                      setProxyConfigPass('');
+                      setProxyConfigHost('');
+                      setProxyConfigPort('');
+                      if (proxyUrl && proxyUrl.startsWith('http://')) {
+                        try {
+                          const urlObj = new URL(proxyUrl);
+                          setProxyConfigUser(urlObj.username ? decodeURIComponent(urlObj.username) : '');
+                          setProxyConfigPass(urlObj.password ? decodeURIComponent(urlObj.password) : '');
+                          setProxyConfigHost(urlObj.hostname || '');
+                          setProxyConfigPort(urlObj.port || '');
+                        } catch (e) {
+                          // Invalid URL
+                        }
+                      }
+                      setIsProxyModalOpen(true);
+                    }}
+                    style={{
+                      fontSize: '11.5px',
+                      fontWeight: 600,
+                      padding: '5px 12px',
+                      borderRadius: '6px',
+                      backgroundColor: 'var(--primary)',
+                      color: 'white',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    ⚙️ Configure Proxy
+                  </button>
 
                   {/* Test Stock Buy Button */}
                   <button
@@ -2018,10 +2125,10 @@ export default function ClientDetailsPage() {
                       <input
                         type="text"
                         value={dedicatedIp}
-                        onChange={(e) => setDedicatedIp(e.target.value)}
+                        readOnly
                         placeholder={serverIp ? `e.g. ${serverIp} or 185.220.101.5` : "Enter static IP address"}
                         className="premium-input"
-                        style={{ fontSize: '13px', fontWeight: 600, fontFamily: 'monospace', color: isDuplicateIp ? '#ef4444' : undefined }}
+                        style={{ fontSize: '13px', fontWeight: 600, fontFamily: 'monospace', color: isDuplicateIp ? '#ef4444' : undefined, backgroundColor: 'var(--surface-hover)' }}
                       />
                     </div>
                     {isDuplicateIp && (
@@ -2052,10 +2159,10 @@ export default function ClientDetailsPage() {
                       <input
                         type="text"
                         value={proxyUrl}
-                        onChange={(e) => setProxyUrl(e.target.value)}
+                        readOnly
                         placeholder="http://username:password@185.220.101.5:8080"
                         className="premium-input"
-                        style={{ fontSize: '12.5px', fontFamily: 'monospace' }}
+                        style={{ fontSize: '12.5px', fontFamily: 'monospace', backgroundColor: 'var(--surface-hover)' }}
                       />
                     </div>
                   </div>
@@ -2513,6 +2620,109 @@ export default function ClientDetailsPage() {
           </Button>
         </div>
       </form>
+
+      {/* Proxy Configuration Modal */}
+      {isProxyModalOpen && (
+        <Modal
+          isOpen={isProxyModalOpen}
+          onClose={() => setIsProxyModalOpen(false)}
+          title="Configure Dedicated Proxy & IP"
+          footer={
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <Button variant="secondary" onClick={() => setIsProxyModalOpen(false)}>Cancel</Button>
+              <Button 
+                type="button"
+                onClick={handleSaveProxyConfig} 
+                disabled={isSavingProxy}
+              >
+                {isSavingProxy ? 'Saving...' : 'Save Configuration'}
+              </Button>
+            </div>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="form-group">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label className="form-label" style={{ marginBottom: 0 }}>Dedicated Static IP *</label>
+                {serverIp && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProxyConfigIp(serverIp);
+                    }}
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      padding: '3px 8px',
+                      borderRadius: '4px',
+                      backgroundColor: 'var(--surface-hover)',
+                      color: 'var(--primary)',
+                      border: '1px solid var(--border-light)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Use Server IP ({serverIp})
+                  </button>
+                )}
+              </div>
+              <input
+                type="text"
+                value={proxyConfigIp}
+                onChange={(e) => setProxyConfigIp(e.target.value)}
+                placeholder="e.g. 185.220.101.5"
+                className="premium-input"
+              />
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <div className="form-group" style={{ flex: 2 }}>
+                <label className="form-label">Proxy Hostname / IP</label>
+                <input
+                  type="text"
+                  value={proxyConfigHost}
+                  onChange={(e) => setProxyConfigHost(e.target.value)}
+                  placeholder="e.g. proxy.example.com"
+                  className="premium-input"
+                />
+              </div>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label">Port</label>
+                <input
+                  type="text"
+                  value={proxyConfigPort}
+                  onChange={(e) => setProxyConfigPort(e.target.value)}
+                  placeholder="e.g. 8080"
+                  className="premium-input"
+                />
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label">Username</label>
+                <input
+                  type="text"
+                  value={proxyConfigUser}
+                  onChange={(e) => setProxyConfigUser(e.target.value)}
+                  placeholder="Proxy Username"
+                  className="premium-input"
+                />
+              </div>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label">Password</label>
+                <input
+                  type="text"
+                  value={proxyConfigPass}
+                  onChange={(e) => setProxyConfigPass(e.target.value)}
+                  placeholder="Proxy Password"
+                  className="premium-input"
+                />
+              </div>
+            </div>
+
+          </div>
+        </Modal>
+      )}
 
       {/* Custom Alert/Confirmation Modal */}
       {alertModal && (

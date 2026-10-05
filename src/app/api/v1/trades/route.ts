@@ -43,8 +43,7 @@ export async function GET(request: Request) {
 
     // Build the "where" clause
     let where: any = { 
-      clientId: client.id,
-      pnl: { not: 0 } // Only show profit or loss trades (+ or -)
+      clientId: client.id
     };
     // Symbol Search
     if (searchStr.trim() !== '') {
