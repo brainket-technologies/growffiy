@@ -420,7 +420,7 @@ export default function ClientsPage() {
           <span style={{ fontSize: '28px', fontWeight: 800, color: '#10b981', fontFamily: 'var(--font-title)' }}>₹{totalLiveMargin.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
         </Card>
         <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid #8b5cf6' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Per Day Amount</span>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Per Day Trade Amount</span>
           <span style={{ fontSize: '28px', fontWeight: 800, color: '#8b5cf6', fontFamily: 'var(--font-title)' }}>₹{totalPerDayAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
         </Card>
       </div>
