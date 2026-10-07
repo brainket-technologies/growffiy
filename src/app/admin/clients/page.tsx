@@ -1473,6 +1473,9 @@ export default function ClientsPage() {
         @media (max-width: 768px) {
           .form-grid-2 { grid-template-columns: 1fr !important; }
         }
+        .table-compact th, .table-compact td {
+          padding: 8px 12px !important;
+        }
       `}</style>
     </div>
   );
