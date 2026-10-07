@@ -568,7 +568,7 @@ export default function ClientsPage() {
                   { key: 'clientId', label: 'Zerodha Client ID' },
                   { key: 'productType', label: 'Product Type' },
                   { key: 'strategy', label: 'Strategy' },
-                  { key: 'margin', label: 'Live Margin (INR)' },
+                  { key: 'margin', label: 'Demat Amount' },
                   { key: 'perDayAmount', label: 'P/D Trade Amount' },
                   { key: 'session', label: 'Kite Session' },
                   { key: 'subscription', label: 'Subscription' },
