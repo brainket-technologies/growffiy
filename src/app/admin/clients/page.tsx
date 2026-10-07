@@ -569,6 +569,7 @@ export default function ClientsPage() {
                   { key: 'productType', label: 'Product Type' },
                   { key: 'strategy', label: 'Strategy' },
                   { key: 'margin', label: 'Live Margin (INR)' },
+                  { key: 'perDayAmount', label: 'P/D Trade Amount' },
                   { key: 'session', label: 'Kite Session' },
                   { key: 'subscription', label: 'Subscription' },
                   { key: 'status', label: 'Trading Status' },
@@ -602,7 +603,7 @@ export default function ClientsPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                  <td colSpan={10} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
                       <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading clients data...
                     </div>
@@ -610,7 +611,7 @@ export default function ClientsPage() {
                 </tr>
               ) : currentClients.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                  <td colSpan={10} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                     No client accounts match the search or filter criteria.
                   </td>
                 </tr>
@@ -688,6 +689,11 @@ export default function ClientsPage() {
                             N/A
                           </span>
                         )}
+                      </td>
+                      <td>
+                        <span style={{ fontWeight: 700, color: '#8b5cf6' }}>
+                          ₹{Number(client.perDayTradeAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
                       </td>
                       <td>
                         {client.accessToken ? (
