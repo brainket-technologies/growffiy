@@ -82,6 +82,7 @@ export default function AdminLoginPage() {
       if (typeof window !== 'undefined') {
         localStorage.setItem('growffiy_logged_in_user_id', userId);
         localStorage.setItem('growffiy_logged_in_user_name', res.user.name || userId);
+        localStorage.setItem('growffiy_logged_in_user_email', res.user.email || '');
         localStorage.setItem('growffiy_logged_in_user_role', 'admin');
       }
       

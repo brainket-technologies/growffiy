@@ -81,6 +81,7 @@ export default function StaffLoginPage() {
         localStorage.setItem('growffiy_logged_in_user_id', res.staff.id);
         localStorage.setItem('growffiy_logged_in_staff_userId', res.staff.userId);
         localStorage.setItem('growffiy_logged_in_user_name', res.staff.name);
+        localStorage.setItem('growffiy_logged_in_user_email', res.staff.email || '');
         localStorage.setItem('growffiy_logged_in_user_role', 'staff');
         localStorage.setItem('growffiy_staff_permissions', JSON.stringify(res.staff.permissions || []));
         localStorage.setItem('growffiy_staff_id', res.staff.id);
