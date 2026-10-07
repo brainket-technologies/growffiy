@@ -188,7 +188,7 @@ export default function LiveTradeTransactionsPage() {
         alert(res.error || 'Failed to force exit trade');
       }
     } catch (e: any) {
-      alert('An error occurred while force exiting trade');
+      alert(e.message || 'An error occurred while force exiting trade');
     } finally {
       setIsExiting(false);
       setTradeToForceExit(null);

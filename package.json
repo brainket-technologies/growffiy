@@ -20,7 +20,6 @@
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.8.0",
     "bcryptjs": "^3.0.3",
-    "dotenv": "^17.4.2",
     "firebase-admin": "^13.10.0",
     "https-proxy-agent": "^9.1.0",
     "ioredis": "^6.0.0",
@@ -50,10 +49,12 @@
     "@types/react-datepicker": "^6.2.0",
     "@types/react-dom": "^19",
     "@types/ws": "^8.18.1",
+    "dotenv": "^18.0.5",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }
