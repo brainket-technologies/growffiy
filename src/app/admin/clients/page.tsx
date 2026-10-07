@@ -323,7 +323,8 @@ export default function ClientsPage() {
       else if (sortKey === 'clientId') { aVal = a.zerodhaClientId || ''; bVal = b.zerodhaClientId || ''; }
       else if (sortKey === 'productType') { aVal = a.productType?.name || ''; bVal = b.productType?.name || ''; }
       else if (sortKey === 'strategy') { aVal = a.assignments?.[0]?.strategy?.name || ''; bVal = b.assignments?.[0]?.strategy?.name || ''; }
-      else if (sortKey === 'margin') { aVal = Number(a.capital || 0); bVal = Number(b.capital || 0); }
+      else if (sortKey === 'margin') { aVal = Number(a.liveMargin != null ? a.liveMargin : a.capital || 0); bVal = Number(b.liveMargin != null ? b.liveMargin : b.capital || 0); }
+      else if (sortKey === 'perDayAmount') { aVal = Number(a.perDayTradeAmount || 0); bVal = Number(b.perDayTradeAmount || 0); }
       else if (sortKey === 'session') { aVal = a.accessToken ? 1 : 0; bVal = b.accessToken ? 1 : 0; }
       else if (sortKey === 'subscription') { aVal = a.subscriptions?.some((s:any)=>s.status==='active') ? 1 : 0; bVal = b.subscriptions?.some((s:any)=>s.status==='active') ? 1 : 0; }
       else if (sortKey === 'status') { aVal = a.tradingStatus || ''; bVal = b.tradingStatus || ''; }
