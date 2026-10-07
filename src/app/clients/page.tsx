@@ -2476,8 +2476,10 @@ export default function ClientDashboardOverview() {
                               <td style={{ fontWeight: 700, color: 'var(--text-heading)' }}>
                                 {trade.symbol}
                               </td>
-                              <td style={{ fontWeight: 600, color: transactionType === 'BUY' ? '#2563eb' : '#dc2626' }}>
-                                {transactionType}
+                              <td>
+                                <span className={`badge ${transactionType === 'BUY' ? 'badge-blue' : 'badge-red'}`} style={{ padding: '3px 8px', fontSize: '10px' }}>
+                                  {transactionType}
+                                </span>
                               </td>
                               <td style={{ fontWeight: 500 }}>{trade.quantity}</td>
                               <td style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
