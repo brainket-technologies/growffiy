@@ -288,6 +288,23 @@ export default function StrategiesPage() {
     }
   };
 
+  const filtered = strategies.filter(strat => {
+    if (filterType !== 'all' && strat.status !== filterType) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const n = (strat.name || strat.id || '').toLowerCase();
+      if (!n.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const sortedStrategies = [...filtered].sort((a, b) => {
+    if (!sortKey) return 0;
+    const aVal = (a[sortKey] || '').toString().toLowerCase();
+    const bVal = (b[sortKey] || '').toString().toLowerCase();
+    return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+  });
+
   // Synchronize viewMode state with browser history (Back button support)
   const isFirstRender = useRef(true);
   useEffect(() => {
