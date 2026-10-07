@@ -19,6 +19,7 @@ export default function GroupTradesPage() {
 
   const [sortKey, setSortKey] = useState<string | null>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [filterDate, setFilterDate] = useState<string>('');
 
   const handleSort = (key: string) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -43,6 +44,10 @@ export default function GroupTradesPage() {
       
       const d = new Date(t.createdAt || t.entryTime || new Date());
       const dateYMD = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      
+      if (filterDate && filterDate !== dateYMD) {
+        return;
+      }
 
       // Unique key for the batch execution on that day
       const groupKey = `${strategyName}_${symbol}_${dateYMD}`;
@@ -131,7 +136,7 @@ export default function GroupTradesPage() {
       const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
       return sortDir === 'asc' ? cmp : -cmp;
     });
-  }, [trades, sortKey, sortDir]);
+  }, [trades, sortKey, sortDir, filterDate]);
 
   const totalTradesCount = groupedTrades.length;
   const totalPages = Math.ceil(totalTradesCount / pageSize) || 1;
@@ -165,14 +170,32 @@ export default function GroupTradesPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '12px', maxWidth: '1400px', margin: '0 auto' }}>
       
-      {/* Title */}
-      <div>
-        <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-heading)', fontFamily: 'Outfit, sans-serif' }}>
-          Trades Execution Groups
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>
-          Monitor grouped strategy executions across all subscribed clients in real-time.
-        </p>
+      {/* Title & Filters */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-heading)', fontFamily: 'Outfit, sans-serif' }}>
+            Trades Execution Groups
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>
+            Monitor grouped strategy executions across all subscribed clients in real-time.
+          </p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <input 
+            type="date" 
+            value={filterDate}
+            onChange={(e) => { setFilterDate(e.target.value); setCurrentPage(1); }}
+            style={{ padding: '8px 12px', borderRadius: '8px', border: '1.5px solid var(--border)', fontSize: '13px', background: 'var(--surface)', color: 'var(--text-body)' }}
+          />
+          {filterDate && (
+            <button 
+              onClick={() => { setFilterDate(''); setCurrentPage(1); }}
+              style={{ padding: '8px 12px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Grid Stats */}
@@ -330,7 +353,7 @@ export default function GroupTradesPage() {
                         {g.exitReason || '--'}
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '11px' }}>
-                        <span className={`badge ${(g.ocoStatus || '').toLowerCase().includes('closed') || (g.ocoStatus || '').toLowerCase() === 'success' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '9px' }}>
+                        <span className={`badge ${(g.ocoStatus || '').toUpperCase().includes('TARGET') ? 'badge-success' : (g.ocoStatus || '').toUpperCase().includes('SL') ? 'badge-red' : (g.ocoStatus || '').toLowerCase().includes('closed') || (g.ocoStatus || '').toLowerCase() === 'success' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '9px' }}>
                           {g.ocoStatus?.toUpperCase()}
                         </span>
                       </td>
