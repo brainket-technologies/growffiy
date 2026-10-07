@@ -326,6 +326,13 @@ export default function ClientDashboardOverview() {
     return [...clientTrades].sort((a, b) => {
       let aVal: any, bVal: any;
       if (dashSortKey === 'symbol') { aVal = a.symbol || ''; bVal = b.symbol || ''; }
+      else if (dashSortKey === 'type') { 
+        const getType = (tr:any) => {
+          const tDir = (tr.direction || tr.type || '').toLowerCase();
+          return (tDir === 'short' || tDir === 'sell') ? 'SELL' : 'BUY';
+        };
+        aVal = getType(a); bVal = getType(b);
+      }
       else if (dashSortKey === 'qty') { aVal = Number(a.quantity || 0); bVal = Number(b.quantity || 0); }
       else if (dashSortKey === 'entryTime') { aVal = new Date(a.entryTime || 0).getTime(); bVal = new Date(b.entryTime || 0).getTime(); }
       else if (dashSortKey === 'entryPrice') { aVal = Number(a.entryPrice || 0); bVal = Number(b.entryPrice || 0); }
@@ -2394,6 +2401,7 @@ export default function ClientDashboardOverview() {
                       <tr>
                         {[
                           { key: 'symbol', label: 'Symbol' },
+                          { key: 'type', label: 'Type' },
                           { key: 'qty', label: 'Qty' },
                           { key: 'entryTime', label: 'Entry Time' },
                           { key: 'entryPrice', label: 'Entry Price' },
@@ -2455,11 +2463,21 @@ export default function ClientDashboardOverview() {
                           } else if (displayStatus === 'OPEN') {
                             statusColor = '#0284c7';
                           }
+                          let transactionType = 'BUY';
+                          const tDir = (trade.direction || trade.type || '').toLowerCase();
+                          if (tDir === 'short' || tDir === 'sell') transactionType = 'SELL';
+                          if (transactionType !== 'SELL' && trade.orders && Array.isArray(trade.orders) && trade.orders.length > 0) {
+                            const action = trade.orders[0].transaction_type || trade.orders[0].action || '';
+                            if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') transactionType = 'SELL';
+                          }
 
                           return (
                             <tr key={trade.id}>
                               <td style={{ fontWeight: 700, color: 'var(--text-heading)' }}>
                                 {trade.symbol}
+                              </td>
+                              <td style={{ fontWeight: 600, color: transactionType === 'BUY' ? '#2563eb' : '#dc2626' }}>
+                                {transactionType}
                               </td>
                               <td style={{ fontWeight: 500 }}>{trade.quantity}</td>
                               <td style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
