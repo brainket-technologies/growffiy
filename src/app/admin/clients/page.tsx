@@ -1485,6 +1485,12 @@ export default function ClientsPage() {
         .table-compact th, .table-compact td {
           padding: 8px 12px !important;
         }
+        .table-compact th {
+          font-size: 11px !important;
+        }
+        .table-compact td {
+          font-size: 13.5px !important;
+        }
       `}</style>
     </div>
   );
