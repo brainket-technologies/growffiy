@@ -405,7 +405,7 @@ export default function LiveTradeTransactionsPage() {
         max = Math.max(max, row.legs.length);
       }
     }
-    return max;
+    return Math.max(1, max);
   }, [mergedRows]);
 
   const filteredTrades = useMemo(() => {
