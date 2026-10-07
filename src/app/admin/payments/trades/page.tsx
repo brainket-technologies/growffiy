@@ -514,9 +514,149 @@ export default function LiveTradeTransactionsPage() {
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>View logs of all trades, quantities, symbols, and P&L statements.</p>
         </div>
-        <Button variant="secondary" onClick={handleExportCSV} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Download size={14} /> Export CSV
-        </Button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div ref={dropdownRef} style={{ position: 'relative' }}>
+            <div 
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                padding: '8px 16px', 
+                borderRadius: '8px', 
+                background: 'var(--bg-white)', 
+                border: '1px solid var(--border)', 
+                fontSize: '13px', 
+                color: 'var(--text-body)',
+                fontWeight: 500,
+                cursor: 'pointer',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                userSelect: 'none'
+              }}
+            >
+              <Calendar size={14} color="var(--primary)" />
+              <span>{dateRangeStr}</span>
+              <ChevronDown size={14} color="var(--text-muted)" />
+            </div>
+
+            {isFilterOpen && (
+              <div style={{ 
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                right: 0,
+                width: '320px',
+                background: 'var(--bg-white)',
+                border: '1px solid var(--border)',
+                borderRadius: '12px',
+                boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)',
+                padding: '16px',
+                zIndex: 1000,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--surface)', paddingBottom: '8px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-heading)' }}>Date Filter</span>
+                  <button 
+                    onClick={clearFilters}
+                    style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Reset to Default
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', background: 'var(--surface)', padding: '2px', borderRadius: '6px' }}>
+                  <button 
+                    onClick={() => setFilterType('month')}
+                    style={{ flex: 1, border: 'none', background: filterType === 'month' ? 'var(--bg-white)' : 'transparent', color: 'var(--text-body)', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterType === 'month' ? 600 : 500, cursor: 'pointer' }}
+                  >
+                    Month
+                  </button>
+                  <button 
+                    onClick={() => setFilterType('year')}
+                    style={{ flex: 1, border: 'none', background: filterType === 'year' ? 'var(--bg-white)' : 'transparent', color: 'var(--text-body)', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterType === 'year' ? 600 : 500, cursor: 'pointer' }}
+                  >
+                    Year
+                  </button>
+                  <button 
+                    onClick={() => setFilterType('custom')}
+                    style={{ flex: 1, border: 'none', background: filterType === 'custom' ? 'var(--bg-white)' : 'transparent', color: 'var(--text-body)', fontSize: '12px', padding: '6px 0', borderRadius: '4px', fontWeight: filterType === 'custom' ? 600 : 500, cursor: 'pointer' }}
+                  >
+                    Custom Date
+                  </button>
+                </div>
+
+                {filterType === 'month' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <select 
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(Number(e.target.value))}
+                        style={{ flex: 1, padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '13px' }}
+                      >
+                        {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                      </select>
+                      <select 
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                        style={{ flex: 1.5, padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '13px' }}
+                      >
+                        {MONTHS.map((m, idx) => <option key={m} value={idx}>{m}</option>)}
+                      </select>
+                    </div>
+                    <Button onClick={applyMonthFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: 'var(--primary)', color: 'white' }}>
+                      Apply Month Filter
+                    </Button>
+                  </div>
+                )}
+
+                {filterType === 'year' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <select 
+                      value={selectedYear}
+                      onChange={(e) => setSelectedYear(Number(e.target.value))}
+                      style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '13px' }}
+                    >
+                      {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                    <Button onClick={applyYearFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: 'var(--primary)', color: 'white' }}>
+                      Apply Year Filter
+                    </Button>
+                  </div>
+                )}
+
+                {filterType === 'custom' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>Start Date</label>
+                      <input 
+                        type="date"
+                        value={customStart}
+                        onChange={(e) => setCustomStart(e.target.value)}
+                        style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '13px', width: '100%' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>End Date</label>
+                      <input 
+                        type="date"
+                        value={customEnd}
+                        onChange={(e) => setCustomEnd(e.target.value)}
+                        style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '13px', width: '100%' }}
+                      />
+                    </div>
+                    <Button onClick={applyCustomFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: 'var(--primary)', color: 'white' }}>
+                      Apply Custom Filter
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <Button variant="secondary" onClick={handleExportCSV} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Download size={14} /> Export CSV
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
