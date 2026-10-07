@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
 import { getCachedData } from '../../../../shared/utils/redis';
 
+import { KiteClient } from '../../../../shared/services/kite';
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -25,8 +27,11 @@ export async function GET(request: Request) {
       select: {
         tradingStatus: true,
         subscriptionStatus: true,
-        liveMargin: true,
-        perDayTradeAmount: true
+        capital: true,
+        perDayTradeAmount: true,
+        accessToken: true,
+        zerodhaApiKey: true,
+        zerodhaClientId: true
       }
     });
 
@@ -35,7 +40,23 @@ export async function GET(request: Request) {
     const inactiveClients = totalClients - activeClients;
     const activeSubscriptions = allClientsData.filter(c => c.subscriptionStatus === 'active' || c.tradingStatus === 'active').length;
     
-    const totalDemate = allClientsData.reduce((acc, c) => acc + (Number(c.liveMargin) || 0), 0);
+    // Fetch live margins
+    let totalDemate = 0;
+    await Promise.all(allClientsData.map(async (c) => {
+      let margin = Number(c.capital) || 0;
+      if (c.accessToken && c.zerodhaApiKey) {
+        try {
+          const marginRes = await KiteClient.getMargins(c.zerodhaApiKey, c.accessToken);
+          if (marginRes && marginRes.status === 'success' && marginRes.data?.equity?.net !== undefined) {
+            margin = Number(marginRes.data.equity.net);
+          }
+        } catch (err) {
+          // ignore
+        }
+      }
+      totalDemate += margin;
+    }));
+
     const totalPerDayAmount = allClientsData.reduce((acc, c) => acc + (Number(c.perDayTradeAmount) || 0), 0);
 
     const helperCalcPnl = (t: any) => {
