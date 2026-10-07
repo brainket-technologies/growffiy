@@ -212,12 +212,13 @@ export default function AdminDashboard() {
     setIsFilterOpen(false);
   };
 
-  // Extract stats
   const totalClients = stats?.totalClients || 0;
   const activeSubscriptions = stats?.activeSubscriptions || 0;
   const activeStrategies = stats?.activeStrategies || 0;
   const liveAccounts = stats?.activeClients || 0;
   const totalPnl = stats?.totalPnl || 0;
+  const totalDemate = stats?.totalDemate || 0;
+  const totalPerDayAmount = stats?.totalPerDayAmount || 0;
 
   const winningStrats = stats?.winningStrategies || 0;
   const losingStrats = stats?.losingStrategies || 0;
@@ -800,8 +801,8 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* 5 Top KPI Cards Grid */}
-      <div className="kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '18px' }}>
+      {/* Top KPI Cards Grid */}
+      <div className="kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '18px' }}>
         <Card hoverable onClick={() => router.push('/admin/clients')} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--primary)', cursor: 'pointer' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total Clients</span>
@@ -877,7 +878,9 @@ export default function AdminDashboard() {
             <Activity size={12} /> ↑ 10.2%
           </span>
         </Card>
+      </div>
 
+      <div className="kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '18px' }}>
         <Card hoverable onClick={() => router.push('/admin/reports/client')} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--warning)', cursor: 'pointer' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total P&L (₹)</span>
@@ -895,6 +898,38 @@ export default function AdminDashboard() {
           <span style={{ fontSize: '11px', color: totalPnl >= 0 ? 'var(--accent)' : 'var(--danger)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
             <Activity size={12} /> {totalPnl >= 0 ? '↑' : '↓'} Live Net P&L
           </span>
+        </Card>
+
+        <Card hoverable onClick={() => router.push('/admin/clients')} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid #10b981', cursor: 'pointer' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total Demate</span>
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '16px' }}>
+              ₹
+            </div>
+          </div>
+          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: '#10b981', fontFamily: 'var(--font-title)', whiteSpace: 'nowrap' }}>
+            {stats === null ? (
+              <div style={{ width: '20px', height: '20px', border: '3px solid var(--border-light)', borderTopColor: '#10b981', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+            ) : (
+              <>₹{totalDemate.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</>
+            )}
+          </h2>
+        </Card>
+
+        <Card hoverable onClick={() => router.push('/admin/clients')} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid #8b5cf6', cursor: 'pointer' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Per Day Trade Amount</span>
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '16px' }}>
+              ₹
+            </div>
+          </div>
+          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: '#8b5cf6', fontFamily: 'var(--font-title)', whiteSpace: 'nowrap' }}>
+            {stats === null ? (
+              <div style={{ width: '20px', height: '20px', border: '3px solid var(--border-light)', borderTopColor: '#8b5cf6', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+            ) : (
+              <>₹{totalPerDayAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</>
+            )}
+          </h2>
         </Card>
       </div>
 

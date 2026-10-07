@@ -21,17 +21,22 @@ export async function GET(request: Request) {
     const endFilter = endDateStr ? new Date(`${endDateStr}T23:59:59.999`) : defaultEndDate;
 
     // 1. Client & Subscription counts
-    const totalClients = await prisma.client.count();
-    const activeClients = await prisma.client.count({ where: { tradingStatus: 'active' } });
-    const inactiveClients = totalClients - activeClients;
-    const activeSubscriptions = await prisma.client.count({
-      where: {
-        OR: [
-          { subscriptionStatus: 'active' },
-          { tradingStatus: 'active' }
-        ]
+    const allClientsData = await prisma.client.findMany({
+      select: {
+        tradingStatus: true,
+        subscriptionStatus: true,
+        liveMargin: true,
+        perDayTradeAmount: true
       }
     });
+
+    const totalClients = allClientsData.length;
+    const activeClients = allClientsData.filter(c => c.tradingStatus === 'active').length;
+    const inactiveClients = totalClients - activeClients;
+    const activeSubscriptions = allClientsData.filter(c => c.subscriptionStatus === 'active' || c.tradingStatus === 'active').length;
+    
+    const totalDemate = allClientsData.reduce((acc, c) => acc + (Number(c.liveMargin) || 0), 0);
+    const totalPerDayAmount = allClientsData.reduce((acc, c) => acc + (Number(c.perDayTradeAmount) || 0), 0);
 
     const helperCalcPnl = (t: any) => {
       let val = Number(t.pnl || 0);
@@ -188,7 +193,9 @@ export async function GET(request: Request) {
       closedTrades,
       todayTrades,
       pnlHistoryData,
-      pnlHistoryLabels
+      pnlHistoryLabels,
+      totalDemate,
+      totalPerDayAmount
     };
 
       return { stats: statsResult, trades: sanitizedTrades };
