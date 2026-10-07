@@ -400,13 +400,14 @@ export default function LiveTradeTransactionsPage() {
 
   const maxLegCount = useMemo(() => {
     let max = 0;
-    for (const row of mergedRows) {
+    const allMerged = mergeOcoTrades(trades || []);
+    for (const row of allMerged) {
       if (row._isOcoMerged && row.legs) {
         max = Math.max(max, row.legs.length);
       }
     }
     return Math.max(1, max);
-  }, [mergedRows]);
+  }, [trades]);
 
   const filteredTrades = useMemo(() => {
     return mergedRows.filter(row => {
@@ -788,7 +789,7 @@ export default function LiveTradeTransactionsPage() {
         </div>
 
         <div className="table-responsive" style={{ overflowX: 'auto' }}>
-          <table style={{ minWidth: mergedRows.some(r => r._isOcoMerged) ? `${700 + (maxLegCount * 160)}px` : undefined }}>
+          <table style={{ minWidth: `${700 + (maxLegCount * 160)}px`, width: '100%' }}>
             <thead>
               <tr>
                 <th style={{ whiteSpace: 'nowrap' }}>Date & Time</th>
