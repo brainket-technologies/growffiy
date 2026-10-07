@@ -106,10 +106,17 @@ export async function GET(request: NextRequest) {
     const manualSlot = searchParams.get('slot');
     let timeSlot = manualSlot;
 
+    const now = new Date();
+    const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+
+    // Skip on weekends (0 = Sunday, 6 = Saturday)
+    if (!manualSlot && (ist.getDay() === 0 || ist.getDay() === 6)) {
+      console.log(`[MarketWatch Cron] Skipping snapshot on weekend (day=${ist.getDay()})`);
+      return NextResponse.json({ success: true, message: 'Market is closed on weekends. Skipping.' });
+    }
+
     if (!timeSlot) {
       // Auto-detect from IST time
-      const now = new Date();
-      const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
       const hh = String(ist.getHours()).padStart(2, '0');
       const mm = String(ist.getMinutes()).padStart(2, '0');
       timeSlot = `${hh}:${mm}`;
