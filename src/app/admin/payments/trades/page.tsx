@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useAppViewModel } from '../../../../shared/viewmodels/AppContext';
 import { Card } from '../../../../shared/components/views/Card';
 import { Loader } from '../../../../shared/components/views/Loader';
@@ -8,7 +8,7 @@ import { Button } from '../../../../shared/components/views/Button';
 import { Modal } from '../../../../shared/components/views/Modal';
 import { api } from '../../../../shared/services/api';
 import {
-  Activity, Download,
+  Activity, Download, Calendar, ChevronDown,
   Search, TrendingUp, TrendingDown, CheckCircle, AlertCircle, XCircle, ArrowUpRight, ArrowDownRight, RefreshCw
 } from 'lucide-react';
 
@@ -203,6 +203,79 @@ export default function LiveTradeTransactionsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
+  const now = new Date();
+  const initialStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const initialEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  const [startDate, setStartDate] = useState<Date>(initialStart);
+  const [endDate, setEndDate] = useState<Date>(initialEnd);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filterType, setFilterType] = useState<'month' | 'year' | 'custom'>('month');
+  
+  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth());
+  
+  const formatDateToYMD = (d: Date) => {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const [customStart, setCustomStart] = useState<string>(formatDateToYMD(initialStart));
+  const [customEnd, setCustomEnd] = useState<string>(formatDateToYMD(initialEnd));
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsFilterOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const YEARS = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+
+  const applyMonthFilter = () => {
+    setStartDate(new Date(selectedYear, selectedMonth, 1));
+    setEndDate(new Date(selectedYear, selectedMonth + 1, 0));
+    setIsFilterOpen(false);
+    setCurrentPage(1);
+  };
+
+  const applyYearFilter = () => {
+    setStartDate(new Date(selectedYear, 0, 1));
+    setEndDate(new Date(selectedYear, 11, 31));
+    setIsFilterOpen(false);
+    setCurrentPage(1);
+  };
+
+  const applyCustomFilter = () => {
+    if (customStart && customEnd) {
+      setStartDate(new Date(customStart));
+      setEndDate(new Date(customEnd));
+      setIsFilterOpen(false);
+      setCurrentPage(1);
+    }
+  };
+
+  const clearFilters = () => {
+    setStartDate(initialStart);
+    setEndDate(initialEnd);
+    setSelectedYear(now.getFullYear());
+    setSelectedMonth(now.getMonth());
+    setFilterType('month');
+    setIsFilterOpen(false);
+    setCurrentPage(1);
+  };
+
+  let dateRangeStr = '';
+  if (startDate && endDate) {
+    const sStr = startDate.toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+    const eStr = endDate.toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+    dateRangeStr = `${sStr} - ${eStr}`;
+  }
+
   const getTransactionType = (trade: any) => {
     if (!trade) return 'BUY';
     const dir = (trade.direction || '').toLowerCase();
@@ -215,6 +288,17 @@ export default function LiveTradeTransactionsPage() {
     } catch (e) {}
     return 'BUY';
   };
+
+  const dateFilteredTrades = useMemo(() => {
+    return (trades || []).filter(t => {
+      const d = new Date(t.createdAt || t.entryTime || new Date());
+      const dTime = d.getTime();
+      const startOfDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0).getTime();
+      const endOfDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59).getTime();
+
+      return (dTime >= startOfDay && dTime <= endOfDay);
+    });
+  }, [trades, startDate, endDate]);
 
   function mergeOcoTrades(trades: any[]): any[] {
     const ocoMap = new Map<string, any[]>();
@@ -297,21 +381,22 @@ export default function LiveTradeTransactionsPage() {
   };
 
   const uniqueClients = useMemo(
-    () => Array.from(new Set((trades || []).map(t => t?.client?.user?.name || t?.clientName).filter(Boolean))) as string[],
-    [trades]
+    () => Array.from(new Set((dateFilteredTrades || []).map(t => t?.client?.user?.name || t?.clientName).filter(Boolean))) as string[],
+    [dateFilteredTrades]
   );
   const uniqueStrategies = useMemo(
-    () => Array.from(new Set((trades || []).map(t => t?.strategy?.name || t?.strategyName).filter(Boolean))) as string[],
-    [trades]
+    () => Array.from(new Set((dateFilteredTrades || []).map(t => t?.strategy?.name || t?.strategyName).filter(Boolean))) as string[],
+    [dateFilteredTrades]
   );
+
   const mergedRows = useMemo(() => {
-    const merged = mergeOcoTrades(trades || []);
+    const merged = mergeOcoTrades(dateFilteredTrades || []);
     return merged.sort((a, b) => {
       const dateA = new Date(a.entryTime || a.createdAt || 0).getTime();
       const dateB = new Date(b.entryTime || b.createdAt || 0).getTime();
       return dateB - dateA;
     });
-  }, [trades]);
+  }, [dateFilteredTrades]);
 
   const maxLegCount = useMemo(() => {
     let max = 0;
@@ -342,13 +427,13 @@ export default function LiveTradeTransactionsPage() {
     });
   }, [mergedRows, searchQuery, clientFilter, strategyFilter, typeFilter, statusFilter]);
 
-  const openTrades = useMemo(() => trades.filter(t => (t.status || '').toLowerCase() === 'open'), [trades]);
-  const closedTrades = useMemo(() => trades.filter(t => (t.status || '').toLowerCase() === 'closed' || (t.status || '').toLowerCase() === 'success'), [trades]);
-  const failedTrades = useMemo(() => trades.filter(t => (t.status || '').toLowerCase() === 'failed'), [trades]);
-  const cancelledTrades = useMemo(() => trades.filter(t => (t.status || '').toLowerCase() === 'cancelled'), [trades]);
+  const openTrades = useMemo(() => dateFilteredTrades.filter(t => (t.status || '').toLowerCase() === 'open'), [dateFilteredTrades]);
+  const closedTrades = useMemo(() => dateFilteredTrades.filter(t => (t.status || '').toLowerCase() === 'closed' || (t.status || '').toLowerCase() === 'success'), [dateFilteredTrades]);
+  const failedTrades = useMemo(() => dateFilteredTrades.filter(t => (t.status || '').toLowerCase() === 'failed'), [dateFilteredTrades]);
+  const cancelledTrades = useMemo(() => dateFilteredTrades.filter(t => (t.status || '').toLowerCase() === 'cancelled'), [dateFilteredTrades]);
 
   const totalPnl = useMemo(() => {
-    return (trades || []).reduce((sum, t) => {
+    return (dateFilteredTrades || []).reduce((sum, t) => {
       let pnlVal = Number(t.pnl || 0);
       if ((t.pnl === null || t.pnl === undefined || t.pnl === 0) && t.entryPrice && t.exitPrice) {
         const isShort = (t.direction || '').toLowerCase() === 'short';
@@ -359,7 +444,7 @@ export default function LiveTradeTransactionsPage() {
       }
       return sum + pnlVal;
     }, 0);
-  }, [trades]);
+  }, [dateFilteredTrades]);
   const openInvestment = useMemo(
     () => openTrades.reduce((sum, t) => sum + Number(t.entryPrice || 0) * Number(t.quantity || 0), 0),
     [openTrades]
@@ -440,7 +525,7 @@ export default function LiveTradeTransactionsPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Total Trades</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>{trades.length}</h3>
+              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>{dateFilteredTrades.length}</h3>
             </div>
             <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>
               <Activity size={20} />
