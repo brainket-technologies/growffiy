@@ -9,6 +9,19 @@ import { concurrentMap } from '../../core/helpers';
 import { logSystemEvent } from '../services/auditLogger';
 import { getLatestOrderState } from '../utils/kiteHelper';
 
+export function to24HourHHmm(timeStr?: string | null): string {
+  if (!timeStr) return '';
+  const isPM = timeStr.toUpperCase().includes('PM');
+  const isAM = timeStr.toUpperCase().includes('AM');
+  const match = timeStr.match(/(\d{1,2}):(\d{2})/);
+  if (!match) return timeStr.slice(0, 5);
+  let h = parseInt(match[1], 10);
+  const m = match[2];
+  if (isPM && h < 12) h += 12;
+  if (isAM && h === 12) h = 0;
+  return `${h.toString().padStart(2, '0')}:${m}`;
+}
+
 export interface EngineAccess {
   todayTokenRefreshed: Set<string>;
   getAlgoSetting(key: string, defaultValue: string): Promise<string>;
@@ -120,12 +133,12 @@ export class TradingScheduler {
           try { config = JSON.parse(strategy.configJson); } catch { continue; }
 
           const preSelectTimeFull = config.basicInfo?.preSelectTime || null;
-          const preSelectTime = preSelectTimeFull ? preSelectTimeFull.slice(0, 5) : null;
-          const preSelectSeconds = preSelectTimeFull && preSelectTimeFull.length >= 8 ? parseInt(preSelectTimeFull.slice(6, 8)) : 0;
+          const preSelectTime = preSelectTimeFull ? to24HourHHmm(preSelectTimeFull) : null;
+          const preSelectSeconds = preSelectTimeFull && preSelectTimeFull.includes(':') && preSelectTimeFull.split(':').length > 2 ? parseInt(preSelectTimeFull.split(':')[2]) || 0 : 0;
 
           const entryTimeFull = config.basicInfo?.entryTime || null;
-          const entryTime = entryTimeFull ? entryTimeFull.slice(0, 5) : null;
-          const entrySeconds = entryTimeFull && entryTimeFull.length >= 8 ? parseInt(entryTimeFull.slice(6, 8)) : 0;
+          const entryTime = entryTimeFull ? to24HourHHmm(entryTimeFull) : null;
+          const entrySeconds = entryTimeFull && entryTimeFull.includes(':') && entryTimeFull.split(':').length > 2 ? parseInt(entryTimeFull.split(':')[2]) || 0 : 0;
 
           if (preSelectTime) {
             const prevTime = knownPreSelectTime.get(strategy.id);
@@ -217,8 +230,8 @@ export class TradingScheduler {
               if (!leg.enabled) continue;
               const legEntryTimeFull = leg.entryTime || null;
               if (!legEntryTimeFull) continue;
-              const legEntryTime = legEntryTimeFull.slice(0, 5);
-              const legEntrySeconds = legEntryTimeFull.length >= 8 ? parseInt(legEntryTimeFull.slice(6, 8)) : 0;
+              const legEntryTime = to24HourHHmm(legEntryTimeFull);
+              const legEntrySeconds = legEntryTimeFull.includes(':') && legEntryTimeFull.split(':').length > 2 ? parseInt(legEntryTimeFull.split(':')[2]) || 0 : 0;
               const legKey = `leg_${li}_${strategy.id}`;
 
               const prevTime = knownEntryTime.get(legKey);
@@ -398,8 +411,8 @@ export class TradingScheduler {
           if (!strategy.configJson) continue;
           try {
             const config = JSON.parse(strategy.configJson);
-            const preSelectTime = config.basicInfo?.preSelectTime?.slice(0, 5) || '09:15';
-            const exitTime = config.basicInfo?.exitTime?.slice(0, 5) || '15:24';
+            const preSelectTime = to24HourHHmm(config.basicInfo?.preSelectTime) || '09:15';
+            const exitTime = to24HourHHmm(config.basicInfo?.exitTime) || '15:24';
             if (currentTimeStr >= preSelectTime && currentTimeStr <= exitTime) {
               isWithinActiveWindow = true;
               break;
@@ -937,7 +950,7 @@ export class TradingScheduler {
                     console.warn(`AlgoEngine Monitor: Entry order ${trade.entryOrderId} ${latestEntryOrder.status}. Reason: ${rejectionMsg}. Trade ${trade.id} marked FAILED.`);
                   } else {
                     const istTimeStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
-                    if (config.basicInfo?.exitTime && istTimeStr >= config.basicInfo.exitTime) {
+                    if (config.basicInfo?.exitTime && istTimeStr >= to24HourHHmm(config.basicInfo.exitTime)) {
                       console.log(`AlgoEngine Monitor: Entry order ${trade.entryOrderId} for ${trade.symbol} is still ${latestEntryOrder.status} at market close. Cancelling entry order...`);
                       try {
                         await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.entryOrderId, 'regular', (client.proxyUrl || client.dedicatedIp));
@@ -957,7 +970,7 @@ export class TradingScheduler {
               console.warn(`AlgoEngine Monitor: Entry status check failed for ${trade.symbol}:`, e); 
               // Fallback: If status check failed but we are past exit time, forcefully try to cancel it
               const istTimeStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
-              if (config.basicInfo?.exitTime && istTimeStr >= config.basicInfo.exitTime) {
+              if (config.basicInfo?.exitTime && istTimeStr >= to24HourHHmm(config.basicInfo.exitTime)) {
                 console.log(`AlgoEngine Monitor: Force cancelling entry order ${trade.entryOrderId} for ${trade.symbol} at market close despite status fetch failure.`);
                 try {
                   await KiteClient.cancelOrder(client.zerodhaApiKey, client.accessToken, trade.entryOrderId, 'regular', (client.proxyUrl || client.dedicatedIp));
@@ -1031,7 +1044,7 @@ export class TradingScheduler {
             // --- Market Close Check ---
             if (config.basicInfo?.exitTime && !exitTriggered) {
               const istTimeStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
-              if (istTimeStr >= config.basicInfo.exitTime) {
+              if (istTimeStr >= to24HourHHmm(config.basicInfo.exitTime)) {
                 exitTriggered = true;
                 const liveLtp = this.wsLive.getStockLtp(trade.symbol);
                 exitPrice = liveLtp > 0 ? liveLtp : Number(trade.entryPrice);
