@@ -411,10 +411,6 @@ export default function ClientsPage() {
           <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Inactive Clients</span>
           <span style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-secondary)', fontFamily: 'var(--font-title)' }}>{inactiveCount}</span>
         </Card>
-        <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid #f59e0b' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Connected Sessions</span>
-          <span style={{ fontSize: '28px', fontWeight: 800, color: 'var(--warning)', fontFamily: 'var(--font-title)' }}>{connectedCount}</span>
-        </Card>
         <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid #10b981' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Demate</span>
           <span style={{ fontSize: '28px', fontWeight: 800, color: '#10b981', fontFamily: 'var(--font-title)' }}>₹{totalLiveMargin.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
