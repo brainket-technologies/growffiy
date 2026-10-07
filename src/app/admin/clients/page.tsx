@@ -347,6 +347,7 @@ export default function ClientsPage() {
   const activeCount = clients.filter(c => c.tradingStatus === 'active').length;
   const inactiveCount = clients.filter(c => c.tradingStatus === 'inactive').length;
   const connectedCount = clients.filter(c => !!c.accessToken).length;
+  const totalLiveMargin = clients.reduce((acc, c) => acc + (Number(c.liveMargin) || 0), 0);
 
   const handleExportToExcel = () => {
     const headers = ['Name', 'Email', 'Zerodha Client ID', 'Capital (INR)', 'Connection Status', 'Trading Status'];
@@ -396,7 +397,7 @@ export default function ClientsPage() {
       </div>
 
       {/* Stats Summary Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
         <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid var(--primary)' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Clients</span>
           <span style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>{totalCount}</span>
@@ -412,6 +413,10 @@ export default function ClientsPage() {
         <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid #f59e0b' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Connected Sessions</span>
           <span style={{ fontSize: '28px', fontWeight: 800, color: 'var(--warning)', fontFamily: 'var(--font-title)' }}>{connectedCount}</span>
+        </Card>
+        <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid #10b981' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Live Margin</span>
+          <span style={{ fontSize: '28px', fontWeight: 800, color: '#10b981', fontFamily: 'var(--font-title)' }}>₹{totalLiveMargin.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
         </Card>
       </div>
 
