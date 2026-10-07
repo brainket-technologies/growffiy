@@ -144,6 +144,9 @@ export const Header: React.FC<HeaderProps> = ({
       const activeRole = localStorage.getItem('growffiy_logged_in_user_role');
       localStorage.removeItem('growffiy_logged_in_user_id');
       localStorage.removeItem('growffiy_logged_in_user_role');
+      localStorage.removeItem('growffiy_logged_in_user_name');
+      localStorage.removeItem('growffiy_logged_in_user_email');
+      localStorage.removeItem('growffiy_staff_permissions');
       window.location.href = activeRole === 'admin' ? '/admin/login' : '/login';
     }
   };

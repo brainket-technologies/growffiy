@@ -595,6 +595,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true, staffPermissio
       localStorage.removeItem('growffiy_logged_in_user_id');
       localStorage.removeItem('growffiy_logged_in_user_role');
       localStorage.removeItem('growffiy_logged_in_user_name');
+      localStorage.removeItem('growffiy_logged_in_user_email');
       localStorage.removeItem('growffiy_staff_permissions');
       window.location.replace(isAdmin ? '/admin/login' : staffPermissions ? '/staff/login' : '/login');
     }
