@@ -2401,7 +2401,7 @@ export default function ClientDashboardOverview() {
                       <tr>
                         {[
                           { key: 'symbol', label: 'Symbol' },
-                          { key: 'type', label: 'Type' },
+                          { key: 'type', label: 'Order Type' },
                           { key: 'qty', label: 'Qty' },
                           { key: 'entryTime', label: 'Entry Time' },
                           { key: 'entryPrice', label: 'Entry Price' },

@@ -1136,7 +1136,7 @@ export default function ClientPerformancePage() {
               <tr>
                 {[
                   { key: 'date', label: 'Date & Time' },
-                  { key: 'type', label: 'Type' },
+                  { key: 'type', label: 'Order Type' },
                   { key: 'symbol', label: 'Symbol' },
                   { key: 'qty', label: 'Qty' },
                   { key: 'entryPrice', label: 'Entry Price' },
