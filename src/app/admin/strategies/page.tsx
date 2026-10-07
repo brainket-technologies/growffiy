@@ -309,12 +309,13 @@ export default function StrategiesPage() {
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) {
-      window.history.replaceState({ viewMode }, '', '');
+      const currentState = window.history.state || {};
+      window.history.replaceState({ ...currentState, viewMode }, '', '');
       isFirstRender.current = false;
     } else {
-      const currentState = window.history.state;
-      if (!currentState || currentState.viewMode !== viewMode) {
-        window.history.pushState({ viewMode }, '', '');
+      const currentState = window.history.state || {};
+      if (currentState.viewMode !== viewMode) {
+        window.history.pushState({ ...currentState, viewMode }, '', '');
       }
     }
   }, [viewMode]);
