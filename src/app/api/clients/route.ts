@@ -20,9 +20,22 @@ export async function GET() {
       });
     }, 15);
     
-    const enrichedClients = dbClients.map((c: any) => ({
-      ...c,
-      liveMargin: null
+    const enrichedClients = await Promise.all(dbClients.map(async (c: any) => {
+      let liveMargin = null;
+      if (c.accessToken && c.zerodhaApiKey) {
+        try {
+          const marginRes = await KiteClient.getMargins(c.zerodhaApiKey, c.accessToken);
+          if (marginRes && marginRes.status === 'success' && marginRes.data?.equity?.net !== undefined) {
+            liveMargin = Number(marginRes.data.equity.net);
+          }
+        } catch (err) {
+          console.error(`Error fetching margin for ${c.zerodhaClientId}:`, err);
+        }
+      }
+      return {
+        ...c,
+        liveMargin
+      };
     }));
 
     return NextResponse.json({ success: true, clients: enrichedClients });
