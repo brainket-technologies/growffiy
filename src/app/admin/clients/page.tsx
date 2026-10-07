@@ -561,7 +561,7 @@ export default function ClientsPage() {
               <tr>
                 {[
                   { key: 'name', label: 'Name' },
-                  { key: 'clientId', label: 'Zerodha Client ID' },
+                  { key: 'clientId', label: 'Zerodha ID' },
                   { key: 'productType', label: 'Product Type' },
                   { key: 'strategy', label: 'Strategy' },
                   { key: 'margin', label: 'Demat Amount' },
