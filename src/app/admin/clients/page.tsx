@@ -330,6 +330,14 @@ export default function ClientsPage() {
       else if (sortKey === 'status') { aVal = a.tradingStatus || ''; bVal = b.tradingStatus || ''; }
       else { aVal = ''; bVal = ''; }
       
+      if (sortKey === 'margin') {
+        const aIsNA = !(a.accessToken && a.liveMargin != null);
+        const bIsNA = !(b.accessToken && b.liveMargin != null);
+        if (aIsNA && !bIsNA) return 1;
+        if (!aIsNA && bIsNA) return -1;
+        if (aIsNA && bIsNA) return 0;
+      }
+
       const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
       return sortDir === 'asc' ? cmp : -cmp;
     });
