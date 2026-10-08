@@ -176,7 +176,9 @@ export async function POST(request: Request) {
     }
 
     if (!marketExitRes || marketExitRes.status !== 'success') {
-      return NextResponse.json({ success: false, error: 'Kite returned failure for exit order' }, { status: 500 });
+      console.error('Kite Exit Order Failed:', marketExitRes);
+      const errorMsg = marketExitRes?.message || 'Unknown Kite error';
+      return NextResponse.json({ success: false, error: `Kite error: ${errorMsg}` }, { status: 500 });
     }
 
     const exitOrderId = marketExitRes.data.order_id;
