@@ -13,6 +13,9 @@ export async function GET(request: Request) {
 
     const cacheKey = `admin_dashboard:${startDateStr || 'default'}:${endDateStr || 'default'}`;
 
+    const from = searchParams.get('startDate');
+    const to = searchParams.get('endDate');
+
     const result = await getCachedData(cacheKey, async () => {
 
     const today = new Date();
@@ -20,8 +23,23 @@ export async function GET(request: Request) {
     const defaultStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
     const defaultEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    const startFilter = startDateStr ? new Date(`${startDateStr}T00:00:00.000`) : defaultStartDate;
-    const endFilter = endDateStr ? new Date(`${endDateStr}T23:59:59.999`) : defaultEndDate;
+    let startDate: Date;
+    let endDate: Date;
+    if (from) {
+      startDate = new Date(`${from} 00:00:00 UTC`);
+      startDate.setMinutes(startDate.getMinutes() - 330);
+    } else {
+      startDate = defaultStartDate;
+    }
+    if (to) {
+      endDate = new Date(`${to} 23:59:59 UTC`);
+      endDate.setMinutes(endDate.getMinutes() - 330);
+    } else {
+      endDate = defaultEndDate;
+    }
+
+    const startFilter = startDate;
+    const endFilter = endDate;
 
     // 1. Client & Subscription counts
     const allClientsData = await prisma.client.findMany({
