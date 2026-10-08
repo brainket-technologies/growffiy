@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
 import { getCachedData } from '../../../../shared/utils/redis';
