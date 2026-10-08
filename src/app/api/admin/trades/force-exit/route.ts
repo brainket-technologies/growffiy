@@ -168,7 +168,7 @@ export async function POST(request: Request) {
           order_type: 'MARKET',
           product: productType as 'MIS' | 'CNC' | 'NRML',
           variety: 'regular',
-          market_protection: 20
+          market_protection: 5
         },
         vpsIp
       );
