@@ -214,6 +214,8 @@ export async function POST(request: Request) {
         exitTime: new Date(),
         exitReason: 'Manual Force Exit',
         pnl: pnl,
+        slOrderStatus: 'CANCELLED',
+        targetOrderStatus: 'CANCELLED',
       }
     });
 
