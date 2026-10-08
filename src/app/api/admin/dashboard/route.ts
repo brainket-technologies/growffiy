@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     // Fetch live margins
     let totalDemate = 0;
     await Promise.all(allClientsData.map(async (c) => {
-      let margin = Number(c.capital) || 0;
+      let margin = 0;
       if (c.accessToken && c.zerodhaApiKey) {
         try {
           const marginRes = await KiteClient.getMargins(c.zerodhaApiKey, c.accessToken);
