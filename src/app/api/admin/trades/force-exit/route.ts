@@ -219,7 +219,8 @@ export async function POST(request: Request) {
       }
     });
 
-    return NextResponse.json({ success: true, message: 'Trade force exited successfully' });
+    const message = `Trade exited successfully!\nExit Price: ₹${exitPrice.toFixed(2)}\nP&L: ${pnl >= 0 ? '+' : ''}₹${pnl.toFixed(2)}`;
+    return NextResponse.json({ success: true, message: message });
   } catch (error: any) {
     console.error('Error in force exit API:', error);
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });

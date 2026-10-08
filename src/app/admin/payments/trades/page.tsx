@@ -182,7 +182,7 @@ export default function LiveTradeTransactionsPage() {
     try {
       const res = await api.post('/api/admin/trades/force-exit', { tradeId: tradeToForceExit.id || tradeToForceExit.legs?.[0]?.id });
       if (res.success) {
-        alert('Trade force exited successfully');
+        alert(res.message || 'Trade force exited successfully');
         refreshAllData();
       } else {
         alert(res.error || 'Failed to force exit trade');
