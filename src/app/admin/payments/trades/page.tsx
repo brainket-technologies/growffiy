@@ -428,40 +428,49 @@ export default function LiveTradeTransactionsPage() {
     });
   }, [mergedRows, searchQuery, clientFilter, strategyFilter, typeFilter, statusFilter]);
 
-  const openTrades = useMemo(() => dateFilteredTrades.filter(t => (t.status || '').toLowerCase() === 'open'), [dateFilteredTrades]);
-  const closedTrades = useMemo(() => dateFilteredTrades.filter(t => (t.status || '').toLowerCase() === 'closed' || (t.status || '').toLowerCase() === 'success'), [dateFilteredTrades]);
-  const failedTrades = useMemo(() => dateFilteredTrades.filter(t => (t.status || '').toLowerCase() === 'failed'), [dateFilteredTrades]);
-  const cancelledTrades = useMemo(() => dateFilteredTrades.filter(t => (t.status || '').toLowerCase() === 'cancelled'), [dateFilteredTrades]);
+  const flatFilteredTrades = useMemo(() => {
+    let list: any[] = [];
+    (filteredTrades || []).forEach(row => {
+      if (row._isOcoMerged && row.legs) {
+        list.push(...row.legs);
+      } else {
+        list.push(row);
+      }
+    });
+    return list;
+  }, [filteredTrades]);
+
+  const openTrades = useMemo(() => flatFilteredTrades.filter(t => (t.status || '').toLowerCase() === 'open'), [flatFilteredTrades]);
+  const closedTrades = useMemo(() => flatFilteredTrades.filter(t => (t.status || '').toLowerCase() === 'closed' || (t.status || '').toLowerCase() === 'success'), [flatFilteredTrades]);
+  const failedTrades = useMemo(() => flatFilteredTrades.filter(t => (t.status || '').toLowerCase() === 'failed'), [flatFilteredTrades]);
+  const cancelledTrades = useMemo(() => flatFilteredTrades.filter(t => (t.status || '').toLowerCase() === 'cancelled'), [flatFilteredTrades]);
+
+  const helperCalcPnl = (t: any) => {
+    const status = (t.status || '').toLowerCase();
+    if (status === 'cancelled' || status === 'failed' || status === 'rejected' || status === 'open') return 0;
+    
+    let pnlVal = Number(t.pnl || 0);
+    if (pnlVal !== 0) return pnlVal;
+    
+    if (t.entryPrice && t.exitPrice) {
+      const isShort = (t.direction || '').toLowerCase() === 'short';
+      const entry = Number(t.entryPrice);
+      const exit = Number(t.exitPrice);
+      const qty = Number(t.filledQuantity || t.quantity || 1);
+      return isShort ? (entry - exit) * qty : (exit - entry) * qty;
+    }
+    return 0;
+  };
 
   const totalPnl = useMemo(() => {
-    return (dateFilteredTrades || []).reduce((sum, t) => {
-      let pnlVal = Number(t.pnl || 0);
-      if ((t.pnl === null || t.pnl === undefined || t.pnl === 0) && t.entryPrice && t.exitPrice) {
-        const isShort = (t.direction || '').toLowerCase() === 'short';
-        const entry = Number(t.entryPrice);
-        const exit = Number(t.exitPrice);
-        const qty = Number(t.quantity || 0);
-        pnlVal = isShort ? (entry - exit) * qty : (exit - entry) * qty;
-      }
-      return sum + pnlVal;
-    }, 0);
-  }, [dateFilteredTrades]);
+    return flatFilteredTrades.reduce((sum, t) => sum + helperCalcPnl(t), 0);
+  }, [flatFilteredTrades]);
   const openInvestment = useMemo(
     () => openTrades.reduce((sum, t) => sum + Number(t.entryPrice || 0) * Number(t.quantity || 0), 0),
     [openTrades]
   );
   const closedPnl = useMemo(() => {
-    return closedTrades.reduce((sum, t) => {
-      let pnlVal = Number(t.pnl || 0);
-      if ((t.pnl === null || t.pnl === undefined || t.pnl === 0) && t.entryPrice && t.exitPrice) {
-        const isShort = (t.direction || '').toLowerCase() === 'short';
-        const entry = Number(t.entryPrice);
-        const exit = Number(t.exitPrice);
-        const qty = Number(t.quantity || 0);
-        pnlVal = isShort ? (entry - exit) * qty : (exit - entry) * qty;
-      }
-      return sum + pnlVal;
-    }, 0);
+    return closedTrades.reduce((sum, t) => sum + helperCalcPnl(t), 0);
   }, [closedTrades]);
 
   const totalPages = Math.ceil(filteredTrades.length / pageSize) || 1;

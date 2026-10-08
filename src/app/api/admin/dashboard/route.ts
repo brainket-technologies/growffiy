@@ -68,11 +68,11 @@ export async function GET(request: Request) {
         return 0;
       }
       
-      if ((t.pnl === null || t.pnl === undefined || val === 0) && t.entryPrice && t.exitPrice && Number(t.quantity) > 0) {
+      if ((t.pnl === null || t.pnl === undefined || val === 0) && t.entryPrice && t.exitPrice) {
         const isShort = (t.direction || '').toLowerCase() === 'short';
         const entry = Number(t.entryPrice);
         const exit = Number(t.exitPrice);
-        const qty = Number(t.quantity);
+        const qty = Number(t.filledQuantity || t.quantity || 1);
         val = isShort ? (entry - exit) * qty : (exit - entry) * qty;
       }
       return val;
