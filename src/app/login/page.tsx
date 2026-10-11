@@ -39,11 +39,17 @@ export default function LoginPage() {
   // Initialize and Sync Theme
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('reason') === 'session_expired') {
+        setError('Your session expired because your password was changed. Please log in again.');
+      }
+
       const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
       const activeUserRole = localStorage.getItem('growffiy_logged_in_user_role');
+      const authToken = localStorage.getItem('growffiy_auth_token');
       
-      // If user is logged in, auto navigate to their correct portal dashboard without adding login to history stack
-      if (activeUser) {
+      // If user is logged in with valid token, auto navigate
+      if (activeUser && authToken) {
         if (activeUserRole === 'admin') {
           window.location.replace('/admin');
           return;
@@ -130,6 +136,9 @@ export default function LoginPage() {
         localStorage.setItem('growffiy_logged_in_user_name', res.user.name || userId);
         localStorage.setItem('growffiy_logged_in_user_email', res.user.email || '');
         localStorage.setItem('growffiy_logged_in_user_role', 'client');
+        if (res.token) {
+          localStorage.setItem('growffiy_auth_token', res.token);
+        }
         localStorage.setItem('growffiy_remember_me', String(rememberMe));
         if (rememberMe) {
           localStorage.setItem('growffiy_saved_user_id', userId);

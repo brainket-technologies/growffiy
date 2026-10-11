@@ -64,8 +64,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Unauthorized role assignment access' }, { status: 403 });
     }
 
+    const { generateSessionToken } = require('@/shared/utils/session');
+    const token = generateSessionToken(user.id, user.password);
+
     return NextResponse.json({
       success: true,
+      token,
       user: {
         id: user.id,
         name: user.name,

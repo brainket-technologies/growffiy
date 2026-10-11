@@ -25,9 +25,15 @@ export default function AdminLoginPage() {
       if (storedName) setBrandName(storedName);
       if (storedLogo) setBrandLogo(storedLogo);
 
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('reason') === 'session_expired') {
+        setError('Your session expired because your password was changed. Please log in again.');
+      }
+
       const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
       const activeUserRole = localStorage.getItem('growffiy_logged_in_user_role');
-      if (activeUser) {
+      const authToken = localStorage.getItem('growffiy_auth_token');
+      if (activeUser && authToken) {
         if (activeUserRole === 'admin') {
           window.location.replace('/admin');
           return;
@@ -84,6 +90,9 @@ export default function AdminLoginPage() {
         localStorage.setItem('growffiy_logged_in_user_name', res.user.name || userId);
         localStorage.setItem('growffiy_logged_in_user_email', res.user.email || '');
         localStorage.setItem('growffiy_logged_in_user_role', 'admin');
+        if (res.token) {
+          localStorage.setItem('growffiy_auth_token', res.token);
+        }
       }
       
       setTimeout(() => {

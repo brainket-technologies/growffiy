@@ -18,9 +18,15 @@ export default function StaffLoginPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('reason') === 'session_expired') {
+        setError('Your session expired because your password was changed. Please log in again.');
+      }
+
       const storedId = localStorage.getItem('growffiy_logged_in_user_id');
       const storedRole = localStorage.getItem('growffiy_logged_in_user_role');
-      if (storedId && storedRole === 'staff') {
+      const authToken = localStorage.getItem('growffiy_auth_token');
+      if (storedId && storedRole === 'staff' && authToken) {
         window.location.replace('/staff');
         return;
       }
@@ -83,6 +89,9 @@ export default function StaffLoginPage() {
         localStorage.setItem('growffiy_logged_in_user_name', res.staff.name);
         localStorage.setItem('growffiy_logged_in_user_email', res.staff.email || '');
         localStorage.setItem('growffiy_logged_in_user_role', 'staff');
+        if (res.token) {
+          localStorage.setItem('growffiy_auth_token', res.token);
+        }
         localStorage.setItem('growffiy_staff_permissions', JSON.stringify(res.staff.permissions || []));
         localStorage.setItem('growffiy_staff_id', res.staff.id);
       }

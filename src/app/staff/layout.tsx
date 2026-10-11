@@ -39,10 +39,42 @@ export default function StaffLayout({
 
       if (!storedId || storedRole !== 'staff') {
         window.location.href = '/staff/login';
-      } else {
-        setStaffName(storedName || 'Staff');
-        try { setPermissions(JSON.parse(storedPerms || '[]')); } catch { setPermissions([]); }
-        setIsAuthenticated(true);
+        return;
+      }
+
+      const authToken = localStorage.getItem('growffiy_auth_token');
+      if (!authToken) {
+        localStorage.removeItem('growffiy_logged_in_user_id');
+        localStorage.removeItem('growffiy_logged_in_user_role');
+        window.location.href = '/staff/login?reason=session_expired';
+        return;
+      }
+
+      fetch('/api/auth/verify-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: storedId, role: 'staff', token: authToken })
+      })
+        .then(r => r.json())
+        .then(res => {
+          if (res.success && res.valid) {
+            setStaffName(storedName || 'Staff');
+            try { setPermissions(JSON.parse(storedPerms || '[]')); } catch { setPermissions([]); }
+            setIsAuthenticated(true);
+          } else {
+            localStorage.removeItem('growffiy_logged_in_user_id');
+            localStorage.removeItem('growffiy_logged_in_user_role');
+            localStorage.removeItem('growffiy_auth_token');
+            localStorage.removeItem('growffiy_logged_in_user_name');
+            localStorage.removeItem('growffiy_logged_in_user_email');
+            window.location.href = '/staff/login?reason=session_expired';
+          }
+        })
+        .catch(() => {
+          setStaffName(storedName || 'Staff');
+          try { setPermissions(JSON.parse(storedPerms || '[]')); } catch { setPermissions([]); }
+          setIsAuthenticated(true);
+        });
 
         // Refresh permissions from server on page load
         const storedStaffId = localStorage.getItem('growffiy_staff_id');
@@ -62,7 +94,6 @@ export default function StaffLayout({
             })
             .catch(() => {});
         }
-      }
     }
   }, [isStaffLogin]);
 

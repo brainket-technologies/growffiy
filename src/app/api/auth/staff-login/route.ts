@@ -42,8 +42,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Invalid Staff ID/Email or Password' }, { status: 401 });
     }
 
+    const { generateSessionToken } = require('@/shared/utils/session');
+    const token = generateSessionToken(staff.id, staff.password);
+
     return NextResponse.json({
       success: true,
+      token,
       staff: {
         id: staff.id,
         name: staff.name,

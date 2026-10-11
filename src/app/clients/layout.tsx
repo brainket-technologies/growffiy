@@ -30,32 +30,66 @@ export default function ClientDashboardLayout({
           localStorage.removeItem('growffiy_logged_in_user_role');
           window.location.href = '/login';
         }
+        return;
+      }
+
+      if (!impersonateId) {
+        const authToken = localStorage.getItem('growffiy_auth_token');
+        if (!authToken) {
+          localStorage.removeItem('growffiy_logged_in_user_id');
+          localStorage.removeItem('growffiy_logged_in_user_role');
+          window.location.href = '/login?reason=session_expired';
+          return;
+        }
+
+        fetch('/api/auth/verify-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: storedId, role: 'client', token: authToken })
+        })
+          .then(r => r.json())
+          .then(res => {
+            if (res.success && res.valid) {
+              setIsAuthenticated(true);
+            } else {
+              localStorage.removeItem('growffiy_logged_in_user_id');
+              localStorage.removeItem('growffiy_logged_in_user_role');
+              localStorage.removeItem('growffiy_auth_token');
+              localStorage.removeItem('growffiy_logged_in_user_name');
+              localStorage.removeItem('growffiy_logged_in_user_email');
+              window.location.href = '/login?reason=session_expired';
+            }
+          })
+          .catch(() => {
+            setIsAuthenticated(true);
+          });
       } else {
         setIsAuthenticated(true);
-        if (impersonateId) {
-          // Fetch real user profile via API for impersonation
-          fetch(`/api/auth/profile?userId=${impersonateId}`)
-            .then(r => r.json())
-            .then((res: any) => {
-              if (res.success && res.user) {
-                setActiveUser({ name: res.user.name, id: impersonateId, email: res.user.email });
-              } else {
-                const cleanName = impersonateId.split(/[_-]/).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-                setActiveUser({ name: cleanName, id: impersonateId });
-              }
-            })
-            .catch(() => {
+      }
+
+      if (impersonateId) {
+        // Fetch real user profile via API for impersonation
+        fetch(`/api/auth/profile?userId=${impersonateId}`)
+          .then(r => r.json())
+          .then((res: any) => {
+            if (res.success && res.user) {
+              setActiveUser({ name: res.user.name, id: impersonateId, email: res.user.email });
+            } else {
               const cleanName = impersonateId.split(/[_-]/).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
               setActiveUser({ name: cleanName, id: impersonateId });
-            });
-        } else {
-          const storedName = localStorage.getItem('growffiy_logged_in_user_name');
-          const cleanName = storedName || storedId
-            .split(/[_-]/)
-            .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-          setActiveUser({ name: cleanName, id: storedId });
-        }
+            }
+          })
+          .catch(() => {
+            const cleanName = impersonateId.split(/[_-]/).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            setActiveUser({ name: cleanName, id: impersonateId });
+          });
+      } else {
+        const storedName = localStorage.getItem('growffiy_logged_in_user_name');
+        const cleanName = storedName || storedId
+          .split(/[_-]/)
+          .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        setActiveUser({ name: cleanName, id: storedId });
       }
     }
   }, []);

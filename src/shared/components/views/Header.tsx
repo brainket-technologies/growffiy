@@ -162,6 +162,9 @@ export const Header: React.FC<HeaderProps> = ({
 
       if (res.success) {
         setPasswordSuccess(true);
+        if (res.token) {
+          localStorage.setItem('growffiy_auth_token', res.token);
+        }
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');

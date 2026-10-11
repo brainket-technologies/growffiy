@@ -184,7 +184,14 @@ export async function POST(request: Request) {
         }
       }
 
-      return NextResponse.json({ success: true, message: 'Password updated successfully' });
+      const { generateSessionToken } = require('@/shared/utils/session');
+      const newToken = generateSessionToken(user.id, newPassword);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Password updated successfully',
+        token: newToken
+      });
     }
 
     // Case 2: Profile details update (name, email)

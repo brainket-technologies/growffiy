@@ -38,11 +38,41 @@ export default function AdminLayout({
       }
       if (!activeUser) {
         window.location.href = '/admin/login';
+        return;
       } else if (activeUserRole !== 'admin') {
         window.location.href = '/clients';
-      } else {
-        setIsAdminAuthenticated(true);
+        return;
       }
+
+      const authToken = localStorage.getItem('growffiy_auth_token');
+      if (!authToken) {
+        localStorage.removeItem('growffiy_logged_in_user_id');
+        localStorage.removeItem('growffiy_logged_in_user_role');
+        window.location.href = '/admin/login?reason=session_expired';
+        return;
+      }
+
+      fetch('/api/auth/verify-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: activeUser, role: 'admin', token: authToken })
+      })
+        .then(r => r.json())
+        .then(res => {
+          if (res.success && res.valid) {
+            setIsAdminAuthenticated(true);
+          } else {
+            localStorage.removeItem('growffiy_logged_in_user_id');
+            localStorage.removeItem('growffiy_logged_in_user_role');
+            localStorage.removeItem('growffiy_auth_token');
+            localStorage.removeItem('growffiy_logged_in_user_name');
+            localStorage.removeItem('growffiy_logged_in_user_email');
+            window.location.href = '/admin/login?reason=session_expired';
+          }
+        })
+        .catch(() => {
+          setIsAdminAuthenticated(true);
+        });
     }
   }, [isAdminLogin]);
 
