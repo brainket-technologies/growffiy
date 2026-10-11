@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import { AppProvider } from '../../shared/viewmodels/AppContext';
 import { Sidebar } from '../../shared/components/sidebar/Sidebar';
 import { Header } from '../../shared/components/sidebar/Header';
@@ -12,6 +13,7 @@ export default function ClientDashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const [activeUser, setActiveUser] = React.useState<any>({ name: 'Client User', id: '' });
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
 
@@ -92,7 +94,7 @@ export default function ClientDashboardLayout({
         setActiveUser({ name: cleanName, id: storedId });
       }
     }
-  }, []);
+  }, [pathname]);
 
   if (!isAuthenticated) {
     return <Loader title="Authenticating session" text="Securing demat connection and verifying client credentials..." />;

@@ -74,7 +74,7 @@ export default function AdminLayout({
           setIsAdminAuthenticated(true);
         });
     }
-  }, [isAdminLogin]);
+  }, [pathname, isAdminLogin]);
 
   if (!isAdminAuthenticated) {
     return <Loader title="Authenticating admin session" text="Securing admin panel settings and verifying credentials..." />;

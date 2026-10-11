@@ -95,7 +95,7 @@ export default function StaffLayout({
             .catch(() => {});
         }
     }
-  }, [isStaffLogin]);
+  }, [pathname, isStaffLogin]);
 
   if (!isAuthenticated) {
     return <Loader title="Authenticating staff session" text="Verifying staff credentials..." />;

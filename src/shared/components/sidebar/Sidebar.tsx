@@ -588,7 +588,40 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true, staffPermissio
 
   const handleNavigate = useCallback(() => {
     if (isMobile) setSidebarOpen(false);
-  }, [isMobile]);
+
+    // Verify session immediately when any side menu item is clicked
+    if (typeof window !== 'undefined') {
+      const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
+      const activeUserRole = localStorage.getItem('growffiy_logged_in_user_role');
+      const authToken = localStorage.getItem('growffiy_auth_token');
+
+      if (!activeUser || !authToken) {
+        localStorage.removeItem('growffiy_logged_in_user_id');
+        localStorage.removeItem('growffiy_logged_in_user_role');
+        localStorage.removeItem('growffiy_auth_token');
+        window.location.href = isAdmin ? '/admin/login?reason=session_expired' : staffPermissions ? '/staff/login?reason=session_expired' : '/login?reason=session_expired';
+        return;
+      }
+
+      fetch('/api/auth/verify-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: activeUser, role: activeUserRole, token: authToken })
+      })
+        .then(r => r.json())
+        .then(res => {
+          if (!res.success || !res.valid) {
+            localStorage.removeItem('growffiy_logged_in_user_id');
+            localStorage.removeItem('growffiy_logged_in_user_role');
+            localStorage.removeItem('growffiy_auth_token');
+            localStorage.removeItem('growffiy_logged_in_user_name');
+            localStorage.removeItem('growffiy_logged_in_user_email');
+            window.location.href = isAdmin ? '/admin/login?reason=session_expired' : staffPermissions ? '/staff/login?reason=session_expired' : '/login?reason=session_expired';
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isMobile, isAdmin, staffPermissions]);
 
   const handleLogout = useCallback(() => {
     if (typeof window !== 'undefined') {
