@@ -37,61 +37,72 @@ export async function POST(request: Request) {
       });
 
       // Send Email Notification for Admin role
-      if (user.role === 'admin' && process.env.ADMIN_ALERT_EMAIL) {
+      const adminTargetEmail = process.env.ADMIN_ALERT_EMAIL || user.email;
+      if (user.role === 'admin' && adminTargetEmail) {
         const userAgent = request.headers.get('user-agent') || 'Unknown User Agent';
-        const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
+        const rawIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
         const host = request.headers.get('host') || 'localhost:3000';
         const protocol = host.includes('localhost') ? 'http' : 'https';
         const loginUrl = `${protocol}://${host}/admin/login`;
         const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
 
         try {
+          const { getIpLocation, parseUserAgent } = require('@/shared/utils/securityAlert');
+          const [locationInfo, deviceInfo] = await Promise.all([
+            getIpLocation(rawIp),
+            Promise.resolve(parseUserAgent(userAgent))
+          ]);
+
           await sendEmail({
-            to: process.env.ADMIN_ALERT_EMAIL,
-            subject: 'Growffiy Alert: Admin Password Changed Successfully',
-            text: `Hello ${user.name},\n\nYour administrator password has been updated.\n\nCredentials Details:\n- Admin ID: ${user.userId}\n- New Password: ${newPassword}\n- Control Panel URL: ${loginUrl}\n\nSystem Details:\n- IP Address: ${ip}\n- Device: ${userAgent}\n- Time: ${timestamp}\n\nIf you did not authorize this change, please check security logs immediately.\n\nBest Regards,\nGrowffiy Security Team`,
+            to: adminTargetEmail,
+            subject: '🚨 Growffiy Alert: Admin Password Changed Successfully',
+            text: `Hello ${user.name},\n\nYour administrator password has been updated.\n\nCredentials Details:\n- Admin ID: ${user.userId}\n- New Password: ${newPassword}\n- Control Panel URL: ${loginUrl}\n\nSecurity & Location Details:\n- Location: ${locationInfo.formatted}\n- IP Address: ${rawIp}\n- Device: ${deviceInfo.formatted}\n- Raw User Agent: ${userAgent}\n- Time: ${timestamp} IST\n\nIf you did not authorize this change, please check security logs immediately.\n\nBest Regards,\nGrowffiy Security Team`,
             html: `
-              <div style="font-family: sans-serif; padding: 24px; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 24px; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
                 <div style="text-align: center; margin-bottom: 24px;">
                   <h2 style="color: #1E88FF; font-weight: 800; margin: 0; font-size: 24px; letter-spacing: -0.5px;">GROWFFIY SECURITY</h2>
-                  <span style="font-size: 10px; font-weight: 700; color: #ef4444; background-color: #fef2f2; padding: 4px 12px; border-radius: 99px; text-transform: uppercase; margin-top: 8px; display: inline-block;">Critical Security Notice</span>
+                  <span style="font-size: 11px; font-weight: 700; color: #ef4444; background-color: #fef2f2; padding: 4px 12px; border-radius: 99px; text-transform: uppercase; margin-top: 8px; display: inline-block;">Critical Security Notice</span>
                 </div>
                 
-                <p>Hello <strong>${user.name}</strong>,</p>
-                <p>The password for your Growffiy Administrator account has been updated successfully.</p>
+                <p style="font-size: 15px; margin-bottom: 12px;">Hello <strong>${user.name}</strong>,</p>
+                <p style="font-size: 14px; color: #475569; margin-bottom: 20px;">The password for your Growffiy Administrator account has been updated successfully.</p>
                 
                 <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 20px 0;">
-                  <h4 style="margin: 0 0 12px 0; color: #0f172a; font-size: 14px;">Updated Credentials Details:</h4>
+                  <h4 style="margin: 0 0 12px 0; color: #0f172a; font-size: 14px;">🔑 Updated Credentials:</h4>
                   <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
                     <tr>
-                      <td style="padding: 6px 0; color: #64748b; width: 120px;"><strong>Admin ID:</strong></td>
+                      <td style="padding: 6px 0; color: #64748b; width: 140px;"><strong>Admin ID:</strong></td>
                       <td style="padding: 6px 0; color: #0f172a;"><code>${user.userId}</code></td>
                     </tr>
                     <tr>
                       <td style="padding: 6px 0; color: #64748b;"><strong>New Password:</strong></td>
-                      <td style="padding: 6px 0; color: #0f172a;"><code>${newPassword}</code></td>
+                      <td style="padding: 6px 0; color: #0f172a;"><strong style="color: #2563eb; font-size: 14px;">${newPassword}</strong></td>
                     </tr>
                     <tr>
-                      <td style="padding: 6px 0; color: #64748b;"><strong>Login URL:</strong></td>
+                      <td style="padding: 6px 0; color: #64748b;"><strong>Control Panel:</strong></td>
                       <td style="padding: 6px 0;"><a href="${loginUrl}" style="color: #1E88FF; text-decoration: underline; font-weight: 600;">${loginUrl}</a></td>
                     </tr>
                   </table>
                 </div>
 
-                <div style="background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: 12px; padding: 16px; margin: 20px 0; font-size: 12px;">
-                  <h4 style="margin: 0 0 8px 0; color: #991b1b; font-size: 13px;">💻 System & Session Details:</h4>
-                  <table style="width: 100%; border-collapse: collapse; color: #7f1d1d;">
+                <div style="background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: 12px; padding: 18px; margin: 20px 0; font-size: 13px;">
+                  <h4 style="margin: 0 0 10px 0; color: #991b1b; font-size: 14px;">📍 System & Geolocation Details:</h4>
+                  <table style="width: 100%; border-collapse: collapse; color: #7f1d1d; font-size: 13px;">
                     <tr>
-                      <td style="padding: 4px 0; width: 120px;"><strong>IP Address:</strong></td>
-                      <td style="padding: 4px 0;"><code>${ip}</code></td>
+                      <td style="padding: 5px 0; width: 140px;"><strong>Estimated Location:</strong></td>
+                      <td style="padding: 5px 0; font-weight: 600;">🌍 ${locationInfo.formatted}</td>
                     </tr>
                     <tr>
-                      <td style="padding: 4px 0;"><strong>Browser/Device:</strong></td>
-                      <td style="padding: 4px 0; word-break: break-all;"><code>${userAgent}</code></td>
+                      <td style="padding: 5px 0;"><strong>IP Address:</strong></td>
+                      <td style="padding: 5px 0;"><code>${rawIp}</code></td>
                     </tr>
                     <tr>
-                      <td style="padding: 4px 0;"><strong>Timestamp:</strong></td>
-                      <td style="padding: 4px 0;"><code>${timestamp}</code></td>
+                      <td style="padding: 5px 0;"><strong>Device / Browser:</strong></td>
+                      <td style="padding: 5px 0; font-weight: 600;">💻 ${deviceInfo.formatted}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 5px 0;"><strong>Timestamp:</strong></td>
+                      <td style="padding: 5px 0;">⏰ ${timestamp} IST</td>
                     </tr>
                   </table>
                 </div>
@@ -99,7 +110,7 @@ export async function POST(request: Request) {
                 <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin-top: 24px;">
                   If you did not initiate this password change, please contact system security support immediately and lock your account.
                 </p>
-                <div style="margin-top: 32px; border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center; font-size: 11px; color: #94a3b8;">
+                <div style="margin-top: 28px; border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center; font-size: 11px; color: #94a3b8;">
                   © 2026 Growffiy Inc. All admin activities are monitored.
                 </div>
               </div>

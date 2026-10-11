@@ -34,7 +34,7 @@ export async function sendEmail({ to, subject, text, html }: SendMailOptions) {
     const host = settings['smtp_host'];
     const port = parseInt(settings['smtp_port'] || '587', 10);
     const user = settings['smtp_user'];
-    const pass = settings['smtp_password'];
+    const pass = settings['smtp_password'] ? settings['smtp_password'].replace(/\s+/g, '') : '';
     const senderName = settings['smtp_sender_name'] || 'Growffiy Alerts';
     const status = settings['smtp_status'] || 'false';
 
