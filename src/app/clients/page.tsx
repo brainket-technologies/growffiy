@@ -415,9 +415,9 @@ export default function ClientDashboardOverview() {
   const startDateStr = subStartDate ? formatDate(subStartDate) : '--';
   const endDateStr = subEndDate ? formatDate(subEndDate) : '--';
 
-  // Calculate days left for active subscription warning
+  // Calculate days left for subscription warning
   let daysLeft: number | null = null;
-  if (isSubscriptionActive && subEndDate) {
+  if (subEndDate) {
     const today = new Date();
     const end = new Date(subEndDate);
     end.setHours(0, 0, 0, 0);
@@ -425,7 +425,9 @@ export default function ClientDashboardOverview() {
     const diffTime = end.getTime() - today.getTime();
     daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
-  const showExpiryWarning = daysLeft !== null && daysLeft <= 7 && daysLeft >= 0;
+  const isExpired = !isSubscriptionActive || (daysLeft !== null && daysLeft < 0);
+  const isExpiringToday = daysLeft === 0;
+  const showExpiryWarning = isExpired || (daysLeft !== null && daysLeft <= 7);
 
   const productTypeName = matchedClient?.productType?.name || matchedClient?.productTypeName || '';
   const isAlgo = !productTypeName || productTypeName.toLowerCase() === 'algo';
@@ -1220,12 +1222,12 @@ export default function ClientDashboardOverview() {
 
 
 
-      {isSubscriptionActive && showExpiryWarning && (
+      {showExpiryWarning && (
         <div style={{
           padding: '20px',
           borderRadius: '14px',
-          backgroundColor: '#fffbeb',
-          border: '1px solid #fde68a',
+          backgroundColor: isExpired ? '#fef2f2' : '#fffbeb',
+          border: `1px solid ${isExpired ? '#fecaca' : '#fde68a'}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -1235,34 +1237,45 @@ export default function ClientDashboardOverview() {
           animation: 'slideUp 0.3s ease-out'
         }}>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: '#fef3c7', color: '#d97706' }}>
+            <div style={{
+              padding: '10px',
+              borderRadius: '10px',
+              backgroundColor: isExpired ? '#fee2e2' : '#fef3c7',
+              color: isExpired ? '#dc2626' : '#d97706'
+            }}>
               <Clock size={20} />
             </div>
             <div>
-              <h4 style={{ color: '#b45309', fontSize: '15px', fontWeight: 700, marginBottom: '2px' }}>
-                Subscription Expiring Soon
+              <h4 style={{ color: isExpired ? '#b91c1c' : '#b45309', fontSize: '15px', fontWeight: 700, marginBottom: '2px' }}>
+                {isExpired ? 'Subscription Expired' : isExpiringToday ? 'Subscription Expiring Today' : 'Subscription Expiring Soon'}
               </h4>
-              <p style={{ color: '#78350f', fontSize: '13.5px' }}>
-                Your active plan will expire in <strong>{daysLeft} {daysLeft === 1 ? 'day' : 'days'}</strong>. Please renew to ensure uninterrupted trade execution.
+              <p style={{ color: isExpired ? '#991b1b' : '#78350f', fontSize: '13.5px' }}>
+                {isExpired ? (
+                  <>Your subscription plan has <strong>expired</strong>. Please renew to continue automated trading.</>
+                ) : isExpiringToday ? (
+                  <>Your active plan will <strong>expire today</strong>. Please renew to ensure uninterrupted trade execution.</>
+                ) : (
+                  <>Your active plan will expire in <strong>{daysLeft} {daysLeft === 1 ? 'day' : 'days'}</strong>. Please renew to ensure uninterrupted trade execution.</>
+                )}
               </p>
             </div>
           </div>
           <a
-            href="/dashboard/subscription"
+            href="/clients/subscription"
             style={{
               padding: '10px 20px',
               borderRadius: '10px',
-              backgroundColor: 'var(--warning)',
+              backgroundColor: isExpired ? '#ef4444' : 'var(--warning)',
               color: 'white',
               fontSize: '13px',
               fontWeight: 700,
               textDecoration: 'none',
               whiteSpace: 'nowrap',
-              boxShadow: '0 4px 10px rgba(245, 158, 11, 0.2)',
+              boxShadow: isExpired ? '0 4px 10px rgba(239, 68, 68, 0.25)' : '0 4px 10px rgba(245, 158, 11, 0.2)',
               transition: 'all 0.2s'
             }}
           >
-            Renew Plan
+            {isExpired ? 'Renew Now' : 'Renew Plan'}
           </a>
         </div>
       )}
