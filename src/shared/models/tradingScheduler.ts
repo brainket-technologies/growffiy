@@ -354,9 +354,9 @@ export class TradingScheduler {
 
           this.engine.todayTokenRefreshed.clear();
 
-          const CONCURRENCY = 15;
-          const LOGIN_TIMEOUT = 20000;
-          console.log(`AlgoEngine Scheduler: Auto-login ${clients.length} clients with concurrency ${CONCURRENCY}...`);
+          const CONCURRENCY = 4;
+          const LOGIN_TIMEOUT = 30000;
+          console.log(`AlgoEngine Scheduler: Auto-login ${clients.length} clients with concurrency ${CONCURRENCY} (using dedicated proxies/IPs)...`);
           await concurrentMap(clients, async (client) => {
             try {
               const clientAny = client as any;
@@ -364,8 +364,19 @@ export class TradingScheduler {
               const loginRes = await performKiteAutoLogin(client.id);
               if (loginRes.success) {
                 this.engine.todayTokenRefreshed.add(client.id);
+                console.log(`AlgoEngine Scheduler: Auto-login SUCCESS for ${clientAny.user.name}`);
+              } else {
+                console.warn(`AlgoEngine Scheduler: Auto-login failed for ${clientAny.user.name}: ${loginRes.error || 'Unknown error'}. Retrying in 3s...`);
+                // Auto-retry once after 3 seconds
+                await new Promise(r => setTimeout(r, 3000));
+                const retryRes = await performKiteAutoLogin(client.id);
+                if (retryRes.success) {
+                  this.engine.todayTokenRefreshed.add(client.id);
+                  console.log(`AlgoEngine Scheduler: Auto-login retry SUCCESS for ${clientAny.user.name}`);
+                } else {
+                  console.error(`AlgoEngine Scheduler: Auto-login retry FAILED for ${clientAny.user.name}: ${retryRes.error || 'Unknown error'}`);
+                }
               }
-              console.log(`AlgoEngine Scheduler: Auto-login result for ${clientAny.user.name}:`, loginRes.success);
             } catch (err: any) {
               const clientAny = client as any;
               console.error(`AlgoEngine Scheduler: Error auto-logging in client ${clientAny.user.name}:`, err);

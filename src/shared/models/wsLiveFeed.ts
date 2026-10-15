@@ -13,6 +13,7 @@ export class WsLiveFeed {
   activeApiKey: string | null = null;
   activeAccessToken: string | null = null;
   lastAuthError: number = 0;
+  lastAutoLoginAttempt: number = 0;
   instrumentToSymbol: { [key: number]: string } = {};
   symbolToName: { [symbol: string]: string } = {};
   subscribedSymbols: Set<string> = new Set();
@@ -275,9 +276,11 @@ export class WsLiveFeed {
       }
       WsLiveFeed.isReconnecting = true;
       const RECONNECT_DELAY = 30000;
-      const wasAuthError = this.lastAuthError > 0;
+      const AUTO_REFRESH_COOLDOWN = 3 * 60 * 1000;
+      const canAttemptRefresh = wasAuthError && (!this.lastAutoLoginAttempt || (Date.now() - this.lastAutoLoginAttempt > AUTO_REFRESH_COOLDOWN));
 
-      if (wasAuthError) {
+      if (canAttemptRefresh) {
+        this.lastAutoLoginAttempt = Date.now();
         console.log('Kite Socket disconnected due to auth error. Attempting token refresh before reconnect...');
         try {
           const client = await prisma.client.findFirst({
@@ -298,6 +301,8 @@ export class WsLiveFeed {
         } catch (err) {
           console.error('Kite Socket: Auto-login attempt failed:', err);
         }
+      } else if (wasAuthError) {
+        console.log(`Kite Socket: Auth error cooldown active. Next auto-login retry allowed in ${Math.round((AUTO_REFRESH_COOLDOWN - (Date.now() - this.lastAutoLoginAttempt)) / 1000)}s.`);
       }
 
       console.log(`Kite Socket disconnected. Reconnecting in ${RECONNECT_DELAY / 1000} seconds...`);
