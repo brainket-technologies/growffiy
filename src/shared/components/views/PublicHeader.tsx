@@ -174,7 +174,6 @@ export default function PublicHeader() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
-                color: '#334155',
                 fontWeight: 600,
                 fontSize: '14px',
                 padding: '8px 14px',

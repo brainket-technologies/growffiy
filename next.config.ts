@@ -6,13 +6,6 @@ const nextConfig: NextConfig = {
   },
   serverExternalPackages: ["@prisma/client", "@prisma/adapter-neon", "ws", "kiteconnect"],
   transpilePackages: ["react-datepicker"],
-  experimental: {
-    turbo: {
-      resolveAlias: {
-        "react-datepicker/dist/react-datepicker.css": false,
-      },
-    },
-  },
 };
 
 export default nextConfig;

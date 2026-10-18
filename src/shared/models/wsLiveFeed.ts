@@ -270,6 +270,7 @@ export class WsLiveFeed {
     });
 
     this.ws.on('close', async () => {
+      const wasAuthError = Boolean(this.lastAuthError && (Date.now() - this.lastAuthError < 15000));
       if (WsLiveFeed.isReconnecting) {
         console.log('Kite Socket disconnected. Reconnect already scheduled. Skipping.');
         return;

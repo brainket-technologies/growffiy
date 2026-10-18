@@ -27,16 +27,19 @@ export async function GET(request: Request) {
       );
     }
 
-    // Fetch the client to get their productTypeId
+    // Fetch the client to get their assigned productTypeId
     const client = await prisma.client.findUnique({
       where: { userId: decoded.id }
     });
 
     const whereClause: any = { status: 'active' };
     
-    // Only return plans matching the client's product type, if they have one assigned
-    if (client && client.productTypeId) {
+    // STRICT: Only return plans matching the client's assigned product type
+    if (client?.productTypeId) {
       whereClause.productTypeId = client.productTypeId;
+    } else {
+      // If no product type is assigned to the client, do not leak or mix all product plans
+      whereClause.productTypeId = '__NONE__';
     }
 
     const plans = await prisma.subscriptionPlan.findMany({
@@ -53,6 +56,20 @@ export async function GET(request: Request) {
     const gstEnabled = (settings['gst_enabled'] || 'true') === 'true';
     const gstPercentage = Number(settings['gst_percentage'] || '18');
 
+    // Fetch user's pending manual payment if any
+    const pendingPayment = await prisma.payment.findFirst({
+      where: {
+        userId: decoded.id,
+        status: 'pending'
+      },
+      include: {
+        plan: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
     return NextResponse.json(
       {
         success: true,
@@ -61,6 +78,20 @@ export async function GET(request: Request) {
           plans,
           gstEnabled,
           gstPercentage,
+          paymentMethod: settings['payment_method'] || 'online',
+          manualUpiId: settings['manual_upi_id'] || '',
+          manualUpiName: settings['manual_upi_name'] || '',
+          manualQrCode: settings['manual_qr_code'] || '',
+          manualPaymentNote: settings['manual_payment_note'] || '',
+          pendingPayment: pendingPayment ? {
+            id: pendingPayment.id,
+            planId: pendingPayment.planId,
+            planName: pendingPayment.plan?.name || 'Subscription Plan',
+            amount: Number(pendingPayment.amount),
+            utrNumber: pendingPayment.razorpayPaymentId || '',
+            screenshotUrl: pendingPayment.screenshotUrl || null,
+            createdAt: pendingPayment.createdAt
+          } : null
         }
       },
       { status: 200 }

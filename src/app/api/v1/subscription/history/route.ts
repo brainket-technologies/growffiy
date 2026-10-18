@@ -50,8 +50,16 @@ export async function GET(request: Request) {
       const amountNum = Number(payment.amount);
       const baseAmount = amountNum / (1 + gstRate);
       const gstAmount = amountNum - baseAmount;
+      
+      const rawStatus = (payment.status || '').toLowerCase();
+      let normalizedStatus = payment.status;
+      if (rawStatus === 'captured' || rawStatus === 'completed' || rawStatus === 'paid') {
+        normalizedStatus = 'success';
+      }
+
       return {
         ...payment,
+        status: normalizedStatus,
         baseAmount,
         gstAmount,
       };

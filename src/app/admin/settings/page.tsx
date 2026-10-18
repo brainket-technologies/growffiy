@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '../../../shared/components/views/Card';
 import { Button } from '../../../shared/components/views/Button';
 import RichTextEditor from '../../../shared/components/views/RichTextEditor';
-import { Shield, Server, RefreshCw, Key, Eye, EyeOff, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight, Mail, CreditCard, Globe, Info, LifeBuoy, Clock, Calendar, Plus, Trash2, Image, Search, FileText, Upload, Bell } from 'lucide-react';
+import { Shield, Server, RefreshCw, Key, Eye, EyeOff, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight, Mail, CreditCard, Globe, Info, LifeBuoy, Clock, Calendar, Plus, Trash2, Image, Search, FileText, Upload, Bell, QrCode, Smartphone, Copy, Check } from 'lucide-react';
 import { api } from '../../../shared/services/api';
 import { Modal } from '../../../shared/components/views/Modal';
 import { API_ENDPOINTS } from '../../../core/constants';
@@ -22,7 +22,8 @@ export default function SettingsPage() {
   const [maintenanceMode, setMaintenanceMode] = useState('false');
   const [maintenanceMessage, setMaintenanceMessage] = useState('');
 
-  // Razorpay
+  // Payment Method & Razorpay
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'manual'>('online');
   const [razorpayTestKeyId, setRazorpayTestKeyId] = useState('');
   const [razorpayTestKeySecret, setRazorpayTestKeySecret] = useState('');
   const [razorpayLiveKeyId, setRazorpayLiveKeyId] = useState('');
@@ -30,6 +31,13 @@ export default function SettingsPage() {
   const [razorpayMode, setRazorpayMode] = useState('test');
   const [gstPercentage, setGstPercentage] = useState('18');
   const [gstEnabled, setGstEnabled] = useState('true');
+
+  // Manual Payment (UPI & QR)
+  const [manualUpiId, setManualUpiId] = useState('');
+  const [manualUpiName, setManualUpiName] = useState('');
+  const [manualQrCode, setManualQrCode] = useState('');
+  const [manualPaymentNote, setManualPaymentNote] = useState('');
+  const [copiedUpi, setCopiedUpi] = useState(false);
 
   // Firebase
   const [firebaseServiceAccount, setFirebaseServiceAccount] = useState('');
@@ -140,6 +148,11 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
           setRazorpayLiveKeyId(res.settings.razorpay_live_key_id || '');
           setRazorpayLiveKeySecret(res.settings.razorpay_live_key_secret || '');
           setRazorpayMode(res.settings.razorpay_mode || 'test');
+          setPaymentMethod((res.settings.payment_method as 'online' | 'manual') || 'online');
+          setManualUpiId(res.settings.manual_upi_id || '');
+          setManualUpiName(res.settings.manual_upi_name || '');
+          setManualQrCode(res.settings.manual_qr_code || '');
+          setManualPaymentNote(res.settings.manual_payment_note || '');
           setGstPercentage(res.settings.gst_percentage || '18');
           setGstEnabled(res.settings.gst_enabled || 'true');
           
@@ -242,6 +255,11 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
         razorpay_live_key_id: razorpayLiveKeyId,
         razorpay_live_key_secret: razorpayLiveKeySecret,
         razorpay_mode: razorpayMode,
+        payment_method: paymentMethod,
+        manual_upi_id: manualUpiId,
+        manual_upi_name: manualUpiName,
+        manual_qr_code: manualQrCode,
+        manual_payment_note: manualPaymentNote,
         gst_percentage: gstPercentage,
         gst_enabled: gstEnabled,
         smtp_host: smtpHost,
@@ -371,6 +389,20 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
       }
     } catch (err: any) {
       console.error('Error auto-saving toggle feature:', err);
+    }
+  };
+
+  const handleTogglePaymentMethod = async (nextMethod: 'online' | 'manual') => {
+    setPaymentMethod(nextMethod);
+    try {
+      await api.put(API_ENDPOINTS.SETTINGS, { payment_method: nextMethod });
+      setNotification({
+        type: 'success',
+        message: `Payment mode switched to ${nextMethod === 'online' ? 'Online Gateway (Razorpay)' : 'Manual (QR & UPI)'} successfully!`
+      });
+      setTimeout(() => setNotification(null), 3000);
+    } catch (err) {
+      console.error('Instant payment method toggle error:', err);
     }
   };
 
@@ -888,219 +920,518 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
         {/* Payments View Tab */}
         {activeTab === 'payments' && (
           <Card style={{ padding: '24px 28px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', borderBottom: '1px solid var(--border-light)', paddingBottom: '20px' }}>
+            {/* Payment Method Switcher: Online Gateway (Razorpay) vs Manual (QR & UPI) */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '16px',
+              marginBottom: '24px',
+              padding: '16px 20px',
+              borderRadius: '12px',
+              backgroundColor: 'var(--surface)',
+              border: '1px solid var(--border-light)'
+            }}>
               <div>
-                <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  Razorpay API Credentials
-                  <button
-                    type="button"
-                    title="How to get Razorpay API Keys"
-                    onClick={() => setInfoModal({
-                      title: 'How to Get Razorpay API Keys',
-                      content: (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', lineHeight: 1.6, fontSize: '14px', color: 'var(--text-body)' }}>
-                          <p>To acquire your Razorpay API Credentials, please follow these steps:</p>
-                          <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <li>Open the direct link to the <a href="https://dashboard.razorpay.com/app/keys" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>Razorpay API Keys Page</a>.</li>
-                            <li>If prompted, log in to your official <a href="https://dashboard.razorpay.com/" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>Razorpay Account</a>.</li>
-                            <li>Once on the Keys page, choose the environment you want to configure by switching the dashboard header mode (e.g. <strong>Test Mode</strong> or <strong>Live Mode</strong>).</li>
-                            <li>Click on the <strong>Generate Key</strong> (or <strong>Regenerate Key</strong>) button.</li>
-                            <li>Copy both the <strong>Key ID</strong> and <strong>Key Secret</strong> shown on the popup.</li>
-                            <li>Paste the copied credentials into the respective card fields in this panel.</li>
-                          </ol>
-                        </div>
-                      )
-                    })}
-                    style={{ background: 'none', border: 'none', padding: 0, margin: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
-                  >
-                    <Info size={16} />
-                  </button>
-                </h3>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  Manage payment credentials for client registration and plans.
-                </p>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Payment Method Switch
+                </span>
+                <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {paymentMethod === 'online' ? (
+                    <>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--primary)', display: 'inline-block' }}></span>
+                      Online Gateway (Razorpay Active)
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--accent)', display: 'inline-block' }}></span>
+                      Manual Payment (UPI & QR Code Active)
+                    </>
+                  )}
+                </h4>
               </div>
 
-              {/* Toggle Switch */}
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '8px', 
-                backgroundColor: 'var(--surface)', 
-                padding: '4px 14px', 
-                borderRadius: '20px', 
-                border: '1px solid var(--border)' 
+              {/* Mode Switcher Buttons */}
+              <div style={{
+                display: 'inline-flex',
+                padding: '4px',
+                borderRadius: '10px',
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+                gap: '4px'
               }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: razorpayMode === 'test' ? 'var(--primary)' : 'var(--text-muted)' }}>TEST MODE</span>
                 <button
                   type="button"
-                  onClick={async () => {
-                    const nextMode = razorpayMode === 'test' ? 'live' : 'test';
-                    setRazorpayMode(nextMode);
-                    try {
-                      await api.put(API_ENDPOINTS.SETTINGS, { razorpay_mode: nextMode });
-                    } catch (err) {
-                      console.error('Instant Razorpay toggle error:', err);
-                    }
-                  }}
+                  onClick={() => handleTogglePaymentMethod('online')}
                   style={{
-                    background: 'none',
+                    padding: '8px 18px',
+                    borderRadius: '7px',
+                    fontSize: '12px',
+                    fontWeight: 700,
                     border: 'none',
                     cursor: 'pointer',
-                    padding: 0,
                     display: 'flex',
                     alignItems: 'center',
-                    color: razorpayMode === 'live' ? 'var(--accent)' : 'var(--text-subtle)'
+                    gap: '8px',
+                    background: paymentMethod === 'online' ? 'var(--primary)' : 'transparent',
+                    color: paymentMethod === 'online' ? '#ffffff' : 'var(--text-muted)',
+                    transition: 'all 0.2s',
+                    boxShadow: paymentMethod === 'online' ? '0 2px 6px rgba(18, 82, 171, 0.25)' : 'none'
                   }}
                 >
-                  {razorpayMode === 'live' ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+                  <Globe size={15} />
+                  ONLINE GATEWAY
                 </button>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: razorpayMode === 'live' ? 'var(--accent-dark)' : 'var(--text-muted)' }}>LIVE MODE</span>
+                <button
+                  type="button"
+                  onClick={() => handleTogglePaymentMethod('manual')}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: '7px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: paymentMethod === 'manual' ? 'var(--accent)' : 'transparent',
+                    color: paymentMethod === 'manual' ? '#ffffff' : 'var(--text-muted)',
+                    transition: 'all 0.2s',
+                    boxShadow: paymentMethod === 'manual' ? '0 2px 6px rgba(16, 185, 129, 0.25)' : 'none'
+                  }}
+                >
+                  <QrCode size={15} />
+                  MANUAL (QR & UPI)
+                </button>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
-              
-              {/* Test Column */}
-              <div style={{ 
-                padding: '24px', 
-                borderRadius: '12px', 
-                border: '1px solid ' + (razorpayMode === 'test' ? 'rgba(14, 165, 233, 0.25)' : 'var(--border-light)'), 
-                backgroundColor: razorpayMode === 'test' ? 'rgba(14, 165, 233, 0.01)' : 'transparent',
-                opacity: razorpayMode === 'test' ? 1 : 0.6,
-                transition: 'all 0.2s'
-              }}>
-                <h4 style={{ fontSize: '13px', fontWeight: 700, color: razorpayMode === 'test' ? 'var(--primary)' : 'var(--text-secondary)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: razorpayMode === 'test' ? 'var(--primary)' : 'transparent', display: 'inline-block' }}></span>
-                  🧪 Test Gateway {razorpayMode === 'test' && '(Active)'}
-                </h4>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {paymentMethod === 'online' ? (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', borderBottom: '1px solid var(--border-light)', paddingBottom: '20px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Test Key ID
-                    </label>
-                    <div style={{ position: 'relative' }}>
-                      <Key size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
+                    <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      Razorpay API Credentials
+                      <button
+                        type="button"
+                        title="How to get Razorpay API Keys"
+                        onClick={() => setInfoModal({
+                          title: 'How to Get Razorpay API Keys',
+                          content: (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', lineHeight: 1.6, fontSize: '14px', color: 'var(--text-body)' }}>
+                              <p>To acquire your Razorpay API Credentials, please follow these steps:</p>
+                              <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <li>Open the direct link to the <a href="https://dashboard.razorpay.com/app/keys" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>Razorpay API Keys Page</a>.</li>
+                                <li>If prompted, log in to your official <a href="https://dashboard.razorpay.com/" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>Razorpay Account</a>.</li>
+                                <li>Once on the Keys page, choose the environment you want to configure by switching the dashboard header mode (e.g. <strong>Test Mode</strong> or <strong>Live Mode</strong>).</li>
+                                <li>Click on the <strong>Generate Key</strong> (or <strong>Regenerate Key</strong>) button.</li>
+                                <li>Copy both the <strong>Key ID</strong> and <strong>Key Secret</strong> shown on the popup.</li>
+                                <li>Paste the copied credentials into the respective card fields in this panel.</li>
+                              </ol>
+                            </div>
+                          )
+                        })}
+                        style={{ background: 'none', border: 'none', padding: 0, margin: 0, cursor: 'pointer', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center' }}
+                      >
+                        <Info size={16} />
+                      </button>
+                    </h3>
+                    <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      Manage payment credentials for client registration and plans via Razorpay.
+                    </p>
+                  </div>
+
+                  {/* Toggle Switch */}
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    backgroundColor: 'var(--surface)', 
+                    padding: '4px 14px', 
+                    borderRadius: '20px', 
+                    border: '1px solid var(--border)' 
+                  }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: razorpayMode === 'test' ? 'var(--primary)' : 'var(--text-muted)' }}>TEST MODE</span>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const nextMode = razorpayMode === 'test' ? 'live' : 'test';
+                        setRazorpayMode(nextMode);
+                        try {
+                          await api.put(API_ENDPOINTS.SETTINGS, { razorpay_mode: nextMode });
+                        } catch (err) {
+                          console.error('Instant Razorpay toggle error:', err);
+                        }
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        color: razorpayMode === 'live' ? 'var(--accent)' : 'var(--text-subtle)'
+                      }}
+                    >
+                      {razorpayMode === 'live' ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+                    </button>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: razorpayMode === 'live' ? 'var(--accent-dark)' : 'var(--text-muted)' }}>LIVE MODE</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
+                  {/* Test Column */}
+                  <div style={{ 
+                    padding: '24px', 
+                    borderRadius: '12px', 
+                    border: '1px solid ' + (razorpayMode === 'test' ? 'rgba(14, 165, 233, 0.25)' : 'var(--border-light)'), 
+                    backgroundColor: razorpayMode === 'test' ? 'rgba(14, 165, 233, 0.01)' : 'transparent',
+                    opacity: razorpayMode === 'test' ? 1 : 0.6,
+                    transition: 'all 0.2s'
+                  }}>
+                    <h4 style={{ fontSize: '13px', fontWeight: 700, color: razorpayMode === 'test' ? 'var(--primary)' : 'var(--text-secondary)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: razorpayMode === 'test' ? 'var(--primary)' : 'transparent', display: 'inline-block' }}></span>
+                      🧪 Test Gateway {razorpayMode === 'test' && '(Active)'}
+                    </h4>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Test Key ID
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                          <Key size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
+                          <input
+                            type="text"
+                            required={paymentMethod === 'online' && razorpayMode === 'test'}
+                            value={razorpayTestKeyId}
+                            onChange={(e) => setRazorpayTestKeyId(e.target.value)}
+                            placeholder="rzp_test_xxxxxxxx"
+                            style={{ paddingLeft: '36px', height: '38px', fontSize: '13px' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Test Key Secret
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                          <Key size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
+                          <input
+                            type={showTestSecret ? 'text' : 'password'}
+                            required={paymentMethod === 'online' && razorpayMode === 'test'}
+                            value={razorpayTestKeySecret}
+                            onChange={(e) => setRazorpayTestKeySecret(e.target.value)}
+                            placeholder="Enter Test Key Secret"
+                            style={{ paddingLeft: '36px', paddingRight: '36px', height: '38px', fontSize: '13px' }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowTestSecret(!showTestSecret)}
+                            style={{
+                              position: 'absolute',
+                              right: '12px',
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: 'var(--text-subtle)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            {showTestSecret ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Live Column */}
+                  <div style={{ 
+                    padding: '24px', 
+                    borderRadius: '12px', 
+                    border: '1px solid ' + (razorpayMode === 'live' ? 'rgba(16, 185, 129, 0.25)' : 'var(--border-light)'), 
+                    backgroundColor: razorpayMode === 'live' ? 'rgba(16, 185, 129, 0.01)' : 'transparent',
+                    opacity: razorpayMode === 'live' ? 1 : 0.6,
+                    transition: 'all 0.2s'
+                  }}>
+                    <h4 style={{ fontSize: '13px', fontWeight: 700, color: razorpayMode === 'live' ? 'var(--accent-dark)' : 'var(--text-secondary)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: razorpayMode === 'live' ? 'var(--accent)' : 'transparent', display: 'inline-block' }}></span>
+                      🟢 Live Gateway {razorpayMode === 'live' && '(Active)'}
+                    </h4>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Live Key ID
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                          <Key size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
+                          <input
+                            type="text"
+                            required={paymentMethod === 'online' && razorpayMode === 'live'}
+                            value={razorpayLiveKeyId}
+                            onChange={(e) => setRazorpayLiveKeyId(e.target.value)}
+                            placeholder="rzp_live_xxxxxxxx"
+                            style={{ paddingLeft: '36px', height: '38px', fontSize: '13px' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Live Key Secret
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                          <Key size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
+                          <input
+                            type={showLiveSecret ? 'text' : 'password'}
+                            required={paymentMethod === 'online' && razorpayMode === 'live'}
+                            value={razorpayLiveKeySecret}
+                            onChange={(e) => setRazorpayLiveKeySecret(e.target.value)}
+                            placeholder="Enter Live Key Secret"
+                            style={{ paddingLeft: '36px', paddingRight: '36px', height: '38px', fontSize: '13px' }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowLiveSecret(!showLiveSecret)}
+                            style={{
+                              position: 'absolute',
+                              right: '12px',
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: 'var(--text-subtle)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            {showLiveSecret ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* Manual Payment (UPI & QR) Section */
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid var(--border-light)', paddingBottom: '18px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Smartphone size={20} style={{ color: 'var(--accent)' }} />
+                      Manual Payment Configuration (UPI & QR Code)
+                    </h3>
+                    <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      Configure UPI ID and upload QR code image. Users will scan the QR or send payment directly to this UPI ID.
+                    </p>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    borderRadius: '20px',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid rgba(16, 185, 129, 0.25)',
+                    color: 'var(--accent-dark)',
+                    fontSize: '12px',
+                    fontWeight: 700
+                  }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--accent)', display: 'inline-block' }}></span>
+                    Manual Mode Active
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
+                  {/* Left Column: UPI ID, Payee Name & Instructions */}
+                  <div style={{
+                    padding: '24px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border-light)',
+                    backgroundColor: 'var(--bg-card)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '18px'
+                  }}>
+                    <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Smartphone size={16} style={{ color: 'var(--primary)' }} /> UPI Account Details
+                    </h4>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        UPI ID / VPA <span style={{ color: 'var(--danger)' }}>*</span>
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)', fontWeight: 700, fontSize: '13px' }}>@</span>
+                        <input
+                          type="text"
+                          required={paymentMethod === 'manual'}
+                          value={manualUpiId}
+                          onChange={(e) => setManualUpiId(e.target.value)}
+                          placeholder="e.g. growffi@icici or 9876543210@paytm"
+                          style={{ paddingLeft: '32px', height: '38px', fontSize: '13px', width: '100%', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                        />
+                      </div>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                        Clients will be able to copy this UPI ID to pay via Google Pay, PhonePe, Paytm, BHIM, etc.
+                      </span>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Payee / Business Name
+                      </label>
                       <input
                         type="text"
-                        required={razorpayMode === 'test'}
-                        value={razorpayTestKeyId}
-                        onChange={(e) => setRazorpayTestKeyId(e.target.value)}
-                        placeholder="rzp_test_xxxxxxxx"
-                        style={{ paddingLeft: '36px', height: '38px', fontSize: '13px' }}
+                        value={manualUpiName}
+                        onChange={(e) => setManualUpiName(e.target.value)}
+                        placeholder="e.g. Growffi Fintech Private Limited"
+                        style={{ height: '38px', fontSize: '13px', width: '100%', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', padding: '0 12px' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Payment Instructions / Notes for Users
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={manualPaymentNote}
+                        onChange={(e) => setManualPaymentNote(e.target.value)}
+                        placeholder="e.g. Scan the QR code or transfer to UPI ID. After payment, submit your 12-digit UTR/Reference number."
+                        style={{ width: '100%', fontSize: '13px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', padding: '10px 12px', resize: 'vertical' }}
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Test Key Secret
-                    </label>
-                    <div style={{ position: 'relative' }}>
-                      <Key size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
-                      <input
-                        type={showTestSecret ? 'text' : 'password'}
-                        required={razorpayMode === 'test'}
-                        value={razorpayTestKeySecret}
-                        onChange={(e) => setRazorpayTestKeySecret(e.target.value)}
-                        placeholder="Enter Test Key Secret"
-                        style={{ paddingLeft: '36px', paddingRight: '36px', height: '38px', fontSize: '13px' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowTestSecret(!showTestSecret)}
-                        style={{
-                          position: 'absolute',
-                          right: '12px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
+                  {/* Right Column: QR Code Image Upload & Preview */}
+                  <div style={{
+                    padding: '24px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border-light)',
+                    backgroundColor: 'var(--bg-card)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '18px'
+                  }}>
+                    <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <QrCode size={16} style={{ color: 'var(--accent)' }} /> UPI QR Code Image & Preview
+                    </h4>
+
+                    <ImagePicker
+                      label="Upload QR Code Image or Enter URL"
+                      value={manualQrCode}
+                      onChange={setManualQrCode}
+                    />
+
+                    {/* Preview Box */}
+                    <div style={{
+                      marginTop: '6px',
+                      padding: '16px',
+                      borderRadius: '12px',
+                      border: '1px dashed var(--border-color)',
+                      backgroundColor: 'var(--surface)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      textAlign: 'center',
+                      gap: '12px'
+                    }}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Customer Preview
+                      </span>
+
+                      {manualQrCode ? (
+                        <div style={{
+                          padding: '12px',
+                          background: '#ffffff',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                          display: 'inline-block'
+                        }}>
+                          <img
+                            src={manualQrCode}
+                            alt="UPI QR Code"
+                            style={{ width: '140px', height: '140px', objectFit: 'contain', display: 'block', borderRadius: '6px' }}
+                          />
+                        </div>
+                      ) : (
+                        <div style={{
+                          width: '140px',
+                          height: '140px',
+                          borderRadius: '12px',
+                          border: '2px dashed var(--border-color)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                           color: 'var(--text-subtle)',
+                          gap: '6px',
+                          backgroundColor: 'var(--bg-card)'
+                        }}>
+                          <QrCode size={36} style={{ opacity: 0.4 }} />
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>No QR Code uploaded</span>
+                        </div>
+                      )}
+
+                      {manualUpiId && (
+                        <div style={{
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        {showTestSecret ? <EyeOff size={14} /> : <Eye size={14} />}
-                      </button>
+                          gap: '8px',
+                          backgroundColor: 'var(--bg-card)',
+                          padding: '6px 14px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-light)',
+                          maxWidth: '100%'
+                        }}>
+                          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {manualUpiId}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(manualUpiId);
+                              setCopiedUpi(true);
+                              setTimeout(() => setCopiedUpi(false), 2000);
+                            }}
+                            title="Copy UPI ID"
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: copiedUpi ? 'var(--accent)' : 'var(--primary)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '2px'
+                            }}
+                          >
+                            {copiedUpi ? <Check size={14} /> : <Copy size={14} />}
+                          </button>
+                        </div>
+                      )}
+
+                      {manualUpiName && (
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>
+                          Payee: <strong>{manualUpiName}</strong>
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
-
-              {/* Live Column */}
-              <div style={{ 
-                padding: '24px', 
-                borderRadius: '12px', 
-                border: '1px solid ' + (razorpayMode === 'live' ? 'rgba(16, 185, 129, 0.25)' : 'var(--border-light)'), 
-                backgroundColor: razorpayMode === 'live' ? 'rgba(16, 185, 129, 0.01)' : 'transparent',
-                opacity: razorpayMode === 'live' ? 1 : 0.6,
-                transition: 'all 0.2s'
-              }}>
-                <h4 style={{ fontSize: '13px', fontWeight: 700, color: razorpayMode === 'live' ? 'var(--accent-dark)' : 'var(--text-secondary)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: razorpayMode === 'live' ? 'var(--accent)' : 'transparent', display: 'inline-block' }}></span>
-                  🟢 Live Gateway {razorpayMode === 'live' && '(Active)'}
-                </h4>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Live Key ID
-                    </label>
-                    <div style={{ position: 'relative' }}>
-                      <Key size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
-                      <input
-                        type="text"
-                        required={razorpayMode === 'live'}
-                        value={razorpayLiveKeyId}
-                        onChange={(e) => setRazorpayLiveKeyId(e.target.value)}
-                        placeholder="rzp_live_xxxxxxxx"
-                        style={{ paddingLeft: '36px', height: '38px', fontSize: '13px' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Live Key Secret
-                    </label>
-                    <div style={{ position: 'relative' }}>
-                      <Key size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
-                      <input
-                        type={showLiveSecret ? 'text' : 'password'}
-                        required={razorpayMode === 'live'}
-                        value={razorpayLiveKeySecret}
-                        onChange={(e) => setRazorpayLiveKeySecret(e.target.value)}
-                        placeholder="Enter Live Key Secret"
-                        style={{ paddingLeft: '36px', paddingRight: '36px', height: '38px', fontSize: '13px' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowLiveSecret(!showLiveSecret)}
-                        style={{
-                          position: 'absolute',
-                          right: '12px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: 'var(--text-subtle)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        {showLiveSecret ? <EyeOff size={14} /> : <Eye size={14} />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
 
             {/* GST Settings Column */}
             <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border-light)' }}>

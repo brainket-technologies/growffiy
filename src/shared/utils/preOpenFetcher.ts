@@ -191,34 +191,25 @@ export async function fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
     // Save to historical database asynchronously so we don't block the API
     (async () => {
       try {
-        console.log(`Saving ${formattedQuotes.length} pre-open records to historical database for ${preOpenCacheDate}...`);
-        
-        // Run upserts in small batches to avoid overwhelming the database connection pool
-        const batchSize = 10;
-        for (let i = 0; i < formattedQuotes.length; i += batchSize) {
-          const batch = formattedQuotes.slice(i, i + batchSize);
-          await Promise.all(batch.map(stock => 
-            prisma.historicalPreOpen.upsert({
-              where: {
-                date_symbol: {
-                  date: preOpenCacheDate,
-                  symbol: stock.symbol
-                }
-              },
-              update: { data: stock as any },
-              create: {
-                date: preOpenCacheDate,
-                symbol: stock.symbol,
-                data: stock as any
-              }
-            }).catch((e: any) => console.error(`DB save failed for ${stock.symbol}`, e.message))
-          ));
-          // Sleep to yield event loop and DB connection pool for incoming API requests
-          await new Promise(resolve => setTimeout(resolve, 100));
+        const existingCount = await prisma.historicalPreOpen.count({
+          where: { date: preOpenCacheDate }
+        });
+        if (existingCount >= formattedQuotes.length && formattedQuotes.length > 0) {
+          return;
         }
+
+        console.log(`Saving ${formattedQuotes.length} pre-open records to historical database for ${preOpenCacheDate}...`);
+        await prisma.historicalPreOpen.createMany({
+          data: formattedQuotes.map(stock => ({
+            date: preOpenCacheDate,
+            symbol: stock.symbol,
+            data: stock as any
+          })),
+          skipDuplicates: true
+        });
         console.log(`Successfully saved historical pre-open data for ${preOpenCacheDate}`);
-      } catch (dbErr) {
-        console.error('Failed to save historical pre-open data:', dbErr);
+      } catch (dbErr: any) {
+        console.error('Failed to save historical pre-open data:', dbErr.message);
       }
     })();
 
@@ -300,31 +291,25 @@ export async function fetchLivePreOpenFromKite(apiKey?: string, accessToken?: st
       // Save to historical database asynchronously
       (async () => {
         try {
-          console.log(`Saving ${kiteQuotes.length} pre-open records (Kite Fallback) to historical database for ${preOpenCacheDate}...`);
-          
-          const batchSize = 50;
-          for (let i = 0; i < kiteQuotes.length; i += batchSize) {
-            const batch = kiteQuotes.slice(i, i + batchSize);
-            await Promise.all(batch.map(stock => 
-              prisma.historicalPreOpen.upsert({
-                where: {
-                  date_symbol: {
-                    date: preOpenCacheDate,
-                    symbol: stock.symbol
-                  }
-                },
-                update: { data: stock as any },
-                create: {
-                  date: preOpenCacheDate,
-                  symbol: stock.symbol,
-                  data: stock as any
-                }
-              }).catch((e: any) => console.error(`DB save failed for ${stock.symbol}`, e.message))
-            ));
+          const existingCount = await prisma.historicalPreOpen.count({
+            where: { date: preOpenCacheDate }
+          });
+          if (existingCount >= kiteQuotes.length && kiteQuotes.length > 0) {
+            return;
           }
+
+          console.log(`Saving ${kiteQuotes.length} pre-open records (Kite Fallback) to historical database for ${preOpenCacheDate}...`);
+          await prisma.historicalPreOpen.createMany({
+            data: kiteQuotes.map(stock => ({
+              date: preOpenCacheDate,
+              symbol: stock.symbol,
+              data: stock as any
+            })),
+            skipDuplicates: true
+          });
           console.log(`Successfully saved historical pre-open data for ${preOpenCacheDate}`);
-        } catch (dbErr) {
-          console.error('Failed to save historical pre-open data:', dbErr);
+        } catch (dbErr: any) {
+          console.error('Failed to save historical pre-open data:', dbErr.message);
         }
       })();
 

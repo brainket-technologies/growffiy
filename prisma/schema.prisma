@@ -237,6 +237,7 @@ model Payment {
   amount            Decimal          @db.Decimal(10, 2)
   razorpayOrderId   String           @map("razorpay_order_id")
   razorpayPaymentId String?          @map("razorpay_payment_id")
+  screenshotUrl     String?          @map("screenshot_url")
   status            String
   paymentDate       DateTime?        @map("payment_date")
   createdAt         DateTime         @default(now()) @map("created_at")

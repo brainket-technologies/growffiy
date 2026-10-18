@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   try {
     const clients = await prisma.client.findMany({
       where: {
-        kycStatus: { in: ['pending', 'under_review'] }
+        kycStatus: { in: ['pending', 'under_review', 'submitted'] }
       },
       include: {
         user: {

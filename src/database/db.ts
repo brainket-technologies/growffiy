@@ -54,14 +54,14 @@ function getPrisma(): PrismaClient {
       const adapter = new PrismaNeon({ connectionString: connString });
       activePrisma = new PrismaClient({
         adapter,
-        log: process.env.NODE_ENV === 'development' ? ['query'] : [],
+        log: ['error', 'warn'],
       });
     } else {
       const pool = new PgPool({ connectionString: connString });
       const adapter = new PrismaPg(pool);
       activePrisma = new PrismaClient({
         adapter,
-        log: process.env.NODE_ENV === 'development' ? ['query'] : [],
+        log: ['error', 'warn'],
       });
     }
   } catch (err) {

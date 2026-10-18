@@ -4,8 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
 import { Card } from '../../../shared/components/views/Card';
 import { Loader } from '../../../shared/components/views/Loader';
-import { Check, ShieldCheck, Sparkles, CreditCard, Zap, Shield, RefreshCw } from 'lucide-react';
+import { Check, ShieldCheck, Sparkles, CreditCard, Zap, Shield, RefreshCw, QrCode, Smartphone, Copy, Upload, X } from 'lucide-react';
 import { API_ENDPOINTS } from '../../../core/constants';
+import { Modal } from '../../../shared/components/views/Modal';
 
 
 export default function ClientSubscriptionPlans() {
@@ -15,6 +16,20 @@ export default function ClientSubscriptionPlans() {
   const [purchasingPlanId, setPurchasingPlanId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Manual Payment (UPI & QR) Modal States
+  const [manualModalOpen, setManualModalOpen] = useState(false);
+  const [selectedPlanForManual, setSelectedPlanForManual] = useState<any>(null);
+  const [manualPaymentInfo, setManualPaymentInfo] = useState<{
+    upiId: string;
+    upiName: string;
+    qrCode: string;
+    paymentNote: string;
+  }>({ upiId: '', upiName: '', qrCode: '', paymentNote: '' });
+  const [utrInput, setUtrInput] = useState('');
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [submittingManual, setSubmittingManual] = useState(false);
+  const [copiedUpi, setCopiedUpi] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -72,9 +87,27 @@ export default function ClientSubscriptionPlans() {
     setSuccessMsg(null);
 
     try {
-      // 1. Get Razorpay Public Key ID
+      // 1. Get Settings (checks online vs manual mode)
       const settingsRes = await fetch(API_ENDPOINTS.SETTINGS_PUBLIC);
       const settingsData = await settingsRes.json();
+
+      // Check if Admin configured Manual Payment
+      if (settingsData.paymentMethod === 'manual') {
+        setPurchasingPlanId(null);
+        setManualPaymentInfo({
+          upiId: settingsData.manualUpiId || '',
+          upiName: settingsData.manualUpiName || '',
+          qrCode: settingsData.manualQrCode || '',
+          paymentNote: settingsData.manualPaymentNote || ''
+        });
+        setSelectedPlanForManual(plan);
+        setUtrInput('');
+        setScreenshotFile(null);
+        setManualModalOpen(true);
+        return;
+      }
+
+      // Online Razorpay Flow
       if (!settingsData.success || !settingsData.razorpayKeyId) {
         throw new Error('Razorpay payment gateway not configured by Admin.');
       }
@@ -154,8 +187,52 @@ export default function ClientSubscriptionPlans() {
     }
   };
 
+  const handleManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!utrInput.trim() || !selectedPlanForManual || !activeUser) return;
+    setSubmittingManual(true);
+    setErrorMsg(null);
 
+    try {
+      let res;
+      if (screenshotFile) {
+        const formData = new FormData();
+        formData.append('planId', selectedPlanForManual.id);
+        formData.append('userId', activeUser.id);
+        formData.append('utrNumber', utrInput.trim());
+        formData.append('screenshot', screenshotFile);
 
+        res = await fetch('/api/payments/manual', {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        res = await fetch('/api/payments/manual', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            planId: selectedPlanForManual.id,
+            userId: activeUser.id,
+            utrNumber: utrInput.trim()
+          })
+        });
+      }
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setManualModalOpen(false);
+        setSuccessMsg('✓ Payment submitted successfully! Your plan will be activated after verification.');
+        setTimeout(() => {
+          window.location.href = '/clients';
+        }, 2000);
+      } else {
+        throw new Error(data.error || 'Failed to submit payment reference.');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error submitting payment.');
+    } finally {
+      setSubmittingManual(false);
+    }
+  };
 
   return (
     <div className="page-subscription" style={{ display: 'flex', flexDirection: 'column', gap: '32px', maxWidth: '1000px', margin: '0 auto', padding: '12px' }}>
@@ -452,6 +529,275 @@ export default function ClientSubscriptionPlans() {
   .page-subscription h1 { font-size: 24px !important; }
 }
       `}</style>
+
+      {/* Manual Payment Modal */}
+      {manualModalOpen && selectedPlanForManual && (
+        <Modal
+          isOpen={manualModalOpen}
+          onClose={() => setManualModalOpen(false)}
+          title="Manual Payment via UPI / QR Code"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', padding: '4px 0' }}>
+            {/* Plan Info Banner */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '14px 18px',
+              borderRadius: '12px',
+              backgroundColor: 'var(--surface)',
+              border: '1px solid var(--border-light)'
+            }}>
+              <div>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
+                  Selected Plan
+                </span>
+                <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-heading)' }}>
+                  {selectedPlanForManual.name} ({selectedPlanForManual.durationDays} Days)
+                </div>
+              </div>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--accent-dark)' }}>
+                ₹{Number(selectedPlanForManual.price).toFixed(0)}
+              </div>
+            </div>
+
+            {/* QR Code & UPI Container */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              gap: '12px',
+              padding: '18px',
+              borderRadius: '12px',
+              border: '1px solid var(--border-light)',
+              backgroundColor: 'var(--bg-card)'
+            }}>
+              {manualPaymentInfo.qrCode ? (
+                <div style={{
+                  padding: '12px',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
+                }}>
+                  <img
+                    src={manualPaymentInfo.qrCode}
+                    alt="UPI QR Code"
+                    style={{ width: '180px', height: '180px', objectFit: 'contain', display: 'block', borderRadius: '6px' }}
+                  />
+                </div>
+              ) : (
+                <div style={{
+                  width: '160px',
+                  height: '160px',
+                  borderRadius: '12px',
+                  border: '2px dashed var(--border-color)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-subtle)',
+                  gap: '8px'
+                }}>
+                  <QrCode size={44} style={{ opacity: 0.3 }} />
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Scan & Pay</span>
+                </div>
+              )}
+
+              {manualPaymentInfo.upiId && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  backgroundColor: 'var(--surface)',
+                  border: '1px solid var(--border-color)',
+                  maxWidth: '100%'
+                }}>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {manualPaymentInfo.upiId}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(manualPaymentInfo.upiId);
+                      setCopiedUpi(true);
+                      setTimeout(() => setCopiedUpi(false), 2000);
+                    }}
+                    title="Copy UPI ID"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: copiedUpi ? 'var(--accent)' : 'var(--primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '2px'
+                    }}
+                  >
+                    {copiedUpi ? <Check size={16} /> : <Copy size={16} />}
+                  </button>
+                </div>
+              )}
+
+              {manualPaymentInfo.upiName && (
+                <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                  Payee: <strong style={{ color: 'var(--text-heading)' }}>{manualPaymentInfo.upiName}</strong>
+                </div>
+              )}
+
+              {manualPaymentInfo.paymentNote && (
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0, maxWidth: '380px' }}>
+                  {manualPaymentInfo.paymentNote}
+                </p>
+              )}
+            </div>
+
+            {/* Submission Form */}
+            <form onSubmit={handleManualSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '6px' }}>
+                  Transaction UTR / Reference Number (12 digits) <span style={{ color: 'var(--danger)' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 428901234567 or UPI Ref ID"
+                  value={utrInput}
+                  onChange={(e) => setUtrInput(e.target.value)}
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    padding: '0 14px',
+                    borderRadius: '8px',
+                    border: '1.5px solid var(--border-color)',
+                    background: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                />
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                  Find this 12-digit reference number in your UPI app (Google Pay, PhonePe, Paytm, etc.).
+                </span>
+              </div>
+
+              {/* Payment Screenshot Upload */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '6px' }}>
+                  Payment Screenshot / Receipt (Optional)
+                </label>
+                <div style={{
+                  position: 'relative',
+                  border: '1.5px dashed var(--border-color)',
+                  borderRadius: '10px',
+                  padding: '14px',
+                  textAlign: 'center',
+                  backgroundColor: 'var(--bg-primary)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setScreenshotFile(e.target.files[0]);
+                      }
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      opacity: 0,
+                      cursor: 'pointer'
+                    }}
+                  />
+                  {screenshotFile ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#16a34a', fontWeight: 600, fontSize: '13px' }}>
+                      <Check size={16} />
+                      <span style={{ maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        Selected: {screenshotFile.name} ({(screenshotFile.size / 1024).toFixed(1)} KB)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setScreenshotFile(null);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          padding: '2px',
+                          display: 'inline-flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}>
+                      <Upload size={20} style={{ color: 'var(--primary)' }} />
+                      <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-heading)' }}>
+                        Click or Drag to Upload Payment Screenshot
+                      </span>
+                      <span style={{ fontSize: '11px' }}>PNG, JPG or WEBP up to 5MB</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setManualModalOpen(false)}
+                  style={{
+                    flex: 1,
+                    height: '42px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    background: 'transparent',
+                    color: 'var(--text-muted)',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingManual || !utrInput.trim()}
+                  style={{
+                    flex: 2,
+                    height: '42px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'var(--accent)',
+                    color: '#ffffff',
+                    fontSize: '14px',
+                    fontWeight: 700,
+                    cursor: submittingManual || !utrInput.trim() ? 'not-allowed' : 'pointer',
+                    opacity: submittingManual || !utrInput.trim() ? 0.7 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  {submittingManual ? 'Submitting...' : 'Submit Payment Reference'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

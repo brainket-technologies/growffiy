@@ -18,6 +18,11 @@ export async function GET() {
         appName: settings['app_name'] || 'Growffiy',
         appLogo: settings['app_logo'] || '',
         showZerodhaConnect: settings['show_zerodha_connect'] !== 'false', // Default to true if missing
+        paymentMethod: settings['payment_method'] || 'online',
+        manualUpiId: settings['manual_upi_id'] || '',
+        manualUpiName: settings['manual_upi_name'] || '',
+        manualQrCode: settings['manual_qr_code'] || '',
+        manualPaymentNote: settings['manual_payment_note'] || '',
 
         // ── Support Contact Details ───────────────────
         supportEmail:   settings['support_email']    || 'support@growffiy.com',

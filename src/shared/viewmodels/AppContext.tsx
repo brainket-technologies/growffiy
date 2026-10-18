@@ -121,6 +121,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsWsConnected(stocksRes.isWsConnected || false);
       }
       if (statsRes.success) setDashboardStats(statsRes.stats);
+
+      const storedId = typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('impersonate') || localStorage.getItem('growffiy_logged_in_user_id')) : null;
+      if (storedId) {
+        api.get(`${API_ENDPOINTS.AUTH_PROFILE}?userId=${storedId}`).then(res => {
+          if (res.success && res.user) {
+            setActiveUser(res.user);
+          }
+        }).catch(() => {});
+      }
     } catch (error) {
       console.error('Error fetching global state:', error);
     } finally {
@@ -217,6 +226,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (res.success) {
         setClients(prev => prev.map(c => c.id === id ? res.client : c));
+        setActiveUser((prev: any) => {
+          if (!prev) return prev;
+          if (prev.client?.id === id || prev.id === res.client.userId) {
+            return { ...prev, client: res.client };
+          }
+          return prev;
+        });
 
         let action = 'Client Updated';
         let details = `Updated configuration for client ${clientName}`;

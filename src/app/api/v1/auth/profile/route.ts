@@ -59,6 +59,49 @@ export async function GET(request: Request) {
       );
     }
 
+    // Determine accurate real-time subscription status:
+    let computedSubscriptionStatus = 'inactive';
+    if (user.client) {
+      const activeSub = await prisma.subscription.findFirst({
+        where: {
+          userId: user.id,
+          status: 'active',
+          endDate: { gt: new Date() }
+        }
+      });
+      if (activeSub) {
+        computedSubscriptionStatus = 'active';
+      } else {
+        const pendingPayment = await prisma.payment.findFirst({
+          where: {
+            userId: user.id,
+            status: 'pending'
+          }
+        });
+        if (pendingPayment) {
+          computedSubscriptionStatus = 'pending';
+        } else {
+          // Check if user previously had any subscription
+          const pastSub = await prisma.subscription.findFirst({
+            where: { userId: user.id }
+          });
+          computedSubscriptionStatus = pastSub ? 'expired' : 'inactive';
+        }
+      }
+
+      // Sync DB if it diverged
+      if (user.client.subscriptionStatus !== computedSubscriptionStatus) {
+        try {
+          await prisma.client.update({
+            where: { id: user.client.id },
+            data: { subscriptionStatus: computedSubscriptionStatus }
+          });
+        } catch (syncErr) {
+          console.warn('Failed to sync client subscription status:', syncErr);
+        }
+      }
+    }
+
     return NextResponse.json(
       {
         success: true,
@@ -75,7 +118,7 @@ export async function GET(request: Request) {
           client: user.client ? {
             id: user.client.id,
             tradingStatus: user.client.tradingStatus,
-            subscriptionStatus: user.client.subscriptionStatus,
+            subscriptionStatus: computedSubscriptionStatus,
             kycStatus: user.client.kycStatus,
             panNumber: user.client.panNumber,
             aadhaarNumber: user.client.aadhaarNumber,

@@ -274,7 +274,12 @@ export async function PUT(request: Request) {
       app_build_android: body.app_build_android,
       app_build_ios: body.app_build_ios,
       maintenance_mode: body.maintenance_mode,
-      maintenance_message: body.maintenance_message
+      maintenance_message: body.maintenance_message,
+      payment_method: body.payment_method,
+      manual_upi_id: body.manual_upi_id,
+      manual_upi_name: body.manual_upi_name,
+      manual_qr_code: body.manual_qr_code,
+      manual_payment_note: body.manual_payment_note
     };
 
 

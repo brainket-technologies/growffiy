@@ -30,7 +30,7 @@ function StatusBadge({ value, trueLabel = 'Active', falseLabel = 'Inactive', war
   warn?: boolean;
 }) {
   const isTrue = value === true || value === 'active' || value === 'verified';
-  const isWarn = warn && (value === 'under_review' || value === 'pending');
+  const isWarn = warn && (value === 'under_review' || value === 'pending' || value === 'submitted');
   const bg = isTrue ? '#dcfce7' : isWarn ? '#fef9c3' : '#fee2e2';
   const color = isTrue ? '#166534' : isWarn ? '#854d0e' : '#991b1b';
   const label = isTrue ? trueLabel : isWarn ? 'Under Review' : falseLabel;
@@ -109,7 +109,6 @@ export default function KYCRequestsPage() {
       else if (sortKey === 'dob') { aVal = a.dob || ''; bVal = b.dob || ''; }
       else if (sortKey === 'subscription') { aVal = a.subscriptionStatus || ''; bVal = b.subscriptionStatus || ''; }
       else if (sortKey === 'session') { aVal = a.kiteSessionActive ? 1 : 0; bVal = b.kiteSessionActive ? 1 : 0; }
-      else if (sortKey === 'margin') { aVal = Number(a.liveMargin || 0); bVal = Number(b.liveMargin || 0); }
       else { aVal = ''; bVal = ''; }
       
       const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
@@ -134,7 +133,6 @@ export default function KYCRequestsPage() {
                   { key: 'dob', label: 'DOB' },
                   { key: 'subscription', label: 'Subscription' },
                   { key: 'session', label: 'Kite Session' },
-                  { key: 'margin', label: 'Live Margin' },
                 ].map(col => {
                   const isActive = sortKey === col.key;
                   return (
@@ -165,7 +163,7 @@ export default function KYCRequestsPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
                       <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading KYC Requests...
                     </div>
@@ -173,7 +171,7 @@ export default function KYCRequestsPage() {
                 </tr>
               ) : sortedRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                     No pending KYC requests.
                   </td>
                 </tr>
@@ -199,12 +197,6 @@ export default function KYCRequestsPage() {
                         trueLabel="Live"
                         falseLabel="No Session"
                       />
-                    </td>
-                    <td>
-                      {request.liveMargin !== null
-                        ? <span style={{ fontWeight: 700, color: '#0f172a' }}>₹{Number(request.liveMargin).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-                        : <span style={{ color: 'var(--text-muted)' }}>N/A</span>
-                      }
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>

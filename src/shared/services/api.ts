@@ -6,7 +6,13 @@ class ApiClient {
     };
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+    const timeoutId = setTimeout(() => {
+      try {
+        controller.abort('Request timed out. Please check your connection and refresh.');
+      } catch {
+        controller.abort();
+      }
+    }, 60000); // 60s timeout
 
     try {
       const response = await fetch(path, {
@@ -33,6 +39,13 @@ class ApiClient {
 
       return data;
     } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error?.name === 'AbortError' || controller.signal.aborted) {
+        const msg = typeof controller.signal.reason === 'string' 
+          ? controller.signal.reason 
+          : 'Request timed out waiting for server response. Please refresh.';
+        throw new Error(msg);
+      }
       throw error;
     }
   }

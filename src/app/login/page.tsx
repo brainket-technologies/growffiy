@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, TrendingUp, Shield, Zap, BarChart2, Sun, Moon, KeyRound, Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, TrendingUp, Shield, Zap, BarChart2, Sun, Moon, KeyRound, Mail, ArrowLeft, CheckCircle2, User, Gift, Layers, Lock, Eye, EyeOff } from 'lucide-react';
 import { Loader } from '../../shared/components/views/Loader';
 import { api } from '../../shared/services/api';
 import { API_ENDPOINTS } from '../../core/constants';
@@ -30,10 +30,15 @@ export default function LoginPage() {
 
   // Registration States
   const [regName, setRegName] = useState('');
+  const [regReferralCode, setRegReferralCode] = useState('');
   const [regEmail, setRegEmail] = useState('');
-  const [regUserId, setRegUserId] = useState('');
+  const [regProductType, setRegProductType] = useState('prod-algo');
+  const [productTypes, setProductTypes] = useState<Array<{ id: string; name: string }>>([]);
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
+  const [regAcceptTerms, setRegAcceptTerms] = useState(false);
   const [regMessage, setRegMessage] = useState<string | null>(null);
 
   // Initialize and Sync Theme
@@ -101,6 +106,24 @@ export default function LoginPage() {
     return () => window.removeEventListener('branding-updated', load);
   }, []);
 
+  // Fetch product types for registration dropdown
+  useEffect(() => {
+    fetch('/api/v1/product-types')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.success && Array.isArray(data.data)) {
+          setProductTypes(data.data);
+          const defaultAlgo = data.data.find((p: any) => p.name.toLowerCase().includes('algo') || p.id === 'prod-algo');
+          if (defaultAlgo) {
+            setRegProductType(defaultAlgo.id);
+          } else if (data.data.length > 0) {
+            setRegProductType(data.data[0].id);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const toggleTheme = () => {
     const nextDark = !isDark;
     setIsDark(nextDark);
@@ -158,6 +181,10 @@ export default function LoginPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!regAcceptTerms) {
+      setError('Please accept the Terms and Conditions and Privacy Policy');
+      return;
+    }
     if (regPassword !== regConfirmPassword) {
       setError('Passwords do not match');
       return;
@@ -168,9 +195,11 @@ export default function LoginPage() {
 
     try {
       const res = await api.post('/api/auth/register', {
-        name: regName,
-        email: regEmail,
-        userId: regUserId,
+        fullName: regName,
+        referralCode: regReferralCode.trim() || undefined,
+        email: regEmail.trim(),
+        productType: regProductType || 'prod-algo',
+        tradingStrategies: [], // empty as requested
         password: regPassword
       });
 
@@ -180,15 +209,16 @@ export default function LoginPage() {
         return;
       }
 
-      setRegMessage(res.message || 'Registration successful!');
+      setRegMessage(res.message || 'Account registered successfully! Redirecting to login...');
       setLoading(false);
       
       // Clear fields
       setRegName('');
+      setRegReferralCode('');
       setRegEmail('');
-      setRegUserId('');
       setRegPassword('');
       setRegConfirmPassword('');
+      setRegAcceptTerms(false);
 
       setTimeout(() => {
         setView('login');
@@ -308,9 +338,71 @@ export default function LoginPage() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 60px 48px;
+          padding: 40px 48px;
           position: relative;
           transition: background-color 0.3s;
+          overflow-y: auto;
+          max-height: 100vh;
+        }
+
+        .login-input-wrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+          width: 100%;
+        }
+        .login-input-icon {
+          position: absolute;
+          left: 14px;
+          color: #8391A1;
+          pointer-events: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2;
+        }
+        .login-input-with-icon {
+          padding-left: 42px !important;
+        }
+        .login-input-eye {
+          position: absolute;
+          right: 14px;
+          background: none;
+          border: none;
+          color: #8391A1;
+          cursor: pointer;
+          padding: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2;
+          transition: color 0.2s;
+        }
+        .login-input-eye:hover {
+          color: var(--text-heading);
+        }
+        .login-select {
+          width: 100%;
+          padding: 13px 40px 13px 42px;
+          border-radius: 12px;
+          border: 1.5px solid var(--border);
+          background: var(--surface);
+          font-size: 15px;
+          color: var(--text-heading);
+          outline: none;
+          transition: border-color 0.2s, box-shadow 0.2s, background-color 0.3s;
+          box-sizing: border-box;
+          font-family: 'Inter', sans-serif;
+          cursor: pointer;
+          appearance: none;
+          background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238391A1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+          background-repeat: no-repeat;
+          background-position: right 14px center;
+          background-size: 16px;
+        }
+        .login-select:focus {
+          border-color: #1E88FF;
+          box-shadow: 0 0 0 3px rgba(30,136,255,0.15);
         }
 
         .login-mobile-bar {
@@ -670,7 +762,7 @@ export default function LoginPage() {
                   </p>
                 </div>
 
-                <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
                   {error && (
                     <div style={{
                       padding: '12px 14px',
@@ -703,67 +795,151 @@ export default function LoginPage() {
 
                   <div>
                     <label className="login-label">Full Name</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Enter your full name"
-                      value={regName}
-                      onChange={(e) => setRegName(e.target.value)}
-                      className="login-input"
-                      autoComplete="name"
-                    />
+                    <div className="login-input-wrap">
+                      <div className="login-input-icon"><User size={18} /></div>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Enter your full name"
+                        value={regName}
+                        onChange={(e) => setRegName(e.target.value)}
+                        className="login-input login-input-with-icon"
+                        autoComplete="name"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="login-label">Referral Code (Optional)</label>
+                    <div className="login-input-wrap">
+                      <div className="login-input-icon"><Gift size={18} /></div>
+                      <input
+                        type="text"
+                        placeholder="Enter referral code (if any)"
+                        value={regReferralCode}
+                        onChange={(e) => setRegReferralCode(e.target.value)}
+                        className="login-input login-input-with-icon"
+                        autoComplete="off"
+                      />
+                    </div>
                   </div>
 
                   <div>
                     <label className="login-label">Email Address</label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="name@example.com"
-                      value={regEmail}
-                      onChange={(e) => setRegEmail(e.target.value)}
-                      className="login-input"
-                      autoComplete="email"
-                    />
+                    <div className="login-input-wrap">
+                      <div className="login-input-icon"><Mail size={18} /></div>
+                      <input
+                        type="email"
+                        required
+                        placeholder="name@example.com"
+                        value={regEmail}
+                        onChange={(e) => setRegEmail(e.target.value)}
+                        className="login-input login-input-with-icon"
+                        autoComplete="email"
+                      />
+                    </div>
                   </div>
 
                   <div>
-                    <label className="login-label">Zerodha Client ID</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. AB1234"
-                      value={regUserId}
-                      onChange={(e) => setRegUserId(e.target.value.toUpperCase())}
-                      className="login-input"
-                      autoComplete="off"
-                    />
+                    <label className="login-label">Product Type</label>
+                    <div className="login-input-wrap">
+                      <div className="login-input-icon"><Layers size={18} /></div>
+                      <select
+                        required
+                        value={regProductType}
+                        onChange={(e) => setRegProductType(e.target.value)}
+                        className="login-select"
+                      >
+                        {productTypes.length === 0 ? (
+                          <option value="prod-algo">Algo</option>
+                        ) : (
+                          productTypes.map((pt) => (
+                            <option key={pt.id} value={pt.id}>
+                              {pt.name}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    </div>
                   </div>
 
                   <div>
                     <label className="login-label">Password</label>
-                    <input
-                      type="password"
-                      required
-                      placeholder="Choose a strong password"
-                      value={regPassword}
-                      onChange={(e) => setRegPassword(e.target.value)}
-                      className="login-input"
-                      autoComplete="new-password"
-                    />
+                    <div className="login-input-wrap">
+                      <div className="login-input-icon"><Lock size={18} /></div>
+                      <input
+                        type={showRegPassword ? 'text' : 'password'}
+                        required
+                        placeholder="Choose a strong password"
+                        value={regPassword}
+                        onChange={(e) => setRegPassword(e.target.value)}
+                        className="login-input login-input-with-icon"
+                        style={{ paddingRight: 42 }}
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        className="login-input-eye"
+                        onClick={() => setShowRegPassword(!showRegPassword)}
+                        tabIndex={-1}
+                        title={showRegPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showRegPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
 
                   <div>
                     <label className="login-label">Confirm Password</label>
+                    <div className="login-input-wrap">
+                      <div className="login-input-icon"><Lock size={18} /></div>
+                      <input
+                        type={showRegConfirmPassword ? 'text' : 'password'}
+                        required
+                        placeholder="Re-enter password"
+                        value={regConfirmPassword}
+                        onChange={(e) => setRegConfirmPassword(e.target.value)}
+                        className="login-input login-input-with-icon"
+                        style={{ paddingRight: 42 }}
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        className="login-input-eye"
+                        onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
+                        tabIndex={-1}
+                        title={showRegConfirmPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showRegConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 4 }}>
                     <input
-                      type="password"
+                      type="checkbox"
+                      id="regTerms"
                       required
-                      placeholder="Re-enter password"
-                      value={regConfirmPassword}
-                      onChange={(e) => setRegConfirmPassword(e.target.value)}
-                      className="login-input"
-                      autoComplete="new-password"
+                      checked={regAcceptTerms}
+                      onChange={(e) => setRegAcceptTerms(e.target.checked)}
+                      style={{
+                        marginTop: 3,
+                        width: 16,
+                        height: 16,
+                        cursor: 'pointer',
+                        accentColor: '#1E88FF',
+                      }}
                     />
+                    <label htmlFor="regTerms" style={{ fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer', lineHeight: 1.4 }}>
+                      I accept the{' '}
+                      <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#1E88FF', fontWeight: 600, textDecoration: 'none' }}>
+                        Terms and Conditions
+                      </a>{' '}
+                      and{' '}
+                      <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#1E88FF', fontWeight: 600, textDecoration: 'none' }}>
+                        Privacy Policy
+                      </a>
+                    </label>
                   </div>
 
                   <button
@@ -785,6 +961,26 @@ export default function LoginPage() {
                   >
                     {loading ? 'Creating Account...' : 'Register Account'}
                   </button>
+
+                  <div style={{ textAlign: 'center', marginTop: 10, fontSize: 14, color: 'var(--text-secondary)' }}>
+                    Already have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => { setView('login'); setError(null); }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#1E88FF',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        padding: 0,
+                        fontSize: 14,
+                        fontFamily: 'Inter, sans-serif',
+                      }}
+                    >
+                      Login
+                    </button>
+                  </div>
                 </form>
               </>
             )}

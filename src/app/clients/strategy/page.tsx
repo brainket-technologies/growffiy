@@ -206,7 +206,8 @@ export interface ClientStrategyPageProps {
   initialViewMode?: 'list' | 'create' | 'edit';
 }
 
-export default function ClientStrategyPage({ initialViewMode = 'list' }: ClientStrategyPageProps) {
+export default function ClientStrategyPage(props: any) {
+  const initialViewMode: 'list' | 'create' | 'edit' = props?.initialViewMode || 'list';
   const { colors, activeUser } = useAppViewModel();
   const router = useRouter();
   const pathname = usePathname();

@@ -108,7 +108,7 @@ export async function POST(request: Request) {
           capital: 0,
           tradingStatus: 'inactive',
           subscriptionStatus: 'pending',
-          kycStatus: 'pending',
+          kycStatus: 'unverified',
           productTypeId: productType || null,
           addedByStaffId: validStaffId,
         }

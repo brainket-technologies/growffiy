@@ -9,6 +9,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
     const all = searchParams.get('all') === 'true';
+    const fresh = searchParams.get('fresh') === 'true';
 
     if (!userId && !all) {
       return NextResponse.json({ success: false, error: 'User ID is required or specify all=true' }, { status: 400 });
@@ -19,13 +20,23 @@ export async function GET(request: Request) {
 
     let payments;
     if (all) {
-      payments = await getCachedData(cacheKey, () => prisma.payment.findMany({
-        include: {
-          plan: true,
-          user: { select: { name: true, email: true, userId: true } }
-        },
-        orderBy: { createdAt: 'desc' }
-      }), ttl);
+      if (fresh) {
+        payments = await prisma.payment.findMany({
+          include: {
+            plan: true,
+            user: { select: { name: true, email: true, userId: true } }
+          },
+          orderBy: { createdAt: 'desc' }
+        });
+      } else {
+        payments = await getCachedData(cacheKey, () => prisma.payment.findMany({
+          include: {
+            plan: true,
+            user: { select: { name: true, email: true, userId: true } }
+          },
+          orderBy: { createdAt: 'desc' }
+        }), ttl);
+      }
     } else {
       const user = await prisma.user.findFirst({
         where: {
