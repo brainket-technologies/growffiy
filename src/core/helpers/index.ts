@@ -30,22 +30,27 @@ export async function concurrentMap<T, R>(
   timeoutMs: number = 0
 ): Promise<R[]> {
   const results: R[] = new Array(items.length);
-  const executing = new Set<Promise<void>>();
   let index = 0;
 
-  const next = async (): Promise<void> => {
-    const i = index++;
-    if (i >= items.length) return;
-    const task = timeoutMs > 0
-      ? Promise.race([
-          fn(items[i]),
-          new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs))
-        ])
-      : fn(items[i]);
-    results[i] = await task;
+  const worker = async (): Promise<void> => {
+    while (index < items.length) {
+      const i = index++;
+      try {
+        const task = timeoutMs > 0
+          ? Promise.race([
+              fn(items[i]),
+              new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs))
+            ])
+          : fn(items[i]);
+        results[i] = await task;
+      } catch {
+        results[i] = undefined as any;
+      }
+    }
   };
 
-  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => next());
+  const workerCount = Math.min(Math.max(1, concurrency), items.length);
+  const workers = Array.from({ length: workerCount }, () => worker());
   await Promise.allSettled(workers);
   return results;
 }
