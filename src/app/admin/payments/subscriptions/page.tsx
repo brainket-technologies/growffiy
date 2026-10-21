@@ -644,6 +644,13 @@ export default function SubscriptionTransactionsPage() {
                               <img
                                 src={txn.screenshotUrl}
                                 alt="Slip"
+                                onError={(e) => {
+                                  const target = e.currentTarget;
+                                  if (!target.dataset.triedFallback && target.src.includes('/uploads/')) {
+                                    target.dataset.triedFallback = 'true';
+                                    target.src = target.src.replace('/uploads/', '/api/uploads/');
+                                  }
+                                }}
                                 style={{
                                   width: '38px',
                                   height: '38px',
@@ -964,6 +971,17 @@ export default function SubscriptionTransactionsPage() {
                   <img
                     src={selectedPayment.screenshotUrl}
                     alt="Payment Receipt"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (!target.dataset.triedFallback && target.src.includes('/uploads/')) {
+                        target.dataset.triedFallback = 'true';
+                        target.src = target.src.replace('/uploads/', '/api/uploads/');
+                      } else {
+                        target.style.display = 'none';
+                        const fallbackDiv = target.parentElement?.querySelector('.img-fallback-msg') as HTMLElement;
+                        if (fallbackDiv) fallbackDiv.style.display = 'block';
+                      }
+                    }}
                     style={{
                       maxHeight: '260px',
                       maxWidth: '100%',
@@ -974,11 +992,13 @@ export default function SubscriptionTransactionsPage() {
                       cursor: 'pointer'
                     }}
                     onClick={() => {
-                      const w = window.open('');
-                      w?.document.write(`<img src="${selectedPayment.screenshotUrl}" style="max-width:100%; height:auto;" />`);
+                      window.open(selectedPayment.screenshotUrl, '_blank');
                     }}
                     title="Click to view full image in new tab"
                   />
+                  <div className="img-fallback-msg" style={{ display: 'none', padding: '12px', background: '#fee2e2', color: '#b91c1c', borderRadius: '8px', fontSize: '12px', marginTop: '6px' }}>
+                    ⚠️ Screenshot image could not be loaded from storage. <a href={selectedPayment.screenshotUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'underline', fontWeight: 600, color: '#991b1b' }}>Open link</a>
+                  </div>
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
                     Click image to expand in full screen
                   </span>
