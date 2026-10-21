@@ -727,29 +727,24 @@ export default function SubscriptionTransactionsPage() {
                                         style={{
                                           display: 'inline-flex',
                                           alignItems: 'center',
-                                          gap: '5px',
-                                          padding: '6px 14px',
+                                          justifyContent: 'center',
+                                          width: '32px',
+                                          height: '32px',
                                           backgroundColor: '#10B981',
                                           color: 'white',
                                           border: 'none',
-                                          borderRadius: '6px',
-                                          fontSize: '12px',
-                                          fontWeight: 700,
+                                          borderRadius: '8px',
                                           cursor: actionLoading ? 'not-allowed' : 'pointer',
                                           opacity: actionLoading ? (isApproving ? 1 : 0.6) : 1,
                                           boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)',
                                           transition: 'all 0.15s'
                                         }}
-                                        title="Approve payment and activate client subscription"
+                                        title="Approve / Accept payment"
                                       >
                                         {isApproving ? (
-                                          <>
-                                            <RefreshCw size={13} className="animate-spin" /> Approving...
-                                          </>
+                                          <RefreshCw size={14} className="animate-spin" />
                                         ) : (
-                                          <>
-                                            <Check size={14} /> Accept
-                                          </>
+                                          <Check size={16} strokeWidth={2.5} />
                                         )}
                                       </button>
 
@@ -763,14 +758,13 @@ export default function SubscriptionTransactionsPage() {
                                         style={{
                                           display: 'inline-flex',
                                           alignItems: 'center',
-                                          gap: '5px',
-                                          padding: '6px 14px',
+                                          justifyContent: 'center',
+                                          width: '32px',
+                                          height: '32px',
                                           backgroundColor: 'rgba(239, 68, 68, 0.1)',
                                           color: '#EF4444',
-                                          border: '1px solid #EF4444',
-                                          borderRadius: '6px',
-                                          fontSize: '12px',
-                                          fontWeight: 700,
+                                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                                          borderRadius: '8px',
                                           cursor: actionLoading ? 'not-allowed' : 'pointer',
                                           opacity: actionLoading ? (isRejecting ? 1 : 0.6) : 1,
                                           transition: 'all 0.15s'
@@ -778,13 +772,9 @@ export default function SubscriptionTransactionsPage() {
                                         title="Reject payment request"
                                       >
                                         {isRejecting ? (
-                                          <>
-                                            <RefreshCw size={13} className="animate-spin" /> Rejecting...
-                                          </>
+                                          <RefreshCw size={14} className="animate-spin" />
                                         ) : (
-                                          <>
-                                            <X size={14} /> Reject
-                                          </>
+                                          <X size={16} strokeWidth={2.5} />
                                         )}
                                       </button>
                                     </>
@@ -809,11 +799,12 @@ export default function SubscriptionTransactionsPage() {
                                       display: 'inline-flex',
                                       alignItems: 'center',
                                       justifyContent: 'center',
-                                      padding: '6px 8px',
+                                      width: '32px',
+                                      height: '32px',
                                       backgroundColor: 'rgba(239, 68, 68, 0.08)',
                                       color: '#EF4444',
                                       border: '1px solid rgba(239, 68, 68, 0.25)',
-                                      borderRadius: '6px',
+                                      borderRadius: '8px',
                                       cursor: actionLoading ? 'not-allowed' : 'pointer',
                                       opacity: actionLoading ? (isDeleting ? 1 : 0.6) : 1,
                                       transition: 'all 0.15s'
@@ -823,7 +814,7 @@ export default function SubscriptionTransactionsPage() {
                                     {isDeleting ? (
                                       <RefreshCw size={13} className="animate-spin" />
                                     ) : (
-                                      <Trash2 size={13} />
+                                      <Trash2 size={14} />
                                     )}
                                   </button>
                                 </>
