@@ -257,36 +257,10 @@ export default function ClientPerformancePage() {
     };
   }, [dateFilteredTrades, pnlPeriod]);
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', gap: '16px' }}>
-        <div className="live-dot" style={{ width: '16px', height: '16px', backgroundColor: 'var(--primary)' }}></div>
-        <div style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Loading client performance metrics...</div>
-      </div>
-    );
-  }
-
-  if (error || !client) {
-    return (
-      <div style={{ padding: '48px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
-        <div style={{ padding: '16px', borderRadius: '50%', backgroundColor: 'var(--danger-light)', color: 'var(--danger)' }}>
-          <TrendingDown size={36} />
-        </div>
-        <div>
-          <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '8px' }}>Performance Data Unavailable</h3>
-          <p style={{ color: 'var(--text-secondary)', maxWidth: '400px', margin: '0 auto' }}>{error || 'Client details could not be found.'}</p>
-        </div>
-        <Button onClick={() => router.push(APP_ROUTES.ADMIN_CLIENTS)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ArrowLeft size={16} /> Back to Clients
-        </Button>
-      </div>
-    );
-  }
-
-  const clientName = client.user?.name || client.name || 'Unknown Client';
-  const clientEmail = client.user?.email || client.email || '--';
-  const clientPhone = client.user?.mobile || '--';
-  const clientCode = client.zerodhaClientId || 'Not Configured';
+  const clientName = client?.user?.name || client?.name || 'Unknown Client';
+  const clientEmail = client?.user?.email || client?.email || '--';
+  const clientPhone = client?.user?.mobile || '--';
+  const clientCode = client?.zerodhaClientId || 'Not Configured';
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(clientCode);
@@ -656,6 +630,32 @@ export default function ClientPerformancePage() {
     setIsFilterOpen(false);
     setCurrentPage(1);
   };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', gap: '16px' }}>
+        <div className="live-dot" style={{ width: '16px', height: '16px', backgroundColor: 'var(--primary)' }}></div>
+        <div style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Loading client performance metrics...</div>
+      </div>
+    );
+  }
+
+  if (error || !client) {
+    return (
+      <div style={{ padding: '48px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+        <div style={{ padding: '16px', borderRadius: '50%', backgroundColor: 'var(--danger-light)', color: 'var(--danger)' }}>
+          <TrendingDown size={36} />
+        </div>
+        <div>
+          <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '8px' }}>Performance Data Unavailable</h3>
+          <p style={{ color: 'var(--text-secondary)', maxWidth: '400px', margin: '0 auto' }}>{error || 'Client details could not be found.'}</p>
+        </div>
+        <Button onClick={() => router.push(APP_ROUTES.ADMIN_CLIENTS)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ArrowLeft size={16} /> Back to Clients
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1200px', margin: '0 auto' }}>
