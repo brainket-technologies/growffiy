@@ -1005,126 +1005,200 @@ export default function SubscriptionTransactionsPage() {
 
             {/* Action Buttons for Pending Payments */}
             {selectedPayment.status?.toLowerCase() === 'pending' ? (
-              <div style={{ display: 'flex', gap: '12px', marginTop: '12px', flexWrap: 'wrap' }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between', 
+                marginTop: '16px', 
+                paddingTop: '16px',
+                borderTop: '1px solid var(--border-color, #e2e8f0)',
+                gap: '10px', 
+                flexWrap: 'wrap' 
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => handlePaymentAction('approve')}
+                    disabled={actionLoading}
+                    style={{
+                      height: '40px',
+                      padding: '0 18px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '7px',
+                      borderRadius: '8px',
+                      backgroundColor: '#10B981',
+                      color: 'white',
+                      border: 'none',
+                      fontWeight: 600,
+                      fontSize: '13px',
+                      cursor: actionLoading ? 'not-allowed' : 'pointer',
+                      opacity: actionLoading ? (processingAction?.action === 'approve' ? 1 : 0.6) : 1,
+                      boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)',
+                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap'
+                    }}
+                    title="Approve payment and activate subscription"
+                  >
+                    {processingAction?.action === 'approve' ? (
+                      <>
+                        <RefreshCw size={15} className="animate-spin" /> Approving...
+                      </>
+                    ) : (
+                      <>
+                        <Check size={16} strokeWidth={2.5} /> Approve
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handlePaymentAction('reject')}
+                    disabled={actionLoading}
+                    style={{
+                      height: '40px',
+                      padding: '0 16px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '7px',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                      color: '#EF4444',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      fontWeight: 600,
+                      fontSize: '13px',
+                      cursor: actionLoading ? 'not-allowed' : 'pointer',
+                      opacity: actionLoading ? (processingAction?.action === 'reject' ? 1 : 0.6) : 1,
+                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap'
+                    }}
+                    title="Reject payment request"
+                  >
+                    {processingAction?.action === 'reject' ? (
+                      <>
+                        <RefreshCw size={15} className="animate-spin" /> Rejecting...
+                      </>
+                    ) : (
+                      <>
+                        <X size={16} strokeWidth={2.5} /> Reject
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handlePaymentAction('delete')}
+                    disabled={actionLoading}
+                    style={{
+                      height: '40px',
+                      padding: '0 14px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      borderRadius: '8px',
+                      backgroundColor: 'transparent',
+                      color: '#EF4444',
+                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                      fontWeight: 600,
+                      fontSize: '13px',
+                      cursor: actionLoading ? 'not-allowed' : 'pointer',
+                      opacity: actionLoading ? (processingAction?.action === 'delete' ? 1 : 0.6) : 1,
+                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap'
+                    }}
+                    title="Permanently delete this payment record"
+                  >
+                    {processingAction?.action === 'delete' ? (
+                      <RefreshCw size={15} className="animate-spin" />
+                    ) : (
+                      <Trash2 size={15} />
+                    )}
+                    <span>{processingAction?.action === 'delete' ? 'Deleting...' : 'Delete'}</span>
+                  </button>
+                </div>
+
                 <button
                   type="button"
-                  onClick={() => handlePaymentAction('approve')}
+                  onClick={() => setSelectedPayment(null)}
                   disabled={actionLoading}
                   style={{
-                    flex: 1,
-                    display: 'flex',
+                    height: '40px',
+                    padding: '0 20px',
+                    display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '8px',
-                    padding: '12px 18px',
                     borderRadius: '8px',
-                    backgroundColor: '#10B981',
-                    color: 'white',
-                    border: 'none',
-                    fontWeight: 700,
+                    border: '1px solid var(--border-color, #e2e8f0)',
+                    background: 'var(--bg-white, #ffffff)',
+                    color: 'var(--text-body, #475569)',
+                    fontWeight: 600,
                     fontSize: '13px',
-                    cursor: actionLoading ? 'not-allowed' : 'pointer',
-                    opacity: actionLoading ? (processingAction?.action === 'approve' ? 1 : 0.6) : 1,
-                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)'
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap'
                   }}
                 >
-                  {processingAction?.action === 'approve' ? (
-                    <>
-                      <RefreshCw size={16} className="animate-spin" /> Approving & Activating...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle size={16} /> Approve & Activate Subscription
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handlePaymentAction('reject')}
-                  disabled={actionLoading}
-                  style={{
-                    padding: '12px 18px',
-                    borderRadius: '8px',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    color: '#EF4444',
-                    border: '1px solid #EF4444',
-                    fontWeight: 700,
-                    fontSize: '13px',
-                    cursor: actionLoading ? 'not-allowed' : 'pointer',
-                    opacity: actionLoading ? (processingAction?.action === 'reject' ? 1 : 0.6) : 1
-                  }}
-                >
-                  {processingAction?.action === 'reject' ? (
-                    <>
-                      <RefreshCw size={16} className="animate-spin" /> Rejecting...
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle size={16} /> Reject Payment
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handlePaymentAction('delete')}
-                  disabled={actionLoading}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                    color: '#EF4444',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    fontWeight: 700,
-                    fontSize: '13px',
-                    cursor: actionLoading ? 'not-allowed' : 'pointer',
-                    opacity: actionLoading ? (processingAction?.action === 'delete' ? 1 : 0.6) : 1
-                  }}
-                  title="Permanently delete this payment record"
-                >
-                  {processingAction?.action === 'delete' ? (
-                    <RefreshCw size={16} className="animate-spin" />
-                  ) : (
-                    <Trash2 size={16} />
-                  )}
-                  {processingAction?.action === 'delete' ? 'Deleting...' : 'Delete'}
-                </button>
-
-                <Button onClick={() => setSelectedPayment(null)} disabled={actionLoading} style={{ border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-body)' }}>
                   Close
-                </Button>
+                </button>
               </div>
             ) : (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', gap: '12px' }}>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                marginTop: '16px', 
+                paddingTop: '16px',
+                borderTop: '1px solid var(--border-color, #e2e8f0)',
+                gap: '12px' 
+              }}>
                 <button
                   type="button"
                   onClick={() => handlePaymentAction('delete')}
                   disabled={actionLoading}
                   style={{
-                    display: 'flex',
+                    height: '40px',
+                    padding: '0 16px',
+                    display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    padding: '10px 16px',
                     borderRadius: '8px',
                     backgroundColor: 'rgba(239, 68, 68, 0.08)',
                     color: '#EF4444',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    fontWeight: 700,
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    fontWeight: 600,
                     fontSize: '13px',
-                    cursor: actionLoading ? 'not-allowed' : 'pointer'
+                    cursor: actionLoading ? 'not-allowed' : 'pointer',
+                    whiteSpace: 'nowrap'
                   }}
                   title="Permanently delete this payment record"
                 >
-                  <Trash2 size={16} /> Delete Record
+                  <Trash2 size={15} /> Delete Record
                 </button>
 
-                <Button onClick={() => setSelectedPayment(null)}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPayment(null)}
+                  style={{
+                    height: '40px',
+                    padding: '0 20px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color, #e2e8f0)',
+                    background: 'var(--bg-white, #ffffff)',
+                    color: 'var(--text-body, #475569)',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
                   Close
-                </Button>
+                </button>
               </div>
             )}
           </div>
