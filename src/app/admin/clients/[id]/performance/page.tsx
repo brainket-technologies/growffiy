@@ -52,7 +52,7 @@ const formatDateTime = (timeStr: string | Date | null) => {
 export default function ClientPerformancePage() {
   const params = useParams();
   const router = useRouter();
-  const id = params.id as string;
+  const id = Array.isArray(params?.id) ? params.id[0] : (params?.id as string) || '';
   const { clients, trades, colors } = useAppViewModel();
 
   const [client, setClient] = useState<any>(null);
@@ -109,28 +109,41 @@ export default function ClientPerformancePage() {
   };
 
   useEffect(() => {
+    if (!id) return;
+    let isMounted = true;
     const fetchClientData = async () => {
       try {
+        setLoading(true);
+        setError(null);
         const res = await api.get(`${API_ENDPOINTS.CLIENTS}/${id}`);
-        if (res.success && res.client) {
+        if (!isMounted) return;
+        if (res && res.client) {
           setClient(res.client);
           
           // Filter trades belonging to this client
-          const allTrades = await api.get(API_ENDPOINTS.TRADES);
-          if (allTrades.success && allTrades.trades) {
-            const filtered = allTrades.trades.filter((t: any) => t.clientId === id);
-            setClientTrades(filtered);
+          try {
+            const allTrades = await api.get(API_ENDPOINTS.TRADES);
+            if (isMounted && allTrades && Array.isArray(allTrades.trades)) {
+              const filtered = allTrades.trades.filter((t: any) => t && (t.clientId === id || t.clientId === res.client.id || t.clientId === res.client.userId));
+              setClientTrades(filtered);
+            }
+          } catch (tErr) {
+            console.error('Trades API error in client performance, using client trades fallback:', tErr);
+            if (isMounted && res.client.trades && Array.isArray(res.client.trades)) {
+              setClientTrades(res.client.trades);
+            }
           }
         } else {
-          setError('Client not found');
+          if (isMounted) setError('Client details not found');
         }
       } catch (err: any) {
-        setError(err.message || 'Error loading client data');
+        if (isMounted) setError(err?.message || 'Error loading client data');
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     fetchClientData();
+    return () => { isMounted = false; };
   }, [id]);
 
   // Filter trades by date range if specified
@@ -283,12 +296,12 @@ export default function ClientPerformancePage() {
 
   // Metric calculation
   const totalTradesCount = dateFilteredTrades.length;
-  const closedTrades = dateFilteredTrades.filter(t => t.status.toLowerCase() !== 'open');
-  const openTradesCount = dateFilteredTrades.filter(t => t.status.toLowerCase() === 'open').length;
+  const closedTrades = dateFilteredTrades.filter(t => (t?.status || '').toLowerCase() !== 'open');
+  const openTradesCount = dateFilteredTrades.filter(t => (t?.status || '').toLowerCase() === 'open').length;
   
-  const winningTrades = closedTrades.filter(t => Number(t.pnl || 0) > 0);
-  const losingTrades = closedTrades.filter(t => Number(t.pnl || 0) < 0);
-  const breakevenTrades = closedTrades.filter(t => Number(t.pnl || 0) === 0);
+  const winningTrades = closedTrades.filter(t => Number(t?.pnl || 0) > 0);
+  const losingTrades = closedTrades.filter(t => Number(t?.pnl || 0) < 0);
+  const breakevenTrades = closedTrades.filter(t => Number(t?.pnl || 0) === 0);
  
   const winCount = winningTrades.length;
   const lossCount = losingTrades.length;
@@ -298,22 +311,22 @@ export default function ClientPerformancePage() {
   const lossRate = closedTrades.length ? (lossCount / closedTrades.length) * 100 : 0;
   const drawRate = totalTradesCount ? (drawCount / totalTradesCount) * 100 : 0;
  
-  const totalPnl = dateFilteredTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
-  const netProfit = winningTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
-  const netLoss = Math.abs(losingTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0));
+  const totalPnl = dateFilteredTrades.reduce((sum, t) => sum + Number(t?.pnl || 0), 0);
+  const netProfit = winningTrades.reduce((sum, t) => sum + Number(t?.pnl || 0), 0);
+  const netLoss = Math.abs(losingTrades.reduce((sum, t) => sum + Number(t?.pnl || 0), 0));
 
   const avgProfit = winCount ? netProfit / winCount : 0;
   const avgLoss = lossCount ? netLoss / lossCount : 0;
   const profitFactor = netLoss ? netProfit / netLoss : netProfit ? 99.9 : 0;
 
-  const bestTrade = winningTrades.length ? Math.max(...winningTrades.map(t => Number(t.pnl || 0))) : 0;
-  const worstTrade = losingTrades.length ? Math.min(...losingTrades.map(t => Number(t.pnl || 0))) : 0;
+  const bestTrade = winningTrades.length ? Math.max(...winningTrades.map(t => Number(t?.pnl || 0))) : 0;
+  const worstTrade = losingTrades.length ? Math.min(...losingTrades.map(t => Number(t?.pnl || 0))) : 0;
   const expectancy = totalTradesCount ? totalPnl / totalTradesCount : 0;
 
   // Max Drawdown calculation from running equity curve relative to client capital
   let maxDrawdownValue = 0;
   let maxDrawdownPercent = 0;
-  const clientCapital = Number(client.capital || 0);
+  const clientCapital = Number(client?.capital || 0);
 
   if (pnlHistoryData.length > 0 && clientCapital > 0) {
     let peak = clientCapital;
@@ -335,7 +348,7 @@ export default function ClientPerformancePage() {
   // Sharpe ratio approximation
   let sharpeRatio = 0;
   if (closedTrades.length > 1) {
-    const pnls = closedTrades.map(t => Number(t.pnl || 0));
+    const pnls = closedTrades.map(t => Number(t?.pnl || 0));
     const mean = pnls.reduce((a, b) => a + b, 0) / pnls.length;
     const variance = pnls.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (pnls.length - 1);
     const stdDev = Math.sqrt(variance);
@@ -350,15 +363,19 @@ export default function ClientPerformancePage() {
   // Dynamic date range string
   let dateRangeStr = 'All Time';
   if (startDate && endDate) {
-    dateRangeStr = `${startDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+    const sStr = !isNaN(startDate.getTime()) ? startDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+    const eStr = !isNaN(endDate.getTime()) ? endDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+    dateRangeStr = sStr && eStr ? `${sStr} - ${eStr}` : 'All Time';
   } else if (dateFilteredTrades.length > 0) {
     const times = dateFilteredTrades
-      .map(t => new Date(t.createdAt).getTime())
-      .filter(t => !isNaN(t));
+      .map(t => new Date(t?.createdAt || t?.entryTime || 0).getTime())
+      .filter(t => !isNaN(t) && t > 0);
     if (times.length > 0) {
       const minDate = new Date(Math.min(...times));
       const maxDate = new Date(Math.max(...times));
-      dateRangeStr = `${minDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })} - ${maxDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+      if (!isNaN(minDate.getTime()) && !isNaN(maxDate.getTime())) {
+        dateRangeStr = `${minDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })} - ${maxDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+      }
     }
   }
 
@@ -379,13 +396,13 @@ export default function ClientPerformancePage() {
       const query = searchQuery.toLowerCase();
 
       // Dynamically calculate transaction type from strategy config action
-      let txType = t.direction === 'SHORT' ? 'SELL' : 'BUY';
+      let txType = (t.direction || '').toUpperCase() === 'SHORT' ? 'SELL' : 'BUY';
       if (txType !== 'SELL') {
         try {
-          const config = JSON.parse(t.strategy?.configJson || '{}');
+          const config = typeof t.strategy?.configJson === 'string' ? JSON.parse(t.strategy.configJson || '{}') : (t.strategy?.configJson || {});
           const leg = config?.legs?.[0]?.tradeAction;
           const action = leg?.action || config?.tradeAction?.action || 'Long';
-          if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
+          if (action && typeof action === 'string' && (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell')) {
             txType = 'SELL';
           }
         } catch (e) {}
@@ -447,13 +464,13 @@ export default function ClientPerformancePage() {
       const exitPriceVal = Number(t.exitPrice || 0);
       const pnlVal = Number(t.pnl || 0);
       
-      let txType = t.direction === 'SHORT' ? 'SELL' : 'BUY';
+      let txType = (t.direction || '').toUpperCase() === 'SHORT' ? 'SELL' : 'BUY';
       if (txType !== 'SELL') {
         try {
-          const config = JSON.parse(t.strategy?.configJson || '{}');
+          const config = typeof t.strategy?.configJson === 'string' ? JSON.parse(t.strategy.configJson || '{}') : (t.strategy?.configJson || {});
           const leg = config?.legs?.[0]?.tradeAction;
           const action = leg?.action || config?.tradeAction?.action || 'Long';
-          if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
+          if (action && typeof action === 'string' && (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell')) {
             txType = 'SELL';
           }
         } catch (e) {}
@@ -497,13 +514,13 @@ export default function ClientPerformancePage() {
       const exitPriceVal = Number(t.exitPrice || 0);
       const pnlVal = Number(t.pnl || 0);
       
-      let txType = t.direction === 'SHORT' ? 'SELL' : 'BUY';
+      let txType = (t.direction || '').toUpperCase() === 'SHORT' ? 'SELL' : 'BUY';
       if (txType !== 'SELL') {
         try {
-          const config = JSON.parse(t.strategy?.configJson || '{}');
+          const config = typeof t.strategy?.configJson === 'string' ? JSON.parse(t.strategy.configJson || '{}') : (t.strategy?.configJson || {});
           const leg = config?.legs?.[0]?.tradeAction;
           const action = leg?.action || config?.tradeAction?.action || 'Long';
-          if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
+          if (action && typeof action === 'string' && (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell')) {
             txType = 'SELL';
           }
         } catch (e) {}
@@ -815,7 +832,7 @@ export default function ClientPerformancePage() {
               justifyContent: 'center',
               fontFamily: 'var(--font-title)'
             }}>
-              {clientName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+              {clientName.split(' ').filter(Boolean).map((n: string) => n[0] || '').join('').toUpperCase().slice(0, 2) || 'CL'}
             </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -823,8 +840,8 @@ export default function ClientPerformancePage() {
                 <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
                   {clientName}
                 </h2>
-                <span className={`badge ${client.tradingStatus === 'active' ? 'badge-green' : 'badge-red'}`} style={{ fontSize: '10px', padding: '3px 10px' }}>
-                  {client.tradingStatus.toUpperCase()}
+                <span className={`badge ${(client.tradingStatus || '').toLowerCase() === 'active' ? 'badge-green' : 'badge-red'}`} style={{ fontSize: '10px', padding: '3px 10px' }}>
+                  {(client.tradingStatus || 'inactive').toUpperCase()}
                 </span>
               </div>
               
@@ -1341,8 +1358,9 @@ export default function ClientPerformancePage() {
                   
                   // Calculate P&L %
                   let pnlPercent = 0;
-                  if (entryPriceVal > 0) {
-                    pnlPercent = (pnl / (entryPriceVal * trade.quantity)) * 100;
+                  const qty = Number(trade.quantity || 0);
+                  if (entryPriceVal > 0 && qty > 0) {
+                    pnlPercent = (pnl / (entryPriceVal * qty)) * 100;
                   }
                   
                   // Dynamically calculate transaction type from strategy config action
@@ -1351,16 +1369,19 @@ export default function ClientPerformancePage() {
                   if (tDir === 'short' || tDir === 'sell') transactionType = 'SELL';
                   if (transactionType !== 'SELL') {
                     try {
-                      const config = JSON.parse(trade.strategy?.configJson || '{}');
+                      const config = typeof trade.strategy?.configJson === 'string'
+                        ? JSON.parse(trade.strategy.configJson || '{}')
+                        : (trade.strategy?.configJson || {});
                       const leg = config?.legs?.[0]?.tradeAction;
                       const action = leg?.action || config?.tradeAction?.action || 'Long';
-                      if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') {
+                      if (action && typeof action === 'string' && (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell')) {
                         transactionType = 'SELL';
                       }
                     } catch (e) {}
                   }
                   const isBuy = transactionType === 'BUY';
                   const strategyName = trade.strategy?.name || trade.strategyName || 'Pre-Open Momentum';
+                  const tradeStatus = (trade.status || 'unknown').toLowerCase();
 
                   return (
                     <tr 
@@ -1394,15 +1415,15 @@ export default function ClientPerformancePage() {
                       </td>
                       <td>
                         <span className={`badge ${
-                          trade.status.toLowerCase() === 'open' 
+                          tradeStatus === 'open' 
                             ? 'badge-info' 
-                            : trade.status.toLowerCase() === 'failed' 
+                            : tradeStatus === 'failed' 
                               ? 'badge-danger' 
-                              : trade.status.toLowerCase() === 'cancelled'
+                              : tradeStatus === 'cancelled'
                                 ? 'badge-warning'
                                 : 'badge-success'
                         }`}>
-                          {trade.status.toUpperCase()}
+                          {(trade.status || 'UNKNOWN').toUpperCase()}
                         </span>
                       </td>
                     </tr>
@@ -1475,49 +1496,6 @@ export default function ClientPerformancePage() {
         </div>
       </Card>
 
-      {/* Trade Details / Order Execution Modal */}
-      {selectedTrade && (
-        <Modal 
-          isOpen={!!selectedTrade} 
-          onClose={() => setSelectedTrade(null)} 
-          title="Order Execution details"
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            <div className="trade-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
-              <div>
-                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Symbol</span>
-                <strong style={{ fontSize: '15px' }}>{selectedTrade.symbol}</strong>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Strategy</span>
-                <strong style={{ fontSize: '13px' }}>{selectedTrade.strategy?.name || selectedTrade.strategyName || 'Pre-Open Momentum'}</strong>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Price</span>
-                <strong>₹{Number(selectedTrade.entryPrice || 0).toFixed(2)}</strong>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Exit Price</span>
-                <strong>{selectedTrade.exitPrice ? `₹${Number(selectedTrade.exitPrice).toFixed(2)}` : '--'}</strong>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Quantity</span>
-                <strong>{selectedTrade.quantity || 0}</strong>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>P&L</span>
-                <strong style={{ color: Number(selectedTrade.pnl || 0) >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                  {Number(selectedTrade.pnl || 0) >= 0 ? `+₹${Number(selectedTrade.pnl || 0).toFixed(2)}` : `-₹${Math.abs(Number(selectedTrade.pnl || 0)).toFixed(2)}`}
-                </strong>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Button onClick={() => setSelectedTrade(null)}>Close</Button>
-            </div>
-          </div>
-        </Modal>
-      )}
 
       {/* Bar Click Trade Breakdown Modal */}
       {selectedBarModal && (
@@ -1743,11 +1721,11 @@ export default function ClientPerformancePage() {
               </div>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Quantity</span>
-                <span>{selectedTrade.quantity} shares</span>
+                <span>{selectedTrade.quantity || 0} shares</span>
               </div>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Total Invested</span>
-                <span>₹{(Number(selectedTrade.entryPrice || 0) * selectedTrade.quantity).toFixed(2)}</span>
+                <span>₹{(Number(selectedTrade.entryPrice || 0) * (Number(selectedTrade.quantity) || 0)).toFixed(2)}</span>
               </div>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Entry Time</span>
@@ -1791,14 +1769,14 @@ export default function ClientPerformancePage() {
               </div>
               <div>
                 <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>Status</span>
-                <span className={`badge ${selectedTrade.status.toLowerCase() === 'open' ? 'badge-info' : selectedTrade.status.toLowerCase() === 'failed' ? 'badge-red' : 'badge-success'}`}>
-                  {selectedTrade.status.toUpperCase()}
+                <span className={`badge ${(selectedTrade.status || '').toLowerCase() === 'open' ? 'badge-info' : (selectedTrade.status || '').toLowerCase() === 'failed' ? 'badge-red' : 'badge-success'}`}>
+                  {(selectedTrade.status || 'UNKNOWN').toUpperCase()}
                 </span>
               </div>
             </div>
 
             {/* Failure/Kite Response Details */}
-            {selectedTrade.status.toLowerCase() === 'failed' && (
+            {(selectedTrade.status || '').toLowerCase() === 'failed' && (
               <div style={{ padding: '12px 16px', borderRadius: '10px', backgroundColor: '#fef2f2', border: '1px solid #fee2e2', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                 <XCircle size={18} color="#ef4444" style={{ marginTop: '2px', flexShrink: 0 }} />
                 <div>
