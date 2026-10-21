@@ -454,8 +454,6 @@ export default function ClientDashboardOverview() {
   // or if they previously had an active plan & completed KYC in the past and their subscription ended.
   const isSubscriptionExpired = matchedClient?.subscriptionStatus === 'expired' ||
     (isKycCompleted && !isSubscriptionActive && !isSubscriptionPending && daysLeft !== null && daysLeft < 0);
-  const isExpiringToday = isSubscriptionActive && daysLeft === 0;
-  const showExpiryWarning = (isSubscriptionActive && daysLeft !== null && daysLeft <= 7) || isSubscriptionExpired;
 
   const productTypeName = matchedClient?.productType?.name || matchedClient?.productTypeName || '';
   const isAlgo = !productTypeName || productTypeName.toLowerCase() === 'algo';
@@ -678,6 +676,10 @@ export default function ClientDashboardOverview() {
     if (!activeUser || !selectedPlanForManual) return;
     if (!utrInput.trim()) {
       setPaymentError('Please enter the 12-digit UTR / Transaction Reference Number.');
+      return;
+    }
+    if (!screenshotFile) {
+      setPaymentError('Please upload your payment screenshot / receipt.');
       return;
     }
 
@@ -1522,63 +1524,6 @@ export default function ClientDashboardOverview() {
             }}
           >
             Renew Now
-          </a>
-        </div>
-      )}
-
-      {/* 3. Expiring Soon Warning (For active subscriptions expiring within 7 days) */}
-      {isSubscriptionActive && daysLeft !== null && daysLeft <= 7 && (
-        <div style={{
-          padding: '20px',
-          borderRadius: '14px',
-          backgroundColor: '#fffbeb',
-          border: '1px solid #fde68a',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '16px',
-          flexWrap: 'wrap',
-          boxShadow: 'var(--shadow-sm)',
-          animation: 'slideUp 0.3s ease-out'
-        }}>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div style={{
-              padding: '10px',
-              borderRadius: '10px',
-              backgroundColor: '#fef3c7',
-              color: '#d97706'
-            }}>
-              <Clock size={20} />
-            </div>
-            <div>
-              <h4 style={{ color: '#b45309', fontSize: '15px', fontWeight: 700, marginBottom: '2px' }}>
-                {isExpiringToday ? 'Subscription Expiring Today' : 'Subscription Expiring Soon'}
-              </h4>
-              <p style={{ color: '#78350f', fontSize: '13.5px' }}>
-                {isExpiringToday ? (
-                  <>Your active plan will <strong>expire today</strong>. Please renew to ensure uninterrupted trade execution.</>
-                ) : (
-                  <>Your active plan will expire in <strong>{daysLeft} {daysLeft === 1 ? 'day' : 'days'}</strong>. Please renew to ensure uninterrupted trade execution.</>
-                )}
-              </p>
-            </div>
-          </div>
-          <a
-            href="/clients/subscription"
-            style={{
-              padding: '10px 20px',
-              borderRadius: '10px',
-              backgroundColor: 'var(--warning)',
-              color: 'white',
-              fontSize: '13px',
-              fontWeight: 700,
-              textDecoration: 'none',
-              whiteSpace: 'nowrap',
-              boxShadow: '0 4px 10px rgba(245, 158, 11, 0.2)',
-              transition: 'all 0.2s'
-            }}
-          >
-            Renew Plan
           </a>
         </div>
       )}
@@ -3488,11 +3433,12 @@ export default function ClientDashboardOverview() {
             {/* Screenshot Upload */}
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                Payment Screenshot / Receipt (Optional)
+                Payment Screenshot / Receipt <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <input
                 type="file"
                 accept="image/*"
+                required
                 onChange={(e) => {
                   if (e.target.files && e.target.files[0]) {
                     setScreenshotFile(e.target.files[0]);
@@ -3512,7 +3458,7 @@ export default function ClientDashboardOverview() {
               <Button type="button" variant="secondary" onClick={() => setManualModalOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" disabled={submittingManual}>
+              <Button type="submit" variant="primary" disabled={submittingManual || !utrInput.trim() || !screenshotFile}>
                 {submittingManual ? 'Submitting Receipt...' : 'Submit Payment Reference'}
               </Button>
             </div>

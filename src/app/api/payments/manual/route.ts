@@ -69,6 +69,13 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
+    if (!screenshotUrl) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Payment screenshot / receipt is required' 
+      }, { status: 400 });
+    }
+
     // 1. Fetch Plan details
     const plan = await prisma.subscriptionPlan.findUnique({
       where: { id: planId }

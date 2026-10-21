@@ -189,7 +189,15 @@ export default function ClientSubscriptionPlans() {
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!utrInput.trim() || !selectedPlanForManual || !activeUser) return;
+    if (!selectedPlanForManual || !activeUser) return;
+    if (!utrInput.trim()) {
+      setErrorMsg('Please enter the 12-digit UTR / Reference Number.');
+      return;
+    }
+    if (!screenshotFile) {
+      setErrorMsg('Please upload your payment screenshot / receipt.');
+      return;
+    }
     setSubmittingManual(true);
     setErrorMsg(null);
 
@@ -686,11 +694,11 @@ export default function ClientSubscriptionPlans() {
               {/* Payment Screenshot Upload */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '6px' }}>
-                  Payment Screenshot / Receipt (Optional)
+                  Payment Screenshot / Receipt <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <div style={{
                   position: 'relative',
-                  border: '1.5px dashed var(--border-color)',
+                  border: screenshotFile ? '1.5px solid #16a34a' : '1.5px dashed var(--border-color)',
                   borderRadius: '10px',
                   padding: '14px',
                   textAlign: 'center',
@@ -701,6 +709,7 @@ export default function ClientSubscriptionPlans() {
                   <input
                     type="file"
                     accept="image/*"
+                    required
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
                         setScreenshotFile(e.target.files[0]);
@@ -773,7 +782,7 @@ export default function ClientSubscriptionPlans() {
                 </button>
                 <button
                   type="submit"
-                  disabled={submittingManual || !utrInput.trim()}
+                  disabled={submittingManual || !utrInput.trim() || !screenshotFile}
                   style={{
                     flex: 2,
                     height: '42px',
@@ -783,8 +792,8 @@ export default function ClientSubscriptionPlans() {
                     color: '#ffffff',
                     fontSize: '14px',
                     fontWeight: 700,
-                    cursor: submittingManual || !utrInput.trim() ? 'not-allowed' : 'pointer',
-                    opacity: submittingManual || !utrInput.trim() ? 0.7 : 1,
+                    cursor: submittingManual || !utrInput.trim() || !screenshotFile ? 'not-allowed' : 'pointer',
+                    opacity: submittingManual || !utrInput.trim() || !screenshotFile ? 0.7 : 1,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
