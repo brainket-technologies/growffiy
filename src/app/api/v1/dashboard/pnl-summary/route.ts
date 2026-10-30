@@ -38,7 +38,10 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const period = searchParams.get('period') || 'Today'; // Today, Week, Month, Year
 
-    let where: any = { clientId: client.id };
+    let where: any = { 
+      clientId: client.id,
+      pnl: { not: 0 }
+    };
     
     // Time Period Filter
     const now = new Date();

@@ -146,9 +146,12 @@ export default function ClientPerformancePage() {
     return () => { isMounted = false; };
   }, [id]);
 
-  // Filter trades by date range if specified
+  // Filter trades by date range if specified (strictly profit and loss trades only)
   const dateFilteredTrades = useMemo(() => {
     return clientTrades.filter(t => {
+      const pnlVal = Number(t?.pnl || 0);
+      if (pnlVal === 0) return false;
+
       if (!t.createdAt) return false;
       const tDate = new Date(t.createdAt);
       if (startDate && tDate < startDate) return false;
@@ -268,21 +271,18 @@ export default function ClientPerformancePage() {
     setTimeout(() => setCopySuccess(false), 2000);
   };
 
-  // Metric calculation
+  // Metric calculation (strictly profit and loss trades)
   const totalTradesCount = dateFilteredTrades.length;
-  const closedTrades = dateFilteredTrades.filter(t => (t?.status || '').toLowerCase() !== 'open');
-  const openTradesCount = dateFilteredTrades.filter(t => (t?.status || '').toLowerCase() === 'open').length;
-  
-  const winningTrades = closedTrades.filter(t => Number(t?.pnl || 0) > 0);
-  const losingTrades = closedTrades.filter(t => Number(t?.pnl || 0) < 0);
-  const breakevenTrades = closedTrades.filter(t => Number(t?.pnl || 0) === 0);
+  const winningTrades = dateFilteredTrades.filter(t => Number(t?.pnl || 0) > 0);
+  const losingTrades = dateFilteredTrades.filter(t => Number(t?.pnl || 0) < 0);
+  const breakevenTrades = dateFilteredTrades.filter(t => Number(t?.pnl || 0) === 0);
  
   const winCount = winningTrades.length;
   const lossCount = losingTrades.length;
-  const drawCount = breakevenTrades.length + openTradesCount; // Open trades are considered neutral/breakeven here
+  const drawCount = breakevenTrades.length;
  
-  const winRate = closedTrades.length ? (winCount / closedTrades.length) * 100 : 0;
-  const lossRate = closedTrades.length ? (lossCount / closedTrades.length) * 100 : 0;
+  const winRate = totalTradesCount ? (winCount / totalTradesCount) * 100 : 0;
+  const lossRate = totalTradesCount ? (lossCount / totalTradesCount) * 100 : 0;
   const drawRate = totalTradesCount ? (drawCount / totalTradesCount) * 100 : 0;
  
   const totalPnl = dateFilteredTrades.reduce((sum, t) => sum + Number(t?.pnl || 0), 0);
@@ -321,8 +321,8 @@ export default function ClientPerformancePage() {
 
   // Sharpe ratio approximation
   let sharpeRatio = 0;
-  if (closedTrades.length > 1) {
-    const pnls = closedTrades.map(t => Number(t?.pnl || 0));
+  if (totalTradesCount > 1) {
+    const pnls = dateFilteredTrades.map(t => Number(t?.pnl || 0));
     const mean = pnls.reduce((a, b) => a + b, 0) / pnls.length;
     const variance = pnls.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (pnls.length - 1);
     const stdDev = Math.sqrt(variance);
@@ -387,12 +387,16 @@ export default function ClientPerformancePage() {
       const matchesType = typeFilter === 'all' || txType === typeFilter.toUpperCase();
 
       const pnlVal = Number(t.pnl || 0);
+      if (pnlVal === 0) return false;
+      const isProfit = pnlVal > 0;
+      const isLoss = pnlVal < 0;
+
       const matchesQuickFilter = 
         statusQuickFilter === 'all' 
           ? true 
           : statusQuickFilter === 'profit' 
-            ? pnlVal > 0 
-            : pnlVal < 0;
+            ? isProfit 
+            : isLoss;
 
       return matchesSearch && matchesStrategy && matchesType && matchesQuickFilter;
     });
@@ -1036,7 +1040,7 @@ export default function ClientPerformancePage() {
             {totalTradesCount}
           </h3>
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, marginTop: '4px' }}>
-            {closedTrades.length} closed, {openTradesCount} open
+            {winCount} winning, {lossCount} losing
           </span>
           <div style={{ position: 'absolute', bottom: '8px', right: '12px', width: '90px', height: '24px' }}>
             <svg width="90" height="24">
@@ -1161,10 +1165,12 @@ export default function ClientPerformancePage() {
                   strokeDashoffset={`${25 - winRate}`}
                 />
                 {/* Breakeven / Open segment (Gray) */}
-                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--text-subtle)" strokeWidth="4.5" 
-                  strokeDasharray={`${drawRate} ${100 - drawRate}`} 
-                  strokeDashoffset={`${25 - winRate - lossRate}`}
-                />
+                {drawCount > 0 && (
+                  <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--text-subtle)" strokeWidth="4.5" 
+                    strokeDasharray={`${drawRate} ${100 - drawRate}`} 
+                    strokeDashoffset={`${25 - winRate - lossRate}`}
+                  />
+                )}
               </svg>
               {/* Center total number */}
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: '1.3' }}>
@@ -1189,13 +1195,15 @@ export default function ClientPerformancePage() {
                 </span>
                 <strong>{lossCount} ({lossRate.toFixed(1)}%)</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--text-subtle)' }} />
-                  Breakeven / Open
-                </span>
-                <strong>{drawCount} ({drawRate.toFixed(1)}%)</strong>
-              </div>
+              {drawCount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--text-subtle)' }} />
+                    Breakeven / Open
+                  </span>
+                  <strong>{drawCount} ({drawRate.toFixed(1)}%)</strong>
+                </div>
+              )}
             </div>
           </div>
         </Card>

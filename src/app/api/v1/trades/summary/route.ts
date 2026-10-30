@@ -34,10 +34,10 @@ export async function GET(request: Request) {
     const startDateParam = searchParams.get('startDate');
     const endDateParam = searchParams.get('endDate');
 
-    // Build the "where" clause
+    // Build the "where" clause (strictly profit and loss trades only)
     let where: any = { 
-      clientId: client.id
-      // Removed pnl: { not: 0 } to include break-even trades in total
+      clientId: client.id,
+      pnl: { not: 0 }
     };
 
     // Time Period Filter
