@@ -59,6 +59,7 @@ export async function GET(req: NextRequest) {
     const allTrades = await prisma.trade.findMany({
       where: { 
         clientId: client.id,
+        pnl: { not: 0 },
         createdAt: { gte: startDate }
       },
       select: { pnl: true, createdAt: true },

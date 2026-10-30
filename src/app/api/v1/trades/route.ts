@@ -41,9 +41,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
     }
 
-    // Build the "where" clause
+    // Build the "where" clause (strictly profit and loss trades only)
     let where: any = { 
-      clientId: client.id
+      clientId: client.id,
+      pnl: { not: 0 }
     };
     // Symbol Search
     if (searchStr.trim() !== '') {
