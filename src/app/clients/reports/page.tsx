@@ -41,11 +41,22 @@ export default function ClientTradingReports() {
 
 
 
+  const impersonateId = typeof window !== 'undefined'
+    ? (new URLSearchParams(window.location.search).get('impersonate') || sessionStorage.getItem('growffiy_impersonate_id'))
+    : null;
+
   // Find client configurations
-  const matchedClient = clients.find(c => 
-    c.zerodhaClientId?.toLowerCase() === activeUser.id.toLowerCase() || 
-    c.user?.userId?.toLowerCase() === activeUser.id.toLowerCase() ||
-    c.user?.name?.toLowerCase() === activeUser.name.toLowerCase()
+  const matchedClient = activeUser?.client || clients.find(c => 
+    (impersonateId && (
+      c.id?.toLowerCase() === impersonateId.toLowerCase() ||
+      c.userId?.toLowerCase() === impersonateId.toLowerCase() ||
+      c.user?.userId?.toLowerCase() === impersonateId.toLowerCase() ||
+      c.zerodhaClientId?.toLowerCase() === impersonateId.toLowerCase() ||
+      c.user?.name?.toLowerCase() === impersonateId.toLowerCase()
+    )) ||
+    c.zerodhaClientId?.toLowerCase() === activeUser?.id?.toLowerCase() || 
+    c.user?.userId?.toLowerCase() === activeUser?.id?.toLowerCase() ||
+    c.user?.name?.toLowerCase() === activeUser?.name?.toLowerCase()
   );
 
   // Filter client's trades

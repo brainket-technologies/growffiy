@@ -44,7 +44,7 @@ export default function ClientSupportPage() {
   }, []);
 
   const loadTickets = async () => {
-    if (!activeUser) return;
+    if (!activeUser?.id) return;
     try {
       const res = await fetch(`${API_ENDPOINTS.SUPPORT_TICKETS}?userId=${activeUser.id}`);
       const data = await res.json();

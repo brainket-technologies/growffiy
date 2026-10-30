@@ -105,7 +105,11 @@ export const Header: React.FC<HeaderProps> = ({
   useEffect(() => {
     if (profileModalOpen && typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
-      const impersonateId = searchParams.get('impersonate');
+      const urlImpersonateId = searchParams.get('impersonate');
+      if (urlImpersonateId) {
+        sessionStorage.setItem('growffiy_impersonate_id', urlImpersonateId);
+      }
+      const impersonateId = urlImpersonateId || sessionStorage.getItem('growffiy_impersonate_id');
       const activeUser = impersonateId || localStorage.getItem('growffiy_logged_in_user_id');
       if (activeUser) {
         api.get(`${API_ENDPOINTS.AUTH_PROFILE}?userId=${activeUser}`)

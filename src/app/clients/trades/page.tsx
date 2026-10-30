@@ -23,14 +23,25 @@ export default function ClientTradesPage() {
 
 
 
-  const matchedClient = clients.find(c =>
-    c.user?.userId?.toLowerCase() === activeUser.id.toLowerCase() ||
-    c.user?.email?.toLowerCase() === activeUser.email?.toLowerCase() ||
-    c.id === activeUser.id
+  const impersonateId = typeof window !== 'undefined'
+    ? (new URLSearchParams(window.location.search).get('impersonate') || sessionStorage.getItem('growffiy_impersonate_id'))
+    : null;
+
+  const matchedClient = activeUser?.client || clients.find(c =>
+    (impersonateId && (
+      c.id?.toLowerCase() === impersonateId.toLowerCase() ||
+      c.userId?.toLowerCase() === impersonateId.toLowerCase() ||
+      c.user?.userId?.toLowerCase() === impersonateId.toLowerCase() ||
+      c.zerodhaClientId?.toLowerCase() === impersonateId.toLowerCase() ||
+      c.user?.name?.toLowerCase() === impersonateId.toLowerCase()
+    )) ||
+    c.user?.userId?.toLowerCase() === activeUser?.id?.toLowerCase() ||
+    c.user?.email?.toLowerCase() === activeUser?.email?.toLowerCase() ||
+    c.id === activeUser?.id
   );
 
-  const clientTrades = trades.filter(t =>
-    matchedClient ? t.clientId === matchedClient.id : t.clientId === activeUser.id
+  const clientTrades = (trades || []).filter(t =>
+    matchedClient ? t?.clientId === matchedClient.id : (activeUser?.id ? t?.clientId === activeUser.id : false)
   );
 
   const filtered = clientTrades.filter(t => {

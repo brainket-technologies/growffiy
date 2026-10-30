@@ -103,8 +103,19 @@ export default function ClientPerformancePage() {
     setCurrentPage(1);
   };
 
-  // Find dynamic client matching logged-in activeUser
+  const impersonateId = typeof window !== 'undefined'
+    ? (new URLSearchParams(window.location.search).get('impersonate') || sessionStorage.getItem('growffiy_impersonate_id'))
+    : null;
+
+  // Find dynamic client matching logged-in activeUser or impersonateId
   const matchedClient = activeUser?.client || clients.find(c => 
+    (impersonateId && (
+      c.id?.toLowerCase() === impersonateId.toLowerCase() ||
+      c.userId?.toLowerCase() === impersonateId.toLowerCase() ||
+      c.user?.userId?.toLowerCase() === impersonateId.toLowerCase() ||
+      c.zerodhaClientId?.toLowerCase() === impersonateId.toLowerCase() ||
+      c.user?.name?.toLowerCase() === impersonateId.toLowerCase()
+    )) ||
     c.zerodhaClientId?.toLowerCase() === activeUser?.id?.toLowerCase() || 
     c.user?.userId?.toLowerCase() === activeUser?.id?.toLowerCase() ||
     c.user?.name?.toLowerCase() === activeUser?.name?.toLowerCase()
@@ -112,27 +123,29 @@ export default function ClientPerformancePage() {
 
   useEffect(() => {
     if (!matchedClient?.id) {
-      if (!appLoading && !activeUser) {
-        setError('User session not found');
+      if (!appLoading) {
+        setError('Client details could not be found');
         setLoading(false);
       }
       return;
     }
 
     setClient(matchedClient);
-    const filtered = trades.filter((t: any) => t.clientId === matchedClient.id);
+    const filtered = (trades || []).filter((t: any) => t?.clientId === matchedClient.id);
     setClientTrades(filtered);
     setLoading(false);
   }, [matchedClient?.id, trades, appLoading, activeUser]);
 
   // Filter trades by date range if specified (strictly profit and loss trades only)
   const dateFilteredTrades = useMemo(() => {
-    return clientTrades.filter(t => {
-      const pnlVal = Number(t.pnl || 0);
+    return (clientTrades || []).filter(t => {
+      const pnlVal = Number(t?.pnl || 0);
       if (pnlVal === 0) return false;
 
-      if (!t.createdAt) return false;
-      const tDate = new Date(t.createdAt);
+      const dateStr = t?.createdAt || t?.entryTime;
+      if (!dateStr) return false;
+      const tDate = new Date(dateStr);
+      if (isNaN(tDate.getTime())) return false;
       if (startDate && tDate < startDate) return false;
       if (endDate) {
         const endOfDay = new Date(endDate);
@@ -242,18 +255,20 @@ export default function ClientPerformancePage() {
   // filteredTransactions computed here so useMemo stays before early returns
   const filteredAndSortedTransactions = useMemo(() => {
     // 1. Filter
-    const filtered = dateFilteredTrades.filter(t => {
-      const strategyName = (t.strategy?.name || t.strategyName || '').toLowerCase();
-      const symbolStr = (t.symbol || '').toLowerCase();
+    const filtered = (dateFilteredTrades || []).filter(t => {
+      const strategyName = (t?.strategy?.name || t?.strategyName || '').toLowerCase();
+      const symbolStr = (t?.symbol || '').toLowerCase();
       const query = searchQuery.toLowerCase();
 
-      let txType = t.direction === 'SHORT' ? 'SELL' : 'BUY';
+      let txType = (t?.direction || '').toUpperCase() === 'SHORT' ? 'SELL' : 'BUY';
       if (txType !== 'SELL') {
         try {
-          const config = JSON.parse(t.strategy?.configJson || '{}');
+          const config = typeof t?.strategy?.configJson === 'string' ? JSON.parse(t.strategy.configJson || '{}') : (t?.strategy?.configJson || {});
           const leg = config?.legs?.[0]?.tradeAction;
           const action = leg?.action || config?.tradeAction?.action || 'Long';
-          if (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell') txType = 'SELL';
+          if (action && typeof action === 'string' && (action.toLowerCase() === 'short' || action.toLowerCase() === 'sell')) {
+            txType = 'SELL';
+          }
         } catch (e) {}
       }
 
@@ -261,7 +276,7 @@ export default function ClientPerformancePage() {
       const matchesStrategy = strategyFilter === 'all' || strategyName.includes(strategyFilter.toLowerCase());
       const matchesType = typeFilter === 'all' || txType === typeFilter.toUpperCase();
 
-      const pnlVal = Number(t.pnl || 0);
+      const pnlVal = Number(t?.pnl || 0);
       if (pnlVal === 0) return false;
       const isProfit = pnlVal > 0;
       const isLoss = pnlVal < 0;
@@ -691,7 +706,7 @@ export default function ClientPerformancePage() {
               justifyContent: 'center',
               fontFamily: 'var(--font-title)'
             }}>
-              {clientName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+              {((clientName || 'Client').split(' ').filter(Boolean).map((n: string) => n[0] || '').join('') || 'CL').toUpperCase().slice(0, 2)}
             </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

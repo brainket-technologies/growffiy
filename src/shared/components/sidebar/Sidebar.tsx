@@ -176,6 +176,17 @@ const isPathActive = (itemPath: string | undefined, currentPath: string) => {
 const SidebarMenuItem: React.FC<SidebarItemProps> = ({ item, pathname, isOpen, onToggle, onNavigate, searchQuery }) => {
   const IconComponent = item.icon;
 
+  const impersonateId = typeof window !== 'undefined'
+    ? (new URLSearchParams(window.location.search).get('impersonate') || sessionStorage.getItem('growffiy_impersonate_id'))
+    : null;
+
+  const getTargetHref = (path: string) => {
+    if (impersonateId && path.startsWith('/clients')) {
+      return `${path}${path.includes('?') ? '&' : '?'}impersonate=${impersonateId}`;
+    }
+    return path;
+  };
+
   if (item.isGroup) {
     const hasActiveSub = item.subItems?.some((sub) => isPathActive(sub.path, pathname));
     const matchesSearch = searchQuery === '' ||
@@ -214,7 +225,7 @@ const SidebarMenuItem: React.FC<SidebarItemProps> = ({ item, pathname, isOpen, o
             return (
               <Link
                 key={sub.name}
-                href={sub.path}
+                href={getTargetHref(sub.path)}
                 onClick={onNavigate}
                 className={`${styles.subItem} ${isSubActive ? styles.subItemActive : ''}`}
               >
@@ -240,7 +251,7 @@ const SidebarMenuItem: React.FC<SidebarItemProps> = ({ item, pathname, isOpen, o
   return (
     <div className={styles.itemWrapper}>
       <Link
-        href={item.path!}
+        href={getTargetHref(item.path!)}
         onClick={onNavigate}
         className={`${styles.menuItem} ${isActive ? styles.menuItemActive : ''}`}
       >
@@ -497,11 +508,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true, staffPermissio
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
-      const impersonateId = searchParams.get('impersonate');
+      const urlImpersonateId = searchParams.get('impersonate');
+      if (urlImpersonateId) {
+        sessionStorage.setItem('growffiy_impersonate_id', urlImpersonateId);
+      }
+      const impersonateId = urlImpersonateId || sessionStorage.getItem('growffiy_impersonate_id');
 
       const storedName = localStorage.getItem('growffiy_logged_in_user_name');
       const storedId = impersonateId || localStorage.getItem('growffiy_logged_in_user_id');
-      const storedRole = localStorage.getItem('growffiy_logged_in_user_role');
+      const storedRole = impersonateId ? 'client' : localStorage.getItem('growffiy_logged_in_user_role');
 
       if (impersonateId) {
         setUserId(impersonateId);
@@ -625,6 +640,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true, staffPermissio
 
   const handleLogout = useCallback(() => {
     if (typeof window !== 'undefined') {
+      const isImpersonating = !!sessionStorage.getItem('growffiy_impersonate_id');
+      if (isImpersonating) {
+        sessionStorage.removeItem('growffiy_impersonate_id');
+        window.location.replace('/admin/clients');
+        return;
+      }
       localStorage.removeItem('growffiy_logged_in_user_id');
       localStorage.removeItem('growffiy_logged_in_user_role');
       localStorage.removeItem('growffiy_logged_in_user_name');

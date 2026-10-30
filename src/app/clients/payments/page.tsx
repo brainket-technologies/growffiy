@@ -33,7 +33,7 @@ export default function ClientPaymentHistory() {
   }, []);
 
   useEffect(() => {
-    if (!activeUser) return;
+    if (!activeUser?.id) return;
 
     fetch(`${API_ENDPOINTS.PAYMENTS_HISTORY}?userId=${activeUser.id}`)
       .then(res => res.json())

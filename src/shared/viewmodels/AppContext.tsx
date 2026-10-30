@@ -69,7 +69,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
-      const impersonateId = searchParams.get('impersonate');
+      const urlImpersonateId = searchParams.get('impersonate');
+      if (urlImpersonateId) {
+        sessionStorage.setItem('growffiy_impersonate_id', urlImpersonateId);
+      }
+      const impersonateId = urlImpersonateId || sessionStorage.getItem('growffiy_impersonate_id');
       
       const storedId = impersonateId || localStorage.getItem('growffiy_logged_in_user_id');
       const storedName = impersonateId ? 'Impersonated Client' : localStorage.getItem('growffiy_logged_in_user_name');
@@ -122,7 +126,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       if (statsRes.success) setDashboardStats(statsRes.stats);
 
-      const storedId = typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('impersonate') || localStorage.getItem('growffiy_logged_in_user_id')) : null;
+      const storedId = typeof window !== 'undefined' 
+        ? (new URLSearchParams(window.location.search).get('impersonate') || sessionStorage.getItem('growffiy_impersonate_id') || localStorage.getItem('growffiy_logged_in_user_id')) 
+        : null;
       if (storedId) {
         api.get(`${API_ENDPOINTS.AUTH_PROFILE}?userId=${storedId}`).then(res => {
           if (res.success && res.user) {

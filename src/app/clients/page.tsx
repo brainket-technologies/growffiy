@@ -103,7 +103,11 @@ export default function ClientDashboardOverview() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
-      const impersonateId = searchParams.get('impersonate');
+      const urlImpersonateId = searchParams.get('impersonate');
+      if (urlImpersonateId) {
+        sessionStorage.setItem('growffiy_impersonate_id', urlImpersonateId);
+      }
+      const impersonateId = urlImpersonateId || sessionStorage.getItem('growffiy_impersonate_id');
 
       const storedId = impersonateId || localStorage.getItem('growffiy_logged_in_user_id');
       const storedRole = impersonateId ? 'client' : localStorage.getItem('growffiy_logged_in_user_role');
@@ -119,8 +123,19 @@ export default function ClientDashboardOverview() {
     }
   }, []);
 
+  const impersonateId = typeof window !== 'undefined'
+    ? (new URLSearchParams(window.location.search).get('impersonate') || sessionStorage.getItem('growffiy_impersonate_id'))
+    : null;
+
   // Find dynamic configuration matches for this client from active clients database list
   const matchedClient = activeUser?.client || clients.find(c => 
+    (impersonateId && (
+      c.id?.toLowerCase() === impersonateId.toLowerCase() ||
+      c.userId?.toLowerCase() === impersonateId.toLowerCase() ||
+      c.user?.userId?.toLowerCase() === impersonateId.toLowerCase() ||
+      c.zerodhaClientId?.toLowerCase() === impersonateId.toLowerCase() ||
+      c.user?.name?.toLowerCase() === impersonateId.toLowerCase()
+    )) ||
     c.zerodhaClientId?.toLowerCase() === activeUser?.id?.toLowerCase() || 
     c.user?.userId?.toLowerCase() === activeUser?.id?.toLowerCase() ||
     c.user?.name?.toLowerCase() === activeUser?.name?.toLowerCase()
