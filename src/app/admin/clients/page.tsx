@@ -641,7 +641,21 @@ export default function ClientsPage() {
                   const isNearBottom = clientIndex >= Math.max(0, currentClients.length - 2);
                   return (
                     <tr key={client.id}>
-                      <td style={{ fontWeight: 600 }}>{client.user?.name || client.name}</td>
+                      <td style={{ fontWeight: 600 }}>
+                        {(() => {
+                          const rawName = (client.user?.name || client.name || '').trim();
+                          const parts = rawName.split(/\s+/);
+                          if (parts.length > 1) {
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.25' }}>
+                                <span>{parts[0]}</span>
+                                <span>{parts.slice(1).join(' ')}</span>
+                              </div>
+                            );
+                          }
+                          return <span>{rawName || '—'}</span>;
+                        })()}
+                      </td>
                       <td>
                         {client.productType?.name ? (
                           <span 
