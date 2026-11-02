@@ -6,7 +6,7 @@ import { Card } from '../../../shared/components/views/Card';
 import { Button } from '../../../shared/components/views/Button';
 import { Modal } from '../../../shared/components/views/Modal';
 import Link from 'next/link';
-import { Plus, Eye, EyeOff, Trash2, Search, Filter, Download, TrendingUp, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, LogIn } from 'lucide-react';
+import { Plus, Eye, EyeOff, Trash2, Search, Filter, Download, TrendingUp, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, LogIn, MoreVertical } from 'lucide-react';
 import { api } from '../../../shared/services/api';
 import { API_ENDPOINTS } from '../../../core/constants';
 
@@ -26,6 +26,22 @@ export default function ClientsPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isConnectingId, setIsConnectingId] = useState<string | null>(null);
   const [isDisconnectingId, setIsDisconnectingId] = useState<string | null>(null);
+  const [openMenuClientId, setOpenMenuClientId] = useState<string | null>(null);
+  const menuContainerRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuContainerRef.current && !menuContainerRef.current.contains(event.target as Node)) {
+        setOpenMenuClientId(null);
+      }
+    }
+    if (openMenuClientId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openMenuClientId]);
 
   const handleConnectZerodha = async (client: any) => {
     if (client.tradingStatus !== 'active') {
@@ -425,7 +441,7 @@ export default function ClientsPage() {
           <span style={{ fontSize: '28px', fontWeight: 800, color: '#10b981', fontFamily: 'var(--font-title)' }}>₹{totalLiveMargin.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
         </Card>
         <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid #8b5cf6' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Per Day Trade Amount</span>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Per Day Amount</span>
           <span style={{ fontSize: '28px', fontWeight: 800, color: '#8b5cf6', fontFamily: 'var(--font-title)' }}>₹{totalPerDayAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
         </Card>
       </div>
@@ -564,20 +580,19 @@ export default function ClientsPage() {
           </select>
         </div>
 
-        <div className="table-responsive">
+        <div className="table-responsive" style={{ minHeight: '380px' }}>
           <table className="table-compact">
             <thead>
               <tr>
                 {[
                   { key: 'name', label: 'Name' },
-                  { key: 'clientId', label: 'Zerodha ID' },
-                  { key: 'productType', label: 'Product Type' },
+                  { key: 'productType', label: 'Type' },
                   { key: 'strategy', label: 'Strategy' },
                   { key: 'margin', label: 'Demat Amount' },
-                  { key: 'perDayAmount', label: 'P/D Trade Amount' },
+                  { key: 'perDayAmount', label: 'P/D Amount' },
                   { key: 'session', label: 'Kite Session' },
                   { key: 'subscription', label: 'Subscription' },
-                  { key: 'status', label: 'Trading Status' },
+                  { key: 'status', label: 'Trade Status' },
                 ].map(col => {
                   const isActive = sortKey === col.key;
                   return (
@@ -602,13 +617,13 @@ export default function ClientsPage() {
                     </th>
                   );
                 })}
-                <th style={{ textAlign: 'right', minWidth: '120px' }}>Actions</th>
+                <th style={{ textAlign: 'right', minWidth: '80px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={10} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
                       <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading clients data...
                     </div>
@@ -616,17 +631,17 @@ export default function ClientsPage() {
                 </tr>
               ) : currentClients.length === 0 ? (
                 <tr>
-                  <td colSpan={10} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                     No client accounts match the search or filter criteria.
                   </td>
                 </tr>
               ) : (
-                currentClients.map((client) => {
+                currentClients.map((client, clientIndex) => {
                   const isTrading = client.tradingStatus === 'active';
+                  const isNearBottom = clientIndex >= Math.max(0, currentClients.length - 2);
                   return (
                     <tr key={client.id}>
                       <td style={{ fontWeight: 600 }}>{client.user?.name || client.name}</td>
-                      <td style={{ fontFamily: 'monospace', fontWeight: 500 }}>{client.zerodhaClientId || '--'}</td>
                       <td>
                         {client.productType?.name ? (
                           <span 
@@ -727,107 +742,124 @@ export default function ClientsPage() {
                           {client.tradingStatus}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'right', minWidth: '150px' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
-                          {client.zerodhaApiKey ? (
-                            <button
-                              onClick={() => handleKiteLoginClick(client)}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                color: '#ff5722',
-                                cursor: 'pointer',
-                                padding: '6px',
-                                borderRadius: '6px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                flexShrink: 0,
-                              }}
-                              title="Login to Zerodha Kite"
-                            >
-                              <ExternalLink size={17} style={{ width: '17px', height: '17px', flexShrink: 0 }} />
-                            </button>
-                          ) : (
+                      <td style={{ textAlign: 'right', minWidth: '70px', position: 'relative' }}>
+                        <div 
+                          ref={openMenuClientId === client.id ? menuContainerRef : null} 
+                          style={{ position: 'relative', display: 'inline-block' }}
+                        >
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuClientId(prev => prev === client.id ? null : client.id);
+                            }}
+                            className="client-action-menu-btn"
+                            style={{
+                              background: openMenuClientId === client.id ? 'var(--bg-secondary, rgba(0,0,0,0.06))' : 'none',
+                              border: '1px solid',
+                              borderColor: openMenuClientId === client.id ? 'var(--border-color, #cbd5e1)' : 'transparent',
+                              borderRadius: '8px',
+                              padding: '6px',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: openMenuClientId === client.id ? 'var(--primary, #6366f1)' : 'var(--text-secondary, #64748b)',
+                              transition: 'all 0.15s ease',
+                            }}
+                            title="Actions"
+                          >
+                            <MoreVertical size={18} />
+                          </button>
+
+                          {openMenuClientId === client.id && (
                             <div
+                              className="client-action-dropdown"
                               style={{
-                                color: 'var(--text-muted)',
+                                position: 'absolute',
+                                right: 0,
+                                ...(isNearBottom ? { bottom: '100%', marginBottom: '6px' } : { top: '100%', marginTop: '6px' }),
+                                minWidth: '220px',
+                                background: 'var(--surface, #ffffff)',
+                                border: '1px solid var(--border-color, #e2e8f0)',
+                                borderRadius: '10px',
+                                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                                zIndex: 9999,
                                 padding: '6px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                opacity: 0.4,
-                                cursor: 'not-allowed',
-                                flexShrink: 0,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '2px',
+                                textAlign: 'left',
                               }}
-                              title="Zerodha API Key not configured"
                             >
-                              <ExternalLink size={17} style={{ width: '17px', height: '17px', flexShrink: 0 }} />
+                              {client.zerodhaApiKey ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuClientId(null);
+                                    handleKiteLoginClick(client);
+                                  }}
+                                  className="client-action-dropdown-item"
+                                >
+                                  <ExternalLink size={15} style={{ color: '#ff5722', flexShrink: 0 }} />
+                                  <span>Login to Kite</span>
+                                </button>
+                              ) : (
+                                <div
+                                  className="client-action-dropdown-item"
+                                  style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                                  title="Zerodha API Key not configured"
+                                >
+                                  <ExternalLink size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                                  <span>Login to Kite <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>(No API Key)</span></span>
+                                </div>
+                              )}
+
+                              <Link
+                                href={`/admin/clients/${client.id}/performance`}
+                                onClick={() => setOpenMenuClientId(null)}
+                                className="client-action-dropdown-item"
+                              >
+                                <TrendingUp size={15} style={{ color: 'var(--accent, #6366f1)', flexShrink: 0 }} />
+                                <span>Performance Curve</span>
+                              </Link>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenMenuClientId(null);
+                                  window.open(`/clients?impersonate=${client.user?.userId || client.id}`, '_blank');
+                                }}
+                                className="client-action-dropdown-item"
+                              >
+                                <LogIn size={15} style={{ color: 'var(--success, #10b981)', flexShrink: 0 }} />
+                                <span>Login as Client</span>
+                              </button>
+
+                              <Link
+                                href={`/admin/clients/${client.id}`}
+                                onClick={() => setOpenMenuClientId(null)}
+                                className="client-action-dropdown-item"
+                              >
+                                <Eye size={15} style={{ color: 'var(--primary, #3b82f6)', flexShrink: 0 }} />
+                                <span>View / Edit Details</span>
+                              </Link>
+
+                              <div style={{ height: '1px', background: 'var(--border-color, #e2e8f0)', margin: '4px 0' }} />
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenMenuClientId(null);
+                                  setDeleteConfirmModal({ isOpen: true, id: client.id, name: client.user?.name || client.name });
+                                }}
+                                className="client-action-dropdown-item danger"
+                              >
+                                <Trash2 size={15} style={{ color: 'var(--danger, #ef4444)', flexShrink: 0 }} />
+                                <span>Delete Client</span>
+                              </button>
                             </div>
                           )}
-                          <Link
-                            href={`/admin/clients/${client.id}/performance`}
-                            style={{
-                              color: 'var(--accent)',
-                              cursor: 'pointer',
-                              padding: '6px',
-                              borderRadius: '6px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              flexShrink: 0,
-                            }}
-                            title="View Client Performance Curve"
-                          >
-                            <TrendingUp size={17} style={{ width: '17px', height: '17px', flexShrink: 0 }} />
-                          </Link>
-                          <button
-                            onClick={() => window.open(`/clients?impersonate=${client.user?.userId || client.id}`, '_blank')}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: 'var(--success, #10b981)',
-                              cursor: 'pointer',
-                              padding: '6px',
-                              borderRadius: '6px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              flexShrink: 0,
-                            }}
-                            title="Login as Client"
-                          >
-                            <LogIn size={17} style={{ width: '17px', height: '17px', flexShrink: 0 }} />
-                          </button>
-                          <Link
-                            href={`/admin/clients/${client.id}`}
-                            style={{
-                              color: 'var(--primary)',
-                              cursor: 'pointer',
-                              padding: '6px',
-                              borderRadius: '6px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              flexShrink: 0,
-                            }}
-                            title="View / Edit Client Details"
-                          >
-                            <Eye size={17} style={{ width: '17px', height: '17px', flexShrink: 0 }} />
-                          </Link>
-                           <button
-                            onClick={() => setDeleteConfirmModal({ isOpen: true, id: client.id, name: client.user?.name || client.name })}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: 'var(--danger)',
-                              cursor: 'pointer',
-                              padding: '6px',
-                              borderRadius: '6px',
-                              transition: 'background-color 0.2s',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              flexShrink: 0,
-                            }}
-                            title="Delete Client"
-                          >
-                            <Trash2 size={17} style={{ width: '17px', height: '17px', flexShrink: 0 }} />
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1490,6 +1522,38 @@ export default function ClientsPage() {
         }
         .table-compact td {
           font-size: 13.5px !important;
+        }
+        .client-action-menu-btn:hover {
+          background-color: var(--bg-secondary, rgba(0, 0, 0, 0.06)) !important;
+          color: var(--text-primary) !important;
+        }
+        .client-action-dropdown-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          width: 100%;
+          padding: 8px 12px;
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--text-primary, #1e293b);
+          background: none;
+          border: none;
+          border-radius: 6px;
+          text-align: left;
+          cursor: pointer;
+          text-decoration: none;
+          transition: background-color 0.15s ease, color 0.15s ease;
+          box-sizing: border-box;
+          user-select: none;
+        }
+        .client-action-dropdown-item:hover {
+          background-color: var(--bg-secondary, rgba(0, 0, 0, 0.06));
+        }
+        .client-action-dropdown-item.danger {
+          color: var(--danger, #ef4444);
+        }
+        .client-action-dropdown-item.danger:hover {
+          background-color: rgba(239, 68, 68, 0.1);
         }
       `}</style>
     </div>

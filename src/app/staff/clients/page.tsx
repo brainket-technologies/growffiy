@@ -6,7 +6,7 @@ import { Card } from '../../../shared/components/views/Card';
 import { Button } from '../../../shared/components/views/Button';
 import { Modal } from '../../../shared/components/views/Modal';
 import Link from 'next/link';
-import { Plus, Eye, Trash2, Search, Filter, Download, TrendingUp, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { Plus, Eye, Trash2, Search, Filter, Download, TrendingUp, ChevronLeft, ChevronRight, ExternalLink, MoreVertical } from 'lucide-react';
 import { api } from '../../../shared/services/api';
 import { API_ENDPOINTS } from '../../../core/constants';
 
@@ -67,6 +67,38 @@ export default function ClientsPage() {
   .clients-page .table-responsive table th:nth-child(5),
   .clients-page .table-responsive table td:nth-child(5) { display: none !important; }
   .clients-page table th, .clients-page table td { padding: 10px 8px !important; font-size: 13px !important; }
+}
+.client-action-menu-btn:hover {
+  background-color: var(--bg-secondary, rgba(0, 0, 0, 0.06)) !important;
+  color: var(--text-primary) !important;
+}
+.client-action-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary, #1e293b);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  box-sizing: border-box;
+  user-select: none;
+}
+.client-action-dropdown-item:hover {
+  background-color: var(--bg-secondary, rgba(0, 0, 0, 0.06));
+}
+.client-action-dropdown-item.danger {
+  color: var(--danger, #ef4444);
+}
+.client-action-dropdown-item.danger:hover {
+  background-color: rgba(239, 68, 68, 0.1);
 }
 `;
   const { clients, addClient, deleteClient, updateClient } = useAppViewModel();
@@ -148,6 +180,22 @@ export default function ClientsPage() {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [openMenuClientId, setOpenMenuClientId] = useState<string | null>(null);
+  const menuContainerRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuContainerRef.current && !menuContainerRef.current.contains(event.target as Node)) {
+        setOpenMenuClientId(null);
+      }
+    }
+    if (openMenuClientId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openMenuClientId]);
 
   // Add Form State
   const [name, setName] = useState('');
@@ -482,35 +530,34 @@ export default function ClientsPage() {
           </select>
         </div>
 
-        <div className="table-responsive">
+        <div className="table-responsive" style={{ minHeight: '380px' }}>
           <table className="table-compact">
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Zerodha Client ID</th>
-                <th>Product Type</th>
+                <th>Type</th>
                 <th>Strategy</th>
                 <th>Live Margin (INR)</th>
                 <th>Kite Session</th>
                 <th>Subscription</th>
-                <th>Trading Status</th>
-                <th style={{ textAlign: 'right', minWidth: '120px' }}>Actions</th>
+                <th>Trade Status</th>
+                <th style={{ textAlign: 'right', minWidth: '80px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {currentClients.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                     No client accounts match the search or filter criteria.
                   </td>
                 </tr>
               ) : (
-                currentClients.map((client) => {
+                currentClients.map((client, clientIndex) => {
                   const isTrading = client.tradingStatus === 'active';
+                  const isNearBottom = clientIndex >= Math.max(0, currentClients.length - 2);
                   return (
                     <tr key={client.id}>
                       <td style={{ fontWeight: 600 }}>{client.user?.name || client.name}</td>
-                      <td style={{ fontFamily: 'monospace', fontWeight: 500 }}>{client.zerodhaClientId || '--'}</td>
                       <td>
                         {client.productType?.name ? (
                           <span 
@@ -612,80 +659,120 @@ export default function ClientsPage() {
                           </span>
                         )}
                       </td>
-                      <td style={{ textAlign: 'right', minWidth: '150px' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
-                          {canKiteLogin && client.zerodhaApiKey ? (
-                            <button
-                              onClick={() => handleKiteLoginClick(client)}
+                      <td style={{ textAlign: 'right', minWidth: '70px', position: 'relative' }}>
+                        <div 
+                          ref={openMenuClientId === client.id ? menuContainerRef : null} 
+                          style={{ position: 'relative', display: 'inline-block' }}
+                        >
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuClientId(prev => prev === client.id ? null : client.id);
+                            }}
+                            className="client-action-menu-btn"
+                            style={{
+                              background: openMenuClientId === client.id ? 'var(--bg-secondary, rgba(0,0,0,0.06))' : 'none',
+                              border: '1px solid',
+                              borderColor: openMenuClientId === client.id ? 'var(--border-color, #cbd5e1)' : 'transparent',
+                              borderRadius: '8px',
+                              padding: '6px',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: openMenuClientId === client.id ? 'var(--primary, #6366f1)' : 'var(--text-secondary, #64748b)',
+                              transition: 'all 0.15s ease',
+                            }}
+                            title="Actions"
+                          >
+                            <MoreVertical size={18} />
+                          </button>
+
+                          {openMenuClientId === client.id && (
+                            <div
+                              className="client-action-dropdown"
                               style={{
-                                background: 'none',
-                                border: 'none',
-                                color: '#ff5722',
-                                cursor: 'pointer',
+                                position: 'absolute',
+                                right: 0,
+                                ...(isNearBottom ? { bottom: '100%', marginBottom: '6px' } : { top: '100%', marginTop: '6px' }),
+                                minWidth: '220px',
+                                background: 'var(--surface, #ffffff)',
+                                border: '1px solid var(--border-color, #e2e8f0)',
+                                borderRadius: '10px',
+                                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                                zIndex: 9999,
                                 padding: '6px',
-                                borderRadius: '6px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                flexShrink: 0,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '2px',
+                                textAlign: 'left',
                               }}
-                              title="Login to Zerodha Kite"
                             >
-                              <ExternalLink size={17} style={{ width: '17px', height: '17px', flexShrink: 0 }} />
-                            </button>
-                          ) : null}
-                          {canViewDetail && (
-                            <Link
-                              href={`/staff/clients/${client.id}`}
-                              style={{
-                                color: 'var(--accent)',
-                                cursor: 'pointer',
-                                padding: '6px',
-                                borderRadius: '6px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                flexShrink: 0,
-                              }}
-                              title="View Client Performance Curve"
-                            >
-                              <TrendingUp size={17} style={{ width: '17px', height: '17px', flexShrink: 0 }} />
-                            </Link>
-                          )}
-                          {canViewDetail && (
-                            <Link
-                              href={`/staff/clients/${client.id}`}
-                              style={{
-                                color: 'var(--primary)',
-                                cursor: 'pointer',
-                                padding: '6px',
-                                borderRadius: '6px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                flexShrink: 0,
-                              }}
-                              title="View Client Details"
-                            >
-                              <Eye size={17} style={{ width: '17px', height: '17px', flexShrink: 0 }} />
-                            </Link>
-                          )}
-                          {canDelete && (
-                            <button
-                              onClick={() => setDeleteConfirmModal({ isOpen: true, id: client.id, name: client.user?.name || client.name })}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                color: 'var(--danger)',
-                                cursor: 'pointer',
-                                padding: '6px',
-                                borderRadius: '6px',
-                                transition: 'background-color 0.2s',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                flexShrink: 0,
-                              }}
-                              title="Delete Client"
-                            >
-                              <Trash2 size={17} style={{ width: '17px', height: '17px', flexShrink: 0 }} />
-                            </button>
+                              {canKiteLogin && (
+                                client.zerodhaApiKey ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenMenuClientId(null);
+                                      handleKiteLoginClick(client);
+                                    }}
+                                    className="client-action-dropdown-item"
+                                  >
+                                    <ExternalLink size={15} style={{ color: '#ff5722', flexShrink: 0 }} />
+                                    <span>Login to Kite</span>
+                                  </button>
+                                ) : (
+                                  <div
+                                    className="client-action-dropdown-item"
+                                    style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                                    title="Zerodha API Key not configured"
+                                  >
+                                    <ExternalLink size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                                    <span>Login to Kite <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>(No API Key)</span></span>
+                                  </div>
+                                )
+                              )}
+
+                              {canViewDetail && (
+                                <Link
+                                  href={`/staff/clients/${client.id}`}
+                                  onClick={() => setOpenMenuClientId(null)}
+                                  className="client-action-dropdown-item"
+                                >
+                                  <TrendingUp size={15} style={{ color: 'var(--accent, #6366f1)', flexShrink: 0 }} />
+                                  <span>Performance Curve</span>
+                                </Link>
+                              )}
+
+                              {canViewDetail && (
+                                <Link
+                                  href={`/staff/clients/${client.id}`}
+                                  onClick={() => setOpenMenuClientId(null)}
+                                  className="client-action-dropdown-item"
+                                >
+                                  <Eye size={15} style={{ color: 'var(--primary, #3b82f6)', flexShrink: 0 }} />
+                                  <span>View Client Details</span>
+                                </Link>
+                              )}
+
+                              {canDelete && (
+                                <>
+                                  <div style={{ height: '1px', background: 'var(--border-color, #e2e8f0)', margin: '4px 0' }} />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenMenuClientId(null);
+                                      setDeleteConfirmModal({ isOpen: true, id: client.id, name: client.user?.name || client.name });
+                                    }}
+                                    className="client-action-dropdown-item danger"
+                                  >
+                                    <Trash2 size={15} style={{ color: 'var(--danger, #ef4444)', flexShrink: 0 }} />
+                                    <span>Delete Client</span>
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           )}
                         </div>
                       </td>
