@@ -91,7 +91,7 @@ export async function GET(request: Request) {
         if (!admin) {
           admin = await prisma.user.create({
             data: {
-              name: 'Firoz Mohammad',
+              name: 'Administrator',
               email: 'admin@growffiy.com',
               userId: 'admin',
               password: 'admin_secure_password_123',

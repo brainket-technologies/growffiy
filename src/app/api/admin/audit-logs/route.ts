@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     const timeStr = new Date().toLocaleString('en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     const newLog = {
       action,
-      user: user || 'Firoz Mohammad',
+      user: user || 'Administrator',
       details,
       time: timeStr,
       type: type || 'action'
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       if (!admin) {
         admin = await prisma.user.create({
           data: {
-            name: 'Firoz Mohammad',
+            name: 'Administrator',
             email: 'admin@growffiy.com',
             userId: 'admin',
             password: 'admin_secure_password_123',

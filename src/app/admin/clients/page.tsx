@@ -437,7 +437,7 @@ export default function ClientsPage() {
           <span style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-secondary)', fontFamily: 'var(--font-title)' }}>{inactiveCount}</span>
         </Card>
         <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid #10b981' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Demate</span>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Demat</span>
           <span style={{ fontSize: '28px', fontWeight: 800, color: '#10b981', fontFamily: 'var(--font-title)' }}>₹{totalLiveMargin.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
         </Card>
         <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid #8b5cf6' }}>
@@ -585,14 +585,14 @@ export default function ClientsPage() {
             <thead>
               <tr>
                 {[
-                  { key: 'name', label: 'Name' },
-                  { key: 'productType', label: 'Type' },
-                  { key: 'strategy', label: 'Strategy' },
-                  { key: 'margin', label: 'Demat Amount' },
-                  { key: 'perDayAmount', label: 'P/D Amount' },
-                  { key: 'session', label: 'Kite Session' },
-                  { key: 'subscription', label: 'Subscription' },
-                  { key: 'status', label: 'Trade Status' },
+                  { key: 'name', label: 'Name', width: '20%' },
+                  { key: 'productType', label: 'Type', width: '8%' },
+                  { key: 'strategy', label: 'Strategy', width: '15%' },
+                  { key: 'margin', label: 'Demat Amount', width: '14%' },
+                  { key: 'perDayAmount', label: 'P/D Amount', width: '13%' },
+                  { key: 'session', label: 'Kite Session', width: '11%' },
+                  { key: 'subscription', label: 'Subscription', width: '11%' },
+                  { key: 'status', label: 'Trade Status', width: '8%' },
                 ].map(col => {
                   const isActive = sortKey === col.key;
                   return (
@@ -600,6 +600,7 @@ export default function ClientsPage() {
                       key={col.key}
                       onClick={() => handleSort(col.key)}
                       style={{
+                        width: col.width,
                         cursor: 'pointer',
                         userSelect: 'none',
                         transition: 'background 0.15s, color 0.15s',
@@ -617,7 +618,7 @@ export default function ClientsPage() {
                     </th>
                   );
                 })}
-                <th style={{ textAlign: 'right', minWidth: '80px' }}>Actions</th>
+                <th style={{ width: '50px', minWidth: '50px', maxWidth: '60px', textAlign: 'center' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -756,7 +757,7 @@ export default function ClientsPage() {
                           {client.tradingStatus}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'right', minWidth: '70px', position: 'relative' }}>
+                      <td style={{ width: '50px', minWidth: '50px', maxWidth: '60px', textAlign: 'center', position: 'relative' }}>
                         <div 
                           ref={openMenuClientId === client.id ? menuContainerRef : null} 
                           style={{ position: 'relative', display: 'inline-block' }}

@@ -646,26 +646,28 @@ export default function GroupTradesPage() {
           isOpen={!!selectedGroup}
           onClose={() => setSelectedGroup(null)}
           title={`Group Trade Detail: ${selectedGroup.symbol} (${selectedGroup.strategy})`}
+          maxWidth="1100px"
+          width="min(1100px, 95vw)"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
             {/* Group Summary Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', background: 'var(--surface)', padding: '14px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', background: 'var(--surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)' }}>
               <div>
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Symbol</span>
-                <div style={{ fontSize: '14px', fontWeight: 700, marginTop: '2px' }}>{selectedGroup.symbol}</div>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Symbol</span>
+                <div style={{ fontSize: '15px', fontWeight: 700, marginTop: '4px' }}>{selectedGroup.symbol}</div>
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Direction</span>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: (selectedGroup.direction || '').toLowerCase() === 'short' ? '#ef4444' : '#10b981', marginTop: '2px' }}>{selectedGroup.direction}</div>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Direction</span>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: (selectedGroup.direction || '').toLowerCase() === 'short' ? '#ef4444' : '#10b981', marginTop: '4px' }}>{selectedGroup.direction}</div>
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Total Qty</span>
-                <div style={{ fontSize: '14px', fontWeight: 700, marginTop: '2px' }}>{selectedGroup.totalQty} Shares</div>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Qty</span>
+                <div style={{ fontSize: '15px', fontWeight: 700, marginTop: '4px' }}>{selectedGroup.totalQty} Shares</div>
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Total Group P&L</span>
-                <div style={{ fontSize: '14px', fontWeight: 800, color: selectedGroup.totalPnl >= 0 ? '#10b981' : '#ef4444', marginTop: '2px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Group P&L</span>
+                <div style={{ fontSize: '15px', fontWeight: 800, color: selectedGroup.totalPnl >= 0 ? '#10b981' : '#ef4444', marginTop: '4px' }}>
                   {selectedGroup.totalPnl >= 0 ? `+₹${selectedGroup.totalPnl.toFixed(2)}` : `-₹${Math.abs(selectedGroup.totalPnl).toFixed(2)}`}
                 </div>
               </div>
@@ -680,13 +682,12 @@ export default function GroupTradesPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                   <thead>
                     <tr style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
-                      <th style={{ padding: '10px 14px' }}>Client Name</th>
-                      <th style={{ padding: '10px 14px' }}>Email</th>
-                      <th style={{ padding: '10px 14px' }}>Qty</th>
-                      <th style={{ padding: '10px 14px' }}>Entry Price</th>
-                      <th style={{ padding: '10px 14px' }}>Exit Price</th>
-                      <th style={{ padding: '10px 14px' }}>Status</th>
-                      <th style={{ padding: '10px 14px' }}>Individual P&L</th>
+                      <th style={{ padding: '12px 16px' }}>Client Name</th>
+                      <th style={{ padding: '12px 16px' }}>Qty</th>
+                      <th style={{ padding: '12px 16px' }}>Entry Price</th>
+                      <th style={{ padding: '12px 16px' }}>Exit Price</th>
+                      <th style={{ padding: '12px 16px' }}>Status</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'right' }}>Individual P&L</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -694,17 +695,16 @@ export default function GroupTradesPage() {
                       const cliPnlColor = cli.pnl > 0.01 ? '#10b981' : cli.pnl < -0.01 ? '#ef4444' : '#888888';
                       return (
                         <tr key={idx} style={{ borderBottom: '1px solid var(--border)', fontSize: '12px' }}>
-                          <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-primary)' }}>{cli.clientName}</td>
-                          <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{cli.email}</td>
-                          <td style={{ padding: '10px 14px', fontWeight: 600 }}>{cli.qty}</td>
-                          <td style={{ padding: '10px 14px' }}>₹{cli.entryPrice.toFixed(2)}</td>
-                          <td style={{ padding: '10px 14px' }}>{cli.exitPrice ? `₹${cli.exitPrice.toFixed(2)}` : '--'}</td>
-                          <td style={{ padding: '10px 14px' }}>
-                            <span className={`badge ${(cli.status || '').toLowerCase().includes('closed') || (cli.status || '').toLowerCase() === 'success' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '8px', padding: '1px 4px' }}>
+                          <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>{cli.clientName}</td>
+                          <td style={{ padding: '12px 16px', fontWeight: 600 }}>{cli.qty}</td>
+                          <td style={{ padding: '12px 16px' }}>₹{cli.entryPrice.toFixed(2)}</td>
+                          <td style={{ padding: '12px 16px' }}>{cli.exitPrice ? `₹${cli.exitPrice.toFixed(2)}` : '--'}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <span className={`badge ${(cli.status || '').toLowerCase().includes('closed') || (cli.status || '').toLowerCase() === 'success' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '9px', padding: '2px 6px' }}>
                               {cli.status?.toUpperCase()}
                             </span>
                           </td>
-                          <td style={{ padding: '10px 14px', fontWeight: 700 }}>
+                          <td style={{ padding: '12px 16px', fontWeight: 700, textAlign: 'right' }}>
                             <span style={{ color: cliPnlColor }}>
                               {cli.pnl > 0.01 ? `+₹${cli.pnl.toFixed(2)}` : cli.pnl < -0.01 ? `-₹${Math.abs(cli.pnl).toFixed(2)}` : '₹0.00'}
                             </span>

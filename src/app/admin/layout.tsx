@@ -18,11 +18,32 @@ export default function AdminLayout({
   const isAdminLogin = pathname === '/admin/login';
 
   const [isAdminAuthenticated, setIsAdminAuthenticated] = React.useState(false);
+  const [adminName, setAdminName] = React.useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('growffiy_logged_in_user_name') || '';
+    }
+    return '';
+  });
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
       const activeUserRole = localStorage.getItem('growffiy_logged_in_user_role');
+      const storedName = localStorage.getItem('growffiy_logged_in_user_name');
+      if (storedName) setAdminName(storedName);
+
+      if (activeUser) {
+        fetch(`/api/auth/profile?userId=${activeUser}`)
+          .then(r => r.json())
+          .then(res => {
+            if (res.success && res.user?.name) {
+              setAdminName(res.user.name);
+              localStorage.setItem('growffiy_logged_in_user_name', res.user.name);
+              if (res.user.email) localStorage.setItem('growffiy_logged_in_user_email', res.user.email);
+            }
+          })
+          .catch(() => {});
+      }
       if (isAdminLogin) {
         if (activeUser) {
           if (activeUserRole === 'admin') {
@@ -95,7 +116,7 @@ export default function AdminLayout({
       <div className={styles.layoutWrapper}>
         <Sidebar isAdmin={true} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <Header title="Growffiy Admin Panel" />
+          <Header title="Growffiy Admin Panel" userName={adminName} userRole="Administrator" />
           <main className={styles.contentWrapper}>
             {children}
           </main>

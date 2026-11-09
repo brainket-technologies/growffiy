@@ -60,7 +60,7 @@ export async function GET(request: Request) {
     const activeSubscriptions = allClientsData.filter(c => c.subscriptionStatus === 'active' || c.tradingStatus === 'active').length;
     
     // Fetch live margins
-    let totalDemate = 0;
+    let totalDemat = 0;
     await Promise.all(allClientsData.map(async (c) => {
       let margin = 0;
       if (c.accessToken && c.zerodhaApiKey) {
@@ -73,7 +73,7 @@ export async function GET(request: Request) {
           // ignore
         }
       }
-      totalDemate += margin;
+      totalDemat += margin;
     }));
 
     const totalPerDayAmount = allClientsData.reduce((acc, c) => acc + (Number(c.perDayTradeAmount) || 0), 0);
@@ -234,7 +234,8 @@ export async function GET(request: Request) {
       todayTrades,
       pnlHistoryData,
       pnlHistoryLabels,
-      totalDemate,
+      totalDemat,
+      totalDemate: totalDemat,
       totalPerDayAmount
     };
 

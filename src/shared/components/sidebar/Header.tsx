@@ -16,8 +16,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   title,
-  userName = 'Firoz Mohammad',
-  userRole = 'Administrator',
+  userName,
+  userRole,
 }) => {
   const router = useRouter();
   const { isTradingActive } = useAppViewModel();
@@ -25,6 +25,26 @@ export const Header: React.FC<HeaderProps> = ({
   const [tradingDays, setTradingDays] = useState<string[]>([]);
   const [holidays, setHolidays] = useState<any[]>([]);
   const [specialDays, setSpecialDays] = useState<any[]>([]);
+
+  const [currentUserName, setCurrentUserName] = useState<string>(() => {
+    if (userName) return userName;
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('growffiy_logged_in_user_name');
+      if (stored) return stored;
+    }
+    return 'Administrator';
+  });
+
+  const [currentUserRole, setCurrentUserRole] = useState<string>(() => {
+    if (userRole) return userRole;
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('growffiy_logged_in_user_role');
+      if (stored === 'admin') return 'Administrator';
+      if (stored === 'staff') return 'Staff';
+      if (stored === 'client') return 'Client Account';
+    }
+    return 'Administrator';
+  });
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -60,7 +80,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const tradingDayLabel = getTradingDayLabel();
 
-  const [profileName, setProfileName] = useState(userName);
+  const [profileName, setProfileName] = useState(userName || '');
   const [profileEmail, setProfileEmail] = useState('');
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -103,7 +123,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   useEffect(() => {
-    if (profileModalOpen && typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
       const urlImpersonateId = searchParams.get('impersonate');
       if (urlImpersonateId) {
@@ -111,27 +131,61 @@ export const Header: React.FC<HeaderProps> = ({
       }
       const impersonateId = urlImpersonateId || sessionStorage.getItem('growffiy_impersonate_id');
       const activeUser = impersonateId || localStorage.getItem('growffiy_logged_in_user_id');
+      const storedRole = localStorage.getItem('growffiy_logged_in_user_role');
+      const storedName = localStorage.getItem('growffiy_logged_in_user_name');
+
+      if (userName) {
+        setCurrentUserName(userName);
+      } else if (storedName) {
+        setCurrentUserName(storedName);
+      }
+
+      if (userRole) {
+        setCurrentUserRole(userRole);
+      } else if (storedRole) {
+        setCurrentUserRole(storedRole === 'admin' ? 'Administrator' : storedRole === 'staff' ? 'Staff' : 'Client Account');
+      }
+
       if (activeUser) {
         api.get(`${API_ENDPOINTS.AUTH_PROFILE}?userId=${activeUser}`)
           .then(res => {
             if (res.success && res.user) {
-              setProfileName(res.user.name);
-              setProfileEmail(res.user.email);
+              const uName = res.user.name || activeUser;
+              setCurrentUserName(uName);
+              setProfileName(uName);
+              setProfileEmail(res.user.email || '');
               if (!impersonateId) {
-                localStorage.setItem('growffiy_logged_in_user_name', res.user.name);
+                localStorage.setItem('growffiy_logged_in_user_name', uName);
+                if (res.user.email) localStorage.setItem('growffiy_logged_in_user_email', res.user.email);
               }
-            } else {
-              setProfileName(userName);
+            } else if (storedName) {
+              setProfileName(storedName);
               setProfileEmail(activeUser.includes('@') ? activeUser : `${activeUser}@growffiy.com`);
             }
           })
           .catch(() => {
-            setProfileName(userName);
-            setProfileEmail(activeUser.includes('@') ? activeUser : `${activeUser}@growffiy.com`);
+            if (storedName) {
+              setProfileName(storedName);
+              setProfileEmail(activeUser.includes('@') ? activeUser : `${activeUser}@growffiy.com`);
+            }
           });
       }
     }
-  }, [profileModalOpen, userName]);
+  }, [profileModalOpen, userName, userRole]);
+
+  useEffect(() => {
+    const handleProfileUpdated = (e: any) => {
+      if (e.detail?.name) {
+        setCurrentUserName(e.detail.name);
+        setProfileName(e.detail.name);
+      }
+      if (e.detail?.email) {
+        setProfileEmail(e.detail.email);
+      }
+    };
+    window.addEventListener('user-profile-updated', handleProfileUpdated);
+    return () => window.removeEventListener('user-profile-updated', handleProfileUpdated);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -167,7 +221,13 @@ export const Header: React.FC<HeaderProps> = ({
       });
       if (res.success) {
         setProfileSuccess(true);
-        localStorage.setItem('growffiy_logged_in_user_id', profileEmail || activeUserId);
+        setCurrentUserName(profileName);
+        localStorage.setItem('growffiy_logged_in_user_name', profileName);
+        if (profileEmail) {
+          localStorage.setItem('growffiy_logged_in_user_email', profileEmail);
+          localStorage.setItem('growffiy_logged_in_user_id', profileEmail);
+        }
+        window.dispatchEvent(new CustomEvent('user-profile-updated', { detail: { name: profileName, email: profileEmail } }));
         setTimeout(() => { setProfileModalOpen(false); window.location.reload(); }, 1000);
       }
     } catch (err: any) {
@@ -231,7 +291,7 @@ export const Header: React.FC<HeaderProps> = ({
     return () => window.removeEventListener('branding-updated', syncAppName);
   }, []);
 
-  const userInitial = userName.charAt(0).toUpperCase();
+  const userInitial = (currentUserName || 'A').charAt(0).toUpperCase();
 
   const renderBreadcrumb = () => {
     const dynamicTitle = title.replace(/Growffiy/gi, appName);
@@ -260,7 +320,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className={styles.actions}>
           {/* Status Indicator */}
-          {userRole !== 'Client Account' && (
+          {currentUserRole !== 'Client Account' && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -318,21 +378,21 @@ export const Header: React.FC<HeaderProps> = ({
               <div className={styles.profileAvatar}>{userInitial}</div>
               <div>
                 <p className={styles.profileName}>
-                  {userName}
+                  {currentUserName}
                   <ChevronDown size={10} className={`${styles.chevron} ${dropdownOpen ? styles.chevronOpen : ''}`} />
                 </p>
-                <p className={styles.profileRole}>{userRole}</p>
+                <p className={styles.profileRole}>{currentUserRole}</p>
               </div>
             </div>
 
             {dropdownOpen && (
               <div className={styles.dropdown}>
-                {(userRole !== 'Client Account' || showClientProfile) && (
+                {(currentUserRole !== 'Client Account' || showClientProfile) && (
                   <button 
                     className={styles.dropdownItem} 
                     onClick={() => { 
                       setDropdownOpen(false); 
-                      if (userRole === 'Client Account' || typeof window !== 'undefined' && localStorage.getItem('growffiy_logged_in_user_role') === 'client') {
+                      if (currentUserRole === 'Client Account' || typeof window !== 'undefined' && localStorage.getItem('growffiy_logged_in_user_role') === 'client') {
                         router.push('/clients/profile');
                       } else {
                         setProfileModalOpen(true);

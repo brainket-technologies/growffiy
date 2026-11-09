@@ -1356,6 +1356,7 @@ export class TradingScheduler {
       'NIFTY PHARMA', 'NIFTY REALTY', 'NIFTY PSU BANK', 'NIFTY PRIVATE BANK',
       'NIFTY OIL & GAS', 'NIFTY HEALTHCARE INDEX', 'NIFTY CONSUMER DURABLES',
       'NIFTY MEDIA', 'NIFTY CHEMICALS', 'NIFTY CEMENT',
+      'SECURITIES IN F&O', 'PERMITTED TO TRADE',
     ];
 
     const httpGet = (url: string, headers: Record<string, string>): Promise<{ status: number; body: string; cookies: string[] }> =>

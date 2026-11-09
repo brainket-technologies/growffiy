@@ -534,14 +534,14 @@ export default function ClientsPage() {
           <table className="table-compact">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Strategy</th>
-                <th>Live Margin (INR)</th>
-                <th>Kite Session</th>
-                <th>Subscription</th>
-                <th>Trade Status</th>
-                <th style={{ textAlign: 'right', minWidth: '80px' }}>Actions</th>
+                <th style={{ width: '22%' }}>Name</th>
+                <th style={{ width: '10%' }}>Type</th>
+                <th style={{ width: '16%' }}>Strategy</th>
+                <th style={{ width: '15%' }}>Live Margin (INR)</th>
+                <th style={{ width: '13%' }}>Kite Session</th>
+                <th style={{ width: '12%' }}>Subscription</th>
+                <th style={{ width: '12%' }}>Trade Status</th>
+                <th style={{ width: '50px', minWidth: '50px', maxWidth: '60px', textAlign: 'center' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -673,7 +673,7 @@ export default function ClientsPage() {
                           </span>
                         )}
                       </td>
-                      <td style={{ textAlign: 'right', minWidth: '70px', position: 'relative' }}>
+                      <td style={{ width: '50px', minWidth: '50px', maxWidth: '60px', textAlign: 'center', position: 'relative' }}>
                         <div 
                           ref={openMenuClientId === client.id ? menuContainerRef : null} 
                           style={{ position: 'relative', display: 'inline-block' }}

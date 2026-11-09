@@ -7,6 +7,8 @@ interface ModalProps {
   title: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  maxWidth?: string;
+  width?: string;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -15,12 +17,21 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   children,
   footer,
+  maxWidth,
+  width,
 }) => {
   if (!isOpen) return null;
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+      <div 
+        className={styles.modalContent} 
+        style={{
+          ...(maxWidth ? { maxWidth } : {}),
+          ...(width ? { width } : {}),
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className={styles.modalHeader}>
           <h3 className={styles.modalTitle}>{title}</h3>
           <button className={styles.modalClose} onClick={onClose}>

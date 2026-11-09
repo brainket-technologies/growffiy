@@ -15,8 +15,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   title,
-  userName = 'Firoz Mohammad',
-  userRole = 'Administrator',
+  userName,
+  userRole,
 }) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -26,8 +26,28 @@ export const Header: React.FC<HeaderProps> = ({
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const [currentUserName, setCurrentUserName] = useState<string>(() => {
+    if (userName) return userName;
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('growffiy_logged_in_user_name');
+      if (stored) return stored;
+    }
+    return 'Administrator';
+  });
+
+  const [currentUserRole, setCurrentUserRole] = useState<string>(() => {
+    if (userRole) return userRole;
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('growffiy_logged_in_user_role');
+      if (stored === 'admin') return 'Administrator';
+      if (stored === 'staff') return 'Staff';
+      if (stored === 'client') return 'Client Account';
+    }
+    return 'Administrator';
+  });
+
   // Profile Form State
-  const [profileName, setProfileName] = useState(userName);
+  const [profileName, setProfileName] = useState(currentUserName);
   const [profileEmail, setProfileEmail] = useState('');
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -41,30 +61,49 @@ export const Header: React.FC<HeaderProps> = ({
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
-  // Fetch current user details dynamically on profile modal open
+  // Fetch current user details dynamically
   useEffect(() => {
-    if (profileModalOpen && typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
       const activeUser = localStorage.getItem('growffiy_logged_in_user_id');
+      const storedName = localStorage.getItem('growffiy_logged_in_user_name');
+      const storedRole = localStorage.getItem('growffiy_logged_in_user_role');
+
+      if (userName) {
+        setCurrentUserName(userName);
+      } else if (storedName) {
+        setCurrentUserName(storedName);
+      }
+
+      if (userRole) {
+        setCurrentUserRole(userRole);
+      } else if (storedRole) {
+        setCurrentUserRole(storedRole === 'admin' ? 'Administrator' : storedRole === 'staff' ? 'Staff' : 'Client Account');
+      }
+
       if (activeUser) {
         api.get(`${API_ENDPOINTS.AUTH_PROFILE}?userId=${activeUser}`)
           .then(res => {
             if (res.success && res.user) {
-              setProfileName(res.user.name);
-              setProfileEmail(res.user.email);
-              // Also update localStorage so that display names are refreshed locally
-              localStorage.setItem('growffiy_logged_in_user_name', res.user.name);
-            } else {
-              setProfileName(userName);
+              const uName = res.user.name || activeUser;
+              setCurrentUserName(uName);
+              setProfileName(uName);
+              setProfileEmail(res.user.email || '');
+              localStorage.setItem('growffiy_logged_in_user_name', uName);
+              if (res.user.email) localStorage.setItem('growffiy_logged_in_user_email', res.user.email);
+            } else if (storedName) {
+              setProfileName(storedName);
               setProfileEmail(activeUser.includes('@') ? activeUser : `${activeUser}@growffiy.com`);
             }
           })
           .catch(() => {
-            setProfileName(userName);
-            setProfileEmail(activeUser.includes('@') ? activeUser : `${activeUser}@growffiy.com`);
+            if (storedName) {
+              setProfileName(storedName);
+              setProfileEmail(activeUser.includes('@') ? activeUser : `${activeUser}@growffiy.com`);
+            }
           });
       }
     }
-  }, [profileModalOpen, userName]);
+  }, [profileModalOpen, userName, userRole]);
 
   const [showClientProfile, setShowClientProfile] = useState<boolean>(true);
 
@@ -251,11 +290,11 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
               <div style={{ textAlign: 'left' }}>
                 <p style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  {userName}
+                  {currentUserName}
                   <ChevronDown size={12} style={{ opacity: 0.7, transform: dropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
                 </p>
                 <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                  {userRole}
+                  {currentUserRole}
                 </p>
               </div>
             </div>

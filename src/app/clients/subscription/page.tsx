@@ -429,10 +429,21 @@ export default function ClientSubscriptionPlans() {
         ) : plans.map((plan) => {
           const isPurchasing = purchasingPlanId === plan.id;
           const isFeatured = plan.durationDays >= 90; // Highlight quarterly and yearly
+          
+          const investmentFeature = Array.isArray(plan.features)
+            ? plan.features.find((f: string) => typeof f === 'string' && f.toLowerCase().startsWith('investment:'))
+            : null;
+          const investmentRange = investmentFeature
+            ? investmentFeature.replace(/^[Ii][Nn][Vv][Ee][Ss][Tt][Mm][Ee][Nn][Tt]:\s*/, '').trim()
+            : null;
+          const cleanFeatures = Array.isArray(plan.features)
+            ? plan.features.filter((f: string) => typeof f === 'string' && !f.toLowerCase().startsWith('investment:'))
+            : [];
+
           return (
             <div key={plan.id} className={`premium-plan-card ${isFeatured ? 'premium-plan-card-featured' : ''}`}>
               <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <h3 style={{ fontSize: '22px', fontWeight: 800, fontFamily: 'var(--font-title)', color: 'var(--text-heading)', letterSpacing: '-0.5px' }}>
                     {plan.name}
                   </h3>
@@ -455,7 +466,7 @@ export default function ClientSubscriptionPlans() {
                   )}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: investmentRange ? '12px' : '18px' }}>
                   <span style={{ fontSize: '42px', fontWeight: 800, color: 'var(--text-heading)', letterSpacing: '-1.5px' }}>
                     ₹{Number(plan.price).toLocaleString('en-IN')}
                   </span>
@@ -464,17 +475,40 @@ export default function ClientSubscriptionPlans() {
                   </span>
                 </div>
 
-                <p style={{ color: 'var(--text-muted)', fontSize: '14.5px', marginBottom: '32px', lineHeight: 1.6 }}>
+                {/* Investment Amount Chip (Below Amount) */}
+                {investmentRange && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                      Investment Amount
+                    </div>
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      background: 'linear-gradient(135deg, #1252AB, #1E88FF)',
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      padding: '6px 16px',
+                      borderRadius: '999px',
+                      boxShadow: '0 4px 14px rgba(18, 82, 171, 0.28)',
+                      letterSpacing: '0.3px',
+                    }}>
+                      {investmentRange}
+                    </div>
+                  </div>
+                )}
+
+                <p style={{ color: 'var(--text-muted)', fontSize: '14.5px', marginBottom: '28px', lineHeight: 1.6 }}>
                   Gain automated signals and demat breakout execution for this duration.
                 </p>
 
                 {/* Features list */}
-                <div style={{ borderTop: '1.5px dashed var(--surface)', paddingTop: '28px', marginBottom: '36px', flex: 1 }}>
-                  <p style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-heading)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px' }}>
+                <div style={{ borderTop: '1.5px dashed var(--surface)', paddingTop: '24px', marginBottom: '32px', flex: 1 }}>
+                  <p style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-heading)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '18px' }}>
                     What's included:
                   </p>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {plan.features.map((feature: string, idx: number) => (
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    {cleanFeatures.map((feature: string, idx: number) => (
                       <li key={idx} className="feature-list-item">
                         <div className={`feature-icon-wrapper ${isFeatured ? 'feature-icon-wrapper-featured' : ''}`}>
                           <Check size={13} strokeWidth={3} />

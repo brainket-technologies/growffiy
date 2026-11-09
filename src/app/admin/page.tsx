@@ -217,7 +217,7 @@ export default function AdminDashboard() {
   const activeStrategies = stats?.activeStrategies || 0;
   const liveAccounts = stats?.activeClients || 0;
   const totalPnl = stats?.totalPnl || 0;
-  const totalDemate = stats?.totalDemate || 0;
+  const totalDemat = stats?.totalDemat || stats?.totalDemate || 0;
   const totalPerDayAmount = stats?.totalPerDayAmount || 0;
 
   const winningStrats = stats?.winningStrategies || 0;
@@ -560,10 +560,27 @@ export default function AdminDashboard() {
     return Array.from(map.values());
   }, [displayBarTrades]);
 
-  // Smart display trades logic for Live Strategy table:
-  // 1. Prioritize open/active trades currently running
-  // 2. Otherwise display trades within the selected date range
-  // 3. Fallback to recent platform trades so the table is never empty
+  // 1. All trades belonging to today (or currently OPEN)
+  const todayTradesList = useMemo(() => {
+    const today = new Date();
+    return trades.filter(t => {
+      const status = (t.status || '').toLowerCase();
+      // Always include active open trades regardless of creation timestamp
+      if (status === 'open') return true;
+
+      if ((status === 'cancelled' || status === 'failed') && (t.pnl === null || t.pnl === undefined || Number(t.pnl) === 0)) return false;
+
+      const dStr = t.createdAt || t.entryTime;
+      if (!dStr) return false;
+      const tradeDate = new Date(dStr);
+      return (
+        tradeDate.getFullYear() === today.getFullYear() &&
+        tradeDate.getMonth() === today.getMonth() &&
+        tradeDate.getDate() === today.getDate()
+      );
+    });
+  }, [trades]);
+
   const openTradesList = trades.filter(t => (t.status || '').toLowerCase() === 'open');
 
   const filteredTrades = trades.filter(t => {
@@ -594,7 +611,9 @@ export default function AdminDashboard() {
   };
 
   const displayTrades = useMemo(() => {
-    let sourceList = openTradesList.length > 0 ? openTradesList : filteredTrades;
+    // Prioritize today's trades (including running open trades).
+    // Fallback to date-range filtered trades if today has no trades yet.
+    let sourceList = todayTradesList.length > 0 ? todayTradesList : (openTradesList.length > 0 ? openTradesList : filteredTrades);
     
     if (liveStrategySortKey) {
       sourceList = [...sourceList].sort((a, b) => {
@@ -619,10 +638,20 @@ export default function AdminDashboard() {
         const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
         return liveStrategySortDir === 'asc' ? cmp : -cmp;
       });
+    } else {
+      // Default: prioritize OPEN trades first, then newest trades first
+      sourceList = [...sourceList].sort((a, b) => {
+        const aOpen = (a.status || '').toLowerCase() === 'open' ? 1 : 0;
+        const bOpen = (b.status || '').toLowerCase() === 'open' ? 1 : 0;
+        if (aOpen !== bOpen) return bOpen - aOpen;
+        const aTime = new Date(a.createdAt || a.entryTime || 0).getTime();
+        const bTime = new Date(b.createdAt || b.entryTime || 0).getTime();
+        return bTime - aTime;
+      });
     }
 
-    return sourceList.slice(0, 5);
-  }, [openTradesList, filteredTrades, liveStrategySortKey, liveStrategySortDir]);
+    return sourceList;
+  }, [todayTradesList, openTradesList, filteredTrades, liveStrategySortKey, liveStrategySortDir]);
 
 
   return (
@@ -902,7 +931,7 @@ export default function AdminDashboard() {
 
         <Card hoverable onClick={() => router.push('/admin/clients')} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid #10b981', cursor: 'pointer' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total Demate</span>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total Demat</span>
             <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '16px' }}>
               ₹
             </div>
@@ -911,7 +940,7 @@ export default function AdminDashboard() {
             {stats === null ? (
               <div style={{ width: '20px', height: '20px', border: '3px solid var(--border-light)', borderTopColor: '#10b981', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
             ) : (
-              <>₹{totalDemate.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</>
+              <>₹{totalDemat.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</>
             )}
           </h2>
         </Card>
@@ -1069,8 +1098,13 @@ export default function AdminDashboard() {
         {/* Left: Live Strategy Table */}
         <Card style={{ padding: '24px', borderRadius: '12px', border: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
+            <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               Live Strategy
+              {todayTradesList.length > 0 && (
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#6366f1', background: 'rgba(99, 102, 241, 0.1)', padding: '2px 8px', borderRadius: '12px' }}>
+                  Today ({displayTrades.length})
+                </span>
+              )}
             </h4>
             <Button 
               onClick={() => router.push('/admin/strategies')}
@@ -1080,9 +1114,9 @@ export default function AdminDashboard() {
             </Button>
           </div>
 
-          <div className="table-responsive">
+          <div className="table-responsive" style={{ maxHeight: '480px', overflowY: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
+              <thead style={{ position: 'sticky', top: 0, background: 'var(--surface)', zIndex: 1 }}>
                 <tr style={{ borderBottom: '1px solid var(--surface)', textAlign: 'left' }}>
                   {[
                     { key: 'strategy', label: 'Strategy' },
@@ -1126,7 +1160,7 @@ export default function AdminDashboard() {
                 {displayTrades.length === 0 ? (
                   <tr>
                     <td colSpan={8} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-subtle)', fontSize: '13px' }}>
-                      No active trades running at this moment.
+                      No trades recorded today.
                     </td>
                   </tr>
                 ) : (

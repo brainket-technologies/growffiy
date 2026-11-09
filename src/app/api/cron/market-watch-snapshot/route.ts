@@ -19,6 +19,7 @@ const SNAPSHOT_INDICES = [
   'NIFTY PHARMA', 'NIFTY REALTY', 'NIFTY PSU BANK', 'NIFTY PRIVATE BANK',
   'NIFTY OIL & GAS', 'NIFTY HEALTHCARE INDEX', 'NIFTY CONSUMER DURABLES',
   'NIFTY MEDIA', 'NIFTY CHEMICALS', 'NIFTY CEMENT',
+  'SECURITIES IN F&O', 'PERMITTED TO TRADE',
 ];
 
 // ── Allowed time slots ────────────────────────────────────────────────────────

@@ -44,7 +44,7 @@ next-env.d.ts
 /scratch
 HOSTINGER_DEPLOY.md
 /growffiy.zip
-/backups/db_backup.json
+/backups/
 logs/
 
 # stock-scanner local config, credentials and cache

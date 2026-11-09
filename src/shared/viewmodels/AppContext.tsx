@@ -177,7 +177,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logToAuditLogs = async (action: string, details: string, type: string = 'action') => {
     try {
-      const payload = { action, user: 'Firoz Mohammad', details, type };
+      const activeUserName = typeof window !== 'undefined' ? (localStorage.getItem('growffiy_logged_in_user_name') || 'Admin') : 'Admin';
+      const payload = { action, user: activeUserName, details, type };
       await api.post(API_ENDPOINTS.AUDIT_LOGS, payload);
       
       if (typeof window !== 'undefined') {

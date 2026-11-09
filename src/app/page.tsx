@@ -250,12 +250,8 @@ export default function GrowffiyLanding() {
             if (data.supportWhatsapp) {
               setSupportWhatsapp(data.supportWhatsapp);
             }
-            if (data.appPlaystoreUrl) {
-              setPlayStoreUrl(data.appPlaystoreUrl);
-            }
-            if (data.appAppstoreUrl) {
-              setAppStoreUrl(data.appAppstoreUrl);
-            }
+            setPlayStoreUrl(data.appPlaystoreUrl || '');
+            setAppStoreUrl(data.appAppstoreUrl || '');
           }
         })
         .catch(err => console.error('Failed to fetch public settings on landing page:', err));
@@ -372,17 +368,19 @@ export default function GrowffiyLanding() {
               
               let tag = isPro ? 'Most Popular' : isEnterprise ? 'Best Value' : 'Standard Access';
               let displayFeatures = p.features;
+              let investmentRange: string | null = null;
 
               if (Array.isArray(p.features)) {
-                const investmentFeature = p.features.find((f: string) => typeof f === 'string' && f.startsWith('INVESTMENT:'));
+                const investmentFeature = p.features.find((f: string) => typeof f === 'string' && f.toLowerCase().startsWith('investment:'));
                 if (investmentFeature) {
-                  tag = investmentFeature.replace('INVESTMENT:', '').trim();
-                  displayFeatures = p.features.filter((f: string) => typeof f === 'string' && !f.startsWith('INVESTMENT:'));
+                  investmentRange = investmentFeature.replace(/^[Ii][Nn][Vv][Ee][Ss][Tt][Mm][Ee][Nn][Tt]:\s*/, '').trim();
+                  displayFeatures = p.features.filter((f: string) => typeof f === 'string' && !f.toLowerCase().startsWith('investment:'));
                 }
               }
               
               return {
                 tag,
+                investmentRange,
                 name: p.name,
                 price: p.price,
                 per: `${p.durationDays} Days`,
@@ -423,6 +421,10 @@ export default function GrowffiyLanding() {
   }, []);
 
   const isUp = (change: number) => change >= 0;
+
+  const hasPlayStore = Boolean(playStoreUrl && playStoreUrl.trim() !== '' && playStoreUrl !== '#' && !playStoreUrl.includes('details?id=...'));
+  const hasAppStore = Boolean(appStoreUrl && appStoreUrl.trim() !== '' && appStoreUrl !== '#' && !appStoreUrl.includes('id00000000') && !appStoreUrl.trim().endsWith('/id...'));
+  const hasAnyApp = hasPlayStore || hasAppStore;
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
@@ -557,88 +559,94 @@ export default function GrowffiyLanding() {
               className="hover-scale-image"
             />
             
-            <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap', width: '100%', maxWidth: '420px' }}>
+            {hasAnyApp && (
+              <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap', width: '100%', maxWidth: '420px' }}>
 
                 {/* Google Play Badge */}
-                <a href={playStoreUrl || '#'} target="_blank" rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    background: '#0f172a',
-                    color: '#ffffff',
-                    padding: '10px 20px',
-                    borderRadius: '14px',
-                    border: '1.5px solid rgba(255,255,255,0.15)',
-                    textDecoration: 'none',
-                    transition: 'all 0.25s ease',
-                    minWidth: '165px',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
-                  }}
-                >
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-                    <path d="M4 3L19.5 12L4 21V3Z" fill="url(#hgp0)"/>
-                    <path d="M4 3L15 15L4 21V3Z" fill="url(#hgp1)"/>
-                    <path d="M4 3L11 11L4 21V3Z" fill="url(#hgp2)"/>
-                    <defs>
-                      <linearGradient id="hgp0" x1="4" y1="3" x2="19.5" y2="12" gradientUnits="userSpaceOnUse"><stop stopColor="#EA4335"/><stop offset="1" stopColor="#FBBC04"/></linearGradient>
-                      <linearGradient id="hgp1" x1="4" y1="3" x2="15" y2="15" gradientUnits="userSpaceOnUse"><stop stopColor="#4285F4"/><stop offset="1" stopColor="#34A853"/></linearGradient>
-                      <linearGradient id="hgp2" x1="4" y1="3" x2="11" y2="11" gradientUnits="userSpaceOnUse"><stop stopColor="#34A853"/><stop offset="1" stopColor="#0F9D58"/></linearGradient>
-                    </defs>
-                  </svg>
-                  <div style={{ lineHeight: 1.25 }}>
-                    <div style={{ fontSize: '10px', fontWeight: 500, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.4px' }}>GET IT ON</div>
-                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.2px' }}>Google Play</div>
-                  </div>
-                </a>
+                {hasPlayStore && (
+                  <a href={playStoreUrl} target="_blank" rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      background: '#0f172a',
+                      color: '#ffffff',
+                      padding: '10px 20px',
+                      borderRadius: '14px',
+                      border: '1.5px solid rgba(255,255,255,0.15)',
+                      textDecoration: 'none',
+                      transition: 'all 0.25s ease',
+                      minWidth: '165px',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+                    }}
+                  >
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                      <path d="M4 3L19.5 12L4 21V3Z" fill="url(#hgp0)"/>
+                      <path d="M4 3L15 15L4 21V3Z" fill="url(#hgp1)"/>
+                      <path d="M4 3L11 11L4 21V3Z" fill="url(#hgp2)"/>
+                      <defs>
+                        <linearGradient id="hgp0" x1="4" y1="3" x2="19.5" y2="12" gradientUnits="userSpaceOnUse"><stop stopColor="#EA4335"/><stop offset="1" stopColor="#FBBC04"/></linearGradient>
+                        <linearGradient id="hgp1" x1="4" y1="3" x2="15" y2="15" gradientUnits="userSpaceOnUse"><stop stopColor="#4285F4"/><stop offset="1" stopColor="#34A853"/></linearGradient>
+                        <linearGradient id="hgp2" x1="4" y1="3" x2="11" y2="11" gradientUnits="userSpaceOnUse"><stop stopColor="#34A853"/><stop offset="1" stopColor="#0F9D58"/></linearGradient>
+                      </defs>
+                    </svg>
+                    <div style={{ lineHeight: 1.25 }}>
+                      <div style={{ fontSize: '10px', fontWeight: 500, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.4px' }}>GET IT ON</div>
+                      <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.2px' }}>Google Play</div>
+                    </div>
+                  </a>
+                )}
 
                 {/* App Store Badge */}
-                <a href={appStoreUrl || '#'} target="_blank" rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    background: '#0f172a',
-                    color: '#ffffff',
-                    padding: '10px 20px',
-                    borderRadius: '14px',
-                    border: '1.5px solid rgba(255,255,255,0.15)',
-                    textDecoration: 'none',
-                    transition: 'all 0.25s ease',
-                    minWidth: '165px',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
-                  }}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="white" style={{ flexShrink: 0 }}>
-                    <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.54 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701z"/>
-                  </svg>
-                  <div style={{ lineHeight: 1.25 }}>
-                    <div style={{ fontSize: '10px', fontWeight: 500, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.4px' }}>DOWNLOAD ON THE</div>
-                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.2px' }}>App Store</div>
-                  </div>
-                </a>
+                {hasAppStore && (
+                  <a href={appStoreUrl} target="_blank" rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      background: '#0f172a',
+                      color: '#ffffff',
+                      padding: '10px 20px',
+                      borderRadius: '14px',
+                      border: '1.5px solid rgba(255,255,255,0.15)',
+                      textDecoration: 'none',
+                      transition: 'all 0.25s ease',
+                      minWidth: '165px',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+                    }}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white" style={{ flexShrink: 0 }}>
+                      <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.54 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701z"/>
+                    </svg>
+                    <div style={{ lineHeight: 1.25 }}>
+                      <div style={{ fontSize: '10px', fontWeight: 500, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.4px' }}>DOWNLOAD ON THE</div>
+                      <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.2px' }}>App Store</div>
+                    </div>
+                  </a>
+                )}
 
               </div>
+            )}
 
             <style>{`
               .hover-scale-image:hover {
@@ -1256,17 +1264,55 @@ export default function GrowffiyLanding() {
                     <div
                       key={plan.name}
                       className={`pricing-card${plan.popular ? ' popular' : ''}`}
-                      style={{ flex: '1 1 300px', maxWidth: '360px', minWidth: '260px' }}
+                      style={{
+                        flex: '1 1 300px',
+                        maxWidth: '360px',
+                        minWidth: '260px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        textAlign: 'center',
+                        padding: '36px 28px',
+                      }}
                     >
                       {plan.popular && <div className="popular-badge">Most Popular</div>}
-                      <div className="pricing-tag">{plan.tag}</div>
-                      <div className="pricing-name">{plan.name}</div>
-                      <div className="pricing-amount">
-                        <span className="pricing-currency">₹</span>
-                        <span className="pricing-price">{Number(plan.price).toLocaleString()}</span>
-                        <span className="pricing-per">/ {plan.per}</span>
+                      
+                      <div className="pricing-name" style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', marginBottom: '14px', letterSpacing: '-0.5px' }}>
+                        {plan.name}
                       </div>
-                      <ul className="pricing-features">
+
+                      <div className="pricing-amount" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '4px', marginBottom: plan.investmentRange ? '14px' : '20px' }}>
+                        <span className="pricing-currency" style={{ fontSize: '20px', fontWeight: 700, color: '#1252AB' }}>₹</span>
+                        <span className="pricing-price" style={{ fontSize: '38px', fontWeight: 800, color: '#1252AB', letterSpacing: '-1px' }}>
+                          {Number(plan.price).toLocaleString()}
+                        </span>
+                        <span className="pricing-per" style={{ fontSize: '14px', fontWeight: 500, color: '#64748b' }}>/ {plan.per}</span>
+                      </div>
+
+                      {/* Investment Amount Chip (Below Amount) */}
+                      {plan.investmentRange && (
+                        <div style={{ marginBottom: '20px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                            Investment Amount
+                          </div>
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: 'linear-gradient(135deg, #1252AB, #1E88FF)',
+                            color: '#ffffff',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            padding: '6px 18px',
+                            borderRadius: '9999px',
+                            boxShadow: '0 4px 14px rgba(18, 82, 171, 0.28)',
+                            letterSpacing: '0.3px',
+                          }}>
+                            {plan.investmentRange}
+                          </div>
+                        </div>
+                      )}
+
+                      <ul className="pricing-features" style={{ flex: 1, textAlign: 'left', borderTop: '1px solid #e2e8f0', paddingTop: '20px', marginBottom: '24px' }}>
                         {plan.features.map((f: string) => (
                           <li key={f} className="pricing-feature-item">
                             <div className="check-icon"><Check size={11} /></div>
@@ -1279,11 +1325,11 @@ export default function GrowffiyLanding() {
                           width: '100%', padding: '13px', borderRadius: 99, fontWeight: 700,
                           fontSize: 14, cursor: 'pointer', transition: 'all 0.3s',
                           background: plan.popular ? 'linear-gradient(135deg, #1252AB, #1E88FF)' : 'white',
-                          color: plan.popular ? 'white' : '#334155',
+                          color: plan.popular ? 'white' : '#1252AB',
                           boxShadow: plan.popular ? '0 6px 20px rgba(18,82,171,0.25)' : 'none',
-                          border: plan.popular ? 'none' : '1.5px solid #e2e8f0',
+                          border: plan.popular ? 'none' : '1.5px solid #1252AB',
                         }}>
-                          Get Started →
+                          Choose Plan
                         </button>
                       </Link>
                     </div>

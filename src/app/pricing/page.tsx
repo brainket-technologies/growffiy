@@ -142,14 +142,26 @@ export default function PricingPage() {
             const mapped = activePlans.map((p: any) => {
               const typeMatch = p.name.match(/^(.+?)\s*(monthly|quarterly|yearly|daily|annual|half|weekly)/i);
               const productType = typeMatch ? typeMatch[1].trim() : p.name.split(' ')[0];
+              let displayFeatures = p.features;
+              let investmentRange: string | null = null;
+
+              if (Array.isArray(p.features)) {
+                const investmentFeature = p.features.find((f: string) => typeof f === 'string' && f.toLowerCase().startsWith('investment:'));
+                if (investmentFeature) {
+                  investmentRange = investmentFeature.replace(/^[Ii][Nn][Vv][Ee][Ss][Tt][Mm][Ee][Nn][Tt]:\s*/, '').trim();
+                  displayFeatures = p.features.filter((f: string) => typeof f === 'string' && !f.toLowerCase().startsWith('investment:'));
+                }
+              }
+
               return {
                 id: p.id,
                 tag: p.name.toLowerCase().includes('monthly') ? 'Standard Access' : p.name.toLowerCase().includes('quarterly') ? 'Most Popular' : 'Best Value',
+                investmentRange,
                 name: p.name,
                 price: p.price,
                 per: `${p.durationDays} Days`,
                 popular: p.name.toLowerCase().includes('quarterly') || p.name.toLowerCase().includes('popular'),
-                features: p.features,
+                features: displayFeatures,
                 productType,
                 durationDays: p.durationDays
               };
@@ -297,17 +309,55 @@ export default function PricingPage() {
                   <div
                     key={plan.name}
                     className={`pricing-card${plan.popular ? ' popular' : ''}`}
-                    style={{ flex: '1 1 300px', maxWidth: '360px', minWidth: '260px' }}
+                    style={{
+                      flex: '1 1 300px',
+                      maxWidth: '360px',
+                      minWidth: '260px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      textAlign: 'center',
+                      padding: '36px 28px',
+                    }}
                   >
                     {plan.popular && <div className="popular-badge">Most Popular</div>}
-                    <div className="pricing-tag">{plan.tag}</div>
-                    <div className="pricing-name">{plan.name}</div>
-                    <div className="pricing-amount">
-                      <span className="pricing-currency">₹</span>
-                      <span className="pricing-price">{Number(plan.price).toLocaleString()}</span>
-                      <span className="pricing-per">/ {plan.per}</span>
+                    
+                    <div className="pricing-name" style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', marginBottom: '14px', letterSpacing: '-0.5px' }}>
+                      {plan.name}
                     </div>
-                    <ul className="pricing-features">
+
+                    <div className="pricing-amount" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '4px', marginBottom: plan.investmentRange ? '14px' : '20px' }}>
+                      <span className="pricing-currency" style={{ fontSize: '20px', fontWeight: 700, color: '#1252AB' }}>₹</span>
+                      <span className="pricing-price" style={{ fontSize: '38px', fontWeight: 800, color: '#1252AB', letterSpacing: '-1px' }}>
+                        {Number(plan.price).toLocaleString()}
+                      </span>
+                      <span className="pricing-per" style={{ fontSize: '14px', fontWeight: 500, color: '#64748b' }}>/ {plan.per}</span>
+                    </div>
+
+                    {/* Investment Amount Chip (Below Amount) */}
+                    {plan.investmentRange && (
+                      <div style={{ marginBottom: '20px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                          Investment Amount
+                        </div>
+                        <div style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: 'linear-gradient(135deg, #1252AB, #1E88FF)',
+                          color: '#ffffff',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          padding: '6px 18px',
+                          borderRadius: '9999px',
+                          boxShadow: '0 4px 14px rgba(18, 82, 171, 0.28)',
+                          letterSpacing: '0.3px',
+                        }}>
+                          {plan.investmentRange}
+                        </div>
+                      </div>
+                    )}
+
+                    <ul className="pricing-features" style={{ flex: 1, textAlign: 'left', borderTop: '1px solid #e2e8f0', paddingTop: '20px', marginBottom: '24px' }}>
                       {plan.features.map((f: string) => (
                         <li key={f} className="pricing-feature-item">
                           <div className="check-icon"><Check size={11} /></div>
@@ -320,11 +370,11 @@ export default function PricingPage() {
                         width: '100%', padding: '13px', borderRadius: 99, fontWeight: 700,
                         fontSize: 14, cursor: 'pointer', transition: 'all 0.3s',
                         background: plan.popular ? 'linear-gradient(135deg, #1252AB, #1E88FF)' : 'white',
-                        color: plan.popular ? 'white' : '#334155',
+                        color: plan.popular ? 'white' : '#1252AB',
                         boxShadow: plan.popular ? '0 6px 20px rgba(18,82,171,0.25)' : 'none',
-                        border: plan.popular ? 'none' : '1.5px solid #e2e8f0',
+                        border: plan.popular ? 'none' : '1.5px solid #1252AB',
                       }}>
-                        Get Started →
+                        Choose Plan
                       </button>
                     </Link>
                   </div>

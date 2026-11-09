@@ -40,8 +40,8 @@ export async function GET() {
         socialTwitter: settings['social_twitter'] !== undefined ? settings['social_twitter'] : 'https://x.com/growffiy',
         socialInstagram: settings['social_instagram'] !== undefined ? settings['social_instagram'] : 'https://instagram.com/growffiy',
         socialFacebook: settings['social_facebook'] !== undefined ? settings['social_facebook'] : 'https://facebook.com/growffiy',
-        appPlaystoreUrl: settings['app_playstore_url'] || 'https://play.google.com/store/apps/details?id=com.growffi.app',
-        appAppstoreUrl: settings['app_appstore_url'] || 'https://apps.apple.com/app/growffi/id00000000',
+        appPlaystoreUrl: (settings['app_playstore_url'] || '').trim() && (settings['app_playstore_url'] || '').trim() !== '#' && !(settings['app_playstore_url'] || '').includes('details?id=...') ? (settings['app_playstore_url'] || '').trim() : '',
+        appAppstoreUrl: (settings['app_appstore_url'] || '').trim() && (settings['app_appstore_url'] || '').trim() !== '#' && !(settings['app_appstore_url'] || '').includes('id00000000') && !(settings['app_appstore_url'] || '').trim().endsWith('/id...') ? (settings['app_appstore_url'] || '').trim() : '',
       };
     }, 120); // 2 min cache — settings rarely change
 
