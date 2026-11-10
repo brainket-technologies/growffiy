@@ -49,6 +49,8 @@ function getPrisma(): PrismaClient {
     return activePrisma;
   }
 
+  const maxPoolSize = Number(process.env.DB_POOL_MAX || 25);
+
   try {
     if (connString.includes('neon.tech')) {
       const adapter = new PrismaNeon({ connectionString: connString });
@@ -57,7 +59,12 @@ function getPrisma(): PrismaClient {
         log: ['error', 'warn'],
       });
     } else {
-      const pool = new PgPool({ connectionString: connString });
+      const pool = new PgPool({
+        connectionString: connString,
+        max: maxPoolSize,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 5000,
+      });
       const adapter = new PrismaPg(pool);
       activePrisma = new PrismaClient({
         adapter,
@@ -66,7 +73,12 @@ function getPrisma(): PrismaClient {
     }
   } catch (err) {
     console.error("db.ts: Failed to initialize Prisma adapter:", err);
-    const pool = new PgPool({ connectionString: connString });
+    const pool = new PgPool({
+      connectionString: connString,
+      max: maxPoolSize,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    });
     const adapter = new PrismaPg(pool);
     activePrisma = new PrismaClient({ adapter });
   }

@@ -103,3 +103,4 @@ export class TradePersistenceQueueService {
 const globalForQueue = global as unknown as { tradePersistenceQueue: TradePersistenceQueueService };
 export const tradePersistenceQueue = globalForQueue.tradePersistenceQueue || new TradePersistenceQueueService();
 if (process.env.NODE_ENV !== 'production') globalForQueue.tradePersistenceQueue = tradePersistenceQueue;
+

@@ -98,11 +98,18 @@ class AlgoEngineService {
 
     await this.wsLive.initialize();
     await this.restorePreselectedStocks();
-    this.tradingScheduler.startDailyTokenRefreshScheduler();
-    this.tradingScheduler.startDailyMasterDataCacheScheduler();
-    this.tradingScheduler.startDailyPreOpenStrategyScheduler();
-    this.tradingScheduler.startActiveTradesMonitoringScheduler();
-    this.tradingScheduler.startEODReconciliationScheduler();
+
+    const isMasterWorker = !process.env.NODE_APP_INSTANCE || process.env.NODE_APP_INSTANCE === '0';
+    if (isMasterWorker) {
+      console.log('AlgoEngine init: Master worker (Instance 0) starting scheduled trading timers...');
+      this.tradingScheduler.startDailyTokenRefreshScheduler();
+      this.tradingScheduler.startDailyMasterDataCacheScheduler();
+      this.tradingScheduler.startDailyPreOpenStrategyScheduler();
+      this.tradingScheduler.startActiveTradesMonitoringScheduler();
+      this.tradingScheduler.startEODReconciliationScheduler();
+    } else {
+      console.log(`AlgoEngine init: Cluster worker (Instance ${process.env.NODE_APP_INSTANCE}) standby for parallel execution.`);
+    }
   }
 
   private async restorePreselectedStocks(): Promise<void> {
