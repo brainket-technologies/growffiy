@@ -51,8 +51,9 @@ export async function calculateClientCapitalAndRisk(params: MarginParams): Promi
     }
   }
 
-  // Per Day Trade Amount Validation
-  const perDayTradeAmount = client.perDayTradeAmount ? Number(client.perDayTradeAmount) : 0;
+  // Per Day Trade Amount Validation (Safely guarded against null/undefined/NaN)
+  const rawPerDay = client.perDayTradeAmount !== undefined && client.perDayTradeAmount !== null ? Number(client.perDayTradeAmount) : 0;
+  const perDayTradeAmount = (!isNaN(rawPerDay) && rawPerDay > 0) ? rawPerDay : 0;
   if (perDayTradeAmount > 0) {
     if (marginOrApi < perDayTradeAmount) {
       const errMsg = `Skipped: Insufficient Live Margin (₹${marginOrApi.toLocaleString('en-IN')}) for configured Per Day Trade Amount (₹${perDayTradeAmount.toLocaleString('en-IN')})`;
