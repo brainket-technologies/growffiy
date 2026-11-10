@@ -71,6 +71,26 @@ export class TradingScheduler {
         // Market hours guard: 07:00-16:00 IST ke bahar zero DB/logs
         if (hours < 7 || hours >= 16) return;
 
+        const todayStr = istDate.toLocaleDateString('en-CA');
+        const dayName = istDate.toLocaleDateString('en-US', { weekday: 'short' });
+        const tradingDaysStr = await this.engine.getAlgoSetting('trading_days', '["Mon","Tue","Wed","Thu","Fri"]');
+        const specialDaysStr = await this.engine.getAlgoSetting('special_market_days', '[]');
+        const holidaysStr = await this.engine.getAlgoSetting('market_holidays', '[]');
+
+        let tradingDays: string[], specialDays: any[], holidays: any[];
+        try { tradingDays = JSON.parse(tradingDaysStr); } catch { tradingDays = ['Mon','Tue','Wed','Thu','Fri']; }
+        try { specialDays = JSON.parse(specialDaysStr); } catch { specialDays = []; }
+        try { holidays = JSON.parse(holidaysStr); } catch { holidays = []; }
+
+        const isHoliday = Array.isArray(holidays) ? holidays.find(h => h.date === todayStr) : null;
+        if (isHoliday) {
+          return;
+        }
+        const isSpecialDay = Array.isArray(specialDays) ? specialDays.find(s => s.date === todayStr) : null;
+        if (!tradingDays.includes(dayName) && !isSpecialDay) {
+          return;
+        }
+
         // Check for OHLC snapshots at specific times
         const targetOhlcTimes = ['09:16', '09:20', '09:30', '09:45', '10:00', '12:00'];
         if (targetOhlcTimes.includes(currentTimeStr) && this.lastOhlcSnapshot.get(currentTimeStr) !== currentDateKey) {
@@ -99,28 +119,6 @@ export class TradingScheduler {
 
         const autoTradeEnabled = await this.engine.getAlgoSetting('auto_trade_enabled', 'true');
         if (autoTradeEnabled !== 'true') return;
-
-        const todayStr = istDate.toLocaleDateString('en-CA');
-        const dayName = istDate.toLocaleDateString('en-US', { weekday: 'short' });
-        const tradingDaysStr = await this.engine.getAlgoSetting('trading_days', '["Mon","Tue","Wed","Thu","Fri"]');
-        const specialDaysStr = await this.engine.getAlgoSetting('special_market_days', '[]');
-        const holidaysStr = await this.engine.getAlgoSetting('market_holidays', '[]');
-
-        let tradingDays: string[], specialDays: any[], holidays: any[];
-        try { tradingDays = JSON.parse(tradingDaysStr); } catch { tradingDays = ['Mon','Tue','Wed','Thu','Fri']; }
-        try { specialDays = JSON.parse(specialDaysStr); } catch { specialDays = []; }
-        try { holidays = JSON.parse(holidaysStr); } catch { holidays = []; }
-
-        const isHoliday = Array.isArray(holidays) ? holidays.find(h => h.date === todayStr) : null;
-        if (isHoliday) {
-          console.log(`AlgoEngine Scheduler: Today ${todayStr} is a market holiday (${isHoliday.name}). Skipping all strategies.`);
-          return;
-        }
-        const isSpecialDay = Array.isArray(specialDays) ? specialDays.find(s => s.date === todayStr) : null;
-        if (!tradingDays.includes(dayName) && !isSpecialDay) {
-          console.log(`AlgoEngine Scheduler: Today ${todayStr} (${dayName}) is not a trading day. Skipping all strategies.`);
-          return;
-        }
 
         const strategies = await prisma.strategy.findMany({ where: { status: 'active' } });
 

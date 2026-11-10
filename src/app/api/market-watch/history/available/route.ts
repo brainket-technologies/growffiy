@@ -1,9 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const symbol = req.nextUrl.searchParams.get('symbol');
+    const where = symbol ? { indexName: symbol } : {};
+
     const snapshots = await prisma.marketWatchSnapshot.findMany({
+      where,
       select: { date: true, timeSlot: true },
       distinct: ['date', 'timeSlot'],
       orderBy: { date: 'desc' }

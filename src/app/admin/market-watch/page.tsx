@@ -61,14 +61,30 @@ export default function MarketWatchPage() {
 
   useEffect(() => {
     if (isHistory) {
-      fetch('/api/market-watch/history/available')
+      fetch(`/api/market-watch/history/available?symbol=${encodeURIComponent(selectedIndex.symbol)}`)
         .then(r => r.json())
         .then(d => {
-          if (d.success && d.data) setAvailableHistory(d.data);
+          if (d.success && d.data) {
+            setAvailableHistory(d.data);
+            const dates = Object.keys(d.data).sort((a, b) => b.localeCompare(a));
+            if (dates.length > 0) {
+              if (!dates.includes(historyDate)) {
+                const latestDate = dates[0];
+                setHistoryDate(latestDate);
+                const times = d.data[latestDate] || [];
+                if (times.length > 0) setHistoryTime(times[0]);
+              }
+            } else {
+              setHistoryDate('');
+              setHistoryTime('');
+              setStocks([]);
+              setNoDataMsg('No snapshot found for this index');
+            }
+          }
         })
         .catch(() => {});
     }
-  }, [isHistory]);
+  }, [isHistory, selectedIndex.symbol]);
 
   const getDenomConfig = () => {
     switch (denom) {
@@ -85,17 +101,23 @@ export default function MarketWatchPage() {
     if (!silent) { setLoading(true); setError(''); setStocks([]); setNoDataMsg(''); isFirstFetch.current = true; }
     try {
       let fetchUrl = `/api/market-watch/nse?symbol=${encodeURIComponent(idx.symbol)}`;
-      if (isHistory && historyDate && historyTime) {
+      if (isHistory) {
+        if (!historyDate || !historyTime) {
+          setStocks([]);
+          setNoDataMsg('No snapshot found for this time');
+          setLastUpdated('');
+          return;
+        }
         fetchUrl = `/api/market-watch/history?symbol=${encodeURIComponent(idx.symbol)}&date=${historyDate}&timeSlot=${historyTime}`;
       }
       const res = await fetch(fetchUrl);
       const json = await res.json();
-      if (res.status === 404) {
-        setNoDataMsg('No snapshot found for this time');
+      if (res.status === 404 || !json.success) {
+        setStocks([]);
+        setNoDataMsg(json.error || 'No snapshot found for this time');
         setLastUpdated('');
         return;
       }
-      if (!json.success) throw new Error(json.error || 'Failed to fetch');
       const newRows: StockRow[] = (json.data?.data || []).map((r: any) => ({
         priority: r.priority ?? 0, symbol: r.symbol ?? '',
         companyName: r.companyName ?? null, open: r.open ?? 0,
@@ -417,10 +439,11 @@ export default function MarketWatchPage() {
                       const times = availableHistory[e.target.value] || [];
                       if (times.length > 0 && !times.includes(historyTime)) setHistoryTime(times[0]);
                     }}
+                    disabled={Object.keys(availableHistory).length === 0}
                     style={{ border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0 8px', height: '34px', fontSize: '13px', outline: 'none', backgroundColor: 'var(--bg-white)' }}
                   >
                     {Object.keys(availableHistory).length === 0 ? (
-                      <option value={historyDate}>{historyDate}</option>
+                      <option value="">No History Available</option>
                     ) : (
                       Object.keys(availableHistory).sort((a, b) => b.localeCompare(a)).map(d => (
                         <option key={d} value={d}>{d}</option>
@@ -430,6 +453,7 @@ export default function MarketWatchPage() {
                   <select 
                     value={historyTime}
                     onChange={e => setHistoryTime(e.target.value)}
+                    disabled={Object.keys(availableHistory).length === 0 || !historyDate}
                     style={{ border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0 8px', height: '34px', fontSize: '13px', outline: 'none', backgroundColor: 'var(--bg-white)' }}
                   >
                     {['09:16', '09:20', '09:30', '09:45', '10:00', '12:00'].map(t => {
@@ -558,7 +582,7 @@ export default function MarketWatchPage() {
                           <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading market data...
                         </div>
                       ) : (
-                        'No stocks match the selected filters.'
+                        noDataMsg || 'No stocks match the selected filters.'
                       )}
                     </td>
                   </tr>
