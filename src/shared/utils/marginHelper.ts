@@ -23,7 +23,8 @@ export interface MarginResult {
 export async function calculateClientCapitalAndRisk(params: MarginParams): Promise<MarginResult> {
   const { client, activeAccessToken, cachedMargin, onCacheMargin, config } = params;
 
-  const dbCapital = Number(client.capital);
+  const rawCapital = client.capital !== undefined && client.capital !== null ? Number(client.capital) : -1;
+  const dbCapital = isNaN(rawCapital) ? -1 : rawCapital;
   const dbDisabled = dbCapital === -1;
   let marginOrApi: number;
 
@@ -117,9 +118,8 @@ export async function calculateClientCapitalAndRisk(params: MarginParams): Promi
     }
   }
 
-  const dbCapitalLimit = Number(client.capital);
-  if (dbCapitalLimit !== -1 && capitalAtRisk > dbCapitalLimit) {
-    capitalAtRisk = dbCapitalLimit;
+  if (!dbDisabled && capitalAtRisk > dbCapital) {
+    capitalAtRisk = dbCapital;
   }
 
   return {
