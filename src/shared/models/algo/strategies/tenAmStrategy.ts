@@ -15,6 +15,7 @@ import { getMasterClient } from '../../../utils/masterClient';
 import { logFailedTrade } from '../../../utils/tradeLogger';
 import { masterDataCache } from '../masterDataCache';
 import { orderDispatcher } from '../orderDispatcher';
+import { tradePersistenceQueue } from '../tradePersistenceQueue';
 
 function mapTimeframeToKiteInterval(tf: string): string {
   if (!tf) return '15minute';
@@ -518,32 +519,29 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                 console.log(`Entry order placed ${entryOrderId} for ${client.user?.name} – ${targetStock.symbol}`);
                 let tradeId = '';
                 try {
-                  const pendingTrade = await prisma.trade.create({
-                    data: {
-                      clientId: client.id,
-                      strategyId: group.strategyId,
-                      symbol: targetStock.symbol,
-                      orderType: productParam,
-                      entryPrice: entryPrice,
-                      quantity: qty,
-                      stopLoss: slPrice,
-                      target: targetPrice,
-                      originalEntryPrice: entryPriceRaw,
-                      originalStopLoss: slPriceRaw,
-                      originalTarget: targetPriceRaw,
-                      status: 'pending',
-                      entryTime: new Date(),
-                      entryOrderId: entryOrderId,
-                      entryOrderStatus: 'OPEN',
-                      kiteResponse: orderRes || {},
-                      direction: isBuy ? 'LONG' : 'SHORT',
-                      legName: leg.name || '',
-                      legTimeframe: '15m'
-                    }
+                  tradeId = tradePersistenceQueue.enqueue({
+                    clientId: client.id,
+                    strategyId: group.strategyId,
+                    symbol: targetStock.symbol,
+                    orderType: productParam,
+                    entryPrice: entryPrice,
+                    quantity: qty,
+                    stopLoss: slPrice,
+                    target: targetPrice,
+                    originalEntryPrice: entryPriceRaw,
+                    originalStopLoss: slPriceRaw,
+                    originalTarget: targetPriceRaw,
+                    status: 'pending',
+                    entryTime: new Date(),
+                    entryOrderId: entryOrderId,
+                    entryOrderStatus: 'OPEN',
+                    kiteResponse: orderRes || {},
+                    direction: isBuy ? 'LONG' : 'SHORT',
+                    legName: leg.name || '',
+                    legTimeframe: '15m'
                   });
-                  tradeId = pendingTrade.id;
                   masterDataCache.recordPosition(client.id, targetStock.symbol, isBuy ? 'LONG' : 'SHORT');
-                  console.log(`AlgoEngine: Pending trade saved for ${client.user?.name} - ${targetStock.symbol}`);
+                  console.log(`AlgoEngine: Pending trade queued for ${client.user?.name} - ${targetStock.symbol} (tradeId: ${tradeId})`);
                 } catch (pendingErr) {
                   console.error(`AlgoEngine: Failed to save pending trade for ${client.user?.name}:`, pendingErr);
                 }

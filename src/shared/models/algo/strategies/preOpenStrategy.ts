@@ -15,6 +15,7 @@ import { getMasterClient } from '../../../utils/masterClient';
 import { logFailedTrade } from '../../../utils/tradeLogger';
 import { masterDataCache } from '../masterDataCache';
 import { orderDispatcher } from '../orderDispatcher';
+import { tradePersistenceQueue } from '../tradePersistenceQueue';
 
 function mapTimeframeToKiteInterval(tf: string): string {
   if (!tf) return '5minute';
@@ -328,7 +329,7 @@ export class PreOpenStrategy {
 
           const todayStr = todayStart.toISOString().split('T')[0];
           dbLockKey = `trade_lock_${client.id}_${strategy.id}_leg${currentLegIdx}_${todayStr}`;
-          
+
           // Fast in-memory atomic lock check (0ms, 0 DB query overhead)
           if (!masterDataCache.acquireLock(dbLockKey)) {
             console.log(`AlgoEngine Memory Lock: Trade already processing for ${client.user.name} Leg ${currentLegIdx + 1}. Skipping duplicate execution.`);
@@ -347,7 +348,7 @@ export class PreOpenStrategy {
           // Asynchronous non-blocking persistence for server-restart resilience
           prisma.appSettings.create({
             data: { settingKey: dbLockKey, settingValue: 'locked', type: 'lock' }
-          }).catch(() => {});
+          }).catch(() => { });
 
           try {
             const maxTradesPerDay = config?.basicInfo?.maxTradesPerDay;
@@ -396,19 +397,19 @@ export class PreOpenStrategy {
               }
             }
 
-             if (cs && config.conditions?.length > 0) {
-               // Call directly with engine status fields or standalone caching parameters
-               const self = this;
-               if (!await matchesConditions(cs, config.conditions, this.engine.wsLive, client, this.engine.conditionCache, {
-                 get date(): string { return (self.engine as any).conditionCacheDate; },
-                 set date(v: string) { (self.engine as any).conditionCacheDate = v; }
-               })) {
-                 const reason = `Preselected stock ${cs.symbol} (${cs.changePercent.toFixed(2)}%) failed strategy conditions`;
-                 console.log(`AlgoEngine: ${reason} for ${client.user.name}. Logging FAILED trade.`);
-                 await logFailedTrade(client, strategy, cs.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
-                 return;
-               }
-             }
+            if (cs && config.conditions?.length > 0) {
+              // Call directly with engine status fields or standalone caching parameters
+              const self = this;
+              if (!await matchesConditions(cs, config.conditions, this.engine.wsLive, client, this.engine.conditionCache, {
+                get date(): string { return (self.engine as any).conditionCacheDate; },
+                set date(v: string) { (self.engine as any).conditionCacheDate = v; }
+              })) {
+                const reason = `Preselected stock ${cs.symbol} (${cs.changePercent.toFixed(2)}%) failed strategy conditions`;
+                console.log(`AlgoEngine: ${reason} for ${client.user.name}. Logging FAILED trade.`);
+                await logFailedTrade(client, strategy, cs.symbol, productParam, 0, reason, { direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId });
+                return;
+              }
+            }
 
             let candlePrice = candlePriceCache.get(cs.symbol) || 0;
             const masterClientData = await getMasterClient();
@@ -882,25 +883,30 @@ export class PreOpenStrategy {
               if (orderRes && orderRes.status === 'success' && orderRes.data?.order_id) {
                 orderId = orderRes.data.order_id;
                 try {
-                  const pendingTrade = await prisma.trade.create({
-                    data: {
-                      clientId: client.id, strategyId: strategy.id,
-                      symbol: targetStock.symbol, orderType: productParam,
-                      entryPrice: finalEntryPrice, quantity: quantity,
-                      stopLoss: finalStopLoss, target: finalTarget,
-                      originalEntryPrice: rawEntryPrice,
-                      originalStopLoss: rawStopLoss,
-                      originalTarget: rawTarget,
-                      status: 'pending', entryTime: new Date(),
-                      entryOrderId: orderId,
-                      entryOrderStatus: 'OPEN',
-                      kiteResponse: orderRes,
-                      direction, legName: currentLeg.name, legTimeframe, dualLegGroupId: finalDualLegGroupId
-                    }
+                  tradeId = tradePersistenceQueue.enqueue({
+                    clientId: client.id,
+                    strategyId: strategy.id,
+                    symbol: targetStock.symbol,
+                    orderType: productParam,
+                    entryPrice: finalEntryPrice,
+                    quantity: quantity,
+                    stopLoss: finalStopLoss,
+                    target: finalTarget,
+                    originalEntryPrice: rawEntryPrice,
+                    originalStopLoss: rawStopLoss,
+                    originalTarget: rawTarget,
+                    status: 'pending',
+                    entryTime: new Date(),
+                    entryOrderId: orderId,
+                    entryOrderStatus: 'OPEN',
+                    kiteResponse: orderRes,
+                    direction,
+                    legName: currentLeg.name,
+                    legTimeframe,
+                    dualLegGroupId: finalDualLegGroupId
                   });
-                  tradeId = pendingTrade.id;
                   masterDataCache.recordPosition(client.id, targetStock.symbol, direction as any);
-                  console.log(`AlgoEngine: Pending trade saved for ${client.user.name} - ${targetStock.symbol} (tradeId: ${tradeId})`);
+                  console.log(`AlgoEngine: Pending trade queued for ${client.user.name} - ${targetStock.symbol} (tradeId: ${tradeId})`);
                 } catch (pendingErr) {
                   console.error(`AlgoEngine: Failed to save pending trade for ${client.user.name}:`, pendingErr);
                 }

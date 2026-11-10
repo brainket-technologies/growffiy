@@ -15,6 +15,7 @@ import { getMasterClient } from '../../../utils/masterClient';
 import { logFailedTrade } from '../../../utils/tradeLogger';
 import { masterDataCache } from '../masterDataCache';
 import { orderDispatcher } from '../orderDispatcher';
+import { tradePersistenceQueue } from '../tradePersistenceQueue';
 
 function mapTimeframeToKiteInterval(tf: string): string {
   if (!tf) return 'minute';
@@ -658,30 +659,27 @@ export class FirstMinuteStrategy {
               if (entryOrderId) {
                 let tradeId = '';
                 try {
-                  const pendingTrade = await prisma.trade.create({
-                    data: {
-                      clientId: client.id,
-                      strategyId: group.strategyId,
-                      symbol: targetStock.symbol,
-                      orderType: productParam,
-                      entryPrice: entryPrice,
-                      quantity: qty,
-                      stopLoss: slPrice,
-                      target: targetPrice,
-                      originalEntryPrice: entryPriceRaw,
-                      originalStopLoss: slPriceRaw,
-                      originalTarget: targetPriceRaw,
-                      status: 'pending',
-                      entryTime: new Date(),
-                      entryOrderId: entryOrderId,
-                      entryOrderStatus: 'OPEN',
-                      kiteResponse: orderRes || {},
-                      direction: isBuy ? 'LONG' : 'SHORT',
-                      legName: leg.name || '',
-                      legTimeframe: '1m'
-                    }
+                  tradeId = tradePersistenceQueue.enqueue({
+                    clientId: client.id,
+                    strategyId: group.strategyId,
+                    symbol: targetStock.symbol,
+                    orderType: productParam,
+                    entryPrice: entryPrice,
+                    quantity: qty,
+                    stopLoss: slPrice,
+                    target: targetPrice,
+                    originalEntryPrice: entryPriceRaw,
+                    originalStopLoss: slPriceRaw,
+                    originalTarget: targetPriceRaw,
+                    status: 'pending',
+                    entryTime: new Date(),
+                    entryOrderId: entryOrderId,
+                    entryOrderStatus: 'OPEN',
+                    kiteResponse: orderRes || {},
+                    direction: isBuy ? 'LONG' : 'SHORT',
+                    legName: leg.name || '',
+                    legTimeframe: '1m'
                   });
-                  tradeId = pendingTrade.id;
                   masterDataCache.recordPosition(client.id, targetStock.symbol, isBuy ? 'LONG' : 'SHORT');
                 } catch (pendingErr) {}
 
