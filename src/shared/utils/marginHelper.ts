@@ -1,5 +1,6 @@
 import { KiteClient } from '../services/kite';
 import { prisma } from '@/database/db';
+import { masterDataCache } from '../models/algo/masterDataCache';
 
 export interface MarginParams {
   client: any;
@@ -26,8 +27,10 @@ export async function calculateClientCapitalAndRisk(params: MarginParams): Promi
   const dbDisabled = dbCapital === -1;
   let marginOrApi: number;
 
-  if (cachedMargin !== undefined) {
-    marginOrApi = cachedMargin;
+  const effectiveCachedMargin = cachedMargin !== undefined ? cachedMargin : masterDataCache.marginCache.get(client.id);
+
+  if (effectiveCachedMargin !== undefined) {
+    marginOrApi = effectiveCachedMargin;
     console.log(`AlgoEngine: Using cached margin for ${client.user?.name || client.id}: ₹${marginOrApi}`);
   } else {
     try {
@@ -64,17 +67,20 @@ export async function calculateClientCapitalAndRisk(params: MarginParams): Promi
     }
   }
 
-  // Count active strategies for this client
-  const activeStrategyCount = await prisma.strategyAssignment.count({
-    where: {
-      clientId: client.id,
-      status: 'active',
-      strategy: {
-        status: 'active'
+  // Count active strategies for this client (Memory cached count first, fallback to DB if unknown)
+  let divisor = masterDataCache.getActiveStrategyCount(client.id);
+  if (!divisor || divisor <= 0) {
+    const activeStrategyCount = await prisma.strategyAssignment.count({
+      where: {
+        clientId: client.id,
+        status: 'active',
+        strategy: {
+          status: 'active'
+        }
       }
-    }
-  });
-  const divisor = activeStrategyCount > 0 ? activeStrategyCount : 1;
+    });
+    divisor = activeStrategyCount > 0 ? activeStrategyCount : 1;
+  }
 
   // Pick capital: if perDayTradeAmount > 0 use it, else pick lower of margin & dbCapital
   let clientCapital = perDayTradeAmount > 0 ? perDayTradeAmount : (dbDisabled ? marginOrApi : Math.min(marginOrApi, dbCapital));

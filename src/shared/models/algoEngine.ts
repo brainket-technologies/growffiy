@@ -99,6 +99,7 @@ class AlgoEngineService {
     await this.wsLive.initialize();
     await this.restorePreselectedStocks();
     this.tradingScheduler.startDailyTokenRefreshScheduler();
+    this.tradingScheduler.startDailyMasterDataCacheScheduler();
     this.tradingScheduler.startDailyPreOpenStrategyScheduler();
     this.tradingScheduler.startActiveTradesMonitoringScheduler();
     this.tradingScheduler.startEODReconciliationScheduler();
@@ -165,9 +166,9 @@ class AlgoEngineService {
       const configName = configObj?.basicInfo?.name?.toLowerCase() || '';
       const dbName = strategy?.name?.toLowerCase() || '';
       
-      if (engineType === 'TEN_AM' || (!engineType && (dbName.includes('ten am') || configName.includes('ten am')))) {
+      if (engineType === 'TEN_AM') {
         return this.tenAmStrategy.preSelectAllClients(strategyId);
-      } else if (engineType === 'FIRST_MINUTE' || (!engineType && (dbName.includes('first minute') || configName.includes('first minute') || dbName.includes('oh preopen') || configName.includes('oh preopen')))) {
+      } else if (engineType === 'FIRST_MINUTE') {
         return this.firstMinuteStrategy.preSelectAllClients(strategyId);
       }
       return this.preOpenStrategy.preSelectAllClients(strategyId);
@@ -178,12 +179,10 @@ class AlgoEngineService {
         try { configObj = typeof st.configJson === 'string' ? JSON.parse(st.configJson) : (st.configJson || {}); } catch(e){}
         
         const engineType = configObj?.basicInfo?.engineType || '';
-        const configName = configObj?.basicInfo?.name?.toLowerCase() || '';
-        const dbName = st.name.toLowerCase();
 
-        if (engineType === 'TEN_AM' || (!engineType && (dbName.includes('ten am') || configName.includes('ten am')))) {
+        if (engineType === 'TEN_AM') {
           await this.tenAmStrategy.preSelectAllClients(st.id);
-        } else if (engineType === 'FIRST_MINUTE' || (!engineType && (dbName.includes('first minute') || configName.includes('first minute') || dbName.includes('oh preopen') || configName.includes('oh preopen')))) {
+        } else if (engineType === 'FIRST_MINUTE') {
           await this.firstMinuteStrategy.preSelectAllClients(st.id);
         } else {
           await this.preOpenStrategy.preSelectAllClients(st.id);
@@ -199,12 +198,10 @@ class AlgoEngineService {
       try { configObj = typeof strategy?.configJson === 'string' ? JSON.parse(strategy.configJson) : (strategy?.configJson || {}); } catch(e){}
       
       const engineType = configObj?.basicInfo?.engineType || '';
-      const configName = configObj?.basicInfo?.name?.toLowerCase() || '';
-      const dbName = strategy?.name?.toLowerCase() || '';
       
-      if (engineType === 'TEN_AM' || (!engineType && (dbName.includes('ten am') || configName.includes('ten am')))) {
+      if (engineType === 'TEN_AM') {
         return this.tenAmStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
-      } else if (engineType === 'FIRST_MINUTE' || (!engineType && (dbName.includes('first minute') || configName.includes('first minute') || dbName.includes('oh preopen') || configName.includes('oh preopen')))) {
+      } else if (engineType === 'FIRST_MINUTE') {
         return this.firstMinuteStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
       }
       return this.preOpenStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
@@ -215,12 +212,10 @@ class AlgoEngineService {
         try { configObj = typeof st.configJson === 'string' ? JSON.parse(st.configJson) : (st.configJson || {}); } catch(e){}
         
         const engineType = configObj?.basicInfo?.engineType || '';
-        const configName = configObj?.basicInfo?.name?.toLowerCase() || '';
-        const dbName = st.name.toLowerCase();
 
-        if (engineType === 'TEN_AM' || (!engineType && (dbName.includes('ten am') || configName.includes('ten am')))) {
+        if (engineType === 'TEN_AM') {
           await this.tenAmStrategy.executePreOpenTrades(adminId, mockStocks, st.id, legIndex, dualLegGroupId);
-        } else if (engineType === 'FIRST_MINUTE' || (!engineType && (dbName.includes('first minute') || configName.includes('first minute') || dbName.includes('oh preopen') || configName.includes('oh preopen')))) {
+        } else if (engineType === 'FIRST_MINUTE') {
           await this.firstMinuteStrategy.executePreOpenTrades(adminId, mockStocks, st.id, legIndex, dualLegGroupId);
         } else {
           await this.preOpenStrategy.executePreOpenTrades(adminId, mockStocks, st.id, legIndex, dualLegGroupId);

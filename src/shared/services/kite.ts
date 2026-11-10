@@ -9,6 +9,17 @@ if (typeof window === 'undefined') {
   } catch (e) { }
 }
 
+// High-concurrency persistent Keep-Alive agent for fast order execution (< 200ms)
+const defaultKeepAliveAgent = typeof window === 'undefined'
+  ? new https.Agent({
+      keepAlive: true,
+      maxSockets: 2000,
+      maxFreeSockets: 500,
+      timeout: 10000,
+      keepAliveMsecs: 60000,
+    })
+  : undefined;
+
 export async function kiteFetch(url: string, options: any, dedicatedIp?: string | null) {
   const fetchOpts: any = { ...options };
   const ip = dedicatedIp ? String(dedicatedIp).trim() : '';
@@ -28,6 +39,8 @@ export async function kiteFetch(url: string, options: any, dedicatedIp?: string 
     } catch (e) {
       console.warn(`KiteFetch: Could not bind dedicated IP/Proxy (${ip}):`, e);
     }
+  } else if (!fetchOpts.agent && defaultKeepAliveAgent) {
+    fetchOpts.agent = defaultKeepAliveAgent;
   }
 
   // Node 18+ native fetch (undici) ignores `agent` option! Use native https.request when agent is provided.

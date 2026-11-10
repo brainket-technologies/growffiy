@@ -13,6 +13,8 @@ import { getFreshCircuitLimits } from '../../../utils/circuitLimitHelper';
 import { fetchClientsByStrategy } from '../clientSelector';
 import { getMasterClient } from '../../../utils/masterClient';
 import { logFailedTrade } from '../../../utils/tradeLogger';
+import { masterDataCache } from '../masterDataCache';
+import { orderDispatcher } from '../orderDispatcher';
 
 function mapTimeframeToKiteInterval(tf: string): string {
   if (!tf) return 'minute';
@@ -158,7 +160,7 @@ export class FirstMinuteStrategy {
 
     for (const group of filteredGroups) {
       const engineType = group.configJson?.basicInfo?.engineType || '';
-      if (engineType !== 'FIRST_MINUTE' && !group.strategyName.toLowerCase().includes('first minute') && !group.configJson?.basicInfo?.name?.toLowerCase().includes('first minute') && !group.strategyName.toLowerCase().includes('oh preopen') && !group.configJson?.basicInfo?.name?.toLowerCase().includes('oh preopen')) continue;
+      if (engineType !== 'FIRST_MINUTE') continue;
       const config: any = group.configJson;
       const topCount: number = config?.basicInfo?.topCount || 10;
       const selectPosition: number = config?.basicInfo?.selectPosition || 1;
@@ -180,7 +182,14 @@ export class FirstMinuteStrategy {
       const gainers = preselectedStocks.filter(s => s.changePercent > 0).sort((a, b) => b.changePercent - a.changePercent).slice(0, topCount);
       const losers = preselectedStocks.filter(s => s.changePercent < 0).sort((a, b) => a.changePercent - b.changePercent).slice(0, topCount);
 
-      const findMatchingStocks = async (list: any[], requiredPattern: 'Green' | 'Red' | 'None', selectPos: number, ohlcCondition: string = 'None', maxStocks: number = 1) => {
+      const findMatchingStocks = async (
+        list: any[],
+        requiredPattern: 'Green' | 'Red' | 'None',
+        candlePos: number,
+        ohlcCondition: string = 'None',
+        maxStocks: number = 1,
+        stockRankPos: number = 1
+      ) => {
         const matches: any[] = [];
         let matchesFound = 0;
         for (const stock of list) {
@@ -230,7 +239,7 @@ export class FirstMinuteStrategy {
 
           let candles: any = null;
           let hist: any[] = [];
-          const targetIndex = selectPos - 1;
+          const candleIndex = (Number(candlePos) || Number(config?.basicInfo?.startCandleIndex) || 1) - 1;
           const tokenStr = liveToken || stock.instrumentToken || stock.symbol;
           
           for (let attempt = 1; attempt <= 6; attempt++) {
@@ -243,19 +252,19 @@ export class FirstMinuteStrategy {
               to
             );
             
-            if (candles?.data?.candles?.length > targetIndex) {
+            if (candles?.data?.candles?.length > candleIndex) {
               hist = candles.data.candles;
               break;
             }
             if (attempt < 6) await delay(250); 
           }
           
-          if (!hist || hist.length <= targetIndex) {
-            console.log(`[FIRST MINUTE] ${stock.symbol} historical data not available for ${tfStr} at pos ${selectPos} after retries.`);
+          if (!hist || hist.length <= candleIndex) {
+            console.log(`[FIRST MINUTE] ${stock.symbol} historical data not available for ${tfStr} at candle index ${candleIndex} after retries.`);
             continue;
           }
           
-          const c = hist[targetIndex];
+          const c = hist[candleIndex];
           const open = c[1];
           const close = c[4];
           const high = c[2];
@@ -276,15 +285,18 @@ export class FirstMinuteStrategy {
           }
 
           if (isMatch) {
-             stock.firstCandleHigh = high;
-             stock.firstCandleLow = low;
-             stock.firstCandleOpen = open;
-             stock.firstCandleClose = close;
-             stock.firstCandleTimestamp = c[0];
-             matches.push(stock);
-             if (matches.length >= maxStocks) {
-               return matches;
-             }
+            matchesFound++;
+            if (matchesFound >= stockRankPos) {
+              stock.firstCandleHigh = high;
+              stock.firstCandleLow = low;
+              stock.firstCandleOpen = open;
+              stock.firstCandleClose = close;
+              stock.firstCandleTimestamp = c[0];
+              matches.push(stock);
+              if (matches.length >= maxStocks) {
+                return matches;
+              }
+            }
           }
         }
         return matches;
@@ -292,28 +304,40 @@ export class FirstMinuteStrategy {
 
       let gainerLegPattern: 'Green' | 'Red' | 'None' = 'Green';
       let loserLegPattern: 'Green' | 'Red' | 'None' = 'Red';
-      let gainerSelectPos = 1;
-      let loserSelectPos = 1;
+      let gainerCandlePos = 1;
+      let loserCandlePos = 1;
 
       let gainerOhlc = config?.basicInfo?.ohlcCondition || 'None';
       let loserOhlc = config?.basicInfo?.ohlcCondition || 'None';
 
-      // Extract patterns and positions from the config
-      if (activeLegs.length > 0) {
-         const leg1 = activeLegs[0];
-         if (leg1.tradeAction?.candlePattern) gainerLegPattern = leg1.tradeAction.candlePattern as any;
-         if (leg1.tradeAction?.selectPosition) gainerSelectPos = Number(leg1.tradeAction.selectPosition) || 1;
-      }
-      if (activeLegs.length > 1) {
-         const leg2 = activeLegs[1];
-         if (leg2.tradeAction?.candlePattern) loserLegPattern = leg2.tradeAction.candlePattern as any;
-         if (leg2.tradeAction?.selectPosition) loserSelectPos = Number(leg2.tradeAction.selectPosition) || 1;
+      const selectionType = (config?.basicInfo?.stockSelectionType || config?.basicInfo?.selectionType || '').toLowerCase();
+      const isPureLoserStrategy = selectionType.includes('gapdown') || selectionType.includes('loser');
+
+      // Extract patterns and candle positions from the legs
+      if (isPureLoserStrategy) {
+         if (activeLegs.length > 0) {
+            const leg1 = activeLegs[0];
+            if (leg1.tradeAction?.candlePattern) loserLegPattern = leg1.tradeAction.candlePattern as any;
+            if (leg1.tradeAction?.selectPosition) loserCandlePos = Number(leg1.tradeAction.selectPosition) || 1;
+         }
+      } else {
+         if (activeLegs.length > 0) {
+            const leg1 = activeLegs[0];
+            if (leg1.tradeAction?.candlePattern) gainerLegPattern = leg1.tradeAction.candlePattern as any;
+            if (leg1.tradeAction?.selectPosition) gainerCandlePos = Number(leg1.tradeAction.selectPosition) || 1;
+         }
+         if (activeLegs.length > 1) {
+            const leg2 = activeLegs[1];
+            if (leg2.tradeAction?.candlePattern) loserLegPattern = leg2.tradeAction.candlePattern as any;
+            if (leg2.tradeAction?.selectPosition) loserCandlePos = Number(leg2.tradeAction.selectPosition) || 1;
+         }
       }
 
+      const stockRankPos = Number(config?.basicInfo?.selectPosition) || 1;
       const maxStocksToTrade = config?.basicInfo?.numberOfStocks || 1;
 
-      const targetGainers = await findMatchingStocks(gainers, gainerLegPattern, gainerSelectPos, gainerOhlc, maxStocksToTrade);
-      const targetLosers = await findMatchingStocks(losers, loserLegPattern, loserSelectPos, loserOhlc, maxStocksToTrade);
+      const targetGainers = await findMatchingStocks(gainers, gainerLegPattern, gainerCandlePos, gainerOhlc, maxStocksToTrade, stockRankPos);
+      const targetLosers = await findMatchingStocks(losers, loserLegPattern, loserCandlePos, loserOhlc, maxStocksToTrade, stockRankPos);
 
       await Promise.all(
         group.assignedClients.map(async (client) => {
@@ -329,6 +353,15 @@ export class FirstMinuteStrategy {
 
           const todayStartLocal = new Date();
           todayStartLocal.setHours(0, 0, 0, 0);
+
+          const maxTradesPerDay = config?.basicInfo?.maxTradesPerDay;
+          if (maxTradesPerDay !== undefined && maxTradesPerDay !== null && Number(maxTradesPerDay) > 0) {
+            const todayTradesCount = await prisma.trade.count({
+              where: { clientId: client.id, strategyId: group.strategyId, createdAt: { gte: todayStartLocal } }
+            });
+            if (todayTradesCount >= Number(maxTradesPerDay)) return;
+          }
+
           const todayTrades = await prisma.trade.findMany({
             where: { clientId: client.id, strategyId: group.strategyId, createdAt: { gte: todayStartLocal }, pnl: { not: null } }
           });
@@ -358,12 +391,18 @@ export class FirstMinuteStrategy {
             
             const isBuy = leg.tradeAction?.action?.toLowerCase() === 'long' || leg.tradeAction?.action?.toLowerCase() === 'buy';
             
-            const selectionType = config?.basicInfo?.selectionType?.toLowerCase() || '';
+            const selectionType = (config?.basicInfo?.stockSelectionType || config?.basicInfo?.selectionType || '').toLowerCase();
+            const legName = (leg.name || '').toLowerCase();
+            const stratName = (group.strategyName || '').toLowerCase();
             let targetStocks: any[] = [];
 
             if (selectionType.includes('gapdown') || selectionType.includes('loser')) {
               targetStocks = targetLosers;
             } else if (selectionType.includes('gapup') || selectionType.includes('gainer')) {
+              targetStocks = targetGainers;
+            } else if (legName.includes('loser') || stratName.includes('loser') || stratName.includes('losser')) {
+              targetStocks = targetLosers;
+            } else if (legName.includes('gainer') || stratName.includes('gainer')) {
               targetStocks = targetGainers;
             } else {
               // Backward compatibility
@@ -375,13 +414,24 @@ export class FirstMinuteStrategy {
             for (const targetStock of targetStocks) {
             const todayStr = new Date().toISOString().split('T')[0];
             const dbLockKey = `trade_lock_${client.id}_${group.strategyId}_leg${li}_${targetStock.symbol}_${todayStr}`;
-            try {
-              await prisma.appSettings.create({
-                data: { settingKey: dbLockKey, settingValue: 'locked', type: 'lock' }
-              });
-            } catch (e) {
+            
+            // Fast in-memory atomic lock check (0ms, 0 DB query overhead)
+            if (!masterDataCache.acquireLock(dbLockKey)) {
               continue;
             }
+
+            // Conflict Guard: Prevent opposite-direction trade on same symbol (avoids MIS auto square-off)
+            const tradeDirection = isBuy ? 'LONG' : 'SHORT';
+            if (masterDataCache.hasOppositeDirection(client.id, targetStock.symbol, tradeDirection)) {
+              console.log(`[FIRST MINUTE] Skipped trade for ${client.user?.name} in ${targetStock.symbol}: Opposite direction trade already active.`);
+              masterDataCache.releaseLock(dbLockKey);
+              continue;
+            }
+
+            // Asynchronous non-blocking persistence for server-restart resilience
+            prisma.appSettings.create({
+              data: { settingKey: dbLockKey, settingValue: 'locked', type: 'lock' }
+            }).catch(() => {});
 
             const entryBufferPct = leg.tradeAction?.entryBufferPercent !== undefined ? leg.tradeAction.entryBufferPercent : (leg.tradeAction?.bufferPercent || 0.2);
             
@@ -510,7 +560,13 @@ export class FirstMinuteStrategy {
                 ...(orderTypeParam === 'MARKET' || orderTypeParam === 'SL-M' ? { market_protection: marketProtectionVal } : {})
               };
 
-              let orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, orderPayload, (client.proxyUrl || client.dedicatedIp));
+              let orderRes = await orderDispatcher.dispatchOrder({
+                apiKey: client.zerodhaApiKey,
+                accessToken: activeAccessToken,
+                orderParams: orderPayload,
+                proxyUrl: client.proxyUrl,
+                dedicatedIp: client.dedicatedIp
+              });
               
                   if (orderRes && orderRes.status === 'error') {
                     const msg = orderRes.message || '';
@@ -526,7 +582,13 @@ export class FirstMinuteStrategy {
                           slPrice = Number((Math.round(slPriceRaw / reqTick) * reqTick).toFixed(4));
                           targetPrice = Number((Math.round(targetPriceRaw / reqTick) * reqTick).toFixed(4));
                           
-                          orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, orderPayload, (client.proxyUrl || client.dedicatedIp));
+                          orderRes = await orderDispatcher.dispatchOrder({
+                            apiKey: client.zerodhaApiKey,
+                            accessToken: activeAccessToken,
+                            orderParams: orderPayload,
+                            proxyUrl: client.proxyUrl,
+                            dedicatedIp: client.dedicatedIp
+                          });
                         }
                       }
                     }
@@ -545,7 +607,13 @@ export class FirstMinuteStrategy {
                           trigger_price: undefined,
                           market_protection: marketProtectionVal
                         };
-                        orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, fallbackParams, (client.proxyUrl || client.dedicatedIp));
+                        orderRes = await orderDispatcher.dispatchOrder({
+                          apiKey: client.zerodhaApiKey,
+                          accessToken: activeAccessToken,
+                          orderParams: fallbackParams,
+                          proxyUrl: client.proxyUrl,
+                          dedicatedIp: client.dedicatedIp
+                        });
                       }
                     }
                 
@@ -614,6 +682,7 @@ export class FirstMinuteStrategy {
                     }
                   });
                   tradeId = pendingTrade.id;
+                  masterDataCache.recordPosition(client.id, targetStock.symbol, isBuy ? 'LONG' : 'SHORT');
                 } catch (pendingErr) {}
 
                 let entryFilled = false;

@@ -13,6 +13,8 @@ import { getFreshCircuitLimits } from '../../../utils/circuitLimitHelper';
 import { fetchClientsByStrategy } from '../clientSelector';
 import { getMasterClient } from '../../../utils/masterClient';
 import { logFailedTrade } from '../../../utils/tradeLogger';
+import { masterDataCache } from '../masterDataCache';
+import { orderDispatcher } from '../orderDispatcher';
 
 function mapTimeframeToKiteInterval(tf: string): string {
   if (!tf) return '5minute';
@@ -113,9 +115,9 @@ export class PreOpenStrategy {
         continue;
       }
 
-      const explicitType = config.basicInfo?.stockSelectionType;
+      const explicitType = (config.basicInfo?.stockSelectionType || '').toLowerCase();
       const isShortTrade = explicitType
-        ? explicitType.includes('Gapdown') || explicitType.includes('Losers')
+        ? explicitType.includes('gapdown') || explicitType.includes('loser')
         : ((config.legs || []).some((l: any) => ['Short', 'Sell'].includes(l.tradeAction?.action)) || strategy.name.toLowerCase().includes('gapdown') || strategy.name.toLowerCase().includes('short'));
 
       const getPreOpenPct = (s: any) => s.preOpenChangePercent !== undefined ? s.preOpenChangePercent : (s.prevClose ? ((s.iep - s.prevClose) / s.prevClose) * 100 : s.changePercent);
@@ -326,17 +328,44 @@ export class PreOpenStrategy {
 
           const todayStr = todayStart.toISOString().split('T')[0];
           dbLockKey = `trade_lock_${client.id}_${strategy.id}_leg${currentLegIdx}_${todayStr}`;
-          try {
-            await prisma.appSettings.create({
-              data: { settingKey: dbLockKey, settingValue: 'locked', type: 'lock' }
-            });
-          } catch (e) {
-            console.log(`AlgoEngine DB Lock: Trade already processing for ${client.user.name} Leg ${currentLegIdx + 1}. Skipping duplicate execution.`);
+          
+          // Fast in-memory atomic lock check (0ms, 0 DB query overhead)
+          if (!masterDataCache.acquireLock(dbLockKey)) {
+            console.log(`AlgoEngine Memory Lock: Trade already processing for ${client.user.name} Leg ${currentLegIdx + 1}. Skipping duplicate execution.`);
             this.engine.entryLock.delete(lockKey);
             return;
           }
 
+          // Conflict Guard: Prevent opposite-direction trade on same symbol
+          if (masterDataCache.hasOppositeDirection(client.id, cs.symbol, direction as any)) {
+            console.log(`AlgoEngine: Skipped trade for ${client.user.name} (${cs.symbol}): Opposite direction trade active.`);
+            masterDataCache.releaseLock(dbLockKey);
+            this.engine.entryLock.delete(lockKey);
+            return;
+          }
+
+          // Asynchronous non-blocking persistence for server-restart resilience
+          prisma.appSettings.create({
+            data: { settingKey: dbLockKey, settingValue: 'locked', type: 'lock' }
+          }).catch(() => {});
+
           try {
+            const maxTradesPerDay = config?.basicInfo?.maxTradesPerDay;
+            if (maxTradesPerDay !== undefined && maxTradesPerDay !== null && Number(maxTradesPerDay) > 0) {
+              const todayCount = await prisma.trade.count({
+                where: {
+                  clientId: client.id,
+                  strategyId: strategy.id,
+                  createdAt: { gte: todayStart },
+                  entryOrderStatus: { notIn: ['FAILED', 'REJECTED', 'cancelled'] }
+                }
+              });
+              if (todayCount >= Number(maxTradesPerDay)) {
+                console.log(`AlgoEngine: Max trades per day limit reached (${todayCount}/${maxTradesPerDay}) for ${client.user.name}. Skipping.`);
+                return;
+              }
+            }
+
             const existingTrade = await prisma.trade.findFirst({
               where: {
                 clientId: client.id,
@@ -804,7 +833,13 @@ export class PreOpenStrategy {
                 ...(orderTypeParam === 'MARKET' || orderTypeParam === 'SL-M' ? { market_protection: marketProtectionVal } : {})
               };
 
-              orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, orderParams, (client.proxyUrl || client.dedicatedIp));
+              orderRes = await orderDispatcher.dispatchOrder({
+                apiKey: client.zerodhaApiKey,
+                accessToken: activeAccessToken,
+                orderParams,
+                proxyUrl: client.proxyUrl,
+                dedicatedIp: client.dedicatedIp
+              });
 
               if (orderRes && orderRes.status === 'error' &&
                 (orderRes.message?.includes('Trigger price') ||
@@ -819,7 +854,13 @@ export class PreOpenStrategy {
                   trigger_price: undefined,
                   ...(orderTypeParam === 'MARKET' || orderTypeParam === 'SL-M' ? { market_protection: marketProtectionVal } : {})
                 };
-                orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, fallbackParams, (client.proxyUrl || client.dedicatedIp));
+                orderRes = await orderDispatcher.dispatchOrder({
+                  apiKey: client.zerodhaApiKey,
+                  accessToken: activeAccessToken,
+                  orderParams: fallbackParams,
+                  proxyUrl: client.proxyUrl,
+                  dedicatedIp: client.dedicatedIp
+                });
               }
 
               if (orderRes && orderRes.status === 'error' &&
@@ -828,7 +869,13 @@ export class PreOpenStrategy {
                   orderRes.message?.includes('closed') ||
                   orderRes.message?.includes('variety'))) {
                 console.log(`AlgoEngine: Retrying order as AMO (After Market Order) because market is closed.`);
-                orderRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, { ...orderParams, variety: 'amo' }, (client.proxyUrl || client.dedicatedIp));
+                orderRes = await orderDispatcher.dispatchOrder({
+                  apiKey: client.zerodhaApiKey,
+                  accessToken: activeAccessToken,
+                  orderParams: { ...orderParams, variety: 'amo' },
+                  proxyUrl: client.proxyUrl,
+                  dedicatedIp: client.dedicatedIp
+                });
               }
 
               console.log('AlgoEngine: Kite order placement response:', orderRes);
@@ -852,6 +899,7 @@ export class PreOpenStrategy {
                     }
                   });
                   tradeId = pendingTrade.id;
+                  masterDataCache.recordPosition(client.id, targetStock.symbol, direction as any);
                   console.log(`AlgoEngine: Pending trade saved for ${client.user.name} - ${targetStock.symbol} (tradeId: ${tradeId})`);
                 } catch (pendingErr) {
                   console.error(`AlgoEngine: Failed to save pending trade for ${client.user.name}:`, pendingErr);

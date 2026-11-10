@@ -8,6 +8,7 @@ import { getTickSizeAndRound } from '../utils/tickSizeUtil';
 import { concurrentMap } from '../../core/helpers';
 import { logSystemEvent } from '../services/auditLogger';
 import { getLatestOrderState } from '../utils/kiteHelper';
+import { masterDataCache } from './algo/masterDataCache';
 
 export function to24HourHHmm(timeStr?: string | null): string {
   if (!timeStr) return '';
@@ -54,6 +55,7 @@ export class TradingScheduler {
     const lastEntryByStrategy: Map<string, string> = new Map();
     const knownPreSelectTime: Map<string, string> = new Map();
     const knownEntryTime: Map<string, string> = new Map();
+    const lastPreWarmByStrategy: Map<string, string> = new Map();
     const dailyDualLegGroupId: Map<string, string> = new Map();
     let cachedFetchTime = '09:08';
 
@@ -176,6 +178,16 @@ export class TradingScheduler {
             const entryMin = eH * 60 + eM;
             const curMin = hours * 60 + minutes;
             const entryDebug = `[${strategy.name}] now=${currentTimeStr} entry=${entryTime} cmp=${currentTimeStr >= entryTime ? 'Y' : 'N'} lastEntry=${lastEntryByStrategy.get(strategy.id) || '-'} today=${currentDateKey}`;
+
+            // Dynamic T-Minus Pre-Warming: Pre-cache live margins 1 min before entry time
+            if (entryMin - curMin <= 1 && entryMin >= curMin && lastPreWarmByStrategy.get(strategy.id) !== currentDateKey) {
+              lastPreWarmByStrategy.set(strategy.id, currentDateKey);
+              console.log(`AlgoEngine Scheduler: T-Minus Pre-warming live margins for strategy "${strategy.name}"...`);
+              masterDataCache.preWarmStrategyMargins(strategy.id).catch(err => {
+                console.warn(`AlgoEngine Scheduler: Pre-warm margins error for "${strategy.name}":`, err);
+              });
+            }
+
             if (curMin >= entryMin && curMin <= entryMin + 15 && lastEntryByStrategy.get(strategy.id) !== currentDateKey) {
               const todayStart = new Date();
               todayStart.setHours(0, 0, 0, 0);
@@ -390,6 +402,46 @@ export class TradingScheduler {
     };
 
     (global as any).tokenRefreshInterval = setInterval(checkAndRefresh, SCHEDULER_INTERVALS.TOKEN_REFRESH);
+  }
+
+  startDailyMasterDataCacheScheduler() {
+    console.log('AlgoEngine: Initialized Daily Master Data Cache Scheduler (09:00 AM)');
+
+    if ((global as any).masterDataCacheInterval) {
+      clearInterval((global as any).masterDataCacheInterval);
+    }
+
+    let lastLoadedDate = '';
+    const checkAndLoad = async () => {
+      try {
+        const istDateStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+        const istDate = new Date(istDateStr);
+        const hours = istDate.getHours();
+        const minutes = istDate.getMinutes();
+        const currentDateKey = istDate.toLocaleDateString();
+        const currentTimeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+
+        // Market hours guard: 07:00-16:00 IST
+        if (hours < 7 || hours >= 16) return;
+
+        const targetLoadTime = await this.engine.getAlgoSetting('algo_master_cache_time', '09:00');
+
+        // Load at target time (09:00 AM) or immediately on startup if within trading hours and not yet loaded today
+        const isTimeReached = currentTimeStr >= targetLoadTime;
+        if (isTimeReached && lastLoadedDate !== currentDateKey) {
+          console.log(`AlgoEngine Scheduler: Master Data cache time ${targetLoadTime} reached. Loading active clients and strategies into memory...`);
+          lastLoadedDate = currentDateKey;
+          await masterDataCache.loadDailyMasterData(true);
+        }
+      } catch (err) {
+        console.error('AlgoEngine Scheduler: Error in master data cache scheduler execution:', err);
+      }
+    };
+
+    // Immediate initial check on startup
+    checkAndLoad().catch(e => console.warn('AlgoEngine Scheduler: Initial master data load error:', e));
+
+    (global as any).masterDataCacheInterval = setInterval(checkAndLoad, 30 * 1000); // Check every 30 seconds
   }
 
   startActiveTradesMonitoringScheduler() {
