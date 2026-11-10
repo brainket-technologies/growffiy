@@ -68,11 +68,11 @@ export default function MarketWatchPage() {
             setAvailableHistory(d.data);
             const dates = Object.keys(d.data).sort((a, b) => b.localeCompare(a));
             if (dates.length > 0) {
-              if (!dates.includes(historyDate)) {
-                const latestDate = dates[0];
-                setHistoryDate(latestDate);
-                const times = d.data[latestDate] || [];
-                if (times.length > 0) setHistoryTime(times[0]);
+              const targetDate = dates.includes(historyDate) ? historyDate : dates[0];
+              const times = d.data[targetDate] || [];
+              setHistoryDate(targetDate);
+              if (times.length > 0 && !times.includes(historyTime)) {
+                setHistoryTime(times[0]);
               }
             } else {
               setHistoryDate('');
@@ -118,6 +118,7 @@ export default function MarketWatchPage() {
         setLastUpdated('');
         return;
       }
+      setNoDataMsg('');
       const newRows: StockRow[] = (json.data?.data || []).map((r: any) => ({
         priority: r.priority ?? 0, symbol: r.symbol ?? '',
         companyName: r.companyName ?? null, open: r.open ?? 0,
@@ -164,7 +165,14 @@ export default function MarketWatchPage() {
     finally { if (!silent) setLoading(false); }
   }, [isHistory, historyDate, historyTime]);
 
-  useEffect(() => { fetchData(selectedIndex); }, [selectedIndex, fetchData]);
+  useEffect(() => {
+    if (isHistory) {
+      if (Object.keys(availableHistory).length === 0) return;
+      if (historyDate && !availableHistory[historyDate]) return;
+      if (historyDate && historyTime && !availableHistory[historyDate]?.includes(historyTime)) return;
+    }
+    fetchData(selectedIndex);
+  }, [selectedIndex, fetchData, isHistory, availableHistory, historyDate, historyTime]);
 
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -280,7 +288,7 @@ export default function MarketWatchPage() {
           ⚠️ {error}
         </div>
       )}
-      {!error && noDataMsg && (
+      {!error && noDataMsg && stocks.length === 0 && (
         <div style={{ padding: '14px 16px', borderRadius: '8px', background: 'var(--surface)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 500, border: '1px solid var(--border-light)' }}>
           ℹ️ {noDataMsg}
         </div>
