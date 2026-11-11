@@ -145,7 +145,7 @@ const migrateLegacyConfig = (config: any): StrategyConfig => {
   if (!basic.engineType) {
     const stratName = (basic.name || '').toLowerCase();
     if (stratName.includes('ten am') || stratName.includes('10 am') || stratName.includes('10:00')) basic.engineType = 'TEN_AM';
-    else if (stratName.includes('nifty market') || stratName.includes('universal')) basic.engineType = 'NIFTY_MARKET';
+    else if (stratName.includes('nifty market') || stratName.includes('universal') || stratName.includes('nifty 500') || basic.indexName || basic.snapshotTimeSlot) basic.engineType = 'NIFTY_MARKET';
     else if (stratName.includes('pre open') || stratName.includes('pre-open') || stratName.includes('po ') || stratName.includes('pogapdown')) basic.engineType = 'PRE_OPEN';
     else if (stratName.includes('first minute') || stratName.includes('first-minute') || stratName.includes('ohp') || stratName.includes('olp')) basic.engineType = 'FIRST_MINUTE';
     else basic.engineType = 'FIRST_MINUTE';
@@ -1572,30 +1572,6 @@ export default function StrategiesPage() {
                       style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none', height: '60px', resize: 'vertical' }}
                       placeholder="Explain the strategy objective..."
                     />
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Strategy Engine</label>
-                    <select
-                      value={formData.basicInfo.engineType || 'FIRST_MINUTE'}
-                      onChange={(e: any) => {
-                        const val = e.target.value;
-                        setFormData({
-                          ...formData,
-                          basicInfo: {
-                            ...formData.basicInfo,
-                            engineType: val,
-                            segment: val === 'NIFTY_MARKET' ? (formData.basicInfo.indexName || 'NIFTY 500') : (formData.basicInfo.segment === 'NIFTY 500' ? 'NSE F&O' : (formData.basicInfo.segment || 'NSE F&O'))
-                          }
-                        });
-                      }}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    >
-                      <option value="FIRST_MINUTE">First Minute / OHP (Candle Breakout)</option>
-                      <option value="NIFTY_MARKET">Nifty Market Watch (Index Snapshots)</option>
-                      <option value="PRE_OPEN">Pre-Open Momentum</option>
-                      <option value="TEN_AM">10 AM Strategy (GRG / RGR)</option>
-                    </select>
                   </div>
 
                   {/* MARKET SELECTION */}
