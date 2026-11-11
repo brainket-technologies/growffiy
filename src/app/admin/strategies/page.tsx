@@ -2387,13 +2387,6 @@ export default function StrategiesPage() {
                         Price har {formData.stoploss.trailingSL > 0 ? `${formData.stoploss.trailingSL}%` : 'X%'} profit mein aane par SL order upar modify hota rahega. (Set -1 to disable)
                       </span>
                     </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px', fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>💡 Trailing SL Protection:</div>
-                      <div>• Entry par initial <b>{formData.stoploss.fixedPercent}%</b> SL order lagega (max loss cap).</div>
-                      <div>• Price <b>+{formData.stoploss.trailingSL > 0 ? formData.stoploss.trailingSL : 1.5}%</b> badhte hi SL order upar shift ho jayega.</div>
-                      <div>• Price reverse hone par profit secure rahega, loss nahi hoga.</div>
-                    </div>
                   </div>
                 </div>
 
