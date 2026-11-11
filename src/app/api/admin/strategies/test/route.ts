@@ -174,6 +174,7 @@ export async function GET(request: Request) {
             const configName = configObj?.basicInfo?.name?.toLowerCase() || '';
             if (engineType === 'TEN_AM' && (dbName.includes('ten am') || configName.includes('ten am'))) return true;
             if (engineType === 'FIRST_MINUTE' && (dbName.includes('first minute') || configName.includes('first minute'))) return true;
+            if ((engineType === 'NIFTY_MARKET' || engineType === 'Nifty_Market') && (dbName.includes('nifty market') || configName.includes('nifty market') || dbName.includes('nifty 500') || configName.includes('nifty 500'))) return true;
             return false;
         });
     }

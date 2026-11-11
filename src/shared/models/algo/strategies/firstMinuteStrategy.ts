@@ -193,109 +193,130 @@ export class FirstMinuteStrategy {
       ) => {
         const matches: any[] = [];
         let matchesFound = 0;
-        for (const stock of list) {
-          if (config?.conditions && !(await matchesConditions(stock, config.conditions, this.engine.wsLive))) continue;
 
-          const legEntry = config?.legs?.[0]?.entryTime;
-          let toTime = '09:30:00';
-          if (legEntry && typeof legEntry === 'string') {
-            toTime = legEntry.length === 5 ? legEntry + ':00' : legEntry;
-          }
-          const from = dateStr + ' 09:15:00';
-          const to = dateStr + ' ' + toTime; 
-          let liveToken = stock.instrumentToken;
-          if (!liveToken && this.engine.wsLive?.instrumentToSymbol) {
-            const instTokenStr = Object.entries(this.engine.wsLive.instrumentToSymbol).find(([, sym]) => sym === stock.symbol)?.[0];
-            if (instTokenStr) liveToken = parseInt(instTokenStr, 10);
-          }
-          if (!liveToken) {
-            try {
-              const fs = require('fs');
-              const path = require('path');
-              const cachePath = path.join(process.cwd(), 'instruments_cache.json');
-              if (fs.existsSync(cachePath)) {
-                const cacheData = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
-                if (cacheData[stock.symbol]) {
-                  const val = cacheData[stock.symbol];
-                  liveToken = typeof val === 'object' ? parseInt(val.instrument_token, 10) : parseInt(val as any, 10);
+        const checkCandidate = async (stock: any) => {
+          try {
+            if (config?.conditions && !(await matchesConditions(stock, config.conditions, this.engine.wsLive))) return null;
+
+            const legEntry = config?.legs?.[0]?.entryTime;
+            let toTime = '09:30:00';
+            if (legEntry && typeof legEntry === 'string') {
+              toTime = legEntry.length === 5 ? legEntry + ':00' : legEntry;
+            }
+            const from = dateStr + ' 09:15:00';
+            const to = dateStr + ' ' + toTime; 
+            let liveToken = stock.instrumentToken;
+            if (!liveToken && this.engine.wsLive?.instrumentToSymbol) {
+              const instTokenStr = Object.entries(this.engine.wsLive.instrumentToSymbol).find(([, sym]) => sym === stock.symbol)?.[0];
+              if (instTokenStr) liveToken = parseInt(instTokenStr, 10);
+            }
+            if (!liveToken) {
+              try {
+                const fs = require('fs');
+                const path = require('path');
+                const cachePath = path.join(process.cwd(), 'instruments_cache.json');
+                if (fs.existsSync(cachePath)) {
+                  const cacheData = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
+                  if (cacheData[stock.symbol]) {
+                    const val = cacheData[stock.symbol];
+                    liveToken = typeof val === 'object' ? parseInt(val.instrument_token, 10) : parseInt(val as any, 10);
+                  }
                 }
+              } catch (e) {
+                // ignore
               }
-            } catch (e) {
-              // ignore
             }
-          }
-          let tfStr = '1m';
-          const uiTf = config?.legs?.[0]?.timeframe;
-          const n = (group.strategyName + ' ' + (group.configJson?.basicInfo?.name || '')).toLowerCase();
-          
-          if (uiTf) {
-            tfStr = uiTf;
-          } else if (n.includes('15m') || n.includes('15 m') || n.includes('15-m') || n.includes('15 min')) {
-            tfStr = '15m';
-          } else if (n.includes('5m') || n.includes('5 m') || n.includes('5-m') || n.includes('5 min')) {
-            tfStr = '5m';
-          } else if (n.includes('3m') || n.includes('3 m') || n.includes('3-m') || n.includes('3 min')) {
-            tfStr = '3m';
-          }
-
-          let candles: any = null;
-          let hist: any[] = [];
-          const candleIndex = (Number(candlePos) || Number(config?.basicInfo?.startCandleIndex) || 1) - 1;
-          const tokenStr = liveToken || stock.instrumentToken || stock.symbol;
-          
-          for (let attempt = 1; attempt <= 6; attempt++) {
-            candles = await KiteClient.getHistoricalData(
-              masterClient.zerodhaApiKey,
-              masterClient.accessToken,
-              tokenStr,
-              mapTimeframeToKiteInterval(tfStr),
-              from,
-              to
-            );
+            let tfStr = '1m';
+            const uiTf = config?.legs?.[0]?.timeframe;
+            const n = (group.strategyName + ' ' + (group.configJson?.basicInfo?.name || '')).toLowerCase();
             
-            if (candles?.data?.candles?.length > candleIndex) {
-              hist = candles.data.candles;
-              break;
+            if (uiTf) {
+              tfStr = uiTf;
+            } else if (n.includes('15m') || n.includes('15 m') || n.includes('15-m') || n.includes('15 min')) {
+              tfStr = '15m';
+            } else if (n.includes('5m') || n.includes('5 m') || n.includes('5-m') || n.includes('5 min')) {
+              tfStr = '5m';
+            } else if (n.includes('3m') || n.includes('3 m') || n.includes('3-m') || n.includes('3 min')) {
+              tfStr = '3m';
             }
-            if (attempt < 6) await delay(250); 
-          }
-          
-          if (!hist || hist.length <= candleIndex) {
-            console.log(`[FIRST MINUTE] ${stock.symbol} historical data not available for ${tfStr} at candle index ${candleIndex} after retries.`);
-            continue;
-          }
-          
-          const c = hist[candleIndex];
-          const open = c[1];
-          const close = c[4];
-          const high = c[2];
-          const low = c[3];
-          
-          let isMatch = false;
-          if (requiredPattern === 'Red' && close < open) isMatch = true;
-          else if (requiredPattern === 'Green' && close > open) isMatch = true;
-          else if (requiredPattern === 'None' || !requiredPattern) isMatch = true;
 
-          if (isMatch && ohlcCondition !== 'None') {
-            if (ohlcCondition === 'Open = High' && open !== high) isMatch = false;
-            else if (ohlcCondition === 'Open = Low' && open !== low) isMatch = false;
-            else if (ohlcCondition === 'Open = Close' && open !== close) isMatch = false;
-            else if (ohlcCondition === 'High = Low' && high !== low) isMatch = false;
-            else if (ohlcCondition === 'High = Close' && high !== close) isMatch = false;
-            else if (ohlcCondition === 'Low = Close' && low !== close) isMatch = false;
-          }
+            let candles: any = null;
+            let hist: any[] = [];
+            const candleIndex = (Number(candlePos) || Number(config?.basicInfo?.startCandleIndex) || 1) - 1;
+            const tokenStr = liveToken || stock.instrumentToken || stock.symbol;
+            
+            for (let attempt = 1; attempt <= 6; attempt++) {
+              candles = await KiteClient.getHistoricalData(
+                masterClient.zerodhaApiKey,
+                masterClient.accessToken,
+                tokenStr,
+                mapTimeframeToKiteInterval(tfStr),
+                from,
+                to
+              );
+              
+              if (candles?.data?.candles?.length > candleIndex) {
+                hist = candles.data.candles;
+                break;
+              }
+              if (attempt < 6) await delay(250); 
+            }
+            
+            if (!hist || hist.length <= candleIndex) {
+              console.log(`[FIRST MINUTE] ${stock.symbol} historical data not available for ${tfStr} at candle index ${candleIndex} after retries.`);
+              return null;
+            }
+            
+            const c = hist[candleIndex];
+            const open = c[1];
+            const close = c[4];
+            const high = c[2];
+            const low = c[3];
+            
+            let isMatch = false;
+            if (requiredPattern === 'Red' && close < open) isMatch = true;
+            else if (requiredPattern === 'Green' && close > open) isMatch = true;
+            else if (requiredPattern === 'None' || !requiredPattern) isMatch = true;
 
-          if (isMatch) {
-            matchesFound++;
-            if (matchesFound >= stockRankPos) {
-              stock.firstCandleHigh = high;
-              stock.firstCandleLow = low;
-              stock.firstCandleOpen = open;
-              stock.firstCandleClose = close;
-              stock.firstCandleTimestamp = c[0];
-              matches.push(stock);
-              if (matches.length >= maxStocks) {
-                return matches;
+            if (isMatch && ohlcCondition !== 'None') {
+              if (ohlcCondition === 'Open = High' && open !== high) isMatch = false;
+              else if (ohlcCondition === 'Open = Low' && open !== low) isMatch = false;
+              else if (ohlcCondition === 'Open = Close' && open !== close) isMatch = false;
+              else if (ohlcCondition === 'High = Low' && high !== low) isMatch = false;
+              else if (ohlcCondition === 'High = Close' && high !== close) isMatch = false;
+              else if (ohlcCondition === 'Low = Close' && low !== close) isMatch = false;
+            }
+
+            if (isMatch) {
+              return {
+                ...stock,
+                firstCandleHigh: high,
+                firstCandleLow: low,
+                firstCandleOpen: open,
+                firstCandleClose: close,
+                firstCandleTimestamp: c[0]
+              };
+            }
+            return null;
+          } catch (err) {
+            console.error(`[FIRST MINUTE] Error checking candidate ${stock.symbol}:`, err);
+            return null;
+          }
+        };
+
+        const BATCH_SIZE = 8;
+        for (let i = 0; i < list.length; i += BATCH_SIZE) {
+          const chunk = list.slice(i, i + BATCH_SIZE);
+          const results = await Promise.all(chunk.map(stock => checkCandidate(stock)));
+
+          for (const matchedStock of results) {
+            if (matchedStock) {
+              matchesFound++;
+              if (matchesFound >= stockRankPos) {
+                matches.push(matchedStock);
+                if (matches.length >= maxStocks) {
+                  return matches;
+                }
               }
             }
           }
@@ -337,8 +358,10 @@ export class FirstMinuteStrategy {
       const stockRankPos = Number(config?.basicInfo?.selectPosition) || 1;
       const maxStocksToTrade = config?.basicInfo?.numberOfStocks || 1;
 
-      const targetGainers = await findMatchingStocks(gainers, gainerLegPattern, gainerCandlePos, gainerOhlc, maxStocksToTrade, stockRankPos);
-      const targetLosers = await findMatchingStocks(losers, loserLegPattern, loserCandlePos, loserOhlc, maxStocksToTrade, stockRankPos);
+      const [targetGainers, targetLosers] = await Promise.all([
+        findMatchingStocks(gainers, gainerLegPattern, gainerCandlePos, gainerOhlc, maxStocksToTrade, stockRankPos),
+        findMatchingStocks(losers, loserLegPattern, loserCandlePos, loserOhlc, maxStocksToTrade, stockRankPos)
+      ]);
 
       await Promise.all(
         group.assignedClients.map(async (client) => {

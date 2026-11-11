@@ -166,55 +166,74 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
 
       const findMatchingStock = async (list: any[], direction: 'buy' | 'sell', ohlcCondition: string = 'None') => {
         let matchesFound = 0;
-        for (const stock of list) {
-          if (config?.conditions && !(await matchesConditions(stock, config.conditions, this.engine.wsLive))) continue;
 
-          // 4b️⃣ Fetch three 15‑minute candles (09:15, 09:30, 09:45) using Master token
-          const from = dateStr + ' 09:15:00';
-          const to = dateStr + ' 10:01:00'; // include the fully formed 09:45 candle which finishes at 10:00
-          let liveToken = stock.instrumentToken;
-          if (!liveToken && this.engine.wsLive?.instrumentToSymbol) {
-            const instTokenStr = Object.entries(this.engine.wsLive.instrumentToSymbol).find(([, sym]) => sym === stock.symbol)?.[0];
-            if (instTokenStr) liveToken = parseInt(instTokenStr, 10);
+        const checkCandidate = async (stock: any) => {
+          try {
+            if (config?.conditions && !(await matchesConditions(stock, config.conditions, this.engine.wsLive))) return null;
+
+            // 4b️⃣ Fetch three 15‑minute candles (09:15, 09:30, 09:45) using Master token
+            const from = dateStr + ' 09:15:00';
+            const to = dateStr + ' 10:01:00'; // include the fully formed 09:45 candle which finishes at 10:00
+            let liveToken = stock.instrumentToken;
+            if (!liveToken && this.engine.wsLive?.instrumentToSymbol) {
+              const instTokenStr = Object.entries(this.engine.wsLive.instrumentToSymbol).find(([, sym]) => sym === stock.symbol)?.[0];
+              if (instTokenStr) liveToken = parseInt(instTokenStr, 10);
+            }
+            const candles = await KiteClient.getHistoricalData(
+              masterClient.zerodhaApiKey,
+              masterClient.accessToken,
+              liveToken || stock.instrumentToken || stock.symbol,
+              mapTimeframeToKiteInterval('15m'),
+              from,
+              to
+            );
+            if (!candles?.data?.candles?.length || candles.data.candles.length < 3) return null;
+            const hist = candles.data.candles as any[]; // [timestamp, open, high, low, close, volume]
+            const pattern = hist.map(c => c[4] > c[1] ? 'G' : 'R'); // G = green, R = red
+            const isGRG = direction === 'buy' && pattern[0] === 'G' && pattern[1] === 'R' && pattern[2] === 'G';
+            const isRGR = direction === 'sell' && pattern[0] === 'R' && pattern[1] === 'G' && pattern[2] === 'R';
+            let isMatch = ((direction === 'buy' && isGRG) || (direction === 'sell' && isRGR));
+
+            if (isMatch && ohlcCondition !== 'None') {
+              const firstCandle = hist[0];
+              const open = firstCandle[1];
+              const high = firstCandle[2];
+              const low = firstCandle[3];
+              const close = firstCandle[4];
+
+              if (ohlcCondition === 'Open = High' && open !== high) isMatch = false;
+              else if (ohlcCondition === 'Open = Low' && open !== low) isMatch = false;
+              else if (ohlcCondition === 'Open = Close' && open !== close) isMatch = false;
+              else if (ohlcCondition === 'High = Low' && high !== low) isMatch = false;
+              else if (ohlcCondition === 'High = Close' && high !== close) isMatch = false;
+              else if (ohlcCondition === 'Low = Close' && low !== close) isMatch = false;
+            }
+
+            if (isMatch) {
+              return {
+                ...stock,
+                thirdCandleHigh: hist[2][2],
+                thirdCandleLow: hist[2][3]
+              };
+            }
+            return null;
+          } catch (err) {
+            console.error(`[TEN AM] Error checking candidate ${stock.symbol}:`, err);
+            return null;
           }
-          const candles = await KiteClient.getHistoricalData(
-            masterClient.zerodhaApiKey,
-            masterClient.accessToken,
-            liveToken || stock.instrumentToken || stock.symbol,
-            mapTimeframeToKiteInterval('15m'),
-            from,
-            to
-          );
-          // Respect Kite rate limit (≈3 req/sec) – small pause after each request
-          await delay(350);
-          if (!candles?.data?.candles?.length) continue;
-          const hist = candles.data.candles as any[]; // [timestamp, open, high, low, close, volume]
-          const pattern = hist.map(c => c[4] > c[1] ? 'G' : 'R'); // G = green, R = red
-          const isGRG = direction === 'buy' && pattern[0] === 'G' && pattern[1] === 'R' && pattern[2] === 'G';
-          const isRGR = direction === 'sell' && pattern[0] === 'R' && pattern[1] === 'G' && pattern[2] === 'R';
-          let isMatch = ((direction === 'buy' && isGRG) || (direction === 'sell' && isRGR));
+        };
 
-          if (isMatch && ohlcCondition !== 'None') {
-            const firstCandle = hist[0];
-            const open = firstCandle[1];
-            const high = firstCandle[2];
-            const low = firstCandle[3];
-            const close = firstCandle[4];
+        const BATCH_SIZE = 8;
+        for (let i = 0; i < list.length; i += BATCH_SIZE) {
+          const chunk = list.slice(i, i + BATCH_SIZE);
+          const results = await Promise.all(chunk.map(stock => checkCandidate(stock)));
 
-            if (ohlcCondition === 'Open = High' && open !== high) isMatch = false;
-            else if (ohlcCondition === 'Open = Low' && open !== low) isMatch = false;
-            else if (ohlcCondition === 'Open = Close' && open !== close) isMatch = false;
-            else if (ohlcCondition === 'High = Low' && high !== low) isMatch = false;
-            else if (ohlcCondition === 'High = Close' && high !== close) isMatch = false;
-            else if (ohlcCondition === 'Low = Close' && low !== close) isMatch = false;
-          }
-
-          if (isMatch) {
-            matchesFound++;
-            if (matchesFound === selectPosition) {
-              stock.thirdCandleHigh = hist[2][2];
-              stock.thirdCandleLow = hist[2][3];
-              return stock;
+          for (const matchedStock of results) {
+            if (matchedStock) {
+              matchesFound++;
+              if (matchesFound === selectPosition) {
+                return matchedStock;
+              }
             }
           }
         }
@@ -223,8 +242,10 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
       };
 
       const ohlcCond = config?.basicInfo?.ohlcCondition || 'None';
-      const targetGainer = await findMatchingStock(gainers, 'buy', ohlcCond);
-      const targetLoser = await findMatchingStock(losers, 'sell', ohlcCond);
+      const [targetGainer, targetLoser] = await Promise.all([
+        findMatchingStock(gainers, 'buy', ohlcCond),
+        findMatchingStock(losers, 'sell', ohlcCond)
+      ]);
 
       // ---------------------------------------------------------------
       // 5️⃣ Ultra‑fast concurrent processing of all clients (up to 500+)

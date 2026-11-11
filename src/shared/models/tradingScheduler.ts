@@ -578,16 +578,16 @@ export class TradingScheduler {
             const toDateStr = formatKiteDate(today);
 
             const config = strategy.configJson ? JSON.parse(strategy.configJson) : null;
-            if (!config?.stoploss?.fixedPercent || !config?.target?.profitPercent || !config?.stoploss?.type || !config?.target?.type || !config?.basicInfo?.exchange) {
+            if (!config || !config?.basicInfo?.exchange) {
               console.log(`AlgoEngine Monitor: Strategy ${strategy.name} has incomplete config for trade ${trade.id}. Skipping check.`);
               return;
             }
-            const slPercent = config.stoploss.fixedPercent;
-            const targetPercent = config.target.profitPercent;
-            const slType = config.stoploss.type;
-            const targetType = config.target.type;
-            const trailingSlStep = config?.stoploss?.trailingSL;
-            const trailingTgtStep = config?.target?.trailingTarget;
+            const slPercent = Number(config.stoploss?.fixedPercent || 1);
+            const targetPercent = Number(config.target?.profitPercent || 2);
+            const slType = config.stoploss?.type || 'Fixed %';
+            const targetType = config.target?.type || 'Profit %';
+            const trailingSlStep = Number(config?.stoploss?.trailingSL ?? -1);
+            const trailingTgtStep = Number(config?.target?.trailingTarget ?? -1);
             const marketProtectionVal = (config?.tradeAction?.marketProtection !== undefined && Number(config.tradeAction.marketProtection) >= 0)
               ? Number(config.tradeAction.marketProtection) : 0.05;
             // marketProtectionVal is set during entry creation; this is a fallback
@@ -787,9 +787,18 @@ export class TradingScheduler {
                     : ((price - entryPrice) / entryPrice) * 100;
                   const trailsToApply = Math.floor(priceMovePct / trailingSlStep);
                   if (trailsToApply > 0) {
-                    const newSlTrigger = isShortTrade
-                      ? entryPrice - (trailsToApply * trailStepValue)
-                      : entryPrice + (trailsToApply * trailStepValue);
+                    const initialSl = Number(trade.originalStopLoss || trade.stopLoss || (isShortTrade ? entryPrice * (1 + slPercent / 100) : entryPrice * (1 - slPercent / 100)));
+                    let newSlTrigger = isShortTrade
+                      ? initialSl - (trailsToApply * trailStepValue)
+                      : initialSl + (trailsToApply * trailStepValue);
+
+                    // Safety guard: SL trigger must stay strictly on the valid side of live LTP
+                    if (!isShortTrade && newSlTrigger >= price) {
+                      newSlTrigger = price - 0.10;
+                    } else if (isShortTrade && newSlTrigger <= price) {
+                      newSlTrigger = price + 0.10;
+                    }
+
                     const shouldUpdate = isShortTrade ? (newSlTrigger < currentSlTrigger) : (newSlTrigger > currentSlTrigger);
                     if (shouldUpdate) {
                       try {

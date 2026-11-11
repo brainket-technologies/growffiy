@@ -1,0 +1,921 @@
+import { prisma } from '@/database/db';
+import { KiteClient, kiteFetch } from '../../../services/kite';
+import { calculateClientCapitalAndRisk } from '../../../utils/marginHelper';
+import { getTickSizeAndRound } from '../../../utils/tickSizeUtil';
+import { getLatestOrderState } from '../../../utils/kiteHelper';
+import { StockQuote, getPreOpenStocks } from '../../../utils/preOpenFetcher';
+import { matchesConditions } from '../../../utils/conditionEvaluator';
+import { getFreshCircuitLimits } from '../../../utils/circuitLimitHelper';
+import { fetchClientsByStrategy } from '../clientSelector';
+import { getMasterClient } from '../../../utils/masterClient';
+import { logFailedTrade } from '../../../utils/tradeLogger';
+import { masterDataCache } from '../masterDataCache';
+import { orderDispatcher } from '../orderDispatcher';
+import { tradePersistenceQueue } from '../tradePersistenceQueue';
+
+function mapTimeframeToKiteInterval(tf: string): string {
+  if (!tf) return 'minute';
+  const map: Record<string, string> = {
+    '1m': 'minute', '3m': '3minute', '5m': '5minute', '10m': '10minute',
+    '15m': '15minute', '30m': '30minute', '60m': '60minute', '1h': '60minute', '1d': 'day'
+  };
+  return map[tf.toLowerCase()] || 'minute';
+}
+
+export class NiftyMarketStrategy {
+  private engine: any;
+
+  constructor(engine: any) {
+    this.engine = engine;
+  }
+
+  async preSelectAllClients(strategyId?: string): Promise<void> {
+    if (strategyId) {
+      this.engine.preselectedStockByStrategy.delete(strategyId);
+      try { await prisma.strategyPreselect.deleteMany({ where: { strategyId } }); } catch (e) { }
+    } else {
+      this.engine.preselectedStockByStrategy.clear();
+      this.engine.marginCache.clear();
+      try { await prisma.strategyPreselect.deleteMany(); } catch (e) { }
+    }
+
+    let symbolToToken: any = {};
+    try {
+      console.log('AlgoEngine NiftyMarket: Fetching instruments to map tokens via public proxy...');
+      const masterClient = await getMasterClient();
+      const res = await kiteFetch('https://api.kite.trade/instruments/NSE', { method: 'GET' }, (masterClient as any)?.dedicatedIp);
+      if (res.ok && res.status === 200) {
+        const text = await res.text();
+        const lines = text.split('\n');
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i]) continue;
+          const cols = lines[i].split(',');
+          if (cols.length > 2) {
+            const exchange = cols[cols.length - 1].trim();
+            if (exchange === 'NSE' || exchange === 'NFO') {
+              const sym = cols[2].replace(/"/g, '').trim();
+              symbolToToken[sym] = parseInt(cols[0], 10);
+            }
+          }
+        }
+      }
+    } catch (e: any) {
+      console.error('AlgoEngine NiftyMarket: Failed to fetch kite instruments remotely:', e.message);
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const cachePath = path.join(process.cwd(), 'instruments_cache.json');
+        if (fs.existsSync(cachePath)) {
+          symbolToToken = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+        }
+      } catch (cacheErr: any) {
+        console.error('AlgoEngine NiftyMarket: Failed to read local cache:', cacheErr.message);
+      }
+    }
+
+    const strategyGroups = await fetchClientsByStrategy(true);
+    if (strategyGroups.length === 0) return;
+
+    const filteredGroups = strategyId ? strategyGroups.filter(g => g.strategyId === strategyId) : strategyGroups;
+    const dateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
+    for (const { strategyId: sId, strategyName, configJson } of filteredGroups) {
+      const strategy = { id: sId, name: strategyName };
+      if (!configJson) continue;
+      const config: any = configJson;
+
+      const engineType = (config.basicInfo?.engineType || '').toUpperCase();
+      if (engineType !== 'NIFTY_MARKET' && engineType !== 'NIFTYMARKET') continue;
+
+      const targetIndex = config.basicInfo?.segment || config.basicInfo?.indexName || 'NIFTY 500';
+      const slotTime = config.basicInfo?.snapshotTimeSlot || '09:20';
+      const topCount = Number(config.basicInfo?.topCount) || 20;
+
+      let candidateStocks: StockQuote[] = [];
+
+      if (slotTime === 'PRE_OPEN' || slotTime === 'preopen' || slotTime === '09:08' || slotTime === 'Pre-Open') {
+        const preOpenStocksRaw = await getPreOpenStocks();
+        if (preOpenStocksRaw && preOpenStocksRaw.length > 0) {
+          candidateStocks = preOpenStocksRaw.filter(s => {
+            if (targetIndex === 'SECURITIES IN F&O' || targetIndex === 'NSE F&O') return s.isFo;
+            if (targetIndex === 'NIFTY 50' || targetIndex === 'Nifty 50') return s.isNifty50;
+            if (targetIndex === 'NIFTY BANK' || targetIndex === 'Bank Nifty') return s.isBankNifty;
+            if (targetIndex === 'NIFTY 500' || targetIndex === 'Nifty 500') return s.isNifty500;
+            return true;
+          }).map(s => ({
+            symbol: s.symbol, name: s.name || s.symbol, ltp: s.ltp || 0,
+            open: s.open || 0, high: s.high || 0, low: s.low || 0,
+            prevClose: s.prevClose || 0, volume: s.volume || 0,
+            change: s.change || 0, changePercent: s.changePercent || 0, iep: s.iep || s.ltp || 0,
+            final: s.final || 0, finalQuantity: s.finalQuantity || 0, value: s.value || 0,
+            ffmCap: s.ffmCap || 0, nm52wH: s.nm52wH || 0, nm52wL: s.nm52wL || 0,
+            isNifty50: s.isNifty50 || false, isNifty500: s.isNifty500 || false, isBankNifty: s.isBankNifty || false, isFo: s.isFo || false,
+            instrumentToken: symbolToToken[s.symbol] || s.instrumentToken || 0
+          }));
+        }
+      } else {
+        try {
+          let cleanSlot = slotTime;
+          if (slotTime.includes(':')) {
+            const parts = slotTime.split(':');
+            const h = parts[0].trim().padStart(2, '0');
+            const m = parts[1].trim().slice(0, 2);
+            cleanSlot = `${h}:${m}`;
+          }
+
+          let mwSnapshot = await prisma.marketWatchSnapshot.findUnique({
+            where: {
+              indexName_date_timeSlot: {
+                indexName: targetIndex,
+                date: dateStr,
+                timeSlot: cleanSlot
+              }
+            }
+          });
+
+          // Fallback 1: If not found for today (e.g. testing or off-market), get most recent snapshot for this index & slotTime
+          if (!mwSnapshot || !mwSnapshot.data) {
+            mwSnapshot = await prisma.marketWatchSnapshot.findFirst({
+              where: {
+                indexName: targetIndex,
+                timeSlot: cleanSlot
+              },
+              orderBy: { date: 'desc' }
+            });
+          }
+
+          // Fallback 2: Any recent snapshot for this index
+          if (!mwSnapshot || !mwSnapshot.data) {
+            mwSnapshot = await prisma.marketWatchSnapshot.findFirst({
+              where: {
+                indexName: targetIndex
+              },
+              orderBy: [
+                { date: 'desc' },
+                { timeSlot: 'desc' }
+              ]
+            });
+          }
+
+          if (mwSnapshot && mwSnapshot.data && Array.isArray(mwSnapshot.data)) {
+            const rawData = mwSnapshot.data as any[];
+            candidateStocks = rawData.map(r => ({
+              symbol: r.symbol || '',
+              name: r.companyName || r.symbol || '',
+              ltp: Number(r.lastPrice) || 0,
+              open: Number(r.open) || 0,
+              high: Number(r.dayHigh) || 0,
+              low: Number(r.dayLow) || 0,
+              prevClose: Number(r.previousClose) || 0,
+              volume: Number(r.totalTradedVolume) || 0,
+              change: Number(r.change) || 0,
+              changePercent: Number(r.pChange) || 0,
+              iep: Number(r.lastPrice) || 0,
+              final: Number(r.lastPrice) || 0,
+              finalQuantity: Number(r.totalTradedVolume) || 0,
+              value: Number(r.totalTradedValue) || 0,
+              ffmCap: Number(r.ffmc) || 0,
+              nm52wH: Number(r.yearHigh) || 0,
+              nm52wL: Number(r.yearLow) || 0,
+              isNifty50: targetIndex === 'NIFTY 50',
+              isNifty500: targetIndex === 'NIFTY 500',
+              isBankNifty: targetIndex === 'NIFTY BANK',
+              isFo: targetIndex === 'SECURITIES IN F&O',
+              instrumentToken: symbolToToken[r.symbol] || 0
+            }));
+          }
+        } catch (dbErr) {
+          console.error(`AlgoEngine NiftyMarket: Error querying snapshot for ${targetIndex} ${slotTime}:`, dbErr);
+        }
+      }
+
+      if (!candidateStocks || candidateStocks.length === 0) {
+        console.log(`AlgoEngine NiftyMarket: No candidate stocks found for ${strategy.name} (${targetIndex} @ ${slotTime})`);
+        continue;
+      }
+
+      const sortedByChange = [...candidateStocks].sort((a, b) => (b.changePercent || 0) - (a.changePercent || 0));
+      const gainers = sortedByChange.filter(s => s.changePercent > 0).slice(0, topCount);
+      const losers = sortedByChange.filter(s => s.changePercent < 0).reverse().slice(0, topCount);
+
+      const finalStocks = [...gainers, ...losers];
+
+      try {
+        const preselectData = {
+          strategyId: strategy.id,
+          symbol: 'MULTIPLE',
+          stockData: JSON.stringify(finalStocks)
+        };
+        await prisma.strategyPreselect.upsert({
+          where: { strategyId: strategy.id },
+          update: { stockData: preselectData.stockData, symbol: 'MULTIPLE' },
+          create: preselectData
+        });
+        this.engine.preselectedStockByStrategy.set(strategy.id, finalStocks);
+        console.log(`AlgoEngine NiftyMarket: Saved ${finalStocks.length} pre-selected stocks (${gainers.length} gainers, ${losers.length} losers) for ${strategy.name}`);
+      } catch (err) {
+        console.error('AlgoEngine NiftyMarket: Error saving pre-selection to DB:', err);
+      }
+    }
+  }
+
+  async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyId?: string, legIndex?: number, dualLegGroupId?: string | null): Promise<void> {
+    console.log('AlgoEngine: executePreOpenTrades (Nifty Market) started.');
+    const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+    const dateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
+    const masterClient = await getMasterClient();
+    if (!masterClient || !masterClient.accessToken) {
+      console.error('AlgoEngine Nifty Market: No Master Client found. Cannot fetch candles.');
+      return;
+    }
+
+    const strategyGroups = await fetchClientsByStrategy(false);
+    const filteredGroups = strategyId ? strategyGroups.filter(g => g.strategyId === strategyId) : strategyGroups;
+
+    for (const group of filteredGroups) {
+      const engineType = (group.configJson?.basicInfo?.engineType || '').toUpperCase();
+      if (engineType !== 'NIFTY_MARKET' && engineType !== 'NIFTYMARKET') continue;
+
+      const config: any = group.configJson;
+      const topCount: number = config?.basicInfo?.topCount || 20;
+      const selectPosition: number = Number(config?.basicInfo?.selectPosition) || 1;
+      const maxStocksToTrade: number = Number(config?.basicInfo?.numberOfStocks) || 1;
+      const activeLegs = (config?.legs || []).filter((l: any) => l.enabled || l.isEnabled);
+      if (activeLegs.length === 0) continue;
+
+      let preselectedStocks: StockQuote[] = [];
+      try {
+        const dbRecord = await prisma.strategyPreselect.findUnique({ where: { strategyId: group.strategyId } });
+        if (dbRecord) preselectedStocks = JSON.parse(dbRecord.stockData);
+      } catch (e) {}
+
+      if (!preselectedStocks || preselectedStocks.length === 0) {
+        preselectedStocks = this.engine.preselectedStockByStrategy.get(group.strategyId) || [];
+      }
+
+      if (!preselectedStocks || preselectedStocks.length === 0) {
+        console.log(`AlgoEngine NiftyMarket: Preselected stocks empty for ${group.strategyName}, auto pre-selecting now...`);
+        await this.preSelectAllClients(group.strategyId);
+        preselectedStocks = this.engine.preselectedStockByStrategy.get(group.strategyId) || [];
+        if (!preselectedStocks || preselectedStocks.length === 0) {
+          try {
+            const dbRecord = await prisma.strategyPreselect.findUnique({ where: { strategyId: group.strategyId } });
+            if (dbRecord) preselectedStocks = JSON.parse(dbRecord.stockData);
+          } catch (e) {}
+        }
+      }
+
+      if (!preselectedStocks || preselectedStocks.length === 0) {
+        console.log(`AlgoEngine NiftyMarket: No preselected stocks found for ${group.strategyName}. Skipping execution.`);
+        continue;
+      }
+
+      const gainers = preselectedStocks.filter(s => s.changePercent > 0).sort((a, b) => b.changePercent - a.changePercent).slice(0, topCount);
+      const losers = preselectedStocks.filter(s => s.changePercent < 0).sort((a, b) => a.changePercent - b.changePercent).slice(0, topCount);
+
+      const findMatchingStocks = async (
+        list: any[],
+        requiredPattern: 'Green' | 'Red' | 'None',
+        candlePos: number,
+        ohlcCondition: string = 'None',
+        maxStocks: number = 1,
+        stockRankPos: number = 1
+      ) => {
+        const matches: any[] = [];
+        let matchesFound = 0;
+
+        const checkCandidate = async (stock: any) => {
+          try {
+            if (config?.conditions && !(await matchesConditions(stock, config.conditions, this.engine.wsLive))) return null;
+
+            const legEntry = config?.legs?.[0]?.entryTime;
+            let toTime = '09:30:00';
+            if (legEntry && typeof legEntry === 'string') {
+              toTime = legEntry.length === 5 ? legEntry + ':00' : legEntry;
+            }
+            const from = dateStr + ' 09:15:00';
+            const to = dateStr + ' ' + toTime;
+            let liveToken = stock.instrumentToken;
+            if (!liveToken && this.engine.wsLive?.instrumentToSymbol) {
+              const instTokenStr = Object.entries(this.engine.wsLive.instrumentToSymbol).find(([, sym]) => sym === stock.symbol)?.[0];
+              if (instTokenStr) liveToken = parseInt(instTokenStr, 10);
+            }
+            if (!liveToken) {
+              try {
+                const fs = require('fs');
+                const path = require('path');
+                const cachePath = path.join(process.cwd(), 'instruments_cache.json');
+                if (fs.existsSync(cachePath)) {
+                  const cacheData = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
+                  if (cacheData[stock.symbol]) {
+                    const val = cacheData[stock.symbol];
+                    liveToken = typeof val === 'object' ? parseInt(val.instrument_token, 10) : parseInt(val as any, 10);
+                  }
+                }
+              } catch (e) {}
+            }
+
+            let tfStr = '1m';
+            const uiTf = config?.legs?.[0]?.timeframe;
+            const n = (group.strategyName + ' ' + (group.configJson?.basicInfo?.name || '')).toLowerCase();
+
+            if (uiTf) {
+              tfStr = uiTf;
+            } else if (n.includes('15m') || n.includes('15 m') || n.includes('15-m') || n.includes('15 min')) {
+              tfStr = '15m';
+            } else if (n.includes('5m') || n.includes('5 m') || n.includes('5-m') || n.includes('5 min')) {
+              tfStr = '5m';
+            } else if (n.includes('3m') || n.includes('3 m') || n.includes('3-m') || n.includes('3 min')) {
+              tfStr = '3m';
+            }
+
+            let candles: any = null;
+            let hist: any[] = [];
+            const candleIndex = (Number(candlePos) || Number(config?.basicInfo?.startCandleIndex) || 1) - 1;
+            const tokenStr = liveToken || stock.instrumentToken || stock.symbol;
+
+            for (let attempt = 1; attempt <= 6; attempt++) {
+              candles = await KiteClient.getHistoricalData(
+                masterClient.zerodhaApiKey,
+                masterClient.accessToken,
+                tokenStr,
+                mapTimeframeToKiteInterval(tfStr),
+                from,
+                to
+              );
+
+              if (candles?.data?.candles?.length > candleIndex) {
+                hist = candles.data.candles;
+                break;
+              }
+              if (attempt < 6) await delay(250);
+            }
+
+            if (!hist || hist.length <= candleIndex) {
+              console.log(`[NIFTY MARKET] ${stock.symbol} historical data not available for ${tfStr} at candle index ${candleIndex} after retries.`);
+              return null;
+            }
+
+            const c = hist[candleIndex];
+            const open = c[1];
+            const close = c[4];
+            const high = c[2];
+            const low = c[3];
+
+            let isMatch = false;
+            if (requiredPattern === 'Red' && close < open) isMatch = true;
+            else if (requiredPattern === 'Green' && close > open) isMatch = true;
+            else if (requiredPattern === 'None' || !requiredPattern) isMatch = true;
+
+            if (isMatch && ohlcCondition !== 'None') {
+              if (ohlcCondition === 'Open = High' && Math.abs(open - high) > 0.05) isMatch = false;
+              else if (ohlcCondition === 'Open = Low' && Math.abs(open - low) > 0.05) isMatch = false;
+              else if (ohlcCondition === 'Open = Close' && Math.abs(open - close) > 0.05) isMatch = false;
+              else if (ohlcCondition === 'High = Low' && Math.abs(high - low) > 0.05) isMatch = false;
+              else if (ohlcCondition === 'High = Close' && Math.abs(high - close) > 0.05) isMatch = false;
+              else if (ohlcCondition === 'Low = Close' && Math.abs(low - close) > 0.05) isMatch = false;
+            }
+
+            if (isMatch) {
+              return {
+                ...stock,
+                firstCandleHigh: high,
+                firstCandleLow: low,
+                firstCandleOpen: open,
+                firstCandleClose: close,
+                firstCandleTimestamp: c[0]
+              };
+            }
+            return null;
+          } catch (err) {
+            console.error(`[NIFTY MARKET] Error checking candidate ${stock.symbol}:`, err);
+            return null;
+          }
+        };
+
+        const BATCH_SIZE = 8;
+        for (let i = 0; i < list.length; i += BATCH_SIZE) {
+          const chunk = list.slice(i, i + BATCH_SIZE);
+          const results = await Promise.all(chunk.map(stock => checkCandidate(stock)));
+
+          for (const matchedStock of results) {
+            if (matchedStock) {
+              matchesFound++;
+              if (matchesFound >= stockRankPos) {
+                matches.push(matchedStock);
+                if (matches.length >= maxStocks) {
+                  return matches;
+                }
+              }
+            }
+          }
+        }
+        return matches;
+      };
+
+      let gainerLegPattern: 'Green' | 'Red' | 'None' = 'Green';
+      let loserLegPattern: 'Green' | 'Red' | 'None' = 'Red';
+      let gainerCandlePos = 1;
+      let loserCandlePos = 1;
+
+      let gainerOhlc = config?.basicInfo?.ohlcCondition || 'None';
+      let loserOhlc = config?.basicInfo?.ohlcCondition || 'None';
+
+      const selectionType = (config?.basicInfo?.stockSelectionType || config?.basicInfo?.selectionType || '').toLowerCase();
+      const isPureLoserStrategy = selectionType.includes('gapdown') || selectionType.includes('loser');
+
+      if (isPureLoserStrategy) {
+        if (activeLegs.length > 0) {
+          const leg1 = activeLegs[0];
+          if (leg1.tradeAction?.candlePattern) loserLegPattern = leg1.tradeAction.candlePattern as any;
+          if (leg1.tradeAction?.selectPosition) loserCandlePos = Number(leg1.tradeAction.selectPosition) || 1;
+        }
+      } else {
+        if (activeLegs.length > 0) {
+          const leg1 = activeLegs[0];
+          if (leg1.tradeAction?.candlePattern) gainerLegPattern = leg1.tradeAction.candlePattern as any;
+          if (leg1.tradeAction?.selectPosition) gainerCandlePos = Number(leg1.tradeAction.selectPosition) || 1;
+        }
+        if (activeLegs.length > 1) {
+          const leg2 = activeLegs[1];
+          if (leg2.tradeAction?.candlePattern) loserLegPattern = leg2.tradeAction.candlePattern as any;
+          if (leg2.tradeAction?.selectPosition) loserCandlePos = Number(leg2.tradeAction.selectPosition) || 1;
+        }
+      }
+
+      const [targetGainers, targetLosers] = await Promise.all([
+        findMatchingStocks(gainers, gainerLegPattern, gainerCandlePos, gainerOhlc, maxStocksToTrade, selectPosition),
+        findMatchingStocks(losers, loserLegPattern, loserCandlePos, loserOhlc, maxStocksToTrade, selectPosition)
+      ]);
+
+      await Promise.all(
+        group.assignedClients.map(async (client) => {
+          if (client.tradingStatus !== 'active' || !client.zerodhaApiKey || !client.accessToken) return;
+
+          const maxOpen = config?.riskManagement?.maxOpenPositions;
+          if (maxOpen !== undefined && maxOpen !== null && maxOpen !== -1) {
+            const openCount = await prisma.trade.count({
+              where: { clientId: client.id, strategyId: group.strategyId, status: 'open' }
+            });
+            if (openCount >= maxOpen) return;
+          }
+
+          const todayStartLocal = new Date();
+          todayStartLocal.setHours(0, 0, 0, 0);
+
+          const maxTradesPerDay = config?.basicInfo?.maxTradesPerDay;
+          if (maxTradesPerDay !== undefined && maxTradesPerDay !== null && Number(maxTradesPerDay) > 0) {
+            const todayTradesCount = await prisma.trade.count({
+              where: { clientId: client.id, strategyId: group.strategyId, createdAt: { gte: todayStartLocal } }
+            });
+            if (todayTradesCount >= Number(maxTradesPerDay)) return;
+          }
+
+          const todayTrades = await prisma.trade.findMany({
+            where: { clientId: client.id, strategyId: group.strategyId, createdAt: { gte: todayStartLocal }, pnl: { not: null } }
+          });
+          const todayPnl = todayTrades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
+
+          const maxDailyLoss = config?.riskManagement?.maxDailyLoss;
+          if (maxDailyLoss !== undefined && maxDailyLoss !== null && maxDailyLoss !== -1 && todayPnl <= -Number(maxDailyLoss)) return;
+
+          const maxDailyProfit = config?.riskManagement?.maxDailyProfit;
+          if (maxDailyProfit !== undefined && maxDailyProfit !== null && maxDailyProfit !== -1 && todayPnl >= Number(maxDailyProfit)) return;
+
+          const activeAccessToken = client.accessToken;
+          const marginResult = await calculateClientCapitalAndRisk({
+            client,
+            activeAccessToken,
+            onCacheMargin: (cId, margin) => this.engine.marginCache.set(cId, margin),
+            config,
+          });
+          if (!marginResult.success) return;
+
+          const legDivisor = activeLegs.length;
+          const capitalAtRiskPerStock = (marginResult.capitalAtRisk / legDivisor) / maxStocksToTrade;
+
+          for (let li = 0; li < activeLegs.length; li++) {
+            if (legIndex !== undefined && legIndex !== null && li !== legIndex) continue;
+            const leg = activeLegs[li];
+
+            const isBuy = leg.tradeAction?.action?.toLowerCase() === 'long' || leg.tradeAction?.action?.toLowerCase() === 'buy';
+
+            const selectionTypeStr = (config?.basicInfo?.stockSelectionType || config?.basicInfo?.selectionType || '').toLowerCase();
+            const legName = (leg.name || '').toLowerCase();
+            const stratName = (group.strategyName || '').toLowerCase();
+            let targetStocks: any[] = [];
+
+            if (selectionTypeStr.includes('gapdown') || selectionTypeStr.includes('loser')) {
+              targetStocks = targetLosers;
+            } else if (selectionTypeStr.includes('gapup') || selectionTypeStr.includes('gainer')) {
+              targetStocks = targetGainers;
+            } else if (legName.includes('loser') || stratName.includes('loser') || stratName.includes('losser')) {
+              targetStocks = targetLosers;
+            } else if (legName.includes('gainer') || stratName.includes('gainer')) {
+              targetStocks = targetGainers;
+            } else {
+              targetStocks = li === 0 ? targetGainers : targetLosers;
+            }
+
+            if (!targetStocks || targetStocks.length === 0) continue;
+
+            for (const targetStock of targetStocks) {
+              const todayStr = new Date().toISOString().split('T')[0];
+              const dbLockKey = `trade_lock_${client.id}_${group.strategyId}_leg${li}_${targetStock.symbol}_${todayStr}`;
+
+              // Fast in-memory atomic lock check
+              if (!masterDataCache.acquireLock(dbLockKey)) {
+                continue;
+              }
+
+              // Conflict Guard: Prevent opposite-direction trade on same symbol
+              const tradeDirection = isBuy ? 'LONG' : 'SHORT';
+              if (masterDataCache.hasOppositeDirection(client.id, targetStock.symbol, tradeDirection)) {
+                console.log(`[NIFTY MARKET] Skipped trade for ${client.user?.name} in ${targetStock.symbol}: Opposite direction trade already active.`);
+                masterDataCache.releaseLock(dbLockKey);
+                continue;
+              }
+
+              // Asynchronous non-blocking persistence for server-restart resilience
+              prisma.appSettings.create({
+                data: { settingKey: dbLockKey, settingValue: 'locked', type: 'lock' }
+              }).catch(() => {});
+
+              const entryBufferPct = leg.tradeAction?.entryBufferPercent !== undefined ? leg.tradeAction.entryBufferPercent : (leg.tradeAction?.bufferPercent || 0.2);
+
+              const priceType = leg.tradeAction?.candlePriceType?.toLowerCase();
+              let baseEntry: number;
+              if (priceType === 'high') {
+                baseEntry = targetStock.firstCandleHigh;
+              } else if (priceType === 'low') {
+                baseEntry = targetStock.firstCandleLow;
+              } else {
+                baseEntry = isBuy ? targetStock.firstCandleHigh : targetStock.firstCandleLow;
+              }
+
+              const entryBufferVal = baseEntry * (entryBufferPct / 100);
+              const entryPriceRaw = isBuy ? baseEntry + entryBufferVal : baseEntry - entryBufferVal;
+
+              const exchangeParam = config?.basicInfo?.exchange || 'NSE';
+              const slBufferPct = leg.tradeAction?.slBufferPercent !== undefined && leg.tradeAction?.slBufferPercent !== -1 ? leg.tradeAction.slBufferPercent : 0;
+
+              const baseSl = isBuy ? targetStock.firstCandleLow : targetStock.firstCandleHigh;
+              const slBufferVal = baseSl * (slBufferPct / 100);
+              const candleSlPriceRaw = isBuy ? baseSl - slBufferVal : baseSl + slBufferVal;
+
+              const slType = config.stoploss?.type || 'Fixed %';
+              const slVal = slType === 'Fixed Points' ? (config.stoploss?.fixedPoints || 10) :
+                            slType === 'Trailing SL' ? (config.stoploss?.trailingSL || 1) :
+                            (config.stoploss?.fixedPercent || 1);
+
+              let configSlPriceRaw = 0;
+              if (slType === 'Fixed Points') {
+                configSlPriceRaw = isBuy ? entryPriceRaw - slVal : entryPriceRaw + slVal;
+              } else {
+                const points = entryPriceRaw * (slVal / 100);
+                configSlPriceRaw = isBuy ? entryPriceRaw - points : entryPriceRaw + points;
+              }
+
+              // Tighter SL logic (Candle vs Admin Config)
+              let slPriceRaw = isBuy
+                ? Math.max(candleSlPriceRaw, configSlPriceRaw)
+                : Math.min(candleSlPriceRaw, configSlPriceRaw);
+
+              let slPoints = Math.abs(entryPriceRaw - slPriceRaw);
+              if (slPoints <= 0) slPoints = 1;
+
+              let qty = Math.floor(capitalAtRiskPerStock / slPoints);
+              if (qty <= 0) {
+                console.log(`AlgoEngine: Quantity calculated as 0 for ${client.user?.name} in ${targetStock.symbol}. Risk capital too low for SL difference. Skipping leg.`);
+                continue;
+              }
+
+              if (marginResult.marginRate !== undefined && marginResult.marginRate !== null && marginResult.marginRate > 0) {
+                const qtyByBuyingPower = Math.floor((marginResult.clientCapital / legDivisor / maxStocksToTrade) / (entryPriceRaw * marginResult.marginRate));
+                qty = Math.min(qty, qtyByBuyingPower);
+              }
+
+              if (qty <= 0) {
+                await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, 'MIS', entryPriceRaw, `Qty calculation resulted in 0 (Risk: ₹${capitalAtRiskPerStock.toFixed(2)} / SL Points: ₹${slPoints.toFixed(2)})`, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: 0, stopLoss: slPriceRaw, target: 0, slTriggerPrice: slPriceRaw });
+                continue;
+              }
+
+              const tgtType = config.target?.type || 'Profit %';
+              let targetPriceRaw = 0;
+              if (tgtType === 'Risk Reward Ratio') {
+                const rrRatio = config.target?.riskRewardRatio || 3;
+                const difference = Math.abs(entryPriceRaw - slPriceRaw);
+                targetPriceRaw = isBuy ? entryPriceRaw + (difference * rrRatio) : entryPriceRaw - (difference * rrRatio);
+              } else {
+                const tgtVal = config.target?.profitPercent || 3;
+                const tgtAmt = entryPriceRaw * (tgtVal / 100);
+                targetPriceRaw = isBuy ? entryPriceRaw + tgtAmt : entryPriceRaw - tgtAmt;
+              }
+
+              const entryPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, entryPriceRaw);
+              let slPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, slPriceRaw);
+              let targetPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, targetPriceRaw);
+
+              const freshLimits = await getFreshCircuitLimits(client, 'NSE', targetStock.symbol, activeAccessToken);
+              if (freshLimits) {
+                const { lower, upper } = freshLimits;
+                if (entryPrice <= lower || entryPrice >= upper) {
+                  await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, 'MIS', entryPrice, 'Circuit Hit', { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice });
+                  continue;
+                }
+              }
+
+              const tradeType = config?.basicInfo?.tradeType || 'Intraday';
+              const productParam = tradeType === 'Delivery' ? 'CNC' : (tradeType === 'Carry Forward' || tradeType === 'Normal' || tradeType === 'NRML') ? 'NRML' : 'MIS';
+
+              const marketProtectionVal = (leg.tradeAction?.marketProtection !== undefined && Number(leg.tradeAction.marketProtection) >= 0)
+                ? Number(leg.tradeAction.marketProtection)
+                : 0.05;
+
+              let orderTypeParam: 'MARKET' | 'LIMIT' | 'SL' | 'SL-M' = 'MARKET';
+              let priceParam: number | undefined = undefined;
+              let triggerPriceParam: number | undefined = undefined;
+              const configOrderType = leg.tradeAction?.orderType;
+
+              if (configOrderType === 'Limit') {
+                orderTypeParam = 'LIMIT';
+                priceParam = entryPrice;
+              } else if (configOrderType === 'SL-Limit') {
+                orderTypeParam = 'SL';
+                triggerPriceParam = entryPrice;
+                priceParam = entryPrice;
+              } else if (configOrderType === 'SL-Market') {
+                orderTypeParam = 'SL-M';
+                triggerPriceParam = entryPrice;
+              } else {
+                orderTypeParam = 'MARKET';
+              }
+
+              let entryOrderId: string | null = null;
+              try {
+                const orderPayload: any = {
+                  tradingsymbol: targetStock.symbol,
+                  exchange: exchangeParam,
+                  transaction_type: isBuy ? 'BUY' : 'SELL',
+                  quantity: qty,
+                  order_type: orderTypeParam,
+                  product: productParam,
+                  price: priceParam,
+                  trigger_price: triggerPriceParam,
+                  validity: 'DAY',
+                  variety: 'regular',
+                  tag: 'algo_niftymkt',
+                  ...(orderTypeParam === 'MARKET' || orderTypeParam === 'SL-M' ? { market_protection: marketProtectionVal } : {})
+                };
+
+                let orderRes = await orderDispatcher.dispatchOrder({
+                  apiKey: client.zerodhaApiKey,
+                  accessToken: activeAccessToken,
+                  orderParams: orderPayload,
+                  proxyUrl: client.proxyUrl,
+                  dedicatedIp: client.dedicatedIp
+                });
+
+                if (orderRes && orderRes.status === 'error') {
+                  const msg = orderRes.message || '';
+                  if (msg.toLowerCase().includes('tick size')) {
+                    const match = msg.match(/is\s+([0-9.]+)/i);
+                    if (match && match[1]) {
+                      const reqTick = parseFloat(match[1]);
+                      if (!isNaN(reqTick) && reqTick > 0) {
+                        const roundedEntry = Math.round(entryPriceRaw / reqTick) * reqTick;
+                        orderPayload.price = Number(roundedEntry.toFixed(4));
+                        orderPayload.trigger_price = Number(roundedEntry.toFixed(4));
+                        slPrice = Number((Math.round(slPriceRaw / reqTick) * reqTick).toFixed(4));
+                        targetPrice = Number((Math.round(targetPriceRaw / reqTick) * reqTick).toFixed(4));
+
+                        orderRes = await orderDispatcher.dispatchOrder({
+                          apiKey: client.zerodhaApiKey,
+                          accessToken: activeAccessToken,
+                          orderParams: orderPayload,
+                          proxyUrl: client.proxyUrl,
+                          dedicatedIp: client.dedicatedIp
+                        });
+                      }
+                    }
+                  }
+
+                  if (orderRes && orderRes.status === 'error') {
+                    const msgRetry = orderRes.message || '';
+                    if (msgRetry.toLowerCase().includes('trigger price') ||
+                        msgRetry.toLowerCase().includes('circuit') ||
+                        msgRetry.toLowerCase().includes('stoploss') ||
+                        msgRetry.toLowerCase().includes('lower than') ||
+                        msgRetry.toLowerCase().includes('higher than')) {
+                      const fallbackParams = {
+                        ...orderPayload,
+                        order_type: 'MARKET',
+                        price: undefined,
+                        trigger_price: undefined,
+                        market_protection: marketProtectionVal
+                      };
+                      orderRes = await orderDispatcher.dispatchOrder({
+                        apiKey: client.zerodhaApiKey,
+                        accessToken: activeAccessToken,
+                        orderParams: fallbackParams,
+                        proxyUrl: client.proxyUrl,
+                        dedicatedIp: client.dedicatedIp
+                      });
+                    }
+                  }
+
+                  if (orderRes && orderRes.status === 'error') {
+                    const errMsg = orderRes?.message || 'Kite API error';
+                    await prisma.trade.create({
+                      data: {
+                        clientId: client.id, strategyId: group.strategyId,
+                        symbol: targetStock.symbol, orderType: productParam,
+                        entryPrice, quantity: qty,
+                        stopLoss: slPrice, target: targetPrice,
+                        slTriggerPrice: slPrice,
+                        originalEntryPrice: entryPriceRaw,
+                        originalStopLoss: slPriceRaw,
+                        originalTarget: targetPriceRaw,
+                        status: 'FAILED', entryTime: new Date(),
+                        entryOrderStatus: 'FAILED',
+                        kiteResponse: orderRes || { error: errMsg },
+                        direction: isBuy ? 'LONG' : 'SHORT',
+                        legName: leg.name || '',
+                        legTimeframe: '1m'
+                      }
+                    });
+                    await prisma.strategyLog.create({
+                      data: { strategyId: group.strategyId, message: `Nifty Market order failed for ${client.user?.name} (${targetStock.symbol}): ${errMsg}`, logType: 'error' }
+                    });
+                    continue;
+                  }
+                }
+
+                entryOrderId = orderRes?.data?.order_id;
+
+                if (!entryOrderId) {
+                  const noIdReason = orderRes?.message || orderRes?.data?.message || (orderRes ? JSON.stringify(orderRes) : 'No order_id returned by Kite');
+                  await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, productParam, entryPrice, noIdReason, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice }, orderRes || undefined);
+                  continue;
+                }
+
+                if (entryOrderId) {
+                  let tradeId = '';
+                  try {
+                    tradeId = tradePersistenceQueue.enqueue({
+                      clientId: client.id,
+                      strategyId: group.strategyId,
+                      symbol: targetStock.symbol,
+                      orderType: productParam,
+                      entryPrice: entryPrice,
+                      quantity: qty,
+                      stopLoss: slPrice,
+                      target: targetPrice,
+                      originalEntryPrice: entryPriceRaw,
+                      originalStopLoss: slPriceRaw,
+                      originalTarget: targetPriceRaw,
+                      status: 'pending',
+                      entryTime: new Date(),
+                      entryOrderId: entryOrderId,
+                      entryOrderStatus: 'OPEN',
+                      kiteResponse: orderRes || {},
+                      direction: isBuy ? 'LONG' : 'SHORT',
+                      legName: leg.name || '',
+                      legTimeframe: '1m'
+                    });
+                    masterDataCache.recordPosition(client.id, targetStock.symbol, isBuy ? 'LONG' : 'SHORT');
+                  } catch (pendingErr) {}
+
+                  let entryFilled = false;
+                  let latestOrderStatus = 'OPEN';
+                  let slOrderIdStr: string | null = null;
+                  let tgtOrderIdStr: string | null = null;
+                  let tgtOrderStatusVal: string | null = null;
+
+                  const maxPolls = 30;
+                  for (let attempt = 0; attempt < maxPolls; attempt++) {
+                    await delay(2000);
+                    try {
+                      const statusRes = await KiteClient.getOrderById(client.zerodhaApiKey as string, activeAccessToken, entryOrderId as string, (client.proxyUrl || client.dedicatedIp));
+                      const latest = getLatestOrderState(statusRes?.data);
+                      if (latest?.status) latestOrderStatus = latest.status;
+
+                      if (latest?.status?.toUpperCase() === 'COMPLETE') {
+                        if (tradeId) {
+                          const lockRes = await prisma.trade.updateMany({
+                            where: { id: tradeId, OR: [{ slOrderStatus: null }, { slOrderStatus: { not: 'PROCESSING_SL_TGT' } }] },
+                            data: { slOrderStatus: 'PROCESSING_SL_TGT' }
+                          });
+                          if (lockRes.count === 0) {
+                            break;
+                          }
+                        }
+
+                        entryFilled = true;
+
+                        if (client.zerodhaApiKey && activeAccessToken) {
+                          const freshLimitsSLT = await getFreshCircuitLimits(client, 'NSE', targetStock.symbol, activeAccessToken);
+                          if (freshLimitsSLT) {
+                            const { upper, lower } = freshLimitsSLT;
+                            if (upper > 0 && lower > 0) {
+                              if (isBuy) {
+                                if (slPrice < lower) slPrice = lower + 0.05;
+                                if (targetPrice > upper) targetPrice = upper;
+                              } else {
+                                if (slPrice > upper) slPrice = upper - 0.05;
+                                if (targetPrice < lower) targetPrice = lower;
+                              }
+                              slPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, slPrice);
+                              targetPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, targetPrice);
+                            }
+                          }
+                        }
+
+                        try {
+                          const slPayload: any = {
+                            tradingsymbol: targetStock.symbol,
+                            exchange: exchangeParam,
+                            transaction_type: isBuy ? 'SELL' : 'BUY',
+                            quantity: qty,
+                            product: productParam,
+                            order_type: 'SL-M',
+                            price: slPrice,
+                            trigger_price: slPrice,
+                            validity: 'DAY',
+                            variety: 'regular',
+                            market_protection: marketProtectionVal
+                          };
+                          const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slPayload, (client.proxyUrl || client.dedicatedIp));
+                          if (slRes?.status === 'success' && slRes.data?.order_id) {
+                            slOrderIdStr = slRes.data.order_id;
+                          }
+                        } catch (err) {
+                          console.error(`Failed to place SL order:`, err);
+                        }
+
+                        await delay(10000);
+                        for (let tgtAttempt = 1; tgtAttempt <= 1; tgtAttempt++) {
+                          try {
+                            const tgtPayload: any = {
+                              tradingsymbol: targetStock.symbol,
+                              exchange: exchangeParam,
+                              transaction_type: isBuy ? 'SELL' : 'BUY',
+                              quantity: qty,
+                              product: productParam,
+                              order_type: 'LIMIT',
+                              price: targetPrice,
+                              validity: 'DAY',
+                              variety: 'regular',
+                            };
+                            const tgtRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, tgtPayload, (client.proxyUrl || client.dedicatedIp));
+                            if (tgtRes?.status === 'success' && tgtRes.data?.order_id) {
+                              tgtOrderIdStr = tgtRes.data.order_id;
+                            } else {
+                              tgtOrderStatusVal = 'VIRTUAL_PENDING';
+                            }
+                          } catch (err) {
+                            tgtOrderStatusVal = 'VIRTUAL_PENDING';
+                          }
+                        }
+                        break;
+                      }
+
+                      if (latest?.status === 'CANCELLED' || latest?.status === 'REJECTED') {
+                        break;
+                      }
+                    } catch (e) {}
+                  }
+
+                  if (tradeId) {
+                    await prisma.trade.update({
+                      where: { id: tradeId },
+                      data: {
+                        status: 'open',
+                        entryOrderStatus: entryFilled ? 'filled' : (latestOrderStatus === 'COMPLETE' ? 'filled' : latestOrderStatus),
+                        slOrderId: slOrderIdStr,
+                        slTriggerPrice: slPrice,
+                        targetOrderId: tgtOrderIdStr,
+                        targetOrderStatus: tgtOrderStatusVal || (tgtOrderIdStr ? 'OPEN' : null)
+                      }
+                    });
+                  }
+                }
+              } catch (err: any) {
+                const errMsg = err?.response?.data?.message
+                  || err?.response?.message
+                  || err?.data?.message
+                  || err?.message
+                  || (err ? String(err) : 'Entry Fail (Unknown Error)');
+                const rawErrResponse = err?.response?.data || err?.data || (err?.message ? { message: err.message, stack: err?.stack } : undefined);
+                console.error(`AlgoEngine: Error placing Nifty Market Strategy order for ${client.user?.name} (${targetStock.symbol}): ${errMsg}`);
+                await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, productParam, entryPrice, errMsg, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice }, rawErrResponse);
+                continue;
+              }
+            }
+          }
+        })
+      );
+    }
+  }
+}

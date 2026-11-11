@@ -49,6 +49,7 @@ import {
 import { Modal } from '../../../shared/components/views/Modal';
 import StrategyFlowPreview from '../../../shared/components/StrategyFlowPreview';
 import StrategyTestPanel from '../../../shared/components/StrategyTestPanel';
+import { NSE_INDEX_CATEGORIES } from '@/shared/constants/nseIndices';
 
 interface StrategyCondition {
   logical: 'AND' | 'OR';
@@ -82,7 +83,9 @@ interface StrategyConfig {
     description: string;
     tradeType: 'Intraday' | 'Swing' | 'Positional';
     exchange: 'NSE' | 'BSE';
-    segment: 'Cash' | 'Equity' | 'Futures' | 'Options' | 'NSE F&O' | 'Nifty 50' | 'Bank Nifty' | 'Nifty 500';
+    segment: string;
+    indexName?: string;
+    snapshotTimeSlot?: string;
     preSelectTime: string;
     exitTime: string;
     maxTradesPerDay: number;
@@ -138,8 +141,17 @@ const migrateLegacyConfig = (config: any): StrategyConfig => {
     delete config.basicInfo?.entryTime;
     delete config.basicInfo?.timeframe;
   }
+  const basic = { ...INITIAL_CONFIG.basicInfo, ...(config.basicInfo || {}) };
+  if (!basic.engineType) {
+    const stratName = (basic.name || '').toLowerCase();
+    if (stratName.includes('ten am') || stratName.includes('10 am') || stratName.includes('10:00')) basic.engineType = 'TEN_AM';
+    else if (stratName.includes('nifty market') || stratName.includes('universal')) basic.engineType = 'NIFTY_MARKET';
+    else if (stratName.includes('pre open') || stratName.includes('pre-open') || stratName.includes('po ') || stratName.includes('pogapdown')) basic.engineType = 'PRE_OPEN';
+    else if (stratName.includes('first minute') || stratName.includes('first-minute') || stratName.includes('ohp') || stratName.includes('olp')) basic.engineType = 'FIRST_MINUTE';
+    else basic.engineType = 'FIRST_MINUTE';
+  }
   return {
-    basicInfo: { ...INITIAL_CONFIG.basicInfo, ...(config.basicInfo || {}) },
+    basicInfo: basic,
     legs: Array.isArray(config.legs) && config.legs.length > 0 ? config.legs : INITIAL_CONFIG.legs,
     stoploss: { ...INITIAL_CONFIG.stoploss, ...(config.stoploss || {}) },
     target: { ...INITIAL_CONFIG.target, ...(config.target || {}) },
@@ -162,9 +174,12 @@ const INITIAL_CONFIG: StrategyConfig = {
     tradeType: 'Intraday',
     exchange: 'NSE',
     segment: 'NSE F&O',
+    indexName: 'NIFTY 500',
+    snapshotTimeSlot: '09:20',
+    engineType: 'FIRST_MINUTE',
     preSelectTime: '09:15',
     exitTime: '15:15',
-    maxTradesPerDay: 3,
+    maxTradesPerDay: 1,
     selectPosition: 1,
     numberOfStocks: 1,
     checkIntervalSec: 60,
@@ -181,7 +196,7 @@ const INITIAL_CONFIG: StrategyConfig = {
       action: 'Long',
       orderType: 'SL-Market',
       entryBufferPercent: 0.1,
-      slBufferPercent: 0.1,
+      slBufferPercent: 0,
       marketProtection: -1,
       candlePriceType: 'low',
       candlePattern: 'None'
@@ -204,14 +219,21 @@ const INITIAL_CONFIG: StrategyConfig = {
   },
   riskManagement: {
     capitalAllocation: -1,
-    riskPerTrade: 3,
-    misMarginRate: 0.20,
+    riskPerTrade: 2,
+    misMarginRate: -1,
     maxDailyLoss: -1,
     maxDailyProfit: -1,
-    maxOpenPositions: 3,
+    maxOpenPositions: 2,
     killSwitch: false
   },
-  conditions: []
+  conditions: [
+    {
+      logical: 'AND',
+      indicator: 'Pre Open Change %',
+      operator: '>',
+      value: '-10'
+    }
+  ]
 };
 
 const YEARS = [2024, 2025, 2026, 2027, 2028];
@@ -813,8 +835,8 @@ export default function StrategiesPage() {
   const handleEdit = (strategy: any) => {
     try {
       const config = JSON.parse(strategy.configJson);
-      migrateLegacyConfig(config);
-      setFormData(config);
+      const migrated = migrateLegacyConfig(config);
+      setFormData(migrated);
     } catch (e) {
       setFormData({
         ...INITIAL_CONFIG,
@@ -921,11 +943,19 @@ export default function StrategiesPage() {
       return;
     }
 
+    const configToSave = {
+      ...formData,
+      basicInfo: {
+        ...formData.basicInfo,
+        engineType: formData.basicInfo.engineType || 'FIRST_MINUTE'
+      }
+    };
+
     const payload = {
       name: formData.basicInfo.name,
       description: formData.basicInfo.description,
       status: formData.basicInfo.status || 'inactive',
-      configJson: JSON.stringify(formData)
+      configJson: JSON.stringify(configToSave)
     };
 
     const url = viewMode === 'edit' ? `/api/admin/strategies/${selectedStrategy.id}` : '/api/admin/strategies';
@@ -1301,9 +1331,8 @@ export default function StrategiesPage() {
                         <tr>
                           {[
                             { key: 'strategy', label: 'Strategy' },
-                            { key: 'segment', label: 'Segment' },
+                            { key: 'segment', label: 'Watchlist / Index' },
                             { key: 'type', label: 'Type' },
-                            { key: 'engine', label: 'Engine Type' },
                             { key: 'clients', label: 'Clients' },
                             { key: 'trades', label: 'Trades' },
                             { key: 'status', label: 'Status' }
@@ -1336,7 +1365,7 @@ export default function StrategiesPage() {
                       <tbody>
                         {isLoading ? (
                           <tr>
-                            <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
+                            <td colSpan={7} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
                               <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
                                 <RefreshCw size={20} className="spin" style={{ marginRight: '10px' }} /> Loading strategies...
                               </div>
@@ -1344,7 +1373,7 @@ export default function StrategiesPage() {
                           </tr>
                         ) : paginated.length === 0 ? (
                           <tr>
-                            <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
+                            <td colSpan={7} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
                               No strategies found.
                             </td>
                           </tr>
@@ -1381,9 +1410,6 @@ export default function StrategiesPage() {
                                 </td>
                                 <td><span className="badge badge-blue" style={{ padding: '3px 8px', fontSize: '10px' }}>{segment}</span></td>
                                 <td><span className="badge" style={{ padding: '3px 8px', fontSize: '10px', background: 'rgba(139,92,246,0.1)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.2)', borderRadius: '4px' }}>{tradeType}</span></td>
-                                <td>
-                                   <span className="badge" style={{ padding: '3px 8px', fontSize: '10px', background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '4px' }}>{engineType}</span>
-                                </td>
                                 <td style={{ fontWeight: 600, color: assignedCount > 0 ? '#eab308' : 'var(--text-secondary)' }}>{assignedCount}</td>
                                 <td style={{ fontWeight: 500 }}>{tradeCount}</td>
                                 <td>
@@ -1548,10 +1574,36 @@ export default function StrategiesPage() {
                     />
                   </div>
 
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Strategy Engine</label>
+                    <select
+                      value={formData.basicInfo.engineType || 'FIRST_MINUTE'}
+                      onChange={(e: any) => {
+                        const val = e.target.value;
+                        setFormData({
+                          ...formData,
+                          basicInfo: {
+                            ...formData.basicInfo,
+                            engineType: val,
+                            segment: val === 'NIFTY_MARKET' ? (formData.basicInfo.indexName || 'NIFTY 500') : (formData.basicInfo.segment === 'NIFTY 500' ? 'NSE F&O' : (formData.basicInfo.segment || 'NSE F&O'))
+                          }
+                        });
+                      }}
+                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                    >
+                      <option value="FIRST_MINUTE">First Minute / OHP (Candle Breakout)</option>
+                      <option value="NIFTY_MARKET">Nifty Market Watch (Index Snapshots)</option>
+                      <option value="PRE_OPEN">Pre-Open Momentum</option>
+                      <option value="TEN_AM">10 AM Strategy (GRG / RGR)</option>
+                    </select>
+                  </div>
+
                   {/* MARKET SELECTION */}
                   <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '4px' }}>
                     <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>MARKET SELECTION</label>
-                    <div className="strategy-form-grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                    
+                    {/* Row 1: Trade Type & Exchange & Segment (when not NIFTY_MARKET) */}
+                    <div className="strategy-form-grid-2" style={{ display: 'grid', gridTemplateColumns: formData.basicInfo.engineType === 'NIFTY_MARKET' ? '1fr 1fr' : '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <label style={{ fontSize: '12px', fontWeight: 600 }}>Trade Type</label>
                         <select
@@ -1581,61 +1633,113 @@ export default function StrategiesPage() {
                           <option value="BSE">BSE</option>
                         </select>
                       </div>
+                      {formData.basicInfo.engineType !== 'NIFTY_MARKET' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{ fontSize: '12px', fontWeight: 600 }}>Segment</label>
+                          <select
+                            value={formData.basicInfo.segment || 'NSE F&O'}
+                            onChange={(e: any) => setFormData({
+                              ...formData,
+                              basicInfo: { ...formData.basicInfo, segment: e.target.value }
+                            })}
+                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                          >
+                            <option value="Cash">Cash</option>
+                            <option value="Equity">Equity</option>
+                            <option value="Futures">Futures</option>
+                            <option value="Options">Options</option>
+                            <option value="NSE F&O">NSE F&O</option>
+                            <option value="Nifty 50">Nifty 50</option>
+                            <option value="Bank Nifty">Bank Nifty</option>
+                            <option value="Nifty 500">Nifty 500</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Row 2: Watchlist / Index List & Snapshot Time (ONLY FOR NIFTY_MARKET) */}
+                    {formData.basicInfo.engineType === 'NIFTY_MARKET' && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '12px', padding: '12px', background: 'rgba(16,185,129,0.04)', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.2)', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            Watchlist / Index List (NSE)
+                          </label>
+                          <select
+                            value={formData.basicInfo.segment || formData.basicInfo.indexName || 'NIFTY 500'}
+                            onChange={(e: any) => {
+                              const val = e.target.value;
+                              setFormData({
+                                ...formData,
+                                basicInfo: { ...formData.basicInfo, segment: val, indexName: val }
+                              });
+                            }}
+                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card, #1e293b)', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }}
+                          >
+                            {NSE_INDEX_CATEGORIES.map(cat => (
+                              <optgroup key={cat.group} label={cat.group}>
+                                {cat.indices.map(idx => (
+                                  <option key={idx.symbol} value={idx.symbol}>{idx.label}</option>
+                                ))}
+                              </optgroup>
+                            ))}
+                          </select>
+                          <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Categorized list: F&O, Nifty 500, Nifty 200, Sectoral & Broad indices</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            List / Snapshot Time
+                          </label>
+                          <select
+                            value={formData.basicInfo.snapshotTimeSlot || '09:20'}
+                            onChange={(e: any) => setFormData({
+                              ...formData,
+                              basicInfo: { ...formData.basicInfo, snapshotTimeSlot: e.target.value }
+                            })}
+                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card, #1e293b)', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }}
+                          >
+                            <option value="PRE_OPEN">Pre-Open (09:08 AM)</option>
+                            <option value="09:16">9:16 AM</option>
+                            <option value="09:20">9:20 AM</option>
+                            <option value="09:30">9:30 AM</option>
+                            <option value="09:45">9:45 AM</option>
+                            <option value="10:00">10:00 AM</option>
+                            <option value="12:00">12:00 PM</option>
+                          </select>
+                          <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Snapshot time slot to rank and select top candidate stocks</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Row 3: Filters */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '4px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <label style={{ fontSize: '12px', fontWeight: 600 }}>Segment</label>
-                        <select
-                          value={formData.basicInfo.segment}
-                          onChange={(e: any) => setFormData({
+                        <label style={{ fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>Top Stock Gainer/Loser Count</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={100}
+                          value={formData.basicInfo.topCount || 20}
+                          onChange={(e) => setFormData({
                             ...formData,
-                            basicInfo: { ...formData.basicInfo, segment: e.target.value }
+                            basicInfo: { ...formData.basicInfo, topCount: Number(e.target.value) }
                           })}
                           style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                        >
-                          <option value="Cash">Cash</option>
-                          <option value="Equity">Equity</option>
-                          <option value="Futures">Futures</option>
-                          <option value="Options">Options</option>
-                          <option value="NSE F&O">NSE F&O</option>
-                          <option value="Nifty 50">Nifty 50</option>
-                          <option value="Bank Nifty">Bank Nifty</option>
-                          <option value="Nifty 500">Nifty 500</option>
-                        </select>
+                        />
                       </div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
-                      {(formData.basicInfo.engineType === 'TEN_AM' || formData.basicInfo.engineType === 'FIRST_MINUTE') && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <label style={{ fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>Top Stock Gainer/Loser Count</label>
-                          <input
-                            type="number"
-                            min={1}
-                            max={100}
-                            value={formData.basicInfo.topCount || 20}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              basicInfo: { ...formData.basicInfo, topCount: Number(e.target.value) }
-                            })}
-                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                          />
-                        </div>
-                      )}
-                      {formData.basicInfo.engineType === 'FIRST_MINUTE' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <label style={{ fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>Number of Stocks to Trade</label>
-                          <input
-                            type="number"
-                            min={1}
-                            max={10}
-                            value={formData.basicInfo.numberOfStocks || 1}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              basicInfo: { ...formData.basicInfo, numberOfStocks: Number(e.target.value) }
-                            })}
-                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                          />
-                        </div>
-                      )}
-                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>Number of Stocks to Trade</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={10}
+                          value={formData.basicInfo.numberOfStocks || 1}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            basicInfo: { ...formData.basicInfo, numberOfStocks: Number(e.target.value) }
+                          })}
+                          style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                        />
+                      </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <label style={{ fontSize: '11px', fontWeight: 600 }}>OHLC Condition</label>
                         <select 
@@ -2096,19 +2200,17 @@ export default function StrategiesPage() {
                           <option value="Red">Red</option>
                         </select>
                       </div>
-                      {(formData.basicInfo.engineType === 'TEN_AM' || formData.basicInfo.engineType === 'FIRST_MINUTE') && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <label style={{ fontSize: '11px', fontWeight: 600 }}>Select Position</label>
-                          <select value={leg.tradeAction.selectPosition || 1} onChange={(e) => handleLegChange(legIdx, 'tradeAction.selectPosition', Number(e.target.value))}
-                            style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none', fontSize: '12px', cursor: 'pointer' }}>
-                            <option value={1}>1st</option>
-                            <option value={2}>2nd</option>
-                            <option value={3}>3rd</option>
-                            <option value={4}>4th</option>
-                            <option value={5}>5th</option>
-                          </select>
-                        </div>
-                      )}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: 600 }}>Select Position</label>
+                        <select value={leg.tradeAction.selectPosition || 1} onChange={(e) => handleLegChange(legIdx, 'tradeAction.selectPosition', Number(e.target.value))}
+                          style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none', fontSize: '12px', cursor: 'pointer' }}>
+                          <option value={1}>1st</option>
+                          <option value={2}>2nd</option>
+                          <option value={3}>3rd</option>
+                          <option value={4}>4th</option>
+                          <option value={5}>5th</option>
+                        </select>
+                      </div>
                       {(leg.tradeAction.orderType === 'Market' || leg.tradeAction.orderType === 'SL-Market') && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                           <label style={{ fontSize: '11px', fontWeight: 600 }}>Market Protection</label>
@@ -2135,135 +2237,177 @@ export default function StrategiesPage() {
                     <ShieldAlert size={16} color="var(--color-danger)" /> Target & Stoploss Rules
                   </h3>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Stoploss Type</label>
-                    <select
-                      value={formData.stoploss.type}
-                      onChange={(e: any) => setFormData({
-                        ...formData,
-                        stoploss: { ...formData.stoploss, type: e.target.value }
-                      })}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    >
-                      <option value="Fixed %">Fixed %</option>
-                      <option value="Fixed Points">Fixed Points</option>
-                      <option value="Trailing SL">Trailing SL</option>
-                      <option value="Risk %">Risk %</option>
-                    </select>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600 }}>SL Target Value</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min={formData.stoploss.type === 'Trailing SL' ? -1 : undefined}
-                        value={formData.stoploss.type === 'Fixed Points' ? formData.stoploss.fixedPoints : formData.stoploss.type === 'Trailing SL' ? formData.stoploss.trailingSL : formData.stoploss.type === 'Risk %' ? formData.stoploss.riskPercent : formData.stoploss.fixedPercent}
-                        onChange={(e) => {
-                          let val = Number(e.target.value);
-                          if (formData.stoploss.type === 'Trailing SL' && val < -1) val = -1;
-                          if (formData.stoploss.type === 'Fixed Points') {
-                            setFormData({ ...formData, stoploss: { ...formData.stoploss, fixedPoints: val } });
-                          } else if (formData.stoploss.type === 'Trailing SL') {
-                            setFormData({ ...formData, stoploss: { ...formData.stoploss, trailingSL: val } });
-                          } else if (formData.stoploss.type === 'Risk %') {
-                            setFormData({ ...formData, stoploss: { ...formData.stoploss, riskPercent: val } });
-                          } else {
-                            setFormData({ ...formData, stoploss: { ...formData.stoploss, fixedPercent: val } });
-                          }
-                        }}
-                        style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      />
-                      {formData.stoploss.type === 'Trailing SL' && formData.stoploss.trailingSL <= 0 && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>Disabled</span>
-                      )}
-                    </div>
-                    {formData.stoploss.type === 'Trailing SL' && formData.stoploss.trailingSL > 0 && (
-                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.7 }}>Set -1 to disable trailing SL</span>
-                    )}
-                  </div>
-                </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Target Profit Type</label>
-                    <select
-                      value={formData.target.type}
-                      onChange={(e: any) => setFormData({
-                        ...formData,
-                        target: { ...formData.target, type: e.target.value }
-                      })}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    >
-                      <option value="Profit %">Profit %</option>
-                      <option value="Risk Reward Ratio">Risk Reward Ratio</option>
-                      <option value="Partial Exit">Partial Exit</option>
-                      <option value="Trailing Target">Trailing Target</option>
-                    </select>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Target Value</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={formData.target.type === 'Risk Reward Ratio' ? formData.target.riskRewardRatio : formData.target.profitPercent}
-                      onChange={(e) => {
-                        const val = Number(e.target.value);
-                        if (formData.target.type === 'Risk Reward Ratio') {
-                          setFormData({ ...formData, target: { ...formData.target, riskRewardRatio: val } });
-                        } else {
-                          setFormData({ ...formData, target: { ...formData.target, profitPercent: val } });
-                        }
-                      }}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                    />
-                  </div>
-                </div>
-                {formData.target.type === 'Partial Exit' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                {/* STOPLOSS SETTINGS */}
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '12px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Partial Exit %</label>
-                      <input
-                        type="number"
-                        step="1"
-                        value={formData.target.partialExit}
-                        onChange={(e) => setFormData({
+                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Stoploss Type</label>
+                      <select
+                        value={formData.stoploss.type === 'Trailing SL' ? 'Fixed %' : formData.stoploss.type}
+                        onChange={(e: any) => setFormData({
                           ...formData,
-                          target: { ...formData.target, partialExit: Number(e.target.value) }
+                          stoploss: { ...formData.stoploss, type: e.target.value }
                         })}
                         style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      />
+                      >
+                        <option value="Fixed %">Fixed %</option>
+                        <option value="Fixed Points">Fixed Points</option>
+                        <option value="Risk %">Risk %</option>
+                      </select>
                     </div>
-                  </div>
-                )}
-                {formData.target.type === 'Trailing Target' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Trailing Target %</label>
+                      <label style={{ fontSize: '12px', fontWeight: 600 }}>
+                        {formData.stoploss.type === 'Fixed Points' ? 'SL Value (Points)' : formData.stoploss.type === 'Risk %' ? 'SL Value (Risk %)' : 'SL Value (%)'}
+                      </label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <input
                           type="number"
                           step="0.1"
-                          min="-1"
-                          value={formData.target.trailingTarget}
+                          value={formData.stoploss.type === 'Fixed Points' ? formData.stoploss.fixedPoints : formData.stoploss.type === 'Risk %' ? formData.stoploss.riskPercent : formData.stoploss.fixedPercent}
                           onChange={(e) => {
                             let val = Number(e.target.value);
-                            if (val < -1) val = -1;
-                            setFormData({ ...formData, target: { ...formData.target, trailingTarget: val } });
+                            if (formData.stoploss.type === 'Fixed Points') {
+                              setFormData({ ...formData, stoploss: { ...formData.stoploss, fixedPoints: val } });
+                            } else if (formData.stoploss.type === 'Risk %') {
+                              setFormData({ ...formData, stoploss: { ...formData.stoploss, riskPercent: val } });
+                            } else {
+                              setFormData({ ...formData, stoploss: { ...formData.stoploss, fixedPercent: val } });
+                            }
                           }}
                           style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
                         />
-                        {formData.target.trailingTarget <= 0 && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>Disabled</span>
-                        )}
                       </div>
-                      {formData.target.trailingTarget > 0 && (
-                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.7 }}>Set -1 to disable trailing target</span>
-                      )}
+                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        Initial SL order trigger is % / points par Zerodha par place hoga
+                      </span>
                     </div>
                   </div>
-                )}
+
+                  {/* Dedicated Trailing SL Row */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', padding: '12px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.03)', border: '1px dashed var(--border-color)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>Trailing SL (% Step)</label>
+                        {formData.stoploss.trailingSL > 0 ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(34, 197, 94, 0.12)', color: '#22c55e', border: '1px solid rgba(34, 197, 94, 0.25)', whiteSpace: 'nowrap' }}>
+                            ● Active (+{formData.stoploss.trailingSL}%)
+                          </span>
+                        ) : (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>
+                            Disabled (-1)
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="-1"
+                        value={formData.stoploss.trailingSL}
+                        onChange={(e) => {
+                          let val = Number(e.target.value);
+                          if (val < -1) val = -1;
+                          setFormData({ ...formData, stoploss: { ...formData.stoploss, trailingSL: val } });
+                        }}
+                        placeholder="e.g. 1.5"
+                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                      />
+                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        Price har {formData.stoploss.trailingSL > 0 ? `${formData.stoploss.trailingSL}%` : 'X%'} profit mein aane par SL order upar modify hota rahega. (Set -1 to disable)
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px', fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>💡 Trailing SL Protection:</div>
+                      <div>• Entry par initial <b>{formData.stoploss.fixedPercent}%</b> SL order lagega (max loss cap).</div>
+                      <div>• Price <b>+{formData.stoploss.trailingSL > 0 ? formData.stoploss.trailingSL : 1.5}%</b> badhte hi SL order upar shift ho jayega.</div>
+                      <div>• Price reverse hone par profit secure rahega, loss nahi hoga.</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* TARGET SETTINGS */}
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Target Profit Type</label>
+                      <select
+                        value={formData.target.type}
+                        onChange={(e: any) => setFormData({
+                          ...formData,
+                          target: { ...formData.target, type: e.target.value }
+                        })}
+                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                      >
+                        <option value="Profit %">Profit %</option>
+                        <option value="Risk Reward Ratio">Risk Reward Ratio</option>
+                        <option value="Partial Exit">Partial Exit</option>
+                        <option value="Trailing Target">Trailing Target</option>
+                      </select>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 600 }}>Target Value</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={formData.target.type === 'Risk Reward Ratio' ? formData.target.riskRewardRatio : formData.target.profitPercent}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          if (formData.target.type === 'Risk Reward Ratio') {
+                            setFormData({ ...formData, target: { ...formData.target, riskRewardRatio: val } });
+                          } else {
+                            setFormData({ ...formData, target: { ...formData.target, profitPercent: val } });
+                          }
+                        }}
+                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                      />
+                    </div>
+                  </div>
+                  {formData.target.type === 'Partial Exit' && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 600 }}>Partial Exit %</label>
+                        <input
+                          type="number"
+                          step="1"
+                          value={formData.target.partialExit}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            target: { ...formData.target, partialExit: Number(e.target.value) }
+                          })}
+                          style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {formData.target.type === 'Trailing Target' && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 600 }}>Trailing Target %</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="-1"
+                            value={formData.target.trailingTarget}
+                            onChange={(e) => {
+                              let val = Number(e.target.value);
+                              if (val < -1) val = -1;
+                              setFormData({ ...formData, target: { ...formData.target, trailingTarget: val } });
+                            }}
+                            style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                          />
+                          {formData.target.trailingTarget <= 0 && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>Disabled</span>
+                          )}
+                        </div>
+                        {formData.target.trailingTarget > 0 && (
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.7 }}>Set -1 to disable trailing target</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </Card>
 
               

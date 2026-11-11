@@ -19,6 +19,7 @@ import { matchesConditions } from '../utils/conditionEvaluator';
 import { PreOpenStrategy } from './algo/strategies/preOpenStrategy';
 import { TenAmStrategy } from './algo/strategies/tenAmStrategy';
 import { FirstMinuteStrategy } from './algo/strategies/firstMinuteStrategy';
+import { NiftyMarketStrategy } from './algo/strategies/niftyMarketStrategy';
 
 
 class AlgoEngineService {
@@ -46,11 +47,13 @@ class AlgoEngineService {
   private preOpenStrategy: PreOpenStrategy;
   private tenAmStrategy: TenAmStrategy;
   private firstMinuteStrategy: FirstMinuteStrategy;
+  public niftyMarketStrategy: NiftyMarketStrategy;
 
   constructor() {
     this.preOpenStrategy = new PreOpenStrategy(this);
     this.tenAmStrategy = new TenAmStrategy(this);
     this.firstMinuteStrategy = new FirstMinuteStrategy(this);
+    this.niftyMarketStrategy = new NiftyMarketStrategy(this);
     this.wsLive = new WsLiveFeed(
       () => this.preOpenCache,
       () => this.preselectedStockByStrategy
@@ -169,7 +172,7 @@ class AlgoEngineService {
       let configObj: any = {};
       try { configObj = typeof strategy?.configJson === 'string' ? JSON.parse(strategy.configJson) : (strategy?.configJson || {}); } catch(e){}
       
-      const engineType = configObj?.basicInfo?.engineType || '';
+      const engineType = (configObj?.basicInfo?.engineType || '').toUpperCase();
       const configName = configObj?.basicInfo?.name?.toLowerCase() || '';
       const dbName = strategy?.name?.toLowerCase() || '';
       
@@ -177,6 +180,8 @@ class AlgoEngineService {
         return this.tenAmStrategy.preSelectAllClients(strategyId);
       } else if (engineType === 'FIRST_MINUTE') {
         return this.firstMinuteStrategy.preSelectAllClients(strategyId);
+      } else if (engineType === 'NIFTY_MARKET' || engineType === 'NIFTYMARKET') {
+        return this.niftyMarketStrategy.preSelectAllClients(strategyId);
       }
       return this.preOpenStrategy.preSelectAllClients(strategyId);
     } else {
@@ -185,12 +190,14 @@ class AlgoEngineService {
         let configObj: any = {};
         try { configObj = typeof st.configJson === 'string' ? JSON.parse(st.configJson) : (st.configJson || {}); } catch(e){}
         
-        const engineType = configObj?.basicInfo?.engineType || '';
+        const engineType = (configObj?.basicInfo?.engineType || '').toUpperCase();
 
         if (engineType === 'TEN_AM') {
           await this.tenAmStrategy.preSelectAllClients(st.id);
         } else if (engineType === 'FIRST_MINUTE') {
           await this.firstMinuteStrategy.preSelectAllClients(st.id);
+        } else if (engineType === 'NIFTY_MARKET' || engineType === 'NIFTYMARKET') {
+          await this.niftyMarketStrategy.preSelectAllClients(st.id);
         } else {
           await this.preOpenStrategy.preSelectAllClients(st.id);
         }
@@ -204,12 +211,14 @@ class AlgoEngineService {
       let configObj: any = {};
       try { configObj = typeof strategy?.configJson === 'string' ? JSON.parse(strategy.configJson) : (strategy?.configJson || {}); } catch(e){}
       
-      const engineType = configObj?.basicInfo?.engineType || '';
+      const engineType = (configObj?.basicInfo?.engineType || '').toUpperCase();
       
       if (engineType === 'TEN_AM') {
         return this.tenAmStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
       } else if (engineType === 'FIRST_MINUTE') {
         return this.firstMinuteStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
+      } else if (engineType === 'NIFTY_MARKET' || engineType === 'NIFTYMARKET') {
+        return this.niftyMarketStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
       }
       return this.preOpenStrategy.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId);
     } else {
@@ -218,12 +227,14 @@ class AlgoEngineService {
         let configObj: any = {};
         try { configObj = typeof st.configJson === 'string' ? JSON.parse(st.configJson) : (st.configJson || {}); } catch(e){}
         
-        const engineType = configObj?.basicInfo?.engineType || '';
+        const engineType = (configObj?.basicInfo?.engineType || '').toUpperCase();
 
         if (engineType === 'TEN_AM') {
           await this.tenAmStrategy.executePreOpenTrades(adminId, mockStocks, st.id, legIndex, dualLegGroupId);
         } else if (engineType === 'FIRST_MINUTE') {
           await this.firstMinuteStrategy.executePreOpenTrades(adminId, mockStocks, st.id, legIndex, dualLegGroupId);
+        } else if (engineType === 'NIFTY_MARKET' || engineType === 'NIFTYMARKET') {
+          await this.niftyMarketStrategy.executePreOpenTrades(adminId, mockStocks, st.id, legIndex, dualLegGroupId);
         } else {
           await this.preOpenStrategy.executePreOpenTrades(adminId, mockStocks, st.id, legIndex, dualLegGroupId);
         }

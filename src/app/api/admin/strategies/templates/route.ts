@@ -157,16 +157,96 @@ const DEFAULT_TEMPLATES = [
       },
       conditions: []
     })
+  },
+  {
+    id: 'tmpl-nifty-market-strategy',
+    name: 'Nifty 500 Top Gainer 15M (Nifty Market)',
+    description: 'Top Gainer breakout from Nifty 500 at 09:30:30 AM with 15-minute candle, buffer 0.2%, SL 1%, Target 2%, Trailing SL 1.5%.',
+    configJson: JSON.stringify({
+      basicInfo: {
+        name: 'Nifty 500 Top Gainer 15M',
+        description: 'Top Gainer breakout from Nifty 500 at 09:30:30 AM with 15-minute candle, buffer 0.2%, SL 1%, Target 2%, Trailing SL 1.5%.',
+        tradeType: 'Intraday',
+        exchange: 'NSE',
+        segment: 'NIFTY 500',
+        indexName: 'NIFTY 500',
+        snapshotTimeSlot: '09:30',
+        entryTime: '09:30:30',
+        preSelectTime: '09:29:00',
+        exitTime: '15:15:00',
+        maxTradesPerDay: 1,
+        selectPosition: 1,
+        numberOfStocks: 1,
+        topCount: 20,
+        ohlcCondition: 'None',
+        stockSelectionType: 'gainers',
+        status: 'active',
+        engineType: 'NIFTY_MARKET'
+      },
+      legs: [
+        {
+          name: 'Leg 1 (Long Gainer)',
+          enabled: true,
+          timeframe: '15m',
+          tradeAction: {
+            action: 'Long',
+            orderType: 'SL-Market',
+            candlePriceType: 'high',
+            candlePattern: 'None',
+            entryBufferPercent: 0.2,
+            slBufferPercent: 0,
+            marketProtection: -1,
+            selectPosition: 1
+          }
+        }
+      ],
+      stoploss: {
+        type: 'Fixed %',
+        orderType: 'Market',
+        fixedPercent: 1.0,
+        fixedPoints: 10,
+        trailingSL: 1.5,
+        riskPercent: 1.0
+      },
+      target: {
+        type: 'Profit %',
+        profitPercent: 2.0,
+        riskRewardRatio: 2.0,
+        partialExit: 100,
+        trailingTarget: -1
+      },
+      riskManagement: {
+        capitalAllocation: -1,
+        riskPerTrade: 2,
+        misMarginRate: -1,
+        maxDailyLoss: -1,
+        maxDailyProfit: -1,
+        maxOpenPositions: 2,
+        killSwitch: false
+      },
+      conditions: [
+        {
+          value: '-10',
+          logical: 'AND',
+          operator: '>',
+          indicator: 'Pre Open Change %'
+        }
+      ]
+    })
   }
 ];
 
 export async function GET() {
   try {
     const dbTemplates = await prisma.strategyTemplate.findMany();
-    if (dbTemplates.length === 0) {
-      return NextResponse.json({ success: true, templates: DEFAULT_TEMPLATES });
+    const existingNames = new Set(dbTemplates.map((t: any) => (t.name || '').toLowerCase()));
+    const merged = [...dbTemplates];
+    for (const dt of DEFAULT_TEMPLATES) {
+      if (!existingNames.has(dt.name.toLowerCase())) {
+        merged.push(dt as any);
+      }
     }
-    return NextResponse.json({ success: true, templates: dbTemplates });
+    return NextResponse.json({ success: true, templates: merged });
   } catch (error) {
     return NextResponse.json({ success: true, templates: DEFAULT_TEMPLATES, isDemoMode: true });
   }
