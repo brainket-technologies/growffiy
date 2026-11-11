@@ -3178,13 +3178,6 @@ export default function StrategiesPage() {
         title="Global Stock Exclusion / Blacklist Config"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '10px 0' }}>
-          <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '8px', padding: '12px 14px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-            <strong style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-              <ShieldAlert size={16} /> 100% Upfront Trade Skip Guarantee
-            </strong>
-            Stocks added here will be <strong>permanently excluded</strong> and never traded across ANY strategy. During morning pre-selection (09:15 / 09:29 AM), the engine bypasses these upfront so <strong>zero network time is wasted</strong> during 09:30 AM execution. If a stock matches, it will be skipped and recorded in the strategy log.
-          </div>
-
           {excludedMessage && (
             <div style={{
               padding: '10px 14px',
