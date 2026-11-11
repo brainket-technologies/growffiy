@@ -2356,37 +2356,35 @@ export default function StrategiesPage() {
                   </div>
 
                   {/* Dedicated Trailing SL Row */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', padding: '12px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.03)', border: '1px dashed var(--border-color)' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>Trailing SL (% Step)</label>
-                        {formData.stoploss.trailingSL > 0 ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(34, 197, 94, 0.12)', color: '#22c55e', border: '1px solid rgba(34, 197, 94, 0.25)', whiteSpace: 'nowrap' }}>
-                            ● Active (+{formData.stoploss.trailingSL}%)
-                          </span>
-                        ) : (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>
-                            Disabled (-1)
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="-1"
-                        value={formData.stoploss.trailingSL}
-                        onChange={(e) => {
-                          let val = Number(e.target.value);
-                          if (val < -1) val = -1;
-                          setFormData({ ...formData, stoploss: { ...formData.stoploss, trailingSL: val } });
-                        }}
-                        placeholder="e.g. 1.5"
-                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                      />
-                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                        Price har {formData.stoploss.trailingSL > 0 ? `${formData.stoploss.trailingSL}%` : 'X%'} profit mein aane par SL order upar modify hota rahega. (Set -1 to disable)
-                      </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '14px 16px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.03)', border: '1px dashed var(--border-color)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>Trailing SL (% Step)</label>
+                      {formData.stoploss.trailingSL > 0 ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(34, 197, 94, 0.12)', color: '#22c55e', border: '1px solid rgba(34, 197, 94, 0.25)', whiteSpace: 'nowrap' }}>
+                          ● Active (+{formData.stoploss.trailingSL}%)
+                        </span>
+                      ) : (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.2)', whiteSpace: 'nowrap' }}>
+                          Disabled (-1)
+                        </span>
+                      )}
                     </div>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="-1"
+                      value={formData.stoploss.trailingSL}
+                      onChange={(e) => {
+                        let val = Number(e.target.value);
+                        if (val < -1) val = -1;
+                        setFormData({ ...formData, stoploss: { ...formData.stoploss, trailingSL: val } });
+                      }}
+                      placeholder="e.g. 1.5"
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none', fontSize: '14px' }}
+                    />
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                      Price har {formData.stoploss.trailingSL > 0 ? `${formData.stoploss.trailingSL}%` : 'X%'} profit mein aane par SL order upar modify hota rahega. (Set -1 to disable)
+                    </span>
                   </div>
                 </div>
 
