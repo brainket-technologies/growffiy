@@ -783,6 +783,70 @@ export default function StrategiesPage() {
   const [strategyToDelete, setStrategyToDelete] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
+  // Global Stock Exclusion State
+  const [isExcludedModalOpen, setIsExcludedModalOpen] = useState<boolean>(false);
+  const [excludedStocks, setExcludedStocks] = useState<string[]>([]);
+  const [newSymbolInput, setNewSymbolInput] = useState<string>('');
+  const [isSavingExcluded, setIsSavingExcluded] = useState<boolean>(false);
+  const [isLoadingExcluded, setIsLoadingExcluded] = useState<boolean>(false);
+  const [excludedMessage, setExcludedMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const fetchExcludedStocks = async () => {
+    try {
+      setIsLoadingExcluded(true);
+      const res = await fetch('/api/admin/strategies/excluded-stocks');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.excludedStocks)) {
+        setExcludedStocks(data.excludedStocks);
+      }
+    } catch (e) {
+      console.error('Failed to load excluded stocks:', e);
+    } finally {
+      setIsLoadingExcluded(false);
+    }
+  };
+
+  const saveExcludedStocks = async (listToSave: string[]) => {
+    try {
+      setIsSavingExcluded(true);
+      setExcludedMessage(null);
+      const res = await fetch('/api/admin/strategies/excluded-stocks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ excludedStocks: listToSave })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setExcludedStocks(data.excludedStocks);
+        setExcludedMessage({ type: 'success', text: `Saved ${data.excludedStocks.length} excluded stocks successfully.` });
+        setTimeout(() => setExcludedMessage(null), 3000);
+      } else {
+        setExcludedMessage({ type: 'error', text: data.error || 'Failed to save.' });
+      }
+    } catch (e: any) {
+      setExcludedMessage({ type: 'error', text: e.message || 'Network error.' });
+    } finally {
+      setIsSavingExcluded(false);
+    }
+  };
+
+  const handleAddExcludedSymbol = () => {
+    if (!newSymbolInput.trim()) return;
+    const symbolsToAdd = newSymbolInput
+      .toUpperCase()
+      .split(/[\s,]+/)
+      .map(s => s.trim().replace(/[^A-Z0-9&-]/g, ''))
+      .filter(Boolean);
+
+    const merged = Array.from(new Set([...excludedStocks, ...symbolsToAdd])).sort();
+    setExcludedStocks(merged);
+    setNewSymbolInput('');
+  };
+
+  const handleRemoveExcludedSymbol = (sym: string) => {
+    setExcludedStocks(prev => prev.filter(s => s !== sym));
+  };
+
   // Form State
   const [formData, setFormData] = useState<StrategyConfig>(INITIAL_CONFIG);
   const [formErrors, setFormErrors] = useState<string>('');
@@ -805,6 +869,8 @@ export default function StrategiesPage() {
       const resClients = await fetch('/api/admin/strategies/assignments');
       const dataClients = await resClients.json();
       if (dataClients.success) setClients(dataClients.clients || []);
+
+      fetchExcludedStocks();
     } catch (e) {
       console.error('Error loading strategies data:', e);
     } finally {
@@ -1144,6 +1210,35 @@ export default function StrategiesPage() {
             {viewMode === 'detail' && (selectedStrategy?.description || 'Overview of settings, performance history, and client deployment.')}
           </p>
         </div>
+
+        {viewMode === 'list' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={() => { fetchExcludedStocks(); setIsExcludedModalOpen(true); }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '9px 16px',
+                borderRadius: '8px',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                background: 'rgba(239, 68, 68, 0.08)',
+                color: '#ef4444',
+                fontWeight: 600,
+                fontSize: '13px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.16)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'; }}
+            >
+              <ShieldAlert size={16} />
+              <span>Excluded Stocks ({excludedStocks.length})</span>
+            </button>
+          </div>
+        )}
 
 
         {(viewMode === 'create' || viewMode === 'edit') && (
@@ -3068,6 +3163,173 @@ export default function StrategiesPage() {
             }}>Cancel</Button>
             <Button variant="danger" onClick={executeDelete} disabled={isDeleting}>
               {isDeleting ? 'Deleting...' : 'Yes, Delete Strategy'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* EXCLUDED STOCKS CONFIG MODAL */}
+      <Modal
+        isOpen={isExcludedModalOpen}
+        onClose={() => {
+          setIsExcludedModalOpen(false);
+          setExcludedMessage(null);
+        }}
+        title="Global Stock Exclusion / Blacklist Config"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '10px 0' }}>
+          <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '8px', padding: '12px 14px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            <strong style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+              <ShieldAlert size={16} /> 100% Upfront Trade Skip Guarantee
+            </strong>
+            Stocks added here will be <strong>permanently excluded</strong> and never traded across ANY strategy. During morning pre-selection (09:15 / 09:29 AM), the engine bypasses these upfront so <strong>zero network time is wasted</strong> during 09:30 AM execution. If a stock matches, it will be skipped and recorded in the strategy log.
+          </div>
+
+          {excludedMessage && (
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 600,
+              background: excludedMessage.type === 'success' ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+              border: excludedMessage.type === 'success' ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
+              color: excludedMessage.type === 'success' ? '#22c55e' : '#ef4444'
+            }}>
+              {excludedMessage.text}
+            </div>
+          )}
+
+          {/* Input Box */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 600 }}>Add Stock Symbol(s)</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                placeholder="e.g. IDEA, YESBANK, SUZLON (or comma separated)"
+                value={newSymbolInput}
+                onChange={e => setNewSymbolInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddExcludedSymbol();
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  padding: '9px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-card, transparent)',
+                  color: 'var(--text-primary)',
+                  textTransform: 'uppercase',
+                  outline: 'none',
+                  fontSize: '13px'
+                }}
+              />
+              <Button type="button" variant="primary" onClick={handleAddExcludedSymbol} style={{ padding: '0 16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Plus size={16} /> Add
+              </Button>
+            </div>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+              Press Enter or type comma to add multiple symbols at once.
+            </span>
+          </div>
+
+          {/* Excluded Badges Chips */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600 }}>Currently Excluded Stocks ({excludedStocks.length})</label>
+              {excludedStocks.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setExcludedStocks([])}
+                  style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
+
+            <div style={{
+              minHeight: '90px',
+              maxHeight: '220px',
+              overflowY: 'auto',
+              padding: '12px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-secondary)',
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px',
+              alignContent: 'flex-start'
+            }}>
+              {excludedStocks.length === 0 ? (
+                <div style={{ width: '100%', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', padding: '24px 0' }}>
+                  No stocks excluded. All NSE stocks are eligible for trading.
+                </div>
+              ) : (
+                excludedStocks.map(sym => (
+                  <span
+                    key={sym}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '5px 10px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                      color: '#ef4444',
+                      border: '1px solid rgba(239, 68, 68, 0.25)'
+                    }}
+                  >
+                    <span>{sym}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveExcludedSymbol(sym)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        padding: '0 2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontSize: '14px',
+                        lineHeight: 1
+                      }}
+                      title={`Remove ${sym}`}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setIsExcludedModalOpen(false);
+                setExcludedMessage(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => saveExcludedStocks(excludedStocks)}
+              disabled={isSavingExcluded}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Save size={15} />
+              {isSavingExcluded ? 'Saving...' : 'Save Excluded List'}
             </Button>
           </div>
         </div>

@@ -116,6 +116,22 @@ export class FirstMinuteStrategy {
         return true;
       });
 
+      // UPFRONT DEDUCT: Filter out any admin excluded / blacklisted stocks immediately
+      await masterDataCache.loadExcludedStocks();
+      const initialCount = matchingStocks.length;
+      matchingStocks = matchingStocks.filter(stock => !masterDataCache.isStockExcluded(stock.symbol));
+      if (initialCount > matchingStocks.length) {
+        const excludedCount = initialCount - matchingStocks.length;
+        console.log(`AlgoEngine FirstMinute: Excluded ${excludedCount} blacklisted stocks upfront for ${strategy.name}`);
+        prisma.strategyLog.create({
+          data: {
+            strategyId: strategy.id,
+            message: `[Excluded Stock Filter] Removed ${excludedCount} blacklisted stocks upfront from candidate list.`,
+            logType: 'info'
+          }
+        }).catch(() => {});
+      }
+
       if (matchingStocks.length === 0) continue;
       
       const topCount = config.basicInfo?.topCount || 10;
@@ -196,6 +212,18 @@ export class FirstMinuteStrategy {
 
         const checkCandidate = async (stock: any) => {
           try {
+            if (masterDataCache.isStockExcluded(stock.symbol)) {
+              console.log(`AlgoEngine FirstMinute: Skipped candidate ${stock.symbol} (in Admin Excluded Stocks List).`);
+              prisma.strategyLog.create({
+                data: {
+                  strategyId: group.strategyId,
+                  message: `[Excluded Stock] Skipped ${stock.symbol} (Present in Admin Excluded Stocks List). Selecting next candidate.`,
+                  logType: 'warning'
+                }
+              }).catch(() => {});
+              return null;
+            }
+
             if (config?.conditions && !(await matchesConditions(stock, config.conditions, this.engine.wsLive))) return null;
 
             const legEntry = config?.legs?.[0]?.entryTime;

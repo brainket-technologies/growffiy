@@ -111,6 +111,22 @@ export class PreOpenStrategy {
         return true;
       });
 
+      // UPFRONT DEDUCT: Filter out any admin excluded / blacklisted stocks immediately
+      await masterDataCache.loadExcludedStocks();
+      const initialCount = matchingStocks.length;
+      matchingStocks = matchingStocks.filter((stock: StockQuote) => !masterDataCache.isStockExcluded(stock.symbol));
+      if (initialCount > matchingStocks.length) {
+        const excludedCount = initialCount - matchingStocks.length;
+        console.log(`AlgoEngine PreOpen: Excluded ${excludedCount} blacklisted stocks upfront for ${strategy.name}`);
+        prisma.strategyLog.create({
+          data: {
+            strategyId: strategy.id,
+            message: `[Excluded Stock Filter] Removed ${excludedCount} blacklisted stocks upfront from candidate list.`,
+            logType: 'info'
+          }
+        }).catch(() => {});
+      }
+
       if (matchingStocks.length === 0) {
         console.log(`AlgoEngine preSelect: No matching stocks for strategy ${strategy.name}.`);
         continue;
@@ -315,6 +331,18 @@ export class PreOpenStrategy {
 
           const cs = candidateStock!;
           console.log(`AlgoEngine: Client ${client.user.name} | Stock ${cs.symbol}(${cs.changePercent}%)`);
+
+          if (masterDataCache.isStockExcluded(cs.symbol)) {
+            console.log(`AlgoEngine PreOpen: Skipped trade on ${cs.symbol} (in Admin Excluded Stocks List).`);
+            prisma.strategyLog.create({
+              data: {
+                strategyId: strategy.id,
+                message: `[Excluded Stock] Skipped ${cs.symbol} (Present in Admin Excluded Stocks List).`,
+                logType: 'warning'
+              }
+            }).catch(() => {});
+            return;
+          }
 
           let targetStock: StockQuote | null = null;
           let breakoutEntryPrice = 0;

@@ -11,6 +11,8 @@ export class MasterDataCacheService {
   public marginCache: Map<string, number> = new Map();
   private inMemoryLockSet: Set<string> = new Set();
   private activeSymbolDirections: Map<string, 'LONG' | 'SHORT'> = new Map();
+  private excludedStocksSet: Set<string> = new Set();
+  private isExcludedStocksLoaded: boolean = false;
 
   private isLoaded: boolean = false;
   private lastLoadedDate: string = '';
@@ -71,6 +73,13 @@ export class MasterDataCacheService {
         }
       } catch (tickErr) {
         console.warn('[MasterDataCache] Non-blocking tick size pre-warm error:', tickErr);
+      }
+
+      // 3. Load global excluded stocks into fast in-memory Set
+      try {
+        await this.loadExcludedStocks();
+      } catch (exErr) {
+        console.warn('[MasterDataCache] Non-blocking excluded stocks load error:', exErr);
       }
 
       this.isLoaded = true;
@@ -189,6 +198,63 @@ export class MasterDataCacheService {
   public clearDailyLocks(): void {
     this.inMemoryLockSet.clear();
     this.activeSymbolDirections.clear();
+  }
+
+  /**
+   * Load excluded stocks from database into fast memory Set.
+   */
+  public async loadExcludedStocks(force: boolean = false): Promise<Set<string>> {
+    if (!force && this.isExcludedStocksLoaded) {
+      return this.excludedStocksSet;
+    }
+    try {
+      const setting = await prisma.appSettings.findUnique({
+        where: { settingKey: 'global_excluded_stocks' }
+      });
+      if (setting && setting.settingValue) {
+        const parsed = JSON.parse(setting.settingValue);
+        if (Array.isArray(parsed)) {
+          this.excludedStocksSet = new Set(
+            parsed.map((s: string) => String(s || '').toUpperCase().trim()).filter(Boolean)
+          );
+        }
+      } else {
+        this.excludedStocksSet = new Set();
+      }
+      this.isExcludedStocksLoaded = true;
+      console.log(`[MasterDataCache] Loaded ${this.excludedStocksSet.size} global excluded stocks into memory.`);
+    } catch (e) {
+      console.error('[MasterDataCache] Error loading excluded stocks:', e);
+    }
+    return this.excludedStocksSet;
+  }
+
+  /**
+   * Check if a stock symbol is blacklisted/excluded.
+   * Runs in O(1) time (<0.001ms) with zero DB/network queries.
+   */
+  public isStockExcluded(symbol?: string): boolean {
+    if (!symbol) return false;
+    const cleanSym = String(symbol).toUpperCase().trim();
+    return this.excludedStocksSet.has(cleanSym);
+  }
+
+  /**
+   * Update excluded stocks in memory immediately when Admin updates via UI.
+   */
+  public setExcludedStocks(symbols: string[]): void {
+    this.excludedStocksSet = new Set(
+      symbols.map(s => String(s || '').toUpperCase().trim()).filter(Boolean)
+    );
+    this.isExcludedStocksLoaded = true;
+    console.log(`[MasterDataCache] Synchronized ${this.excludedStocksSet.size} excluded stocks in active memory.`);
+  }
+
+  /**
+   * Get list of currently excluded stock symbols.
+   */
+  public getExcludedStocks(): string[] {
+    return Array.from(this.excludedStocksSet).sort();
   }
 }
 
