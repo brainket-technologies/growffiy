@@ -127,12 +127,45 @@ export default function ClientReportPage() {
       const totalPnlPercent = capital > 0 ? (totalPnl / capital) * 100 : 0;
       const openTrades = clientTrades.filter((t) => t.status?.toLowerCase() === 'open').length;
 
+      // Extract assigned strategies
+      let assignedStrategies: string[] = [];
+      if (client.assignments && Array.isArray(client.assignments) && client.assignments.length > 0) {
+        assignedStrategies = client.assignments
+          .map((a: any) => (a.strategy?.name || a.strategyName || '').trim())
+          .filter(Boolean);
+      }
+      if (client.strategy?.name) {
+        assignedStrategies.push(client.strategy.name.trim());
+      }
+      // Deduplicate
+      assignedStrategies = Array.from(new Set(assignedStrategies));
+
+      // Fallback: If no assignment records found in client model, check traded strategies from trades history
+      if (assignedStrategies.length === 0) {
+        const allClientTrades = (trades || []).filter((t: any) => t && (t.clientId === client.id || t.clientName === client.user?.name));
+        const tradedStrats = Array.from(
+          new Set(
+            allClientTrades
+              .map((t: any) => (t.strategy?.name || t.strategyName || '').trim())
+              .filter(Boolean)
+          )
+        );
+        if (tradedStrats.length > 0) {
+          assignedStrategies = tradedStrats;
+        }
+      }
+
+      const strategyName = assignedStrategies.length > 0
+        ? assignedStrategies.join(', ')
+        : 'None Assigned';
+
       return {
         id: client.id,
         name: client.user?.name || 'Unknown Client',
         email: client.user?.email || '',
         capital,
-        strategyName: client.strategy?.name || 'None Assigned',
+        strategyName,
+        strategyNames: assignedStrategies,
         tradingStatus: client.tradingStatus || 'inactive',
         subscriptionStatus: client.subscriptionStatus || 'pending',
         totalTrades: clientTrades.length,
@@ -142,7 +175,7 @@ export default function ClientReportPage() {
         totalPnlPercent,
       };
     });
-  }, [clients, dateFilteredTrades]);
+  }, [clients, dateFilteredTrades, trades]);
 
   const totalCapital = useMemo(() => clientStats.reduce((sum, c) => sum + c.capital, 0), [clientStats]);
   const totalClientPnl = useMemo(() => clientStats.reduce((sum, c) => sum + c.totalPnl, 0), [clientStats]);
@@ -520,7 +553,32 @@ export default function ClientReportPage() {
                     <td style={{ fontWeight: 600 }}>
                       ₹{c.capital.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
-                    <td>{c.strategyName}</td>
+                    <td>
+                      {c.strategyNames && c.strategyNames.length > 0 ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {c.strategyNames.map((sName: string, sIdx: number) => (
+                            <span
+                              key={sIdx}
+                              style={{
+                                display: 'inline-block',
+                                padding: '2px 8px',
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                backgroundColor: 'rgba(99, 102, 241, 0.08)',
+                                color: '#6366f1',
+                                border: '1px solid rgba(99, 102, 241, 0.2)',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {sName}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>None Assigned</span>
+                      )}
+                    </td>
                     <td style={{ textAlign: 'center' }}>{c.totalTrades} / {c.openTrades}</td>
                     <td>
                       <span className={`badge ${c.tradingStatus === 'active' ? 'badge-success' : c.tradingStatus === 'suspended' ? 'badge-warning' : 'badge-danger'}`}>
