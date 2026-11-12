@@ -28,6 +28,7 @@ function mapTimeframeToKiteInterval(tf: string): string {
 
 export class FirstMinuteStrategy {
   private engine: any;
+  private candleCache: Map<string, { data: any; expiry: number }> = new Map();
 
   constructor(engine: any) {
     this.engine = engine;
@@ -273,21 +274,29 @@ export class FirstMinuteStrategy {
             const candleIndex = (Number(candlePos) || Number(config?.basicInfo?.startCandleIndex) || 1) - 1;
             const tokenStr = liveToken || stock.instrumentToken || stock.symbol;
             
-            for (let attempt = 1; attempt <= 6; attempt++) {
-              candles = await KiteClient.getHistoricalData(
-                masterClient.zerodhaApiKey,
-                masterClient.accessToken,
-                tokenStr,
-                mapTimeframeToKiteInterval(tfStr),
-                from,
-                to
-              );
-              
-              if (candles?.data?.candles?.length > candleIndex) {
-                hist = candles.data.candles;
-                break;
+            // Check short-lived (60s) candle cache to avoid duplicate Kite API hits across simultaneous strategies
+            const candleCacheKey = `${tokenStr}_${tfStr}_${from}_${to}`;
+            const cachedCandleItem = this.candleCache.get(candleCacheKey);
+            if (cachedCandleItem && cachedCandleItem.expiry > Date.now() && cachedCandleItem.data?.candles?.length > candleIndex) {
+              hist = cachedCandleItem.data.candles;
+            } else {
+              for (let attempt = 1; attempt <= 6; attempt++) {
+                candles = await KiteClient.getHistoricalData(
+                  masterClient.zerodhaApiKey,
+                  masterClient.accessToken,
+                  tokenStr,
+                  mapTimeframeToKiteInterval(tfStr),
+                  from,
+                  to
+                );
+                
+                if (candles?.data?.candles?.length > candleIndex) {
+                  hist = candles.data.candles;
+                  this.candleCache.set(candleCacheKey, { data: candles.data, expiry: Date.now() + 60000 });
+                  break;
+                }
+                if (attempt < 6) await delay(250); 
               }
-              if (attempt < 6) await delay(250); 
             }
             
             if (!hist || hist.length <= candleIndex) {

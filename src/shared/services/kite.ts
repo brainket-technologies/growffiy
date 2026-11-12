@@ -243,7 +243,8 @@ export class KiteClient {
       trigger_price?: number;
       validity?: 'DAY' | 'IOC';
     },
-    dedicatedIp?: string | null
+    dedicatedIp?: string | null,
+    variety: string = 'regular'
   ) {
     const bodyParams = new URLSearchParams();
     if (params.order_type) bodyParams.append('order_type', params.order_type);
@@ -252,7 +253,7 @@ export class KiteClient {
     if (params.trigger_price !== undefined) bodyParams.append('trigger_price', String(params.trigger_price));
     if (params.validity) bodyParams.append('validity', params.validity);
 
-    const response = await kiteFetch(`${this.BASE_URL}/orders/${orderId}`, {
+    const response = await kiteFetch(`${this.BASE_URL}/orders/${variety}/${orderId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',

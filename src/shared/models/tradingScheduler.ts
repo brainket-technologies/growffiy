@@ -37,11 +37,53 @@ export class TradingScheduler {
   private isMonitoringRunning = false;
   private lastOhlcSnapshot: Map<string, string> = new Map();
   private lastMarketWatchSnapshot: Map<string, string> = new Map();
+  private livePriceCache: Map<string, { price: number; timestamp: number }> = new Map();
 
   constructor(
     private engine: EngineAccess,
     private wsLive: WsLiveFeed
   ) {}
+
+  async getLiveStockPrice(client: any, exchange: string, symbol: string): Promise<number> {
+    // 1. Try WebSocket live tick first
+    const stock = this.wsLive.stocksState?.find((s: any) => s.symbol === symbol);
+    if (stock && stock.ltp > 0) {
+      this.livePriceCache.set(symbol, { price: stock.ltp, timestamp: Date.now() });
+      return stock.ltp;
+    }
+
+    // 2. Check recent cache (within 3 seconds to avoid duplicate REST API calls across clients)
+    const cached = this.livePriceCache.get(symbol);
+    if (cached && (Date.now() - cached.timestamp < 3000) && cached.price > 0) {
+      return cached.price;
+    }
+
+    // 3. Fallback to Kite REST API quote
+    if (client?.zerodhaApiKey && client?.accessToken) {
+      try {
+        const qRes = await KiteClient.getQuotes(
+          client.zerodhaApiKey,
+          client.accessToken,
+          [`${exchange}:${symbol}`],
+          (client.proxyUrl || client.dedicatedIp)
+        );
+        const quote = qRes?.data?.[`${exchange}:${symbol}`];
+        if (quote?.last_price && Number(quote.last_price) > 0) {
+          const livePrice = Number(quote.last_price);
+          this.livePriceCache.set(symbol, { price: livePrice, timestamp: Date.now() });
+          if (stock) {
+            stock.ltp = livePrice;
+          }
+          return livePrice;
+        }
+      } catch (e) {
+        console.warn(`AlgoEngine Monitor: Failed to fetch live quote fallback for ${symbol}:`, e);
+      }
+    }
+
+    const wsLtp = this.wsLive.getStockLtp(symbol);
+    return wsLtp > 0 ? wsLtp : (cached?.price || 0);
+  }
 
   startDailyPreOpenStrategyScheduler() {
     console.log('AlgoEngine: Initialized Daily Pre-Open Strategy Execution Scheduler (per-strategy timing)');
@@ -159,11 +201,13 @@ export class TradingScheduler {
           }
 
           if (preSelectTime && currentTimeStr >= preSelectTime && lastPreSelectByStrategy.get(strategy.id) !== currentDateKey) {
-            console.log(`AlgoEngine Scheduler: Pre-select time ${preSelectTimeFull} reached for strategy "${strategy.name}". (Waiting ${preSelectSeconds}s)`);
+            const nowSec = new Date().getSeconds();
+            const waitSec = Math.max(0, preSelectSeconds - nowSec);
+            console.log(`AlgoEngine Scheduler: Pre-select time ${preSelectTimeFull} reached for strategy "${strategy.name}". (Waiting ${waitSec}s)`);
             lastPreSelectByStrategy.set(strategy.id, currentDateKey);
-            if (preSelectSeconds > 0) {
+            if (waitSec > 0) {
               preSelectTasks.push(async () => {
-                await new Promise(resolve => setTimeout(resolve, preSelectSeconds * 1000));
+                await new Promise(resolve => setTimeout(resolve, waitSec * 1000));
                 await this.engine.preSelectAllClients(strategy.id);
               });
             } else {
@@ -171,7 +215,13 @@ export class TradingScheduler {
             }
           }
 
-          if (entryTime) {
+          // Check if strategy has per-leg entry times
+          const legs = config.legs || [];
+          const enabledLegs = legs.filter((l: any) => l.enabled);
+          const hasPerLegEntryTimes = enabledLegs.some((l: any) => !!l.entryTime);
+
+          // Top-level entry execution: Only for strategies WITHOUT per-leg entry times (avoids duplicate execution)
+          if (entryTime && !hasPerLegEntryTimes) {
             const [eH, eM] = entryTime.split(':').map(Number);
             const entryMin = eH * 60 + eM;
             const curMin = hours * 60 + minutes;
@@ -197,7 +247,9 @@ export class TradingScheduler {
                 console.log(`AlgoEngine Scheduler: Trades exist today for "${strategy.name}". Skipping re-entry.`);
                 continue;
               }
-              console.log(`AlgoEngine Scheduler: Entry time ${entryTimeFull} reached for "${strategy.name}". Triggering in ${entrySeconds}s. (${entryDebug})`);
+              const nowSec = new Date().getSeconds();
+              const waitSec = Math.max(0, entrySeconds - nowSec);
+              console.log(`AlgoEngine Scheduler: Entry time ${entryTimeFull} reached for "${strategy.name}". Triggering in ${waitSec}s. (${entryDebug})`);
               lastEntryByStrategy.set(strategy.id, currentDateKey);
 
               if (!adminId || adminId === 'system-scheduler') {
@@ -205,9 +257,9 @@ export class TradingScheduler {
                 if (firstAdmin) adminId = firstAdmin.id;
               }
 
-              if (entrySeconds > 0) {
+              if (waitSec > 0) {
                 entryTasks.push(async () => {
-                  await new Promise(resolve => setTimeout(resolve, entrySeconds * 1000));
+                  await new Promise(resolve => setTimeout(resolve, waitSec * 1000));
                   await this.engine.executePreOpenTrades(adminId, undefined, strategy.id);
                 });
               } else {
@@ -227,9 +279,7 @@ export class TradingScheduler {
           }
 
           // --- Dual Leg: Check per-leg entry times ---
-          const legs = config.legs || [];
           if (legs.length > 0) {
-            const enabledLegs = legs.filter((l: any) => l.enabled);
             let strategyGroupId = dailyDualLegGroupId.get(strategy.id);
             if (enabledLegs.length > 1 && !strategyGroupId) {
               strategyGroupId = crypto.randomUUID();
@@ -265,7 +315,9 @@ export class TradingScheduler {
                   console.log(`AlgoEngine Scheduler: Trades exist today for "${strategy.name}" Leg ${li + 1}. Skipping re-entry.`);
                   continue;
                 }
-                console.log(`AlgoEngine Scheduler: Leg ${li + 1} entry time ${legEntryTimeFull} reached for "${strategy.name}". Triggering in ${legEntrySeconds}s.`);
+                const nowSec = new Date().getSeconds();
+                const waitSec = Math.max(0, legEntrySeconds - nowSec);
+                console.log(`AlgoEngine Scheduler: Leg ${li + 1} entry time ${legEntryTimeFull} reached for "${strategy.name}". Triggering in ${waitSec}s.`);
                 lastEntryByStrategy.set(legKey, currentDateKey);
 
                 if (!adminId || adminId === 'system-scheduler') {
@@ -273,9 +325,9 @@ export class TradingScheduler {
                   if (firstAdmin) adminId = firstAdmin.id;
                 }
 
-                if (legEntrySeconds > 0) {
+                if (waitSec > 0) {
                   entryTasks.push(async () => {
-                    await new Promise(resolve => setTimeout(resolve, legEntrySeconds * 1000));
+                    await new Promise(resolve => setTimeout(resolve, waitSec * 1000));
                     await this.engine.executePreOpenTrades(adminId, undefined, strategy.id, li, strategyGroupId || null);
                   });
                 } else {
@@ -301,8 +353,9 @@ export class TradingScheduler {
         for (let i = 0; i < preSelectTasks.length; i += STRATEGY_THROTTLE) {
           await Promise.allSettled(preSelectTasks.slice(i, i + STRATEGY_THROTTLE).map(fn => fn()));
         }
-        for (let i = 0; i < entryTasks.length; i += STRATEGY_THROTTLE) {
-          await Promise.allSettled(entryTasks.slice(i, i + STRATEGY_THROTTLE).map(fn => fn()));
+        if (entryTasks.length > 0) {
+          console.log(`AlgoEngine Scheduler: Executing ${entryTasks.length} entry tasks concurrently at target time...`);
+          await Promise.allSettled(entryTasks.map(fn => fn()));
         }
       } catch (err) {
         console.error('AlgoEngine Scheduler: Error in Pre-Open Strategy cron interval execution:', err);
@@ -518,6 +571,12 @@ export class TradingScheduler {
                 if (intervalSec && Number(intervalSec) > 0) {
                   checkIntervalMs = Number(intervalSec) * 1000;
                 }
+                const trailingSl = Number(config?.stoploss?.trailingSL ?? -1);
+                const trailingTgt = Number(config?.target?.trailingTarget ?? -1);
+                if (trailingSl > 0 || trailingTgt > 0) {
+                  // Trailing requires fast reactive loop: clamp interval to at most TRADE_MONITOR (10s)
+                  checkIntervalMs = Math.min(checkIntervalMs, SCHEDULER_INTERVALS.TRADE_MONITOR);
+                }
               } catch {}
             }
 
@@ -647,7 +706,7 @@ export class TradingScheduler {
 
               // Virtual SL monitoring check (if SL order failed/rejected on Zerodha)
               if (!exitTriggered && !slComplete && (!trade.slOrderId || trade.slOrderStatus === 'VIRTUAL_PENDING' || trade.slOrderStatus === 'REJECTED')) {
-                const liveLtp = this.wsLive.getStockLtp(trade.symbol);
+                const liveLtp = await this.getLiveStockPrice(client, exchangeParam, trade.symbol);
                 if (liveLtp > 0 && trade.stopLoss) {
                   const slVal = Number(trade.stopLoss);
                   const isSlHit = isShortTrade ? (liveLtp >= slVal) : (liveLtp <= slVal);
@@ -662,7 +721,7 @@ export class TradingScheduler {
 
               // Virtual Target monitoring check (if Target order failed/rejected on Zerodha)
               if (!exitTriggered && !slComplete && (!trade.targetOrderId || trade.targetOrderStatus === 'VIRTUAL_PENDING' || trade.targetOrderStatus === 'REJECTED')) {
-                const liveLtp = this.wsLive.getStockLtp(trade.symbol);
+                const liveLtp = await this.getLiveStockPrice(client, exchangeParam, trade.symbol);
                 if (liveLtp > 0 && trade.target) {
                   const targetVal = Number(trade.target);
                   const isTargetHit = isShortTrade ? (liveLtp <= targetVal) : (liveLtp >= targetVal);
@@ -776,11 +835,12 @@ export class TradingScheduler {
               }
 
               // --- Trailing SL ---
-              if (!exitTriggered && trade.slOrderId && trade.slTriggerPrice && trailingSlStep > 0) {
-                const price = this.wsLive.getStockLtp(trade.symbol);
+              const hasSlOrder = trade.slOrderId && trade.slOrderId !== 'REJECTED' && trade.slOrderStatus !== 'CANCELLED' && trade.slOrderStatus !== 'REJECTED' && trade.slOrderStatus !== 'filled';
+              if (!exitTriggered && hasSlOrder && (trade.slTriggerPrice || trade.stopLoss) && trailingSlStep > 0) {
+                const price = await this.getLiveStockPrice(client, exchangeParam, trade.symbol);
                 const priceFavourable = isShortTrade ? (price > 0 && price < entryPrice) : (price > 0 && price > entryPrice);
                 if (priceFavourable) {
-                  const currentSlTrigger = Number(trade.slTriggerPrice);
+                  const currentSlTrigger = Number(trade.slTriggerPrice || trade.stopLoss);
                   const trailStepValue = entryPrice * (trailingSlStep / 100);
                   const priceMovePct = isShortTrade
                     ? ((entryPrice - price) / entryPrice) * 100
@@ -805,13 +865,18 @@ export class TradingScheduler {
                         const finalSlTrigger = await getTickSizeAndRound(client.zerodhaApiKey, client.accessToken, exchangeParam, trade.symbol, newSlTrigger);
                         const modRes = await KiteClient.modifyOrder(client.zerodhaApiKey, client.accessToken, trade.slOrderId, {
                           trigger_price: finalSlTrigger
-                        }, (client.proxyUrl || client.dedicatedIp));
+                        }, (client.proxyUrl || client.dedicatedIp), 'regular');
                         if (modRes?.status === 'success') {
                           await prisma.trade.update({
                             where: { id: trade.id },
-                            data: { slTriggerPrice: finalSlTrigger }
+                            data: { 
+                              slTriggerPrice: finalSlTrigger,
+                              stopLoss: finalSlTrigger
+                            }
                           });
                           console.log(`AlgoEngine Monitor: Trailing SL for ${trade.symbol}: ${currentSlTrigger} → ${finalSlTrigger} (price: ${price})`);
+                        } else {
+                          console.warn(`AlgoEngine Monitor: Trailing SL modify rejected for ${trade.symbol}:`, modRes?.message || JSON.stringify(modRes));
                         }
                       } catch (e) { console.warn(`AlgoEngine Monitor: Trailing SL modify failed for ${trade.symbol}:`, e); }
                     }
@@ -820,11 +885,12 @@ export class TradingScheduler {
               }
 
               // --- Trailing Target ---
-              if (!exitTriggered && trade.targetOrderId && trade.target && trailingTgtStep > 0) {
-                const price = this.wsLive.getStockLtp(trade.symbol);
+              const hasTargetOrder = trade.targetOrderId && trade.targetOrderId !== 'REJECTED' && trade.targetOrderStatus !== 'CANCELLED' && trade.targetOrderStatus !== 'REJECTED' && trade.targetOrderStatus !== 'filled' && trade.targetOrderStatus !== 'VIRTUAL_PENDING';
+              if (!exitTriggered && hasTargetOrder && (trade.target || trade.originalTarget) && trailingTgtStep > 0) {
+                const price = await this.getLiveStockPrice(client, exchangeParam, trade.symbol);
                 const priceFavourable = isShortTrade ? (price > 0 && price < entryPrice) : (price > 0 && price > entryPrice);
                 if (priceFavourable) {
-                  const currentTarget = Number(trade.target);
+                  const currentTarget = Number(trade.target || trade.originalTarget);
                   const trailStepValue = entryPrice * (trailingTgtStep / 100);
                   const priceMovePct = isShortTrade
                     ? ((entryPrice - price) / entryPrice) * 100
@@ -840,13 +906,15 @@ export class TradingScheduler {
                         const finalTarget = await getTickSizeAndRound(client.zerodhaApiKey, client.accessToken, exchangeParam, trade.symbol, newTarget);
                         const modRes = await KiteClient.modifyOrder(client.zerodhaApiKey, client.accessToken, trade.targetOrderId, {
                           price: finalTarget
-                        }, (client.proxyUrl || client.dedicatedIp));
+                        }, (client.proxyUrl || client.dedicatedIp), 'regular');
                         if (modRes?.status === 'success') {
                           await prisma.trade.update({
                             where: { id: trade.id },
                             data: { target: finalTarget }
                           });
                           console.log(`AlgoEngine Monitor: Trailing Target for ${trade.symbol}: ${currentTarget} → ${finalTarget} (price: ${price})`);
+                        } else {
+                          console.warn(`AlgoEngine Monitor: Trailing Target modify rejected for ${trade.symbol}:`, modRes?.message || JSON.stringify(modRes));
                         }
                       } catch (e) { console.warn(`AlgoEngine Monitor: Trailing Target modify failed for ${trade.symbol}:`, e); }
                     }
@@ -1116,7 +1184,7 @@ export class TradingScheduler {
               const istTimeStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
               if (istTimeStr >= to24HourHHmm(config.basicInfo.exitTime)) {
                 exitTriggered = true;
-                const liveLtp = this.wsLive.getStockLtp(trade.symbol);
+                const liveLtp = await this.getLiveStockPrice(client, exchangeParam, trade.symbol);
                 exitPrice = liveLtp > 0 ? liveLtp : Number(trade.entryPrice);
                 exitReason = `Market Close (${config.basicInfo.exitTime})`;
                 console.log(`AlgoEngine Monitor: Market close time ${config.basicInfo.exitTime} reached for trade ${trade.id} (${trade.symbol}). Forcing exit at LTP ₹${exitPrice}.`);
@@ -1175,8 +1243,8 @@ export class TradingScheduler {
                     }
                   } catch (e) {
                     console.warn(`AlgoEngine Monitor: Could not fetch fill price for ${trade.symbol}, using LTP fallback.`);
-                    // Fallback: WebSocket se LTP lo
-                    const ltp = this.wsLive.getStockLtp(trade.symbol);
+                    // Fallback: Live price lookup
+                    const ltp = await this.getLiveStockPrice(client, exchangeParam, trade.symbol);
                     if (ltp > 0) exitPrice = ltp;
                   }
                 }

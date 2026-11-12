@@ -325,10 +325,33 @@ export async function fetchLivePreOpenFromKite(apiKey?: string, accessToken?: st
  * Fetch cache-valid Pre-Open stock quotes.
  */
 export async function getPreOpenStocks(forceFetch = false, apiKey?: string, accessToken?: string): Promise<StockQuote[]> {
-  const isExpired = (Date.now() - lastPreOpenFetchTime) > CACHE_EXPIRY_MS;
   const isDifferentDay = preOpenCacheDate !== formatNSEDate(new Date());
 
-  if (forceFetch || preOpenCache.length === 0 || isExpired || isDifferentDay) {
+  // During the same trading day, pre-open prices are static (09:08 AM fixed). Reuse memory cache immediately.
+  if (!forceFetch && !isDifferentDay && preOpenCache.length > 0) {
+    return preOpenCache;
+  }
+
+  // If memory cache is empty for today (e.g. server restart), restore from historical DB first (takes ~20ms instead of 6s web scraping)
+  if (!forceFetch && !isDifferentDay && preOpenCache.length === 0) {
+    try {
+      const todayDateStr = formatNSEDate(new Date());
+      const dbRecords = await prisma.historicalPreOpen.findMany({
+        where: { date: todayDateStr }
+      });
+      if (dbRecords && dbRecords.length > 0) {
+        preOpenCache = dbRecords.map(r => r.data as unknown as StockQuote);
+        preOpenCacheDate = todayDateStr;
+        lastPreOpenFetchTime = Date.now();
+        console.log(`[PreOpenFetcher] Restored ${preOpenCache.length} pre-open stocks from database for ${todayDateStr}.`);
+        return preOpenCache;
+      }
+    } catch (e) {
+      // fallback to live fetch
+    }
+  }
+
+  if (forceFetch || preOpenCache.length === 0 || isDifferentDay) {
     try {
       return await fetchLivePreOpenFromNSE();
     } catch {
