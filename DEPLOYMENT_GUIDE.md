@@ -41,6 +41,20 @@ Iss document mein har client setup, unke server infrastructure, database, aur de
      ```
    - 🚫 **Kabhi bhi `npx prisma db seed` ya koi aur seed script mat chalao** jab tak user explicitly na bole.
 
+4. 🌿 **Git Branching, Testing & Production Deployment Protocol**
+   - 💻 **Active Development & Local Testing Branch:** `dev_firoz`
+     - Har naya feature, bug fix, logic optimization, aur UI change **hamesha `dev_firoz` branch par hi hoga**.
+     - Local workspace me active branch hamesha `dev_firoz` honi chahiye jab tak merge ya production task na ho.
+   - 🔴 **Production Branch:** `main`
+     - `main` branch sirf aur sirf tested production code ke liye hai.
+     - 🚫 **STRICT RESTRICTION:** `dev_firoz` se `main` par merge/push aur live server (`growffi.com` / `66.116.210.206`) par `git pull` **bina user ke explicit approval ke KABHI NAHI HOGA**.
+   - 🔄 **Standard Deployment Approval Flow:**
+     1. Developer / AI saara kaam aur testing pehle `dev_firoz` branch par complete karega.
+     2. User ko test results aur changes batakar approval maangega.
+     3. User ke clear approval ke baad hi `dev_firoz` ko `main` mein merge karke `origin main` par push kiya jayega.
+     4. Uske baad user ki permission se live server par `git pull origin main`, `npm run build`, aur `pm2 restart` execute hoga.
+
+
 ---
 
 ## 1. 🟢 Client 1: Anand Setup
