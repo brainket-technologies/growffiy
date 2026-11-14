@@ -327,33 +327,35 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
           const capitalAtRiskPerLeg = marginResult.capitalAtRisk / legDivisor;
           const buyingPowerPerLeg = marginResult.clientCapital / legDivisor;
 
-          for (let li = 0; li < activeLegs.length; li++) {
-            if (legIndex !== undefined && legIndex !== null && li !== legIndex) continue;
-            const leg = activeLegs[li];
-            
-            const isBuy = leg.tradeAction?.action?.toLowerCase() === 'long' || leg.direction?.toLowerCase() === 'buy';
-            const targetStock = isBuy ? targetGainer : targetLoser;
-            
-            if (!targetStock) {
-              console.log(`AlgoEngine: No matching stock found for ${client.user?.name} Leg ${li + 1} (${isBuy ? 'buy' : 'sell'}). Skipping leg.`);
-              continue;
-            }
+          await Promise.all(
+            activeLegs.map(async (leg: any, li: number) => {
+              if (legIndex !== undefined && legIndex !== null && li !== legIndex) return;
+              if (!client.zerodhaApiKey || !activeAccessToken) return;
+              const apiKey = client.zerodhaApiKey;
+              
+              const isBuy = leg.tradeAction?.action?.toLowerCase() === 'long' || leg.direction?.toLowerCase() === 'buy';
+              const targetStock = isBuy ? targetGainer : targetLoser;
+              
+              if (!targetStock) {
+                console.log(`AlgoEngine: No matching stock found for ${client.user?.name} Leg ${li + 1} (${isBuy ? 'buy' : 'sell'}). Skipping leg.`);
+                return;
+              }
 
-            // ---- In-Memory Fast Lock to Prevent Duplicates (0ms, 0 DB queries) ----
-            const todayStr = new Date().toISOString().split('T')[0];
-            const dbLockKey = `trade_lock_${client.id}_${group.strategyId}_leg${li}_${todayStr}`;
-            if (!masterDataCache.acquireLock(dbLockKey)) {
-              console.log(`AlgoEngine Memory Lock: Trade already processing for ${client.user?.name} Leg ${li + 1}. Skipping duplicate execution.`);
-              continue;
-            }
+              // ---- In-Memory Fast Lock to Prevent Duplicates (0ms, 0 DB queries) ----
+              const todayStr = new Date().toISOString().split('T')[0];
+              const dbLockKey = `trade_lock_${client.id}_${group.strategyId}_leg${li}_${todayStr}`;
+              if (!masterDataCache.acquireLock(dbLockKey)) {
+                console.log(`AlgoEngine Memory Lock: Trade already processing for ${client.user?.name} Leg ${li + 1}. Skipping duplicate execution.`);
+                return;
+              }
 
-            // Conflict Guard: Prevent opposite-direction trade on same symbol
-            const tradeDirection = isBuy ? 'LONG' : 'SHORT';
-            if (masterDataCache.hasOppositeDirection(client.id, targetStock.symbol, tradeDirection)) {
-              console.log(`AlgoEngine TenAM: Skipped trade for ${client.user?.name} (${targetStock.symbol}): Opposite direction trade active.`);
-              masterDataCache.releaseLock(dbLockKey);
-              continue;
-            }
+              // Conflict Guard: Prevent opposite-direction trade on same symbol
+              const tradeDirection = isBuy ? 'LONG' : 'SHORT';
+              if (masterDataCache.hasOppositeDirection(client.id, targetStock.symbol, tradeDirection)) {
+                console.log(`AlgoEngine TenAM: Skipped trade for ${client.user?.name} (${targetStock.symbol}): Opposite direction trade active.`);
+                masterDataCache.releaseLock(dbLockKey);
+                return;
+              }
 
             // Non-blocking background write for server restart resilience
             prisma.appSettings.create({
@@ -396,15 +398,15 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
 
             if (qty <= 0) {
               console.log(`AlgoEngine: Quantity calculated as 0 for ${client.user?.name} in ${targetStock.symbol}. Risk capital too low for SL difference. Skipping leg.`);
-              continue;
+              return;
             }
 
             const rrRatio = config?.target?.riskRewardRatio || 2;
             const targetPriceRaw = isBuy ? entryPriceRaw + (difference * rrRatio) : entryPriceRaw - (difference * rrRatio);
 
-            const entryPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, entryPriceRaw);
-            let slPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, slPriceRaw);
-            let targetPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, targetPriceRaw);
+            const entryPrice = await getTickSizeAndRound(apiKey, activeAccessToken, 'NSE', targetStock.symbol, entryPriceRaw);
+            let slPrice = await getTickSizeAndRound(apiKey, activeAccessToken, 'NSE', targetStock.symbol, slPriceRaw);
+            let targetPrice = await getTickSizeAndRound(apiKey, activeAccessToken, 'NSE', targetStock.symbol, targetPriceRaw);
 
             // ---- Circuit limit safety ----
             console.log(`AlgoEngine: Fetching circuit limits for ${targetStock.symbol}...`);
@@ -416,7 +418,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
               if (entryPrice <= lower || entryPrice >= upper) {
                 console.log(`Entry skipped for ${client.user?.name}: ${targetStock.symbol} hits circuit limits.`);
                 await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, 'CNC', entryPrice, 'Circuit Hit', { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '15m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice });
-                continue;
+                return;
               }
             }
 
@@ -474,7 +476,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                       targetPrice = Number((Math.round(targetPriceRaw / reqTick) * reqTick).toFixed(4));
                       
                       orderRes = await orderDispatcher.dispatchOrder({
-                        apiKey: client.zerodhaApiKey,
+                        apiKey: apiKey,
                         accessToken: activeAccessToken,
                         orderParams: orderPayload,
                         proxyUrl: client.proxyUrl,
@@ -500,7 +502,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                       market_protection: marketProtectionVal
                     };
                     orderRes = await orderDispatcher.dispatchOrder({
-                      apiKey: client.zerodhaApiKey,
+                      apiKey: apiKey,
                       accessToken: activeAccessToken,
                       orderParams: fallbackParams,
                       proxyUrl: client.proxyUrl,
@@ -534,7 +536,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                   await prisma.strategyLog.create({
                     data: { strategyId: group.strategyId, message: `Ten AM order failed for ${client.user?.name} (${targetStock.symbol}): ${errMsg}`, logType: 'error' }
                   });
-                  continue;
+                  return;
                 }
               }
               
@@ -560,7 +562,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                     legTimeframe: '15m'
                   }
                 });
-                continue;
+                return;
               }
 
 
@@ -598,6 +600,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                 // ---- Poll for entry fill (Pre-Open Style) ----
                 let entryFilled = false;
                 let latestOrderStatus = 'OPEN';
+                let latestOrderObj: any = null;
                 let slOrderIdStr: string | null = null;
                 let tgtOrderIdStr: string | null = null;
                 let tgtOrderStatusVal: string | null = null;
@@ -606,10 +609,11 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                 for (let attempt = 0; attempt < maxPolls; attempt++) {
                   await delay(2000);
                   try {
-                    const statusRes = await KiteClient.getOrderById(client.zerodhaApiKey as string, activeAccessToken, entryOrderId as string, (client.proxyUrl || client.dedicatedIp));
+                    const statusRes = await KiteClient.getOrderById(apiKey, activeAccessToken, entryOrderId as string, (client.proxyUrl || client.dedicatedIp));
                     const latest = getLatestOrderState(statusRes?.data);
-                    if (latest?.status) {
-                      latestOrderStatus = latest.status;
+                    if (latest) {
+                      latestOrderObj = latest;
+                      if (latest.status) latestOrderStatus = latest.status;
                     }
                     if (latest?.status?.toUpperCase() === 'COMPLETE') {
                       // Try to acquire lock to prevent duplicate SL/Tgt orders by TradingScheduler
@@ -628,7 +632,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                       console.log(`Entry order ${entryOrderId} COMPLETE for ${client.user?.name}`);
                       
                       // Circuit limit check before SL/Target
-                      if (client.zerodhaApiKey && activeAccessToken) {
+                      if (activeAccessToken) {
                         const freshLimitsSLT = await getFreshCircuitLimits(client, 'NSE', targetStock.symbol, activeAccessToken);
                         if (freshLimitsSLT) {
                           const { upper, lower } = freshLimitsSLT;
@@ -652,13 +656,12 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                                 console.log(`AlgoEngine: Adjusted Target to Lower Circuit for ${targetStock.symbol} SHORT: ₹${targetPrice}`);
                               }
                             }
-                            slPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, slPrice);
-                            targetPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, targetPrice);
+                            slPrice = await getTickSizeAndRound(apiKey, activeAccessToken, 'NSE', targetStock.symbol, slPrice);
+                            targetPrice = await getTickSizeAndRound(apiKey, activeAccessToken, 'NSE', targetStock.symbol, targetPrice);
                           }
                         }
                       }
 
-                      // Place SL immediately
                       // Place SL immediately
                       try {
                         const slPayload: any = {
@@ -674,7 +677,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                           variety: 'regular',
                           market_protection: marketProtectionVal
                         };
-                        const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slPayload, (client.proxyUrl || client.dedicatedIp));
+                        const slRes = await KiteClient.placeOrder(apiKey, activeAccessToken, slPayload, (client.proxyUrl || client.dedicatedIp));
                         if (slRes?.status === 'success' && slRes.data?.order_id) {
                           slOrderIdStr = slRes.data.order_id;
                           console.log(`SL order placed for ${client.user?.name}: ${slOrderIdStr}`);
@@ -701,7 +704,7 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                             validity: 'DAY',
                             variety: 'regular',
                           };
-                          const tgtRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, tgtPayload, (client.proxyUrl || client.dedicatedIp));
+                          const tgtRes = await KiteClient.placeOrder(apiKey, activeAccessToken, tgtPayload, (client.proxyUrl || client.dedicatedIp));
                           if (tgtRes?.status === 'success' && tgtRes.data?.order_id) {
                             tgtOrderIdStr = tgtRes.data.order_id;
                             console.log(`Target order placed for ${client.user?.name}: ${tgtOrderIdStr}`);
@@ -734,10 +737,12 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
                 }
 
                 if (tradeId) {
+                  const actualFillPrice = Number(latestOrderObj?.average_price || latestOrderObj?.filled_price || 0);
                   await prisma.trade.update({
                     where: { id: tradeId },
                     data: {
                       status: 'open',
+                      ...(actualFillPrice > 0 ? { entryPrice: actualFillPrice, originalEntryPrice: actualFillPrice } : {}),
                       entryOrderStatus: entryFilled ? 'filled' : (latestOrderStatus === 'COMPLETE' ? 'filled' : latestOrderStatus),
                       slOrderId: slOrderIdStr,
                       slTriggerPrice: slPrice,
@@ -750,9 +755,10 @@ async executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyI
             } catch (err) {
               console.error('Failed to place entry order:', err);
               await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, 'CNC', entryPrice, 'Entry Fail', { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '15m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice });
-              continue;
+              return;
             }
-          }
+                })
+              );
         })
       );
     }

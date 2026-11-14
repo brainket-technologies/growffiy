@@ -1197,7 +1197,9 @@ export class PreOpenStrategy {
             await prisma.trade.update({
               where: { id: tradeId },
               data: {
-                entryPrice: actualEntryPrice, quantity: quantity,
+                entryPrice: actualEntryPrice,
+                ...(actualEntryPrice > 0 ? { originalEntryPrice: actualEntryPrice } : {}),
+                quantity: quantity,
                 stopLoss: finalStopLoss, target: finalTarget,
                 status: 'open',
                 entryTime: new Date(),
@@ -1262,8 +1264,8 @@ export class PreOpenStrategy {
         }
       };
 
-      console.log(`AlgoEngine: Processing ${clients.length} clients with concurrency ${BATCH_SIZE}...`);
-      await concurrentMap(clients, client => processClientEntry(client), BATCH_SIZE);
+      console.log(`AlgoEngine: Processing ${clients.length} clients concurrently...`);
+      await Promise.all(clients.map(client => processClientEntry(client)));
 
     } catch (e: any) {
       console.error('AlgoEngine: executePreOpenTrades error:', e);
