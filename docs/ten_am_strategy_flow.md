@@ -100,3 +100,16 @@ Maan lijiye **INFY** aaj ka sabse bada Loser hai.
 Pre-Open strategy **OCO (One Cancels Other)** par kaam karti hai (Ek leg lagne par dusri cancel ho jati hai). Lekin 10 AM Strategy mein **Leg 1 aur Leg 2 ka aapas mein koi connection nahi hai.**
 - Agar Gainers wali trade (Leg 1) ka order fill hota hai, aur usi waqt Losers wali trade (Leg 2) ka order bhi fill hota hai, toh **dono chalte rahenge**.
 - Dono trades apne-apne alag Target aur Stoploss orders ko follow karenge. Ek trade ke hit ya cancel hone ka dusri trade par koi asar nahi padega.
+
+---
+
+## 7. Fast Parallel Execution & Real Fill Synchronization (Latest Update)
+
+### Parallel Multi-Leg Execution (Zero Delay)
+- **Pehle:** Leg 1 (Gainers) pehle chalta tha aur agar order fill hota tha toh 30 seconds tak Target order place hone ka wait karta tha. Iske baad hi Leg 2 (Losers) shuru ho pata tha (yani 10:00:30 par).
+- **Ab (Optimized):** Leg 1 aur Leg 2 dono `Promise.all` ke through **theek 10:00:00 AM par simultaneous (ek sath)** execute hote hain. Leg 2 ko bilkul bhi wait nahi karna padta.
+
+### Actual Fill Price Synchronization (`actualFillPrice`)
+- Zerodha Kite se jaise hi order fill hota hai, broker ka exact executed price (`average_price`) capture hota hai aur trade ke `entryPrice` aur `originalEntryPrice` mein sync ho jata hai.
+- Isse Trailing Stop-Loss aur Target calculations hamesha real executed price ke mutabik calculate hote hain, bina kisi slippage error ke.
+

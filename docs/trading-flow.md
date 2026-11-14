@@ -1620,3 +1620,40 @@ Right before placing SL and Target orders on Zerodha, fresh circuit limits are r
 4. **Virtual Exit & Fallback P&L Calculation:**
    - If exit order placement fails on broker API, system calculates fallback virtual P&L, records it in DB `trades` table, and sets `status = 'FAILED'`.
 
+---
+
+## 21. High-Speed Parallel Execution & Trailing SL Fill Synchronization (Latest Architecture Update)
+
+### A. Friday Execution Latency RCA (09:20 vs 09:22 Issue)
+- **Problem:** Friday ko kuch client trades 09:20 par trigger huye jabki kuch trades 09:22 tak delay ho gaye.
+- **Root Cause:**
+  1. Strategies ke andar sequential loops (`for ... of targetStocks` ya `concurrentMap` chunks) chalte the.
+  2. Har stock ya client ke order placement ke baad order fill confirm karne ke liye 60-second polling loop wait karta tha.
+  3. Agar Stock 1 ya Client 1 ka order broker pending/processing state mein tha, toh Stock 2/Client 2 tab tak block rehta tha jab tak pehle ka cycle complete na ho. Is wajah se 1-2 minute ka delay aa jata tha.
+- **Solution:**
+  1. **First Minute Strategy (`firstMinuteStrategy.ts`):** Sequential stock loop ko `await Promise.all(targetStocks.map(...))` mein convert kiya gaya. Sabhi target stocks simultaneous 09:20:00 par dispatch hote hain.
+  2. **Nifty Market Strategy (`niftyMarketStrategy.ts`):** Outer stock loop ko `await Promise.all(targetStocks.map(...))` mein convert kiya gaya.
+  3. **Pre-Open Strategy (`preOpenStrategy.ts`):** Sequential client batching ko `await Promise.all(clients.map(...))` se replace kiya gaya. 09:15:00 par saare assigned clients ke orders ek saath parallel dispatch hote hain bina kisi client ke wait kiye.
+  4. **Ten AM Strategy (`tenAmStrategy.ts`):** Multi-leg loop `for (let li = 0; li < activeLegs.length; li++)` ko `await Promise.all(activeLegs.map(...))` mein parallel kiya gaya. Leg 2 (Losers) ko ab Leg 1 (Gainers) ke 30-second target delay ke liye wait nahi karna padta; dono legs 10:00:00 par concurrently start hote hain.
+
+### B. Trailing SL & Real Fill-Price Synchronization (`actualFillPrice`)
+- **Problem:** Trailing Stop-Loss kabhi-kabhi expected price level par trigger nahi ho raha tha ya slip ho raha tha.
+- **Root Cause:** Strategy code database mein entry price calculate karte waqt ideal trigger/candle level store karta tha. Market mein live fill price slippage (e.g. ₹0.20 - ₹0.50) ki wajah se actual broker price se difference ban jata tha, jisse trailing calculation offset ho jati thi.
+- **Solution:**
+  - Broker (Kite) ke order execution response se `actualFillPrice` (`average_price`) ko capture karke direct `trade.entryPrice` aur `trade.originalEntryPrice` mein synchronize kiya gaya.
+  - Ab Trailing SL engine exact broker execution price ke basis par trail karta hai, jisse trailing accuracy 100% real market fill ke anuroop rehti hai.
+
+### C. Client Action Dropdown UI Auto-Flip
+- **Problem:** Client list table ke lower rows (bottom clients) par 3-dot action menu click karne par dropdown neeche screen se bahar cut ho jata tha.
+- **Solution:**
+  - `getBoundingClientRect()` se dynamic screen space check add kiya gaya.
+  - Agar trigger button ke neeche space `< 260px` hai aur upar zyada jagah hai, toh menu automatically upar ki taraf flip ho jata hai (`bottom: 100%`), jisse saare options (`Login to Kite`, `Performance Curve`, `Login as Client`, `View/Edit`, `Delete`) poore visible rehte hain.
+
+### D. Branch & Deployment Workflow Guidelines
+- **Testing & Development Branch:** `dev_firoz`
+  - Har naya feature, testing, aur fixes isi branch par hoga.
+- **Production Server Branch:** `main`
+  - Production server (`66.116.210.206`) par direct bina user confirmation ke koi push ya pull nahi hoga.
+  - Pehle `dev_firoz` par test hoga, approval ke baad `main` par merge karke live server par pull kiya jayega.
+
+
