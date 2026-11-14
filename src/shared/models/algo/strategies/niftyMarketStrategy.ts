@@ -548,22 +548,25 @@ export class NiftyMarketStrategy {
 
             if (!targetStocks || targetStocks.length === 0) continue;
 
-            for (const targetStock of targetStocks) {
-              const todayStr = new Date().toISOString().split('T')[0];
-              const dbLockKey = `trade_lock_${client.id}_${group.strategyId}_leg${li}_${targetStock.symbol}_${todayStr}`;
+            await Promise.all(
+              targetStocks.map(async (targetStock) => {
+                if (!client.zerodhaApiKey || !activeAccessToken) return;
+                const apiKey = client.zerodhaApiKey;
+                const todayStr = new Date().toISOString().split('T')[0];
+                const dbLockKey = `trade_lock_${client.id}_${group.strategyId}_leg${li}_${targetStock.symbol}_${todayStr}`;
 
-              // Fast in-memory atomic lock check
-              if (!masterDataCache.acquireLock(dbLockKey)) {
-                continue;
-              }
+                // Fast in-memory atomic lock check
+                if (!masterDataCache.acquireLock(dbLockKey)) {
+                  return;
+                }
 
-              // Conflict Guard: Prevent opposite-direction trade on same symbol
-              const tradeDirection = isBuy ? 'LONG' : 'SHORT';
-              if (masterDataCache.hasOppositeDirection(client.id, targetStock.symbol, tradeDirection)) {
-                console.log(`[NIFTY MARKET] Skipped trade for ${client.user?.name} in ${targetStock.symbol}: Opposite direction trade already active.`);
-                masterDataCache.releaseLock(dbLockKey);
-                continue;
-              }
+                // Conflict Guard: Prevent opposite-direction trade on same symbol
+                const tradeDirection = isBuy ? 'LONG' : 'SHORT';
+                if (masterDataCache.hasOppositeDirection(client.id, targetStock.symbol, tradeDirection)) {
+                  console.log(`[NIFTY MARKET] Skipped trade for ${client.user?.name} in ${targetStock.symbol}: Opposite direction trade already active.`);
+                  masterDataCache.releaseLock(dbLockKey);
+                  return;
+                }
 
               // Asynchronous non-blocking persistence for server-restart resilience
               prisma.appSettings.create({
@@ -616,7 +619,7 @@ export class NiftyMarketStrategy {
               let qty = Math.floor(capitalAtRiskPerStock / slPoints);
               if (qty <= 0) {
                 console.log(`AlgoEngine: Quantity calculated as 0 for ${client.user?.name} in ${targetStock.symbol}. Risk capital too low for SL difference. Skipping leg.`);
-                continue;
+                return;
               }
 
               if (marginResult.marginRate !== undefined && marginResult.marginRate !== null && marginResult.marginRate > 0) {
@@ -626,7 +629,7 @@ export class NiftyMarketStrategy {
 
               if (qty <= 0) {
                 await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, 'MIS', entryPriceRaw, `Qty calculation resulted in 0 (Risk: ₹${capitalAtRiskPerStock.toFixed(2)} / SL Points: ₹${slPoints.toFixed(2)})`, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: 0, stopLoss: slPriceRaw, target: 0, slTriggerPrice: slPriceRaw });
-                continue;
+                return;
               }
 
               const tgtType = config.target?.type || 'Profit %';
@@ -641,16 +644,16 @@ export class NiftyMarketStrategy {
                 targetPriceRaw = isBuy ? entryPriceRaw + tgtAmt : entryPriceRaw - tgtAmt;
               }
 
-              const entryPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, entryPriceRaw);
-              let slPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, slPriceRaw);
-              let targetPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, targetPriceRaw);
+              const entryPrice = await getTickSizeAndRound(apiKey, activeAccessToken, 'NSE', targetStock.symbol, entryPriceRaw);
+              let slPrice = await getTickSizeAndRound(apiKey, activeAccessToken, 'NSE', targetStock.symbol, slPriceRaw);
+              let targetPrice = await getTickSizeAndRound(apiKey, activeAccessToken, 'NSE', targetStock.symbol, targetPriceRaw);
 
               const freshLimits = await getFreshCircuitLimits(client, 'NSE', targetStock.symbol, activeAccessToken);
               if (freshLimits) {
                 const { lower, upper } = freshLimits;
                 if (entryPrice <= lower || entryPrice >= upper) {
                   await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, 'MIS', entryPrice, 'Circuit Hit', { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice });
-                  continue;
+                  return;
                 }
               }
 
@@ -698,7 +701,7 @@ export class NiftyMarketStrategy {
                 };
 
                 let orderRes = await orderDispatcher.dispatchOrder({
-                  apiKey: client.zerodhaApiKey,
+                  apiKey: apiKey,
                   accessToken: activeAccessToken,
                   orderParams: orderPayload,
                   proxyUrl: client.proxyUrl,
@@ -719,7 +722,7 @@ export class NiftyMarketStrategy {
                         targetPrice = Number((Math.round(targetPriceRaw / reqTick) * reqTick).toFixed(4));
 
                         orderRes = await orderDispatcher.dispatchOrder({
-                          apiKey: client.zerodhaApiKey,
+                          apiKey: apiKey,
                           accessToken: activeAccessToken,
                           orderParams: orderPayload,
                           proxyUrl: client.proxyUrl,
@@ -744,7 +747,7 @@ export class NiftyMarketStrategy {
                         market_protection: marketProtectionVal
                       };
                       orderRes = await orderDispatcher.dispatchOrder({
-                        apiKey: client.zerodhaApiKey,
+                        apiKey: apiKey,
                         accessToken: activeAccessToken,
                         orderParams: fallbackParams,
                         proxyUrl: client.proxyUrl,
@@ -776,7 +779,7 @@ export class NiftyMarketStrategy {
                     await prisma.strategyLog.create({
                       data: { strategyId: group.strategyId, message: `Nifty Market order failed for ${client.user?.name} (${targetStock.symbol}): ${errMsg}`, logType: 'error' }
                     });
-                    continue;
+                    return;
                   }
                 }
 
@@ -785,7 +788,7 @@ export class NiftyMarketStrategy {
                 if (!entryOrderId) {
                   const noIdReason = orderRes?.message || orderRes?.data?.message || (orderRes ? JSON.stringify(orderRes) : 'No order_id returned by Kite');
                   await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, productParam, entryPrice, noIdReason, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice }, orderRes || undefined);
-                  continue;
+                  return;
                 }
 
                 if (entryOrderId) {
@@ -817,6 +820,7 @@ export class NiftyMarketStrategy {
 
                   let entryFilled = false;
                   let latestOrderStatus = 'OPEN';
+                  let latestOrderObj: any = null;
                   let slOrderIdStr: string | null = null;
                   let tgtOrderIdStr: string | null = null;
                   let tgtOrderStatusVal: string | null = null;
@@ -825,9 +829,12 @@ export class NiftyMarketStrategy {
                   for (let attempt = 0; attempt < maxPolls; attempt++) {
                     await delay(2000);
                     try {
-                      const statusRes = await KiteClient.getOrderById(client.zerodhaApiKey as string, activeAccessToken, entryOrderId as string, (client.proxyUrl || client.dedicatedIp));
+                      const statusRes = await KiteClient.getOrderById(apiKey, activeAccessToken, entryOrderId as string, (client.proxyUrl || client.dedicatedIp));
                       const latest = getLatestOrderState(statusRes?.data);
-                      if (latest?.status) latestOrderStatus = latest.status;
+                      if (latest) {
+                        latestOrderObj = latest;
+                        if (latest.status) latestOrderStatus = latest.status;
+                      }
 
                       if (latest?.status?.toUpperCase() === 'COMPLETE') {
                         if (tradeId) {
@@ -842,7 +849,7 @@ export class NiftyMarketStrategy {
 
                         entryFilled = true;
 
-                        if (client.zerodhaApiKey && activeAccessToken) {
+                        if (activeAccessToken) {
                           const freshLimitsSLT = await getFreshCircuitLimits(client, 'NSE', targetStock.symbol, activeAccessToken);
                           if (freshLimitsSLT) {
                             const { upper, lower } = freshLimitsSLT;
@@ -854,8 +861,8 @@ export class NiftyMarketStrategy {
                                 if (slPrice > upper) slPrice = upper - 0.05;
                                 if (targetPrice < lower) targetPrice = lower;
                               }
-                              slPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, slPrice);
-                              targetPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, targetPrice);
+                              slPrice = await getTickSizeAndRound(apiKey, activeAccessToken, 'NSE', targetStock.symbol, slPrice);
+                              targetPrice = await getTickSizeAndRound(apiKey, activeAccessToken, 'NSE', targetStock.symbol, targetPrice);
                             }
                           }
                         }
@@ -874,7 +881,7 @@ export class NiftyMarketStrategy {
                             variety: 'regular',
                             market_protection: marketProtectionVal
                           };
-                          const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slPayload, (client.proxyUrl || client.dedicatedIp));
+                          const slRes = await KiteClient.placeOrder(apiKey, activeAccessToken, slPayload, (client.proxyUrl || client.dedicatedIp));
                           if (slRes?.status === 'success' && slRes.data?.order_id) {
                             slOrderIdStr = slRes.data.order_id;
                           }
@@ -896,7 +903,7 @@ export class NiftyMarketStrategy {
                               validity: 'DAY',
                               variety: 'regular',
                             };
-                            const tgtRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, tgtPayload, (client.proxyUrl || client.dedicatedIp));
+                            const tgtRes = await KiteClient.placeOrder(apiKey, activeAccessToken, tgtPayload, (client.proxyUrl || client.dedicatedIp));
                             if (tgtRes?.status === 'success' && tgtRes.data?.order_id) {
                               tgtOrderIdStr = tgtRes.data.order_id;
                             } else {
@@ -916,10 +923,12 @@ export class NiftyMarketStrategy {
                   }
 
                   if (tradeId) {
+                    const actualFillPrice = Number(latestOrderObj?.average_price || latestOrderObj?.filled_price || 0);
                     await prisma.trade.update({
                       where: { id: tradeId },
                       data: {
                         status: 'open',
+                        ...(actualFillPrice > 0 ? { entryPrice: actualFillPrice, originalEntryPrice: actualFillPrice } : {}),
                         entryOrderStatus: entryFilled ? 'filled' : (latestOrderStatus === 'COMPLETE' ? 'filled' : latestOrderStatus),
                         slOrderId: slOrderIdStr,
                         slTriggerPrice: slPrice,
@@ -938,9 +947,10 @@ export class NiftyMarketStrategy {
                 const rawErrResponse = err?.response?.data || err?.data || (err?.message ? { message: err.message, stack: err?.stack } : undefined);
                 console.error(`AlgoEngine: Error placing Nifty Market Strategy order for ${client.user?.name} (${targetStock.symbol}): ${errMsg}`);
                 await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, productParam, entryPrice, errMsg, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice }, rawErrResponse);
-                continue;
+                return;
               }
-            }
+                })
+              );
           }
         })
       );

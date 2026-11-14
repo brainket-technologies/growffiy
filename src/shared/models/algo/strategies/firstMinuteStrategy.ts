@@ -472,111 +472,114 @@ export class FirstMinuteStrategy {
             
             if (!targetStocks || targetStocks.length === 0) continue;
 
-            for (const targetStock of targetStocks) {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const dbLockKey = `trade_lock_${client.id}_${group.strategyId}_leg${li}_${targetStock.symbol}_${todayStr}`;
-            
-            // Fast in-memory atomic lock check (0ms, 0 DB query overhead)
-            if (!masterDataCache.acquireLock(dbLockKey)) {
-              continue;
-            }
+            await Promise.all(
+              targetStocks.map(async (targetStock) => {
+                if (!client.zerodhaApiKey || !activeAccessToken) return;
+                const apiKey = client.zerodhaApiKey;
+                const todayStr = new Date().toISOString().split('T')[0];
+                const dbLockKey = `trade_lock_${client.id}_${group.strategyId}_leg${li}_${targetStock.symbol}_${todayStr}`;
+                
+                // Fast in-memory atomic lock check (0ms, 0 DB query overhead)
+                if (!masterDataCache.acquireLock(dbLockKey)) {
+                  return;
+                }
 
-            // Conflict Guard: Prevent opposite-direction trade on same symbol (avoids MIS auto square-off)
-            const tradeDirection = isBuy ? 'LONG' : 'SHORT';
-            if (masterDataCache.hasOppositeDirection(client.id, targetStock.symbol, tradeDirection)) {
-              console.log(`[FIRST MINUTE] Skipped trade for ${client.user?.name} in ${targetStock.symbol}: Opposite direction trade already active.`);
-              masterDataCache.releaseLock(dbLockKey);
-              continue;
-            }
+                // Conflict Guard: Prevent opposite-direction trade on same symbol (avoids MIS auto square-off)
+                const tradeDirection = isBuy ? 'LONG' : 'SHORT';
+                if (masterDataCache.hasOppositeDirection(client.id, targetStock.symbol, tradeDirection)) {
+                  console.log(`[FIRST MINUTE] Skipped trade for ${client.user?.name} in ${targetStock.symbol}: Opposite direction trade already active.`);
+                  masterDataCache.releaseLock(dbLockKey);
+                  return;
+                }
 
-            // Asynchronous non-blocking persistence for server-restart resilience
-            prisma.appSettings.create({
-              data: { settingKey: dbLockKey, settingValue: 'locked', type: 'lock' }
-            }).catch(() => {});
+                // Asynchronous non-blocking persistence for server-restart resilience
+                prisma.appSettings.create({
+                  data: { settingKey: dbLockKey, settingValue: 'locked', type: 'lock' }
+                }).catch(() => {});
 
-            const entryBufferPct = leg.tradeAction?.entryBufferPercent !== undefined ? leg.tradeAction.entryBufferPercent : (leg.tradeAction?.bufferPercent || 0.2);
-            
-            const priceType = leg.tradeAction?.candlePriceType?.toLowerCase();
-            let baseEntry: number;
-            if (priceType === 'high') {
-              baseEntry = targetStock.firstCandleHigh;
-            } else if (priceType === 'low') {
-              baseEntry = targetStock.firstCandleLow;
-            } else {
-              baseEntry = isBuy ? targetStock.firstCandleHigh : targetStock.firstCandleLow;
-            }
+                const entryBufferPct = leg.tradeAction?.entryBufferPercent !== undefined ? leg.tradeAction.entryBufferPercent : (leg.tradeAction?.bufferPercent || 0.2);
+                
+                const priceType = leg.tradeAction?.candlePriceType?.toLowerCase();
+                let baseEntry: number;
+                if (priceType === 'high') {
+                  baseEntry = targetStock.firstCandleHigh;
+                } else if (priceType === 'low') {
+                  baseEntry = targetStock.firstCandleLow;
+                } else {
+                  baseEntry = isBuy ? targetStock.firstCandleHigh : targetStock.firstCandleLow;
+                }
 
-            const entryBufferVal = baseEntry * (entryBufferPct / 100);
-            const entryPriceRaw = isBuy ? baseEntry + entryBufferVal : baseEntry - entryBufferVal;
-            
-            const exchangeParam = config?.basicInfo?.exchange || 'NSE';
-            const slBufferPct = leg.tradeAction?.slBufferPercent !== undefined && leg.tradeAction?.slBufferPercent !== -1 ? leg.tradeAction.slBufferPercent : 0;
-            
-            const baseSl = isBuy ? targetStock.firstCandleLow : targetStock.firstCandleHigh;
-            const slBufferVal = baseSl * (slBufferPct / 100);
-            const candleSlPriceRaw = isBuy ? baseSl - slBufferVal : baseSl + slBufferVal;
+                const entryBufferVal = baseEntry * (entryBufferPct / 100);
+                const entryPriceRaw = isBuy ? baseEntry + entryBufferVal : baseEntry - entryBufferVal;
+                
+                const exchangeParam = config?.basicInfo?.exchange || 'NSE';
+                const slBufferPct = leg.tradeAction?.slBufferPercent !== undefined && leg.tradeAction?.slBufferPercent !== -1 ? leg.tradeAction.slBufferPercent : 0;
+                
+                const baseSl = isBuy ? targetStock.firstCandleLow : targetStock.firstCandleHigh;
+                const slBufferVal = baseSl * (slBufferPct / 100);
+                const candleSlPriceRaw = isBuy ? baseSl - slBufferVal : baseSl + slBufferVal;
 
-            const slType = config.stoploss?.type || 'Fixed %';
-            const slVal = slType === 'Fixed Points' ? (config.stoploss?.fixedPoints || 10) : 
-                          slType === 'Trailing SL' ? (config.stoploss?.trailingSL || 1) :
-                          (config.stoploss?.fixedPercent || 1);
+                const slType = config.stoploss?.type || 'Fixed %';
+                const slVal = slType === 'Fixed Points' ? (config.stoploss?.fixedPoints || 10) : 
+                              slType === 'Trailing SL' ? (config.stoploss?.trailingSL || 1) :
+                              (config.stoploss?.fixedPercent || 1);
 
-            let configSlPriceRaw = 0;
-            if (slType === 'Fixed Points') {
-               configSlPriceRaw = isBuy ? entryPriceRaw - slVal : entryPriceRaw + slVal;
-            } else {
-               const points = entryPriceRaw * (slVal / 100);
-               configSlPriceRaw = isBuy ? entryPriceRaw - points : entryPriceRaw + points;
-            }
+                let configSlPriceRaw = 0;
+                if (slType === 'Fixed Points') {
+                   configSlPriceRaw = isBuy ? entryPriceRaw - slVal : entryPriceRaw + slVal;
+                } else {
+                   const points = entryPriceRaw * (slVal / 100);
+                   configSlPriceRaw = isBuy ? entryPriceRaw - points : entryPriceRaw + points;
+                }
 
-            // Tighter SL logic (Candle vs Admin Config)
-            let slPriceRaw = isBuy 
-              ? Math.max(candleSlPriceRaw, configSlPriceRaw)
-              : Math.min(candleSlPriceRaw, configSlPriceRaw);
+                // Tighter SL logic (Candle vs Admin Config)
+                let slPriceRaw = isBuy 
+                  ? Math.max(candleSlPriceRaw, configSlPriceRaw)
+                  : Math.min(candleSlPriceRaw, configSlPriceRaw);
 
-            let slPoints = Math.abs(entryPriceRaw - slPriceRaw);
-            if (slPoints <= 0) slPoints = 1;
+                let slPoints = Math.abs(entryPriceRaw - slPriceRaw);
+                if (slPoints <= 0) slPoints = 1;
 
-            let qty = Math.floor(capitalAtRiskPerStock / slPoints);
-            if (qty <= 0) {
-              console.log(`AlgoEngine: Quantity calculated as 0 for ${client.user?.name} in ${targetStock.symbol}. Risk capital too low for SL difference. Skipping leg.`);
-              continue;
-            }
+                let qty = Math.floor(capitalAtRiskPerStock / slPoints);
+                if (qty <= 0) {
+                  console.log(`AlgoEngine: Quantity calculated as 0 for ${client.user?.name} in ${targetStock.symbol}. Risk capital too low for SL difference. Skipping leg.`);
+                  return;
+                }
 
-            if (marginResult.marginRate !== undefined && marginResult.marginRate !== null && marginResult.marginRate > 0) {
-              const qtyByBuyingPower = Math.floor((marginResult.clientCapital / legDivisor / maxStocksToTrade) / (entryPriceRaw * marginResult.marginRate));
-              qty = Math.min(qty, qtyByBuyingPower);
-            }
-            
-            if (qty <= 0) {
-              await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, 'MIS', entryPriceRaw, `Qty calculation resulted in 0 (Risk: ₹${capitalAtRiskPerStock.toFixed(2)} / SL Points: ₹${slPoints.toFixed(2)})`, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: 0, stopLoss: slPriceRaw, target: 0, slTriggerPrice: slPriceRaw });
-              continue;
-            }
+                if (marginResult.marginRate !== undefined && marginResult.marginRate !== null && marginResult.marginRate > 0) {
+                  const qtyByBuyingPower = Math.floor((marginResult.clientCapital / legDivisor / maxStocksToTrade) / (entryPriceRaw * marginResult.marginRate));
+                  qty = Math.min(qty, qtyByBuyingPower);
+                }
+                
+                if (qty <= 0) {
+                  await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, 'MIS', entryPriceRaw, `Qty calculation resulted in 0 (Risk: ₹${capitalAtRiskPerStock.toFixed(2)} / SL Points: ₹${slPoints.toFixed(2)})`, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: 0, stopLoss: slPriceRaw, target: 0, slTriggerPrice: slPriceRaw });
+                  return;
+                }
 
-            const tgtType = config.target?.type || 'Profit %';
-            let targetPriceRaw = 0;
-            if (tgtType === 'Risk Reward Ratio') {
-               const rrRatio = config.target?.riskRewardRatio || 3;
-               const difference = Math.abs(entryPriceRaw - slPriceRaw);
-               targetPriceRaw = isBuy ? entryPriceRaw + (difference * rrRatio) : entryPriceRaw - (difference * rrRatio);
-            } else {
-               const tgtVal = config.target?.profitPercent || 3;
-               const tgtAmt = entryPriceRaw * (tgtVal / 100);
-               targetPriceRaw = isBuy ? entryPriceRaw + tgtAmt : entryPriceRaw - tgtAmt;
-            }
+                const tgtType = config.target?.type || 'Profit %';
+                let targetPriceRaw = 0;
+                if (tgtType === 'Risk Reward Ratio') {
+                   const rrRatio = config.target?.riskRewardRatio || 3;
+                   const difference = Math.abs(entryPriceRaw - slPriceRaw);
+                   targetPriceRaw = isBuy ? entryPriceRaw + (difference * rrRatio) : entryPriceRaw - (difference * rrRatio);
+                } else {
+                   const tgtVal = config.target?.profitPercent || 3;
+                   const tgtAmt = entryPriceRaw * (tgtVal / 100);
+                   targetPriceRaw = isBuy ? entryPriceRaw + tgtAmt : entryPriceRaw - tgtAmt;
+                }
 
-            const entryPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, entryPriceRaw);
-            let slPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, slPriceRaw);
-            let targetPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, targetPriceRaw);
+                const entryPrice = await getTickSizeAndRound(apiKey, activeAccessToken, 'NSE', targetStock.symbol, entryPriceRaw);
+                let slPrice = await getTickSizeAndRound(apiKey, activeAccessToken, 'NSE', targetStock.symbol, slPriceRaw);
+                let targetPrice = await getTickSizeAndRound(apiKey, activeAccessToken, 'NSE', targetStock.symbol, targetPriceRaw);
 
-            const freshLimits = await getFreshCircuitLimits(client, 'NSE', targetStock.symbol, activeAccessToken);
-            if (freshLimits) {
-              const { lower, upper } = freshLimits;
-              if (entryPrice <= lower || entryPrice >= upper) {
-                await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, 'MIS', entryPrice, 'Circuit Hit', { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice });
-                continue;
-              }
-            }
+                const freshLimits = await getFreshCircuitLimits(client, 'NSE', targetStock.symbol, activeAccessToken);
+                if (freshLimits) {
+                  const { lower, upper } = freshLimits;
+                  if (entryPrice <= lower || entryPrice >= upper) {
+                    await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, 'MIS', entryPrice, 'Circuit Hit', { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice });
+                    return;
+                  }
+                }
 
             const tradeType = config?.basicInfo?.tradeType || 'Intraday';
             const productParam = tradeType === 'Delivery' ? 'CNC' : (tradeType === 'Carry Forward' || tradeType === 'Normal' || tradeType === 'NRML') ? 'NRML' : 'MIS';
@@ -622,7 +625,7 @@ export class FirstMinuteStrategy {
               };
 
               let orderRes = await orderDispatcher.dispatchOrder({
-                apiKey: client.zerodhaApiKey,
+                apiKey: apiKey,
                 accessToken: activeAccessToken,
                 orderParams: orderPayload,
                 proxyUrl: client.proxyUrl,
@@ -644,7 +647,7 @@ export class FirstMinuteStrategy {
                           targetPrice = Number((Math.round(targetPriceRaw / reqTick) * reqTick).toFixed(4));
                           
                           orderRes = await orderDispatcher.dispatchOrder({
-                            apiKey: client.zerodhaApiKey,
+                            apiKey: apiKey,
                             accessToken: activeAccessToken,
                             orderParams: orderPayload,
                             proxyUrl: client.proxyUrl,
@@ -669,7 +672,7 @@ export class FirstMinuteStrategy {
                           market_protection: marketProtectionVal
                         };
                         orderRes = await orderDispatcher.dispatchOrder({
-                          apiKey: client.zerodhaApiKey,
+                          apiKey: apiKey,
                           accessToken: activeAccessToken,
                           orderParams: fallbackParams,
                           proxyUrl: client.proxyUrl,
@@ -701,7 +704,7 @@ export class FirstMinuteStrategy {
                   await prisma.strategyLog.create({
                     data: { strategyId: group.strategyId, message: `First Minute order failed for ${client.user?.name} (${targetStock.symbol}): ${errMsg}`, logType: 'error' }
                   });
-                  continue;
+                  return;
                 }
               }
               
@@ -713,7 +716,7 @@ export class FirstMinuteStrategy {
                 console.error(`AlgoEngine: Entry order_id missing for ${client.user?.name} (${targetStock.symbol}). Kite response:`, JSON.stringify(orderRes));
                 // Pass full orderRes so UI shows complete Kite error
                 await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, productParam, entryPrice, noIdReason, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice }, orderRes || undefined);
-                continue;
+                return;
               }
 
               if (entryOrderId) {
@@ -745,6 +748,7 @@ export class FirstMinuteStrategy {
 
                 let entryFilled = false;
                 let latestOrderStatus = 'OPEN';
+                let latestOrderObj: any = null;
                 let slOrderIdStr: string | null = null;
                 let tgtOrderIdStr: string | null = null;
                 let tgtOrderStatusVal: string | null = null;
@@ -753,9 +757,12 @@ export class FirstMinuteStrategy {
                 for (let attempt = 0; attempt < maxPolls; attempt++) {
                   await delay(2000);
                   try {
-                    const statusRes = await KiteClient.getOrderById(client.zerodhaApiKey as string, activeAccessToken, entryOrderId as string, (client.proxyUrl || client.dedicatedIp));
+                    const statusRes = await KiteClient.getOrderById(apiKey, activeAccessToken, entryOrderId as string, (client.proxyUrl || client.dedicatedIp));
                     const latest = getLatestOrderState(statusRes?.data);
-                    if (latest?.status) latestOrderStatus = latest.status;
+                    if (latest) {
+                      latestOrderObj = latest;
+                      if (latest.status) latestOrderStatus = latest.status;
+                    }
                     
                     if (latest?.status?.toUpperCase() === 'COMPLETE') {
                       // Try to acquire lock to prevent duplicate SL/Tgt orders by TradingScheduler
@@ -773,7 +780,7 @@ export class FirstMinuteStrategy {
                       entryFilled = true;
                       console.log(`Entry order ${entryOrderId} COMPLETE for ${client.user?.name}`);
                       
-                      if (client.zerodhaApiKey && activeAccessToken) {
+                      if (activeAccessToken) {
                         const freshLimitsSLT = await getFreshCircuitLimits(client, 'NSE', targetStock.symbol, activeAccessToken);
                         if (freshLimitsSLT) {
                           const { upper, lower } = freshLimitsSLT;
@@ -785,8 +792,8 @@ export class FirstMinuteStrategy {
                               if (slPrice > upper) slPrice = upper - 0.05;
                               if (targetPrice < lower) targetPrice = lower;
                             }
-                            slPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, slPrice);
-                            targetPrice = await getTickSizeAndRound(client.zerodhaApiKey, activeAccessToken, 'NSE', targetStock.symbol, targetPrice);
+                            slPrice = await getTickSizeAndRound(apiKey, activeAccessToken, 'NSE', targetStock.symbol, slPrice);
+                            targetPrice = await getTickSizeAndRound(apiKey, activeAccessToken, 'NSE', targetStock.symbol, targetPrice);
                           }
                         }
                       }
@@ -805,7 +812,7 @@ export class FirstMinuteStrategy {
                           variety: 'regular',
                           market_protection: marketProtectionVal
                         };
-                        const slRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, slPayload, (client.proxyUrl || client.dedicatedIp));
+                        const slRes = await KiteClient.placeOrder(apiKey, activeAccessToken, slPayload, (client.proxyUrl || client.dedicatedIp));
                         if (slRes?.status === 'success' && slRes.data?.order_id) {
                           slOrderIdStr = slRes.data.order_id;
                         }
@@ -827,7 +834,7 @@ export class FirstMinuteStrategy {
                             validity: 'DAY',
                             variety: 'regular',
                           };
-                          const tgtRes = await KiteClient.placeOrder(client.zerodhaApiKey, activeAccessToken, tgtPayload, (client.proxyUrl || client.dedicatedIp));
+                          const tgtRes = await KiteClient.placeOrder(apiKey, activeAccessToken, tgtPayload, (client.proxyUrl || client.dedicatedIp));
                           if (tgtRes?.status === 'success' && tgtRes.data?.order_id) {
                             tgtOrderIdStr = tgtRes.data.order_id;
                           } else {
@@ -847,10 +854,12 @@ export class FirstMinuteStrategy {
                 }
 
                 if (tradeId) {
+                  const actualFillPrice = Number(latestOrderObj?.average_price || latestOrderObj?.filled_price || 0);
                   await prisma.trade.update({
                     where: { id: tradeId },
                     data: {
                       status: 'open',
+                      ...(actualFillPrice > 0 ? { entryPrice: actualFillPrice, originalEntryPrice: actualFillPrice } : {}),
                       entryOrderStatus: entryFilled ? 'filled' : (latestOrderStatus === 'COMPLETE' ? 'filled' : latestOrderStatus),
                       slOrderId: slOrderIdStr,
                       slTriggerPrice: slPrice,
@@ -871,9 +880,10 @@ export class FirstMinuteStrategy {
               const rawErrResponse = err?.response?.data || err?.data || (err?.message ? { message: err.message, stack: err?.stack } : undefined);
               console.error(`AlgoEngine: Error placing First Minute Strategy order for ${client.user?.name} (${targetStock.symbol}): ${errMsg}`, err?.stack || '');
               await logFailedTrade(client, { id: group.strategyId, name: group.strategyName }, targetStock.symbol, productParam, entryPrice, errMsg, { direction: isBuy ? 'LONG' : 'SHORT', legName: leg.name || '', legTimeframe: '1m', dualLegGroupId: null, quantity: qty, stopLoss: slPrice, target: targetPrice, slTriggerPrice: slPrice }, rawErrResponse);
-              continue;
+              return;
             }
-            }
+              })
+            );
           }
         })
       );
