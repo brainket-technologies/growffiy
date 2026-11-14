@@ -181,6 +181,7 @@ export default function ClientsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [openMenuClientId, setOpenMenuClientId] = useState<string | null>(null);
+  const [openMenuUpwards, setOpenMenuUpwards] = useState<boolean>(false);
   const menuContainerRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -554,7 +555,7 @@ export default function ClientsPage() {
               ) : (
                 currentClients.map((client, clientIndex) => {
                   const isTrading = client.tradingStatus === 'active';
-                  const isNearBottom = clientIndex >= Math.max(0, currentClients.length - 2);
+                  const isNearBottom = clientIndex >= Math.max(0, currentClients.length - 4);
                   return (
                     <tr key={client.id}>
                       <td style={{ fontWeight: 600 }}>
@@ -682,7 +683,15 @@ export default function ClientsPage() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setOpenMenuClientId(prev => prev === client.id ? null : client.id);
+                              if (openMenuClientId === client.id) {
+                                setOpenMenuClientId(null);
+                              } else {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const spaceBelow = window.innerHeight - rect.bottom;
+                                const spaceAbove = rect.top;
+                                setOpenMenuUpwards(spaceBelow < 260 && spaceAbove > spaceBelow);
+                                setOpenMenuClientId(client.id);
+                              }
                             }}
                             className="client-action-menu-btn"
                             style={{
@@ -709,8 +718,10 @@ export default function ClientsPage() {
                               style={{
                                 position: 'absolute',
                                 right: 0,
-                                ...(isNearBottom ? { bottom: '100%', marginBottom: '6px' } : { top: '100%', marginTop: '6px' }),
+                                ...((openMenuUpwards || isNearBottom) ? { bottom: '100%', marginBottom: '6px' } : { top: '100%', marginTop: '6px' }),
                                 minWidth: '220px',
+                                maxHeight: 'calc(100vh - 80px)',
+                                overflowY: 'auto',
                                 background: 'var(--surface, #ffffff)',
                                 border: '1px solid var(--border-color, #e2e8f0)',
                                 borderRadius: '10px',
