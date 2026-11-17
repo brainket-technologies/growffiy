@@ -63,7 +63,7 @@ class AlgoEngineService {
         todayTokenRefreshed: this.todayTokenRefreshed,
         getAlgoSetting: (key, defaultValue) => this.getAlgoSetting(key, defaultValue),
         getPreOpenStocks: (forceFetch) => this.getPreOpenStocks(forceFetch),
-        preSelectAllClients: (strategyId) => this.preSelectAllClients(strategyId),
+        preSelectAllClients: (strategyId, targetSlotTime) => this.preSelectAllClients(strategyId, targetSlotTime),
         executePreOpenTrades: (adminId, mockStocks, strategyId, legIndex, dualLegGroupId) => this.executePreOpenTrades(adminId, mockStocks, strategyId, legIndex, dualLegGroupId),
       },
       this.wsLive
@@ -166,7 +166,7 @@ class AlgoEngineService {
     );
   }
 
-  async preSelectAllClients(strategyId?: string): Promise<void> {
+  async preSelectAllClients(strategyId?: string, targetSlotTime?: string): Promise<void> {
     if (strategyId) {
       const strategy = await prisma.strategy.findUnique({ where: { id: strategyId } });
       let configObj: any = {};
@@ -181,7 +181,7 @@ class AlgoEngineService {
       } else if (engineType === 'FIRST_MINUTE') {
         return this.firstMinuteStrategy.preSelectAllClients(strategyId);
       } else if (engineType === 'NIFTY_MARKET' || engineType === 'NIFTYMARKET') {
-        return this.niftyMarketStrategy.preSelectAllClients(strategyId);
+        return this.niftyMarketStrategy.preSelectAllClients(strategyId, targetSlotTime);
       }
       return this.preOpenStrategy.preSelectAllClients(strategyId);
     } else {
@@ -191,6 +191,14 @@ class AlgoEngineService {
         try { configObj = typeof st.configJson === 'string' ? JSON.parse(st.configJson) : (st.configJson || {}); } catch(e){}
         
         const engineType = (configObj?.basicInfo?.engineType || '').toUpperCase();
+
+        if (targetSlotTime) {
+          // If called for a specific snapshot slot (e.g. 09:20), only trigger NIFTY_MARKET strategies
+          if (engineType === 'NIFTY_MARKET' || engineType === 'NIFTYMARKET') {
+            await this.niftyMarketStrategy.preSelectAllClients(st.id, targetSlotTime);
+          }
+          continue;
+        }
 
         if (engineType === 'TEN_AM') {
           await this.tenAmStrategy.preSelectAllClients(st.id);

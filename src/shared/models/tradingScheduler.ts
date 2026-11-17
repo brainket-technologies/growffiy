@@ -27,7 +27,7 @@ export interface EngineAccess {
   todayTokenRefreshed: Set<string>;
   getAlgoSetting(key: string, defaultValue: string): Promise<string>;
   getPreOpenStocks(forceFetch?: boolean): Promise<StockQuote[]>;
-  preSelectAllClients(strategyId?: string): Promise<void>;
+  preSelectAllClients(strategyId?: string, targetSlotTime?: string): Promise<void>;
   executePreOpenTrades(adminId: string, mockStocks?: StockQuote[], strategyId?: string, legIndex?: number, dualLegGroupId?: string | null): Promise<void>;
 }
 
@@ -149,9 +149,9 @@ export class TradingScheduler {
             .then(async () => {
               // Auto-trigger candidate selection for all Nifty Market strategies that use this slot
               try {
-                if (this.engine?.niftyMarketStrategy?.preSelectAllClients) {
+                if (this.engine?.preSelectAllClients) {
                   console.log(`AlgoEngine Scheduler: Auto-selecting Nifty Market candidates for slot ${currentTimeStr}...`);
-                  await this.engine.niftyMarketStrategy.preSelectAllClients(undefined, currentTimeStr);
+                  await this.engine.preSelectAllClients(undefined, currentTimeStr);
                 }
               } catch (autoErr) {
                 console.error(`AlgoEngine Scheduler: Error auto-selecting Nifty Market candidates for ${currentTimeStr}:`, autoErr);
