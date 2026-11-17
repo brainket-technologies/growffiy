@@ -1,35 +1,33 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
 import { KiteClient } from '@/shared/services/kite';
-import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'growffi-secret-key-fallback';
-
-export async function POST(request: Request) {
+async function forceExitSingleTrade(tradeId: string): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+  tradeId: string;
+  symbol?: string;
+  pnl?: number;
+  exitPrice?: number;
+}> {
   try {
-    const body = await request.json();
-    const { tradeId } = body;
-
-    if (!tradeId) {
-      return NextResponse.json({ success: false, error: 'Trade ID is required' }, { status: 400 });
-    }
-
     const trade = await prisma.trade.findUnique({
       where: { id: tradeId },
       include: { client: true },
     });
 
     if (!trade) {
-      return NextResponse.json({ success: false, error: 'Trade not found' }, { status: 404 });
+      return { success: false, error: 'Trade not found', tradeId };
     }
 
     if (trade.status !== 'open') {
-      return NextResponse.json({ success: false, error: 'Trade is already closed or cancelled' }, { status: 400 });
+      return { success: false, error: 'Trade is already closed or cancelled', tradeId, symbol: trade.symbol };
     }
 
     const client = trade.client;
     if (!client || !client.zerodhaApiKey || !client.accessToken) {
-      return NextResponse.json({ success: false, error: 'Client Kite credentials not found' }, { status: 400 });
+      return { success: false, error: 'Client Kite credentials not found', tradeId, symbol: trade.symbol };
     }
 
     const apiKey = client.zerodhaApiKey;
@@ -87,7 +85,7 @@ export async function POST(request: Request) {
         },
       });
 
-      return NextResponse.json({ success: true, message: 'Pending entry order cancelled.' });
+      return { success: true, message: `Pending entry order for ${trade.symbol} cancelled.`, tradeId, symbol: trade.symbol };
     }
 
     // It is partially or fully filled.
@@ -134,7 +132,7 @@ export async function POST(request: Request) {
           exitTime: new Date(),
         },
       });
-      return NextResponse.json({ success: true, message: 'Trade already closed via SL/Target on Kite.' });
+      return { success: true, message: `Trade ${trade.symbol} already closed via SL/Target on Kite.`, tradeId, symbol: trade.symbol };
     }
 
     // Step 3: Place Market Exit Order
@@ -173,13 +171,12 @@ export async function POST(request: Request) {
         vpsIp
       );
     } catch (e: any) {
-      return NextResponse.json({ success: false, error: 'Failed to place exit order: ' + e.message }, { status: 500 });
+      return { success: false, error: `Failed to place exit order for ${trade.symbol}: ${e.message}`, tradeId, symbol: trade.symbol };
     }
 
     if (!marketExitRes || marketExitRes.status !== 'success') {
-      console.error('Kite Exit Order Failed:', marketExitRes);
       const errorMsg = marketExitRes?.message || 'Unknown Kite error';
-      return NextResponse.json({ success: false, error: `Kite error: ${errorMsg}` }, { status: 500 });
+      return { success: false, error: `Kite error for ${trade.symbol}: ${errorMsg}`, tradeId, symbol: trade.symbol };
     }
 
     const exitOrderId = marketExitRes.data.order_id;
@@ -219,8 +216,52 @@ export async function POST(request: Request) {
       }
     });
 
-    const msg = `Trade exited successfully!\nExit Price: ₹${Number(exitPrice).toFixed(2)}\nP&L: ${pnl >= 0 ? '+' : ''}₹${pnl.toFixed(2)}`;
-    return NextResponse.json({ success: true, message: msg });
+    const msg = `Trade ${trade.symbol} exited successfully! Exit Price: ₹${Number(exitPrice).toFixed(2)}, P&L: ${pnl >= 0 ? '+' : ''}₹${pnl.toFixed(2)}`;
+    return { success: true, message: msg, tradeId, symbol: trade.symbol, pnl, exitPrice: Number(exitPrice) };
+  } catch (err: any) {
+    console.error(`Error force exiting trade ${tradeId}:`, err);
+    return { success: false, error: err.message || 'Internal error', tradeId };
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { tradeId, tradeIds } = body;
+
+    // 1. Single trade exit (keeps exact backward compatibility for existing row-level button)
+    if (tradeId) {
+      const res = await forceExitSingleTrade(tradeId);
+      if (!res.success) {
+        return NextResponse.json({ success: false, error: res.error }, { status: 400 });
+      }
+      return NextResponse.json({ success: true, message: res.message, data: res });
+    }
+
+    // 2. Bulk trade exit (Executed simultaneously in parallel via Promise.all)
+    if (Array.isArray(tradeIds) && tradeIds.length > 0) {
+      console.log(`[BULK FORCE EXIT] Executing parallel exit for ${tradeIds.length} trades simultaneously...`);
+      const results = await Promise.all(tradeIds.map(id => forceExitSingleTrade(id)));
+      
+      const successResults = results.filter(r => r.success);
+      const failedResults = results.filter(r => !r.success);
+
+      const totalPnl = successResults.reduce((sum, r) => sum + (r.pnl || 0), 0);
+      const summaryMsg = `Bulk exit completed: ${successResults.length}/${tradeIds.length} trades exited successfully. Total P&L: ${totalPnl >= 0 ? '+' : ''}₹${totalPnl.toFixed(2)}`;
+
+      return NextResponse.json({
+        success: successResults.length > 0,
+        message: summaryMsg,
+        count: successResults.length,
+        total: tradeIds.length,
+        totalPnl,
+        failedCount: failedResults.length,
+        failedDetails: failedResults,
+        results
+      });
+    }
+
+    return NextResponse.json({ success: false, error: 'tradeId or tradeIds array is required' }, { status: 400 });
   } catch (error: any) {
     console.error('Error in force exit API:', error);
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });

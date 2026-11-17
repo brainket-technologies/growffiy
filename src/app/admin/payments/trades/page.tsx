@@ -9,7 +9,8 @@ import { Modal } from '../../../../shared/components/views/Modal';
 import { api } from '../../../../shared/services/api';
 import {
   Activity, Download, Calendar, ChevronDown,
-  Search, TrendingUp, TrendingDown, CheckCircle, AlertCircle, XCircle, ArrowUpRight, ArrowDownRight, RefreshCw
+  Search, TrendingUp, TrendingDown, CheckCircle, AlertCircle, XCircle, ArrowUpRight, ArrowDownRight, RefreshCw,
+  Zap, CheckSquare, Square, Filter
 } from 'lucide-react';
 
 function LegCell({ leg }: { leg: any }) {
@@ -192,6 +193,169 @@ export default function LiveTradeTransactionsPage() {
     } finally {
       setIsExiting(false);
       setTradeToForceExit(null);
+    }
+  };
+
+  // Bulk Force Exit State
+  const [isBulkExitModalOpen, setIsBulkExitModalOpen] = useState(false);
+  const [bulkSelectedClients, setBulkSelectedClients] = useState<string[]>(['ALL']);
+  const [bulkSelectedStocks, setBulkSelectedStocks] = useState<string[]>(['ALL']);
+  const [selectedTradeIdsToExit, setSelectedTradeIdsToExit] = useState<string[]>([]);
+  const [isBulkExiting, setIsBulkExiting] = useState(false);
+  const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
+  const [isStockDropdownOpen, setIsStockDropdownOpen] = useState(false);
+
+  // All open trades currently active across all loaded trades
+  const allLiveOpenTrades = useMemo(() => {
+    return (trades || []).filter(t => (t.status || '').toLowerCase() === 'open');
+  }, [trades]);
+
+  // Unique clients with open trades
+  const activeOpenClients = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; zerodhaId: string; count: number }>();
+    allLiveOpenTrades.forEach(t => {
+      const cId = t.clientId || t.client?.id || 'unknown';
+      const cName = t.client?.user?.name || t.clientName || 'Unknown Client';
+      const zId = t.client?.zerodhaClientId || '';
+      const existing = map.get(cId) || { id: cId, name: cName, zerodhaId: zId, count: 0 };
+      existing.count += 1;
+      map.set(cId, existing);
+    });
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [allLiveOpenTrades]);
+
+  // Unique stocks with open trades
+  const activeOpenStocks = useMemo(() => {
+    const map = new Map<string, { symbol: string; count: number }>();
+    allLiveOpenTrades.forEach(t => {
+      const sym = t.symbol || 'UNKNOWN';
+      const existing = map.get(sym) || { symbol: sym, count: 0 };
+      existing.count += 1;
+      map.set(sym, existing);
+    });
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+  }, [allLiveOpenTrades]);
+
+  // Matching trades based on selected client(s) and stock(s)
+  const modalMatchingTrades = useMemo(() => {
+    return allLiveOpenTrades.filter(t => {
+      const cId = t.clientId || t.client?.id || 'unknown';
+      const sym = t.symbol || '';
+
+      const isClientMatch = bulkSelectedClients.includes('ALL') || bulkSelectedClients.includes(cId);
+      const isStockMatch = bulkSelectedStocks.includes('ALL') || bulkSelectedStocks.includes(sym);
+
+      return isClientMatch && isStockMatch;
+    });
+  }, [allLiveOpenTrades, bulkSelectedClients, bulkSelectedStocks]);
+
+  // Sync selectedTradeIdsToExit whenever matching trades change or modal opens
+  useEffect(() => {
+    if (isBulkExitModalOpen) {
+      setSelectedTradeIdsToExit(modalMatchingTrades.map(t => t.id));
+    }
+  }, [modalMatchingTrades, isBulkExitModalOpen]);
+
+  const clientDropdownRef = useRef<HTMLDivElement>(null);
+  const stockDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (clientDropdownRef.current && !clientDropdownRef.current.contains(event.target as Node)) {
+        setIsClientDropdownOpen(false);
+      }
+      if (stockDropdownRef.current && !stockDropdownRef.current.contains(event.target as Node)) {
+        setIsStockDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleSelectAllClients = () => {
+    if (bulkSelectedClients.includes('ALL') || bulkSelectedClients.length === activeOpenClients.length) {
+      setBulkSelectedClients([]);
+    } else {
+      setBulkSelectedClients(['ALL']);
+    }
+  };
+
+  const toggleClientSelection = (clientId: string) => {
+    if (bulkSelectedClients.includes('ALL')) {
+      const others = activeOpenClients.map(c => c.id).filter(id => id !== clientId);
+      setBulkSelectedClients(others);
+    } else if (bulkSelectedClients.includes(clientId)) {
+      setBulkSelectedClients(bulkSelectedClients.filter(id => id !== clientId));
+    } else {
+      const next = [...bulkSelectedClients, clientId];
+      if (next.length === activeOpenClients.length) {
+        setBulkSelectedClients(['ALL']);
+      } else {
+        setBulkSelectedClients(next);
+      }
+    }
+  };
+
+  const toggleSelectAllStocks = () => {
+    if (bulkSelectedStocks.includes('ALL') || bulkSelectedStocks.length === activeOpenStocks.length) {
+      setBulkSelectedStocks([]);
+    } else {
+      setBulkSelectedStocks(['ALL']);
+    }
+  };
+
+  const toggleStockSelection = (symbol: string) => {
+    if (bulkSelectedStocks.includes('ALL')) {
+      const others = activeOpenStocks.map(s => s.symbol).filter(sym => sym !== symbol);
+      setBulkSelectedStocks(others);
+    } else if (bulkSelectedStocks.includes(symbol)) {
+      setBulkSelectedStocks(bulkSelectedStocks.filter(sym => sym !== symbol));
+    } else {
+      const next = [...bulkSelectedStocks, symbol];
+      if (next.length === activeOpenStocks.length) {
+        setBulkSelectedStocks(['ALL']);
+      } else {
+        setBulkSelectedStocks(next);
+      }
+    }
+  };
+
+  const toggleTradeCheckbox = (tradeId: string) => {
+    if (selectedTradeIdsToExit.includes(tradeId)) {
+      setSelectedTradeIdsToExit(selectedTradeIdsToExit.filter(id => id !== tradeId));
+    } else {
+      setSelectedTradeIdsToExit([...selectedTradeIdsToExit, tradeId]);
+    }
+  };
+
+  const toggleSelectAllMatchingTrades = () => {
+    if (selectedTradeIdsToExit.length === modalMatchingTrades.length) {
+      setSelectedTradeIdsToExit([]);
+    } else {
+      setSelectedTradeIdsToExit(modalMatchingTrades.map(t => t.id));
+    }
+  };
+
+  const handleExecuteBulkForceExit = async () => {
+    if (selectedTradeIdsToExit.length === 0) return;
+    if (!confirm(`Are you sure you want to FORCE EXIT ${selectedTradeIdsToExit.length} selected trade(s) simultaneously? This will cancel pending SL/Target orders and place MARKET exit orders immediately on Zerodha Kite.`)) {
+      return;
+    }
+
+    setIsBulkExiting(true);
+    try {
+      const res = await api.post('/api/admin/trades/force-exit', { tradeIds: selectedTradeIdsToExit });
+      if (res.success) {
+        alert(res.message || `Successfully exited ${selectedTradeIdsToExit.length} trades!`);
+        setIsBulkExitModalOpen(false);
+        refreshAllData();
+      } else {
+        alert(res.error || 'Failed to force exit selected trades');
+      }
+    } catch (err: any) {
+      alert(err.message || 'An error occurred during bulk force exit');
+    } finally {
+      setIsBulkExiting(false);
     }
   };
 
@@ -666,6 +830,33 @@ export default function LiveTradeTransactionsPage() {
           <Button variant="secondary" onClick={handleExportCSV} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Download size={14} /> Export CSV
           </Button>
+          {allLiveOpenTrades.length > 0 && (
+            <button
+              onClick={() => {
+                setBulkSelectedClients(['ALL']);
+                setBulkSelectedStocks(['ALL']);
+                setIsBulkExitModalOpen(true);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 600,
+                fontSize: '13px',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.35)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <Zap size={14} />
+              <span>Bulk Force Exit ({allLiveOpenTrades.length} Open)</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -1051,6 +1242,386 @@ export default function LiveTradeTransactionsPage() {
             <Button variant="danger" onClick={handleForceExit} disabled={isExiting}>
               {isExiting ? 'Exiting...' : 'Yes, Force Exit'}
             </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Master Bulk Force Exit Modal */}
+      <Modal
+        isOpen={isBulkExitModalOpen}
+        onClose={() => { if (!isBulkExiting) setIsBulkExitModalOpen(false); }}
+        title="⚡ Master Bulk Force Exit"
+        maxWidth="900px"
+        width="95vw"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Top Instruction Banner */}
+          <div style={{
+            padding: '12px 16px',
+            borderRadius: '8px',
+            backgroundColor: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            <AlertCircle size={18} color="#ef4444" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: '13px', color: '#b91c1c', lineHeight: '1.4' }}>
+              Select target <strong>Client(s)</strong> and <strong>Stock(s)</strong> to execute simultaneous market exit orders. All selected trades will be exited in parallel at the exact same moment on Zerodha Kite.
+            </span>
+          </div>
+
+          {/* 2 Multi-Select Dropdowns */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+            {/* Dropdown 1: Clients */}
+            <div ref={clientDropdownRef} style={{ position: 'relative' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: 'var(--text-primary)' }}>
+                1. Select Client(s) ({activeOpenClients.length} Active)
+              </label>
+              <div
+                onClick={() => setIsClientDropdownOpen(!isClientDropdownOpen)}
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  backgroundColor: 'var(--bg-white)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                }}
+              >
+                <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {bulkSelectedClients.includes('ALL') || bulkSelectedClients.length === activeOpenClients.length
+                    ? `☑️ ALL Clients (${activeOpenClients.length})`
+                    : bulkSelectedClients.length === 0
+                    ? 'No client selected'
+                    : `☑️ ${bulkSelectedClients.length} Client(s) Selected`}
+                </span>
+                <ChevronDown size={14} color="var(--text-muted)" />
+              </div>
+
+              {isClientDropdownOpen && (
+                <div style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 4px)',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'var(--bg-white)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '10px',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                  zIndex: 1100,
+                  maxHeight: '260px',
+                  overflowY: 'auto',
+                  padding: '8px'
+                }}>
+                  {/* ALL Toggle */}
+                  <div
+                    onClick={toggleSelectAllClients}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      backgroundColor: (bulkSelectedClients.includes('ALL') || bulkSelectedClients.length === activeOpenClients.length) ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
+                      fontWeight: 600,
+                      fontSize: '13px',
+                      color: 'var(--primary)'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={bulkSelectedClients.includes('ALL') || bulkSelectedClients.length === activeOpenClients.length}
+                      onChange={() => {}}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>ALL Clients (Select All)</span>
+                  </div>
+
+                  <div style={{ height: '1px', backgroundColor: 'var(--border)', margin: '6px 0' }} />
+
+                  {/* Individual Clients */}
+                  {activeOpenClients.map(c => {
+                    const isChecked = bulkSelectedClients.includes('ALL') || bulkSelectedClients.includes(c.id);
+                    return (
+                      <div
+                        key={c.id}
+                        onClick={() => toggleClientSelection(c.id)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '7px 10px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          backgroundColor: isChecked ? 'rgba(0,0,0,0.03)' : 'transparent'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {}}
+                            style={{ cursor: 'pointer' }}
+                          />
+                          <span><strong>{c.name}</strong> <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>({c.zerodhaId || 'No Demat'})</span></span>
+                        </div>
+                        <span className="badge badge-info" style={{ fontSize: '10px' }}>{c.count} open</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Dropdown 2: Stocks */}
+            <div ref={stockDropdownRef} style={{ position: 'relative' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: 'var(--text-primary)' }}>
+                2. Select Stock(s) ({activeOpenStocks.length} Traded Today)
+              </label>
+              <div
+                onClick={() => setIsStockDropdownOpen(!isStockDropdownOpen)}
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  backgroundColor: 'var(--bg-white)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                }}
+              >
+                <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {bulkSelectedStocks.includes('ALL') || bulkSelectedStocks.length === activeOpenStocks.length
+                    ? `☑️ ALL Stocks (${activeOpenStocks.length})`
+                    : bulkSelectedStocks.length === 0
+                    ? 'No stock selected'
+                    : `☑️ ${bulkSelectedStocks.length} Stock(s) Selected`}
+                </span>
+                <ChevronDown size={14} color="var(--text-muted)" />
+              </div>
+
+              {isStockDropdownOpen && (
+                <div style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 4px)',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'var(--bg-white)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '10px',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                  zIndex: 1100,
+                  maxHeight: '260px',
+                  overflowY: 'auto',
+                  padding: '8px'
+                }}>
+                  {/* ALL Stocks Toggle */}
+                  <div
+                    onClick={toggleSelectAllStocks}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      backgroundColor: (bulkSelectedStocks.includes('ALL') || bulkSelectedStocks.length === activeOpenStocks.length) ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
+                      fontWeight: 600,
+                      fontSize: '13px',
+                      color: 'var(--primary)'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={bulkSelectedStocks.includes('ALL') || bulkSelectedStocks.length === activeOpenStocks.length}
+                      onChange={() => {}}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>ALL Stocks (Select All)</span>
+                  </div>
+
+                  <div style={{ height: '1px', backgroundColor: 'var(--border)', margin: '6px 0' }} />
+
+                  {/* Individual Stocks */}
+                  {activeOpenStocks.map(s => {
+                    const isChecked = bulkSelectedStocks.includes('ALL') || bulkSelectedStocks.includes(s.symbol);
+                    return (
+                      <div
+                        key={s.symbol}
+                        onClick={() => toggleStockSelection(s.symbol)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '7px 10px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          backgroundColor: isChecked ? 'rgba(0,0,0,0.03)' : 'transparent'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {}}
+                            style={{ cursor: 'pointer' }}
+                          />
+                          <strong style={{ fontSize: '13px' }}>{s.symbol}</strong>
+                        </div>
+                        <span className="badge badge-info" style={{ fontSize: '10px' }}>{s.count} open</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Matching Open Trades Table Preview */}
+          <div style={{ border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+            <div style={{
+              padding: '10px 16px',
+              backgroundColor: 'var(--bg-secondary)',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <input
+                  type="checkbox"
+                  checked={modalMatchingTrades.length > 0 && selectedTradeIdsToExit.length === modalMatchingTrades.length}
+                  onChange={toggleSelectAllMatchingTrades}
+                  style={{ cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>Select All Matching ({modalMatchingTrades.length})</span>
+              </div>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                <strong>{selectedTradeIdsToExit.length}</strong> of <strong>{modalMatchingTrades.length}</strong> selected for Exit
+              </span>
+            </div>
+
+            <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
+              {modalMatchingTrades.length === 0 ? (
+                <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                  No open trades match the selected Client and Stock filter.
+                </div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
+                      <th style={{ padding: '8px 12px', width: '36px' }}></th>
+                      <th style={{ padding: '8px 12px' }}>Client</th>
+                      <th style={{ padding: '8px 12px' }}>Symbol</th>
+                      <th style={{ padding: '8px 12px' }}>Strategy</th>
+                      <th style={{ padding: '8px 12px' }}>Type</th>
+                      <th style={{ padding: '8px 12px' }}>Qty</th>
+                      <th style={{ padding: '8px 12px' }}>Entry Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {modalMatchingTrades.map(trade => {
+                      const isSelected = selectedTradeIdsToExit.includes(trade.id);
+                      const isShort = (trade.direction || '').toUpperCase() === 'SHORT' || (trade.direction || '').toUpperCase() === 'SELL';
+                      return (
+                        <tr
+                          key={trade.id}
+                          onClick={() => toggleTradeCheckbox(trade.id)}
+                          style={{
+                            borderBottom: '1px solid var(--border)',
+                            backgroundColor: isSelected ? 'rgba(239, 68, 68, 0.04)' : 'transparent',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {}}
+                              style={{ cursor: 'pointer' }}
+                            />
+                          </td>
+                          <td style={{ padding: '8px 12px' }}>
+                            <strong>{trade.client?.user?.name || trade.clientName || 'Client'}</strong>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '11px', display: 'block' }}>
+                              {trade.client?.zerodhaClientId || '--'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '8px 12px', fontWeight: 600 }}>{trade.symbol}</td>
+                          <td style={{ padding: '8px 12px', color: 'var(--text-secondary)' }}>
+                            {trade.strategy?.name || trade.strategyName || 'Strategy'}
+                          </td>
+                          <td style={{ padding: '8px 12px' }}>
+                            <span className={`badge ${isShort ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '10px' }}>
+                              {isShort ? 'SELL' : 'BUY'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '8px 12px', fontWeight: 600 }}>{trade.quantity}</td>
+                          <td style={{ padding: '8px 12px' }}>₹{Number(trade.entryPrice || 0).toFixed(2)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+
+          {/* Action Footer */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingTop: '12px',
+            borderTop: '1px solid var(--border)',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: selectedTradeIdsToExit.length > 0 ? '#dc2626' : 'var(--text-muted)' }}>
+              ⚡ {selectedTradeIdsToExit.length} Trade(s) selected for Instant Parallel Exit
+            </span>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <Button
+                variant="secondary"
+                onClick={() => setIsBulkExitModalOpen(false)}
+                disabled={isBulkExiting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={handleExecuteBulkForceExit}
+                disabled={isBulkExiting || selectedTradeIdsToExit.length === 0}
+                style={{
+                  backgroundColor: selectedTradeIdsToExit.length === 0 ? '#9ca3af' : '#dc2626',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                {isBulkExiting ? (
+                  <>
+                    <RefreshCw size={14} className="spin" /> Exiting in Parallel...
+                  </>
+                ) : (
+                  <>
+                    <Zap size={14} /> Confirm Force Exit ({selectedTradeIdsToExit.length})
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </Modal>
