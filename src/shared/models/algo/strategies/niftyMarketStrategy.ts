@@ -417,12 +417,12 @@ export class NiftyMarketStrategy {
             else if (requiredPattern === 'None' || !requiredPattern) isMatch = true;
 
             if (isMatch && ohlcCondition !== 'None') {
-              if (ohlcCondition === 'Open = High' && Math.abs(open - high) > 0.05) isMatch = false;
-              else if (ohlcCondition === 'Open = Low' && Math.abs(open - low) > 0.05) isMatch = false;
-              else if (ohlcCondition === 'Open = Close' && Math.abs(open - close) > 0.05) isMatch = false;
-              else if (ohlcCondition === 'High = Low' && Math.abs(high - low) > 0.05) isMatch = false;
-              else if (ohlcCondition === 'High = Close' && Math.abs(high - close) > 0.05) isMatch = false;
-              else if (ohlcCondition === 'Low = Close' && Math.abs(low - close) > 0.05) isMatch = false;
+              if (ohlcCondition === 'Open = High' && open !== high) isMatch = false;
+              else if (ohlcCondition === 'Open = Low' && open !== low) isMatch = false;
+              else if (ohlcCondition === 'Open = Close' && open !== close) isMatch = false;
+              else if (ohlcCondition === 'High = Low' && high !== low) isMatch = false;
+              else if (ohlcCondition === 'High = Close' && high !== close) isMatch = false;
+              else if (ohlcCondition === 'Low = Close' && low !== close) isMatch = false;
             }
 
             if (isMatch) {
