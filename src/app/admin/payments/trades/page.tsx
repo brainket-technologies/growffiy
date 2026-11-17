@@ -830,33 +830,31 @@ export default function LiveTradeTransactionsPage() {
           <Button variant="secondary" onClick={handleExportCSV} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Download size={14} /> Export CSV
           </Button>
-          {allLiveOpenTrades.length > 0 && (
-            <button
-              onClick={() => {
-                setBulkSelectedClients(['ALL']);
-                setBulkSelectedStocks(['ALL']);
-                setIsBulkExitModalOpen(true);
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                color: '#ffffff',
-                border: 'none',
-                fontWeight: 600,
-                fontSize: '13px',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.35)',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <Zap size={14} />
-              <span>Bulk Force Exit ({allLiveOpenTrades.length} Open)</span>
-            </button>
-          )}
+          <button
+            onClick={() => {
+              setBulkSelectedClients(['ALL']);
+              setBulkSelectedStocks(['ALL']);
+              setIsBulkExitModalOpen(true);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              color: '#ffffff',
+              border: 'none',
+              fontWeight: 600,
+              fontSize: '13px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(239, 68, 68, 0.35)',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <Zap size={14} />
+            <span>Bulk Force Exit {allLiveOpenTrades.length > 0 ? `(${allLiveOpenTrades.length} Open)` : '(0 Open)'}</span>
+          </button>
         </div>
       </div>
 
