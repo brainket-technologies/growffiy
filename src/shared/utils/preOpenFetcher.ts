@@ -59,7 +59,7 @@ export async function fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
 
   try {
     console.log('Initiating pre-open fetch from official NSE India API...');
-    const cookieFetchUrl = 'https://www.nseindia.com/';
+    const cookieFetchUrl = 'https://www.nseindia.in/market-data/live-equity-market';
     const initialRes = await fetch(cookieFetchUrl, { headers });
     const cookiesRaw = initialRes.headers.get('set-cookie');
     
@@ -88,7 +88,7 @@ export async function fetchLivePreOpenFromNSE(): Promise<StockQuote[]> {
 
     const fetchIndexSymbols = async (key: string): Promise<string[]> => {
       try {
-        const res = await fetch(`https://www.nseindia.com/api/market-data-pre-open?key=${key}`, {
+        const res = await fetch(`https://www.nseindia.in/api/market-data-pre-open?key=${key}`, {
           headers: requestHeaders
         });
         if (!res.ok) return [];

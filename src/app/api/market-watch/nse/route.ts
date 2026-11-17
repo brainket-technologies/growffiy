@@ -7,8 +7,16 @@ const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (
 // Reusable HTTPS agent (keep-alive)
 const agent = new https.Agent({ keepAlive: true, rejectUnauthorized: false });
 
-function httpGet(url: string, headers: Record<string, string>, timeoutMs = 12000): Promise<{ status: number; body: string; cookies: string[] }> {
+function httpGet(
+  url: string,
+  headers: Record<string, string>,
+  timeoutMs = 12000,
+  redirectCount = 0
+): Promise<{ status: number; body: string; cookies: string[] }> {
   return new Promise((resolve, reject) => {
+    if (redirectCount > 5) {
+      return reject(new Error('Too many redirects from NSE'));
+    }
     const parsed = new URL(url);
     const req = https.request(
       {
@@ -24,6 +32,18 @@ function httpGet(url: string, headers: Record<string, string>, timeoutMs = 12000
         const rawCookies = res.headers['set-cookie'];
         if (Array.isArray(rawCookies)) cookies.push(...rawCookies.map(c => c.split(';')[0].trim()));
         else if (typeof rawCookies === 'string') cookies.push((rawCookies as string).split(';')[0].trim());
+
+        // Handle redirects (301, 302, 307, 308)
+        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          const nextUrl = new URL(res.headers.location, url).toString();
+          const nextHeaders = { ...headers };
+          if (cookies.length > 0) {
+            const currentCookie = nextHeaders['Cookie'] || '';
+            nextHeaders['Cookie'] = currentCookie ? `${currentCookie}; ${cookies.join('; ')}` : cookies.join('; ');
+          }
+          res.resume(); // drain response
+          return resolve(httpGet(nextUrl, nextHeaders, timeoutMs, redirectCount + 1));
+        }
 
         const chunks: Buffer[] = [];
         const enc = res.headers['content-encoding'] ?? '';
@@ -76,15 +96,10 @@ async function doRefresh(): Promise<void> {
     'Upgrade-Insecure-Requests': '1',
   };
 
-  // Step 1 – homepage
-  const r1 = await httpGet('https://www.nseindia.com/', baseHeaders, 10000);
-  mergeCookieList(map, r1.cookies);
-
-  // Step 2 – market page
-  const r2 = await httpGet('https://www.nseindia.com/market-data/live-equity-market', {
+  // Step 1 – market page on .in domain
+  const r2 = await httpGet('https://www.nseindia.in/market-data/live-equity-market', {
     ...baseHeaders,
-    'Cookie': buildCookieHeader(map),
-    'Referer': 'https://www.nseindia.com/',
+    'Referer': 'https://www.nseindia.in/',
   }, 10000);
   mergeCookieList(map, r2.cookies);
 
@@ -107,14 +122,14 @@ export async function GET(req: NextRequest) {
 
   try {
     const cookies = await getCookies();
-    const nseUrl  = `https://www.nseindia.com/api/NextApi/apiClient/marketWatchApi?functionName=getIndicesData&symbol=${encodeURIComponent(symbol)}`;
+    const nseUrl  = `https://www.nseindia.in/api/NextApi/apiClient/marketWatchApi?functionName=getIndicesData&symbol=${encodeURIComponent(symbol)}`;
 
     const apiHeaders = {
       'User-Agent': UA,
       'Accept': 'application/json, text/plain, */*',
       'Accept-Language': 'en-US,en;q=0.9',
       'Accept-Encoding': 'gzip, deflate, br',
-      'Referer': 'https://www.nseindia.com/market-data/live-equity-market',
+      'Referer': 'https://www.nseindia.in/market-data/live-equity-market',
       'Cookie': cookies,
       'sec-ch-ua': '"Chromium";v="124"',
       'sec-ch-ua-mobile': '?0',

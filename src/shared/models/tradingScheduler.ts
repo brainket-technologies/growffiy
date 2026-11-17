@@ -1486,8 +1486,13 @@ export class TradingScheduler {
       'SECURITIES IN F&O', 'PERMITTED TO TRADE',
     ];
 
-    const httpGet = (url: string, headers: Record<string, string>): Promise<{ status: number; body: string; cookies: string[] }> =>
+    const httpGet = (
+      url: string,
+      headers: Record<string, string>,
+      redirectCount = 0
+    ): Promise<{ status: number; body: string; cookies: string[] }> =>
       new Promise((resolve, reject) => {
+        if (redirectCount > 5) return reject(new Error('Too many redirects from NSE'));
         const parsed = new URL(url);
         const req = https.request(
           { hostname: parsed.hostname, path: parsed.pathname + parsed.search, method: 'GET', headers, agent, timeout: 15000 },
@@ -1496,6 +1501,19 @@ export class TradingScheduler {
             const raw = res.headers['set-cookie'];
             if (Array.isArray(raw)) cookies.push(...raw.map((c: string) => c.split(';')[0].trim()));
             else if (raw) cookies.push((raw as string).split(';')[0].trim());
+
+            // Follow HTTP 301, 302, 307, 308 redirects automatically
+            if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+              const nextUrl = new URL(res.headers.location, url).toString();
+              const nextHeaders = { ...headers };
+              if (cookies.length > 0) {
+                const currentCookie = nextHeaders['Cookie'] || '';
+                nextHeaders['Cookie'] = currentCookie ? `${currentCookie}; ${cookies.join('; ')}` : cookies.join('; ');
+              }
+              res.resume();
+              return resolve(httpGet(nextUrl, nextHeaders, redirectCount + 1));
+            }
+
             const chunks: Buffer[] = [];
             const enc = res.headers['content-encoding'] ?? '';
             let stream: NodeJS.ReadableStream = res;
@@ -1514,13 +1532,10 @@ export class TradingScheduler {
     try {
       console.log(`AlgoEngine Scheduler: Recording Market Watch snapshot for ${formattedDate} ${timeStr}...`);
 
-      // Step 1: Get NSE cookies
+      // Step 1: Get NSE cookies from live equity market page (.in domain)
       const base = { 'User-Agent': UA, 'Accept': 'text/html,*/*;q=0.8', 'Accept-Encoding': 'gzip, deflate, br', 'Accept-Language': 'en-US,en;q=0.9', 'Connection': 'keep-alive' };
       const cookieMap: Record<string, string> = {};
-      const r1 = await httpGet('https://www.nseindia.com/', base);
-      for (const c of r1.cookies) { const eq = c.indexOf('='); if (eq > 0) cookieMap[c.slice(0, eq)] = c.slice(eq + 1); }
-      const cookie1 = Object.entries(cookieMap).map(([k, v]) => `${k}=${v}`).join('; ');
-      const r2 = await httpGet('https://www.nseindia.com/market-data/live-equity-market', { ...base, 'Cookie': cookie1, 'Referer': 'https://www.nseindia.com/' });
+      const r2 = await httpGet('https://www.nseindia.in/market-data/live-equity-market', { ...base, 'Referer': 'https://www.nseindia.in/' });
       for (const c of r2.cookies) { const eq = c.indexOf('='); if (eq > 0) cookieMap[c.slice(0, eq)] = c.slice(eq + 1); }
       const cookies = Object.entries(cookieMap).map(([k, v]) => `${k}=${v}`).join('; ');
 
@@ -1528,11 +1543,11 @@ export class TradingScheduler {
       console.log(`AlgoEngine Scheduler: Fetching 31 indices concurrently from NSE...`);
       const fetchPromises = INDICES.map(async (indexName) => {
         try {
-          const url = `https://www.nseindia.com/api/NextApi/apiClient/marketWatchApi?functionName=getIndicesData&symbol=${encodeURIComponent(indexName)}`;
+          const url = `https://www.nseindia.in/api/NextApi/apiClient/marketWatchApi?functionName=getIndicesData&symbol=${encodeURIComponent(indexName)}`;
           const r = await httpGet(url, {
             'User-Agent': UA, 'Accept': 'application/json, text/plain, */*',
             'Accept-Encoding': 'gzip, deflate, br', 'Accept-Language': 'en-US,en;q=0.9',
-            'Referer': 'https://www.nseindia.com/market-data/live-equity-market',
+            'Referer': 'https://www.nseindia.in/market-data/live-equity-market',
             'Cookie': cookies, 'Sec-Fetch-Dest': 'empty', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-origin',
           });
           if (r.status === 200) {

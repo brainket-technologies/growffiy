@@ -26,8 +26,13 @@ const SNAPSHOT_INDICES = [
 const ALLOWED_SLOTS = ['09:16', '09:20', '09:30', '09:45', '10:00', '12:00'];
 
 // ── HTTP helper ───────────────────────────────────────────────────────────────
-function httpGet(url: string, headers: Record<string, string>): Promise<{ status: number; body: string; cookies: string[] }> {
+function httpGet(
+  url: string,
+  headers: Record<string, string>,
+  redirectCount = 0
+): Promise<{ status: number; body: string; cookies: string[] }> {
   return new Promise((resolve, reject) => {
+    if (redirectCount > 5) return reject(new Error('Too many redirects from NSE'));
     const parsed = new URL(url);
     const req = https.request(
       { hostname: parsed.hostname, path: parsed.pathname + parsed.search, method: 'GET', headers, agent, timeout: 15000 },
@@ -35,7 +40,19 @@ function httpGet(url: string, headers: Record<string, string>): Promise<{ status
         const cookies: string[] = [];
         const raw = res.headers['set-cookie'];
         if (Array.isArray(raw)) cookies.push(...raw.map(c => c.split(';')[0].trim()));
-        else if (typeof raw === 'string') cookies.push((raw as string).split(';')[0].trim());
+        else if (raw) cookies.push((raw as string).split(';')[0].trim());
+
+        // Follow HTTP 301, 302, 307, 308 redirects automatically
+        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          const nextUrl = new URL(res.headers.location, url).toString();
+          const nextHeaders = { ...headers };
+          if (cookies.length > 0) {
+            const currentCookie = nextHeaders['Cookie'] || '';
+            nextHeaders['Cookie'] = currentCookie ? `${currentCookie}; ${cookies.join('; ')}` : cookies.join('; ');
+          }
+          res.resume();
+          return resolve(httpGet(nextUrl, nextHeaders, redirectCount + 1));
+        }
 
         const chunks: Buffer[] = [];
         const enc = res.headers['content-encoding'] ?? '';
@@ -61,12 +78,8 @@ async function getCookies(): Promise<string> {
     'Connection': 'keep-alive',
   };
   const map: Record<string, string> = {};
-  const r1 = await httpGet('https://www.nseindia.com/', base);
-  for (const c of r1.cookies) { const eq = c.indexOf('='); if (eq > 0) map[c.slice(0, eq)] = c.slice(eq + 1); }
-
-  const cookie1 = Object.entries(map).map(([k, v]) => `${k}=${v}`).join('; ');
-  const r2 = await httpGet('https://www.nseindia.com/market-data/live-equity-market', {
-    ...base, 'Cookie': cookie1, 'Referer': 'https://www.nseindia.com/',
+  const r2 = await httpGet('https://www.nseindia.in/market-data/live-equity-market', {
+    ...base, 'Referer': 'https://www.nseindia.in/',
   });
   for (const c of r2.cookies) { const eq = c.indexOf('='); if (eq > 0) map[c.slice(0, eq)] = c.slice(eq + 1); }
 
@@ -74,12 +87,12 @@ async function getCookies(): Promise<string> {
 }
 
 async function fetchIndexData(symbol: string, cookies: string): Promise<any[] | null> {
-  const url = `https://www.nseindia.com/api/NextApi/apiClient/marketWatchApi?functionName=getIndicesData&symbol=${encodeURIComponent(symbol)}`;
+  const url = `https://www.nseindia.in/api/NextApi/apiClient/marketWatchApi?functionName=getIndicesData&symbol=${encodeURIComponent(symbol)}`;
   try {
     const r = await httpGet(url, {
       'User-Agent': UA, 'Accept': 'application/json, text/plain, */*',
       'Accept-Encoding': 'gzip, deflate, br', 'Accept-Language': 'en-US,en;q=0.9',
-      'Referer': 'https://www.nseindia.com/market-data/live-equity-market',
+      'Referer': 'https://www.nseindia.in/market-data/live-equity-market',
       'Cookie': cookies, 'Sec-Fetch-Dest': 'empty', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-origin',
     });
     if (r.status !== 200) return null;

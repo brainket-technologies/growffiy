@@ -35,9 +35,9 @@ export const API_ENDPOINTS = {
   PAYMENTS_VERIFY: '/api/payments/verify',
   PAYMENTS_HISTORY: '/api/payments/history',
   CALLBACK_ZERODHA: '/api/callback/zerodha',
-  NSE_PRE_OPEN: 'https://www.nseindia.com/api/market-data-pre-open?key=ALL',
-  NSE_HOME: 'https://www.nseindia.com/',
-  NSE_REFERER: 'https://www.nseindia.com/market-data/pre-open-market-key-indices-all',
+  NSE_PRE_OPEN: 'https://www.nseindia.in/api/market-data-pre-open?key=ALL',
+  NSE_HOME: 'https://www.nseindia.in/',
+  NSE_REFERER: 'https://www.nseindia.in/market-data/pre-open-market-key-indices-all',
   KITE_INSTRUMENTS: 'https://api.kite.trade/instruments/NSE',
   KITE_BASE: 'https://api.kite.trade',
 };

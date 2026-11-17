@@ -7,14 +7,31 @@ const prisma = new PrismaClient();
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 const agent = new https.Agent({ keepAlive: true, rejectUnauthorized: false });
 
-function httpGet(url: string, headers: Record<string, string>): Promise<{ status: number; body: string; cookies: string[] }> {
+function httpGet(
+  url: string,
+  headers: Record<string, string>,
+  redirectCount = 0
+): Promise<{ status: number; body: string; cookies: string[] }> {
   return new Promise((resolve, reject) => {
+    if (redirectCount > 5) return reject(new Error('Too many redirects from NSE'));
     const parsed = new URL(url);
     const req = https.request({ hostname: parsed.hostname, path: parsed.pathname + parsed.search, method: 'GET', headers, agent, timeout: 15000 }, (res) => {
       const cookies: string[] = [];
       const raw = res.headers['set-cookie'];
       if (Array.isArray(raw)) cookies.push(...raw.map(c => c.split(';')[0].trim()));
-      else if (raw) cookies.push(raw.split(';')[0].trim());
+      else if (raw) cookies.push((raw as string).split(';')[0].trim());
+
+      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        const nextUrl = new URL(res.headers.location, url).toString();
+        const nextHeaders = { ...headers };
+        if (cookies.length > 0) {
+          const currentCookie = nextHeaders['Cookie'] || '';
+          nextHeaders['Cookie'] = currentCookie ? `${currentCookie}; ${cookies.join('; ')}` : cookies.join('; ');
+        }
+        res.resume();
+        return resolve(httpGet(nextUrl, nextHeaders, redirectCount + 1));
+      }
+
       const chunks: Buffer[] = [];
       const enc = res.headers['content-encoding'] ?? '';
       let stream: NodeJS.ReadableStream = res;
@@ -32,20 +49,18 @@ function httpGet(url: string, headers: Record<string, string>): Promise<{ status
 
 async function getCookies(): Promise<string> {
   const base = { 'User-Agent': UA, 'Accept': 'text/html,*/*;q=0.8', 'Accept-Encoding': 'gzip, deflate, br', 'Accept-Language': 'en-US,en;q=0.9', 'Connection': 'keep-alive' };
-  const r1 = await httpGet('https://www.nseindia.com/', base);
+  const r2 = await httpGet('https://www.nseindia.in/market-data/live-equity-market', { ...base, 'Referer': 'https://www.nseindia.in/' });
   const map: Record<string,string> = {};
-  for (const c of r1.cookies) { const eq = c.indexOf('='); if (eq>0) map[c.slice(0,eq)] = c.slice(eq+1); }
-  const r2 = await httpGet('https://www.nseindia.com/market-data/live-equity-market', { ...base, 'Cookie': Object.entries(map).map(([k,v]) => `${k}=${v}`).join('; '), 'Referer': 'https://www.nseindia.com/' });
   for (const c of r2.cookies) { const eq = c.indexOf('='); if (eq>0) map[c.slice(0,eq)] = c.slice(eq+1); }
   return Object.entries(map).map(([k,v]) => `${k}=${v}`).join('; ');
 }
 
 async function fetchIndexData(symbol: string, cookies: string) {
-  const url = `https://www.nseindia.com/api/NextApi/apiClient/marketWatchApi?functionName=getIndicesData&symbol=${encodeURIComponent(symbol)}`;
+  const url = `https://www.nseindia.in/api/NextApi/apiClient/marketWatchApi?functionName=getIndicesData&symbol=${encodeURIComponent(symbol)}`;
   const r = await httpGet(url, {
     'User-Agent': UA, 'Accept': 'application/json, text/plain, */*',
     'Accept-Encoding': 'gzip, deflate, br', 'Accept-Language': 'en-US,en;q=0.9',
-    'Referer': 'https://www.nseindia.com/market-data/live-equity-market',
+    'Referer': 'https://www.nseindia.in/market-data/live-equity-market',
     'Cookie': cookies, 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-origin',
   });
   if (r.status !== 200) return null;
@@ -56,7 +71,6 @@ async function fetchIndexData(symbol: string, cookies: string) {
 const INDICES = [
   'NIFTY 50', 'NIFTY BANK', 'NIFTY FIN SERVICE', 'NIFTY MID SELECT', 'NIFTY NEXT 50', 'NIFTY 100', 'NIFTY 200', 'NIFTY 500',
   'NIFTY MIDCAP 100', 'NIFTY SMLCAP 100', 'NIFTY AUTO', 'NIFTY FMCG', 'NIFTY IT', 'NIFTY METAL', 'NIFTY PHARMA', 'NIFTY REALTY'
-  // Extend as needed, keeping it to the most important ones to avoid script taking too long.
 ];
 
 async function main() {
