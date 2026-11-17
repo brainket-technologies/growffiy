@@ -145,9 +145,21 @@ export class TradingScheduler {
         // Check for Market Watch snapshots at specific times (same 4 slots)
         if (targetOhlcTimes.includes(currentTimeStr) && this.lastMarketWatchSnapshot.get(currentTimeStr) !== currentDateKey) {
           this.lastMarketWatchSnapshot.set(currentTimeStr, currentDateKey);
-          this.recordMarketWatchSnapshot(currentTimeStr).catch(err => {
-            console.error('Error recording Market Watch snapshot in scheduler thread:', err);
-          });
+          this.recordMarketWatchSnapshot(currentTimeStr)
+            .then(async () => {
+              // Auto-trigger candidate selection for all Nifty Market strategies that use this slot
+              try {
+                if (this.engine?.niftyMarketStrategy?.preSelectAllClients) {
+                  console.log(`AlgoEngine Scheduler: Auto-selecting Nifty Market candidates for slot ${currentTimeStr}...`);
+                  await this.engine.niftyMarketStrategy.preSelectAllClients(undefined, currentTimeStr);
+                }
+              } catch (autoErr) {
+                console.error(`AlgoEngine Scheduler: Error auto-selecting Nifty Market candidates for ${currentTimeStr}:`, autoErr);
+              }
+            })
+            .catch(err => {
+              console.error('Error recording Market Watch snapshot in scheduler thread:', err);
+            });
         }
 
         cachedFetchTime = await this.engine.getAlgoSetting('algo_preopen_fetch_time', '09:08');

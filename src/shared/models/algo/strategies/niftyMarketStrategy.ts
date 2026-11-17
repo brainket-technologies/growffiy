@@ -29,11 +29,11 @@ export class NiftyMarketStrategy {
     this.engine = engine;
   }
 
-  async preSelectAllClients(strategyId?: string): Promise<void> {
+  async preSelectAllClients(strategyId?: string, targetSlotTime?: string): Promise<void> {
     if (strategyId) {
       this.engine.preselectedStockByStrategy.delete(strategyId);
       try { await prisma.strategyPreselect.deleteMany({ where: { strategyId } }); } catch (e) { }
-    } else {
+    } else if (!targetSlotTime) {
       this.engine.preselectedStockByStrategy.clear();
       this.engine.marginCache.clear();
       try { await prisma.strategyPreselect.deleteMany(); } catch (e) { }
@@ -90,6 +90,18 @@ export class NiftyMarketStrategy {
       const targetIndex = config.basicInfo?.segment || config.basicInfo?.indexName || 'NIFTY 500';
       const slotTime = config.basicInfo?.snapshotTimeSlot || '09:20';
       const topCount = Number(config.basicInfo?.topCount) || 20;
+
+      let cleanSlot = slotTime;
+      if (slotTime.includes(':')) {
+        const parts = slotTime.split(':');
+        const h = parts[0].trim().padStart(2, '0');
+        const m = parts[1].trim().slice(0, 2);
+        cleanSlot = `${h}:${m}`;
+      }
+
+      if (targetSlotTime && cleanSlot !== targetSlotTime) {
+        continue;
+      }
 
       let candidateStocks: StockQuote[] = [];
 
@@ -263,7 +275,15 @@ export class NiftyMarketStrategy {
       let preselectedStocks: StockQuote[] = [];
       try {
         const dbRecord = await prisma.strategyPreselect.findUnique({ where: { strategyId: group.strategyId } });
-        if (dbRecord) preselectedStocks = JSON.parse(dbRecord.stockData);
+        if (dbRecord) {
+          const recDate = new Date(dbRecord.updatedAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+          if (recDate === dateStr) {
+            preselectedStocks = JSON.parse(dbRecord.stockData);
+          } else {
+            console.log(`AlgoEngine NiftyMarket: Discarding stale preselected stocks from ${recDate} for ${group.strategyName}`);
+            preselectedStocks = [];
+          }
+        }
       } catch (e) {}
 
       if (!preselectedStocks || preselectedStocks.length === 0) {
@@ -271,7 +291,7 @@ export class NiftyMarketStrategy {
       }
 
       if (!preselectedStocks || preselectedStocks.length === 0) {
-        console.log(`AlgoEngine NiftyMarket: Preselected stocks empty for ${group.strategyName}, auto pre-selecting now...`);
+        console.log(`AlgoEngine NiftyMarket: Candidates empty for ${group.strategyName}, auto-selecting from snapshot now...`);
         await this.preSelectAllClients(group.strategyId);
         preselectedStocks = this.engine.preselectedStockByStrategy.get(group.strategyId) || [];
         if (!preselectedStocks || preselectedStocks.length === 0) {

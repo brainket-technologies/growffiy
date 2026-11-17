@@ -178,7 +178,7 @@ const INITIAL_CONFIG: StrategyConfig = {
     snapshotTimeSlot: '09:20',
     engineType: 'FIRST_MINUTE',
     preSelectTime: '09:15',
-    exitTime: '15:15',
+    exitTime: '15:05:00',
     maxTradesPerDay: 1,
     selectPosition: 1,
     numberOfStocks: 1,
@@ -1009,11 +1009,13 @@ export default function StrategiesPage() {
       return;
     }
 
+    const isSnapshotStrategy = formData.basicInfo.snapshotTimeSlot && formData.basicInfo.snapshotTimeSlot !== 'PRE_OPEN';
     const configToSave = {
       ...formData,
       basicInfo: {
         ...formData.basicInfo,
-        engineType: formData.basicInfo.engineType || 'FIRST_MINUTE'
+        engineType: formData.basicInfo.engineType || 'FIRST_MINUTE',
+        preSelectTime: isSnapshotStrategy ? '' : formData.basicInfo.preSelectTime
       }
     };
 
@@ -1837,19 +1839,28 @@ export default function StrategiesPage() {
                   <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '16px' }}>
                     <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>TIMING</label>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <label style={{ fontSize: '11px', fontWeight: 600 }}>Pre-Select Time</label>
-                        <input
-                          type="time"
-                          step="1"
-                          value={formData.basicInfo.preSelectTime}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            basicInfo: { ...formData.basicInfo, preSelectTime: e.target.value }
-                          })}
-                          style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
-                        />
-                      </div>
+                      {formData.basicInfo.snapshotTimeSlot && formData.basicInfo.snapshotTimeSlot !== 'PRE_OPEN' ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)' }}>Pre-Select Timing</label>
+                          <div style={{ padding: '8px 12px', borderRadius: '6px', border: '1px dashed #10b981', background: 'rgba(16, 185, 129, 0.08)', color: '#10b981', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '6px', height: '38px' }}>
+                            <span>⚡ Auto-Selected at {formData.basicInfo.snapshotTimeSlot} snapshot</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{ fontSize: '11px', fontWeight: 600 }}>Pre-Select Time</label>
+                          <input
+                            type="time"
+                            step="1"
+                            value={formData.basicInfo.preSelectTime}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              basicInfo: { ...formData.basicInfo, preSelectTime: e.target.value }
+                            })}
+                            style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', outline: 'none' }}
+                          />
+                        </div>
+                      )}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <label style={{ fontSize: '11px', fontWeight: 600 }}>Exit Time</label>
                         <input
