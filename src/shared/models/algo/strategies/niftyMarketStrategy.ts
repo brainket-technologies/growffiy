@@ -472,12 +472,19 @@ export class NiftyMarketStrategy {
 
       const selectionType = (config?.basicInfo?.stockSelectionType || config?.basicInfo?.selectionType || '').toLowerCase();
       const isPureLoserStrategy = selectionType.includes('gapdown') || selectionType.includes('loser');
+      const isPureGainerStrategy = selectionType.includes('gapup') || selectionType.includes('gainer');
 
       if (isPureLoserStrategy) {
         if (activeLegs.length > 0) {
           const leg1 = activeLegs[0];
           if (leg1.tradeAction?.candlePattern) loserLegPattern = leg1.tradeAction.candlePattern as any;
           if (leg1.tradeAction?.selectPosition) loserCandlePos = Number(leg1.tradeAction.selectPosition) || 1;
+        }
+      } else if (isPureGainerStrategy) {
+        if (activeLegs.length > 0) {
+          const leg1 = activeLegs[0];
+          if (leg1.tradeAction?.candlePattern) gainerLegPattern = leg1.tradeAction.candlePattern as any;
+          if (leg1.tradeAction?.selectPosition) gainerCandlePos = Number(leg1.tradeAction.selectPosition) || 1;
         }
       } else {
         if (activeLegs.length > 0) {
@@ -493,8 +500,12 @@ export class NiftyMarketStrategy {
       }
 
       const [targetGainers, targetLosers] = await Promise.all([
-        findMatchingStocks(gainers, gainerLegPattern, gainerCandlePos, gainerOhlc, maxStocksToTrade, selectPosition),
-        findMatchingStocks(losers, loserLegPattern, loserCandlePos, loserOhlc, maxStocksToTrade, selectPosition)
+        isPureLoserStrategy
+          ? Promise.resolve([])
+          : findMatchingStocks(gainers, gainerLegPattern, gainerCandlePos, gainerOhlc, maxStocksToTrade, selectPosition),
+        isPureGainerStrategy
+          ? Promise.resolve([])
+          : findMatchingStocks(losers, loserLegPattern, loserCandlePos, loserOhlc, maxStocksToTrade, selectPosition)
       ]);
 
       await Promise.all(
