@@ -523,42 +523,14 @@ export default function TradeSummaryPage() {
         </div>
       </div>
 
-      {/* Top 3 Summary Cards Section with Custom Pastel Gradients, Waves & Candlestick Banner */}
-      <div style={{
-        position: 'relative',
-        borderRadius: '20px',
-        padding: '20px',
-        background: 'linear-gradient(135deg, rgba(219, 234, 254, 0.4) 0%, rgba(240, 249, 255, 0.6) 50%, rgba(255, 255, 255, 0.9) 100%)',
-        border: '1px solid rgba(226, 232, 240, 0.8)',
-        boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)',
-        overflow: 'hidden'
+      {/* Top 3 Summary Cards */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+        gap: '16px'
       }}>
-        {/* Candlestick Silhouette Banner in Top-Right Background */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img 
-          src="/candlestick_banner.png" 
-          alt="" 
-          style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            height: '45px',
-            objectFit: 'contain',
-            opacity: 0.85,
-            pointerEvents: 'none',
-            zIndex: 0
-          }} 
-        />
-
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-          gap: '16px',
-          position: 'relative',
-          zIndex: 1
-        }}>
-          
-          {/* Card 1: Total Demat (Light Blue Pastel with Fluid Waves & Money Pouch PNG) */}
+        
+        {/* Card 1: Total Demat (Light Blue Pastel with Fluid Waves & Money Pouch PNG) */}
           <div style={{
             position: 'relative',
             overflow: 'hidden',
@@ -696,9 +668,7 @@ export default function TradeSummaryPage() {
               <path d="M15,88 C50,72 80,98 125,62 C145,42 155,48 160,50" fill="none" stroke="rgba(168, 85, 247, 0.9)" strokeWidth="1.5" />
             </svg>
           </div>
-
         </div>
-      </div>
 
       {/* Main Table Card (Exact structure & classes matching trades/page.tsx) */}
       <Card>
