@@ -225,19 +225,19 @@ export default function GroupTradesPage() {
   // Aggregate stats
   const stats = useMemo(() => {
     let totalPnl = 0;
-    let totalClientsActive = 0;
+    let totalTradesExecuted = 0;
     const uniqueStrategies = new Set<string>();
 
     groupedTrades.forEach(g => {
       totalPnl += g.totalPnl;
-      totalClientsActive += g.clientsList.length;
+      totalTradesExecuted += g.clientsList.length;
       uniqueStrategies.add(g.strategy);
     });
 
     return {
       totalPnl,
       totalGroups: groupedTrades.length,
-      clientsCount: totalClientsActive,
+      tradesCount: totalTradesExecuted,
       strategiesCount: uniqueStrategies.size
     };
   }, [groupedTrades]);
@@ -424,12 +424,12 @@ export default function GroupTradesPage() {
         </Card>
 
         <Card style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ background: 'rgba(168, 85, 247, 0.1)', color: '#a855f7', padding: '10px', borderRadius: '10px' }}>
-            <Users size={20} />
+          <div style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1', padding: '10px', borderRadius: '10px' }}>
+            <Activity size={20} />
           </div>
           <div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Total Active Executions</div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-heading)', marginTop: '2px' }}>{stats.clientsCount} Clients</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Total Trades Executed</div>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-heading)', marginTop: '2px' }}>{stats.tradesCount} Trades</div>
           </div>
         </Card>
 
