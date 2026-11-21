@@ -151,6 +151,13 @@
 /* Page Wrapper */
 .layoutWrapper {
   display: flex;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #F0F6FE 0%, #E6F0FC 60%, #E2EDFC 100%);
+  position: relative;
+}
+
+:global([data-theme="dark"]) .layoutWrapper {
+  background: #0f172a !important;
 }
 
 .contentWrapper {
@@ -159,7 +166,9 @@
   padding: 28px;
   width: calc(100% - var(--sidebar-width));
   min-height: calc(100vh - var(--header-height));
-  background: var(--bg);
+  background: transparent;
+  position: relative;
+  z-index: 1;
 }
 
 /* Table Toolbar */

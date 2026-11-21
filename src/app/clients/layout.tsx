@@ -6,6 +6,7 @@ import { AppProvider } from '../../shared/viewmodels/AppContext';
 import { Sidebar } from '../../shared/components/sidebar/Sidebar';
 import { Header } from '../../shared/components/sidebar/Header';
 import { Loader } from '../../shared/components/views/Loader';
+import { FinancialPageBackground } from '../../shared/components/layout/FinancialPageBackground';
 import styles from '../../shared/components/views/components.module.css';
 
 export default function ClientDashboardLayout({
@@ -108,12 +109,13 @@ export default function ClientDashboardLayout({
     <AppProvider>
       <div className={`${styles.layoutWrapper} client-layout`}>
         <Sidebar isAdmin={false} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflowX: 'hidden' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflowX: 'hidden', position: 'relative', zIndex: 1 }}>
           <Header title="Growffi Client Portal" userName={activeUser.name} userRole="Client Account" />
           <main className={styles.contentWrapper} style={{ maxWidth: '100%', boxSizing: 'border-box' }}>
             {children}
           </main>
         </div>
+        <FinancialPageBackground />
       </div>
       <style>{`
         .client-layout main { box-sizing: border-box !important; max-width: 100% !important; }

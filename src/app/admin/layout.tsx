@@ -6,6 +6,7 @@ import { AppProvider } from '../../shared/viewmodels/AppContext';
 import { Sidebar } from '../../shared/components/sidebar/Sidebar';
 import { Header } from '../../shared/components/sidebar/Header';
 import { Loader } from '../../shared/components/views/Loader';
+import { FinancialPageBackground } from '../../shared/components/layout/FinancialPageBackground';
 import styles from '../../shared/components/views/components.module.css';
 import { THEME_COLORS } from '../../core/constants';
 
@@ -115,12 +116,13 @@ export default function AdminLayout({
     <AppProvider>
       <div className={styles.layoutWrapper}>
         <Sidebar isAdmin={true} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative', zIndex: 1 }}>
           <Header title="Growffi Admin Panel" userName={adminName} userRole="Administrator" />
           <main className={styles.contentWrapper}>
             {children}
           </main>
         </div>
+        <FinancialPageBackground />
       </div>
     </AppProvider>
   );

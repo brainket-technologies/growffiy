@@ -40,77 +40,92 @@ export const StatCard: React.FC<StatCardProps> = ({
     variant === 'teal' ? 'cyan' :
     (variant as any);
 
-  // High-End Institutional Fintech Styling Configurations
+  // Modern Institutional Fintech Pastel Configurations
+  // Exactly matching trading terminal cards in reference design
   const configs = {
     blue: {
-      accentColor: '#104193',
-      glowColor: 'rgba(16, 65, 147, 0.05)',
-      iconBg: 'rgba(16, 65, 147, 0.07)',
-      iconBorder: 'rgba(16, 65, 147, 0.16)',
-      titleColor: '#64748b',
+      bg: 'rgba(235, 246, 255, 0.92)',
+      border: '#bfdbfe',
+      accentColor: '#3b82f6',
+      iconBg: 'rgba(59, 130, 246, 0.12)',
+      iconBorder: 'rgba(59, 130, 246, 0.22)',
+      titleColor: '#1e3a8a',
       valueColor: '#0f172a',
-      subtitleColor: '#64748b',
-      hoverBorder: 'rgba(16, 65, 147, 0.35)',
+      subtitleColor: '#475569',
+      barColor: '#3b82f6',
+      hoverBorder: '#60a5fa',
     },
     emerald: {
+      bg: 'rgba(236, 253, 245, 0.92)',
+      border: '#bbf7d0',
       accentColor: '#10b981',
-      glowColor: 'rgba(16, 185, 129, 0.05)',
-      iconBg: 'rgba(16, 185, 129, 0.08)',
-      iconBorder: 'rgba(16, 185, 129, 0.18)',
-      titleColor: '#64748b',
-      valueColor: '#047857',
-      subtitleColor: '#059669',
-      hoverBorder: 'rgba(16, 185, 129, 0.35)',
+      iconBg: 'rgba(16, 185, 129, 0.12)',
+      iconBorder: 'rgba(16, 185, 129, 0.22)',
+      titleColor: '#065f46',
+      valueColor: '#064e3b',
+      subtitleColor: '#047857',
+      barColor: '#10b981',
+      hoverBorder: '#34d399',
     },
     purple: {
-      accentColor: '#8b5cf6',
-      glowColor: 'rgba(139, 92, 246, 0.05)',
-      iconBg: 'rgba(139, 92, 246, 0.08)',
-      iconBorder: 'rgba(139, 92, 246, 0.18)',
-      titleColor: '#64748b',
-      valueColor: '#1e1b4b',
-      subtitleColor: '#6b21a8',
-      hoverBorder: 'rgba(139, 92, 246, 0.35)',
+      bg: 'rgba(250, 245, 255, 0.92)',
+      border: '#e9d5ff',
+      accentColor: '#a855f7',
+      iconBg: 'rgba(168, 85, 247, 0.12)',
+      iconBorder: 'rgba(168, 85, 247, 0.22)',
+      titleColor: '#6b21a8',
+      valueColor: '#4c1d95',
+      subtitleColor: '#7e22ce',
+      barColor: '#a855f7',
+      hoverBorder: '#c084fc',
     },
     amber: {
+      bg: 'rgba(255, 251, 235, 0.92)',
+      border: '#fde68a',
       accentColor: '#f59e0b',
-      glowColor: 'rgba(245, 158, 11, 0.05)',
-      iconBg: 'rgba(245, 158, 11, 0.08)',
-      iconBorder: 'rgba(245, 158, 11, 0.18)',
-      titleColor: '#64748b',
+      iconBg: 'rgba(245, 158, 11, 0.12)',
+      iconBorder: 'rgba(245, 158, 11, 0.22)',
+      titleColor: '#92400e',
       valueColor: '#78350f',
       subtitleColor: '#b45309',
-      hoverBorder: 'rgba(245, 158, 11, 0.35)',
+      barColor: '#f59e0b',
+      hoverBorder: '#fbbf24',
     },
     rose: {
+      bg: 'rgba(255, 241, 242, 0.92)',
+      border: '#fecdd3',
       accentColor: '#f43f5e',
-      glowColor: 'rgba(244, 63, 94, 0.05)',
-      iconBg: 'rgba(244, 63, 94, 0.08)',
-      iconBorder: 'rgba(244, 63, 94, 0.18)',
-      titleColor: '#64748b',
-      valueColor: '#9f1239',
+      iconBg: 'rgba(244, 63, 94, 0.12)',
+      iconBorder: 'rgba(244, 63, 94, 0.22)',
+      titleColor: '#9f1239',
+      valueColor: '#881337',
       subtitleColor: '#be123c',
-      hoverBorder: 'rgba(244, 63, 94, 0.35)',
+      barColor: '#f43f5e',
+      hoverBorder: '#fb7185',
     },
     cyan: {
+      bg: 'rgba(236, 254, 255, 0.92)',
+      border: '#a5f3fc',
       accentColor: '#06b6d4',
-      glowColor: 'rgba(6, 182, 212, 0.05)',
-      iconBg: 'rgba(6, 182, 212, 0.08)',
-      iconBorder: 'rgba(6, 182, 212, 0.18)',
-      titleColor: '#64748b',
-      valueColor: '#0e7490',
+      iconBg: 'rgba(6, 182, 212, 0.12)',
+      iconBorder: 'rgba(6, 182, 212, 0.22)',
+      titleColor: '#0e7490',
+      valueColor: '#155e75',
       subtitleColor: '#0891b2',
-      hoverBorder: 'rgba(6, 182, 212, 0.35)',
+      barColor: '#06b6d4',
+      hoverBorder: '#22d3ee',
     },
     indigo: {
+      bg: 'rgba(245, 243, 255, 0.92)',
+      border: '#ddd6fe',
       accentColor: '#6366f1',
-      glowColor: 'rgba(99, 102, 241, 0.05)',
-      iconBg: 'rgba(99, 102, 241, 0.08)',
-      iconBorder: 'rgba(99, 102, 241, 0.18)',
-      titleColor: '#64748b',
+      iconBg: 'rgba(99, 102, 241, 0.12)',
+      iconBorder: 'rgba(99, 102, 241, 0.22)',
+      titleColor: '#4338ca',
       valueColor: '#312e81',
-      subtitleColor: '#4338ca',
-      hoverBorder: 'rgba(99, 102, 241, 0.35)',
+      subtitleColor: '#4f46e5',
+      barColor: '#6366f1',
+      hoverBorder: '#818cf8',
     }
   };
 
@@ -152,13 +167,11 @@ export const StatCard: React.FC<StatCardProps> = ({
       style={{
         position: 'relative',
         overflow: 'hidden',
-        borderRadius: '14px',
+        borderRadius: '16px',
         padding: '18px 20px',
-        background: 'var(--bg-card, #ffffff)',
-        backgroundImage: `radial-gradient(circle at top right, ${cfg.glowColor} 0%, transparent 70%)`,
-        border: '1px solid var(--border-color, #e2e8f0)',
-        borderTop: `3px solid ${cfg.accentColor}`,
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02)',
+        background: cfg.bg,
+        border: `1px solid ${cfg.border}`,
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)',
         display: 'flex',
         alignItems: 'center',
         gap: '14px',
@@ -169,16 +182,15 @@ export const StatCard: React.FC<StatCardProps> = ({
       onMouseEnter={(e) => {
         if (onClick || hoverable) {
           e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.08)';
+          e.currentTarget.style.boxShadow = '0 6px 18px rgba(0, 0, 0, 0.06)';
           e.currentTarget.style.borderColor = cfg.hoverBorder;
         }
       }}
       onMouseLeave={(e) => {
         if (onClick || hoverable) {
           e.currentTarget.style.transform = 'translateY(0px)';
-          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02)';
-          e.currentTarget.style.borderColor = 'var(--border-color, #e2e8f0)';
-          e.currentTarget.style.borderTop = `3px solid ${cfg.accentColor}`;
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)';
+          e.currentTarget.style.borderColor = cfg.border;
         }
       }}
     >
@@ -214,13 +226,13 @@ export const StatCard: React.FC<StatCardProps> = ({
         ) : null}
       </div>
 
-      {/* Main Content Area - Clean, Legible, Zero Overlap */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0, flex: 1 }}>
+      {/* Main Content Area - Text has right padding so it never overlaps with bottom-right bars */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0, flex: 1, paddingRight: '44px' }}>
         <span style={{
-          fontSize: '12px',
-          fontWeight: 600,
+          fontSize: '11px',
+          fontWeight: 700,
           color: cfg.titleColor,
-          letterSpacing: '0.03em',
+          letterSpacing: '0.04em',
           textTransform: 'uppercase',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
@@ -258,6 +270,29 @@ export const StatCard: React.FC<StatCardProps> = ({
 
         {children}
       </div>
+
+      {/* Mini 5-Bar Ascending Watermark Chart strictly in the bottom-right corner - Zero overlap with text */}
+      <svg
+        viewBox="0 0 46 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          right: '12px',
+          bottom: '10px',
+          width: '38px',
+          height: '26px',
+          pointerEvents: 'none',
+          opacity: 0.55
+        }}
+      >
+        <rect x="0" y="24" width="6" height="8" rx="2" fill={cfg.barColor} />
+        <rect x="9" y="18" width="6" height="14" rx="2" fill={cfg.barColor} />
+        <rect x="18" y="12" width="6" height="20" rx="2" fill={cfg.barColor} />
+        <rect x="27" y="6" width="6" height="26" rx="2" fill={cfg.barColor} />
+        <rect x="36" y="0" width="6" height="32" rx="2" fill={cfg.barColor} />
+      </svg>
     </div>
   );
 };

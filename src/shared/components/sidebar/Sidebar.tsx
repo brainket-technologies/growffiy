@@ -853,6 +853,58 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true, staffPermissio
               <LogOut size={15} />
             </button>
           </div>
+
+          {/* Upward Trading Trend Graphic matching reference design */}
+          {!collapsed && (
+            <div
+              aria-hidden="true"
+              style={{
+                marginTop: '10px',
+                paddingTop: '6px',
+                height: '40px',
+                width: '100%',
+                position: 'relative',
+                overflow: 'hidden',
+                pointerEvents: 'none'
+              }}
+            >
+              <svg
+                viewBox="0 0 200 40"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                style={{ width: '100%', height: '100%' }}
+              >
+                <defs>
+                  <linearGradient id="sidebarTrendFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.3" />
+                    <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.0" />
+                  </linearGradient>
+                  <linearGradient id="sidebarTrendLine" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#0284c7" />
+                    <stop offset="60%" stopColor="#38bdf8" />
+                    <stop offset="100%" stopColor="#7dd3fc" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M0,38 Q50,36 90,24 T182,8 L182,40 L0,40 Z"
+                  fill="url(#sidebarTrendFill)"
+                />
+                <path
+                  d="M0,38 Q50,36 90,24 T182,8"
+                  stroke="url(#sidebarTrendLine)"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                <polygon
+                  points="182,4 190,8 184,13 184,9"
+                  fill="#7dd3fc"
+                />
+                <circle cx="90" cy="24" r="2.5" fill="#38bdf8" />
+                <circle cx="140" cy="14" r="2.5" fill="#7dd3fc" />
+                <circle cx="182" cy="8" r="3" fill="#ffffff" />
+              </svg>
+            </div>
+          )}
         </div>
       </aside>
     </>
