@@ -3,44 +3,49 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useAppViewModel } from '../../../../shared/viewmodels/AppContext';
 import { Card } from '../../../../shared/components/views/Card';
-import { Loader } from '../../../../shared/components/views/Loader';
 import { Button } from '../../../../shared/components/views/Button';
 import { Modal } from '../../../../shared/components/views/Modal';
 import {
   Calendar,
-  BarChart2,
-  ArrowLeftRight,
-  Crosshair,
-  ArrowUpRight,
+  ChevronDown,
+  Download,
+  RefreshCw,
+  Search,
+  Wallet,
   TrendingUp,
   TrendingDown,
   Users,
-  Wallet,
-  Search,
-  Download,
-  RefreshCw,
-  ChevronDown,
-  ChevronRight,
-  Filter,
-  CheckCircle,
-  AlertCircle
+  BarChart2
 } from 'lucide-react';
 
+function formatDateTime(timeStr: string | Date | null) {
+  if (!timeStr) return '--';
+  try {
+    const date = new Date(timeStr);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isToday = date.toDateString() === today.toDateString();
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+    const prefix = isToday ? 'Today' : isYesterday ? 'Yesterday' : '';
+    const formatted = date.toLocaleString('en-US', {
+      day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true
+    });
+    return prefix ? `${prefix} ${formatted}` : formatted;
+  } catch { return '--'; }
+}
+
 export default function TradeSummaryPage() {
-  const { trades, loading, refreshAllData } = useAppViewModel();
+  const { trades = [], loading, refreshAllData } = useAppViewModel();
   const [selectedSummary, setSelectedSummary] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Search & Type Filters
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'LONG' | 'SHORT'>('ALL');
   const [pnlFilter, setPnlFilter] = useState<'ALL' | 'PROFIT' | 'LOSS'>('ALL');
-
-  // Sorting
-  const [sortKey, setSortKey] = useState<string>('date');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   // Date Filter State
   const now = new Date();
@@ -186,7 +191,7 @@ export default function TradeSummaryPage() {
 
       const clientInfo = {
         id: t.client?.id || t.clientId || t.client?.user?.id || 'unknown',
-        clientName: t.client?.user?.name || t.clientName || 'Client Trader',
+        clientName: t.client?.user?.name || t.clientName || 'System Client',
         email: t.client?.user?.email || 'N/A',
         qty,
         entryPrice: entryVal,
@@ -224,14 +229,13 @@ export default function TradeSummaryPage() {
         item.clientsMap.set(clientInfo.id, clientInfo);
         item.clientsList.push(clientInfo);
 
-        // Keep earliest dateTime
         if (d.getTime() < item.dateTime.getTime()) {
           item.dateTime = d;
         }
       }
     });
 
-    // Compute weighted averages and sort
+    // Compute weighted averages and sort by date descending
     const result = Array.from(map.values()).map(item => {
       const avgEntry = item.totalQty > 0 ? item.entryPriceSum / item.totalQty : 0;
       const avgExit = item.exitedQty > 0 ? item.exitPriceSum / item.exitedQty : null;
@@ -243,15 +247,15 @@ export default function TradeSummaryPage() {
       };
     });
 
-    return result;
+    return result.sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime());
   }, [trades, startDate, endDate]);
 
-  // Apply Search, Type and PnL Filters
+  // Apply Search, Type, and PnL Filters
   const filteredSummaries = useMemo(() => {
     let list = summarizedTrades;
 
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase().trim();
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
       list = list.filter(item => item.symbol.toLowerCase().includes(q));
     }
 
@@ -265,23 +269,10 @@ export default function TradeSummaryPage() {
       list = list.filter(item => item.totalPnl < -0.01);
     }
 
-    // Sort
-    return [...list].sort((a, b) => {
-      let aVal: any = a.dateTime;
-      let bVal: any = b.dateTime;
-      if (sortKey === 'date') { aVal = a.dateTime.getTime(); bVal = b.dateTime.getTime(); }
-      else if (sortKey === 'symbol') { aVal = a.symbol; bVal = b.symbol; }
-      else if (sortKey === 'type') { aVal = a.tradeType; bVal = b.tradeType; }
-      else if (sortKey === 'entry') { aVal = a.avgEntry; bVal = b.avgEntry; }
-      else if (sortKey === 'exit') { aVal = a.avgExit || 0; bVal = b.avgExit || 0; }
-      else if (sortKey === 'pnl') { aVal = a.totalPnl; bVal = b.totalPnl; }
+    return list;
+  }, [summarizedTrades, searchQuery, typeFilter, pnlFilter]);
 
-      const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
-      return sortDir === 'asc' ? cmp : -cmp;
-    });
-  }, [summarizedTrades, searchTerm, typeFilter, pnlFilter, sortKey, sortDir]);
-
-  // Calculate Top 3 Summary Cards
+  // Top Summary Cards
   const topStats = useMemo(() => {
     let totalInvestment = 0;
     let totalPnl = 0;
@@ -314,11 +305,6 @@ export default function TradeSummaryPage() {
     return filteredSummaries.slice(startIndex, startIndex + pageSize);
   }, [filteredSummaries, startIndex, pageSize]);
 
-  const handleSort = (key: string) => {
-    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortKey(key); setSortDir('desc'); }
-  };
-
   const handleExportCSV = () => {
     const headers = ['Date & Time', 'Stock Name', 'Trade Type', 'Entry Price', 'Exit Price', 'P&L (INR)', 'Total Investment (INR)', 'Traders Count'];
     const rows = filteredSummaries.map(item => [
@@ -349,23 +335,23 @@ export default function TradeSummaryPage() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '16px', maxWidth: '1440px', margin: '0 auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
       {/* Page Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-heading)', fontFamily: 'Outfit, sans-serif' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
             Trade Summary
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>
-            Consolidated stock-wise performance, total capital investment, and net P&amp;L metrics.
+            View aggregated stock performance, total capital investment, and P&amp;L statements.
           </p>
         </div>
 
         {/* Date Filter & Export Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           
-          {/* Date Range Dropdown */}
+          {/* Date Picker Button */}
           <div ref={dropdownRef} style={{ position: 'relative' }}>
             <div 
               onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -373,21 +359,20 @@ export default function TradeSummaryPage() {
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: '8px', 
-                padding: '9px 16px', 
-                borderRadius: '10px', 
+                padding: '8px 14px', 
+                borderRadius: '8px', 
                 background: 'var(--bg-white)', 
-                border: '1px solid var(--border)', 
-                fontSize: '13px', 
-                color: 'var(--text-body)',
-                fontWeight: 600,
+                border: '1px solid var(--border-color)', 
+                fontSize: '12px', 
+                color: 'var(--text-primary)',
+                fontWeight: 500,
                 cursor: 'pointer',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                 userSelect: 'none'
               }}
             >
-              <Calendar size={15} color="var(--primary)" />
+              <Calendar size={14} color="var(--primary)" />
               <span>{dateRangeStr}</span>
-              <ChevronDown size={14} color="var(--text-muted)" />
+              <ChevronDown size={14} color="var(--text-subtle)" />
             </div>
 
             {isFilterOpen && (
@@ -397,7 +382,7 @@ export default function TradeSummaryPage() {
                 right: 0,
                 width: '320px',
                 background: 'var(--bg-white)',
-                border: '1px solid var(--border)',
+                border: '1px solid var(--border-color)',
                 borderRadius: '12px',
                 boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)',
                 padding: '16px',
@@ -406,38 +391,38 @@ export default function TradeSummaryPage() {
                 flexDirection: 'column',
                 gap: '12px'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--surface)', paddingBottom: '8px' }}>
-                  <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-heading)' }}>Date Range</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>Date Range Filter</span>
                   <button 
                     onClick={clearFilters}
-                    style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                    style={{ background: 'none', border: 'none', color: 'var(--color-danger)', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
                   >
                     Reset
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', background: 'var(--surface)', padding: '2px', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', background: 'var(--bg-secondary)', padding: '2px', borderRadius: '8px' }}>
                   <button 
                     onClick={() => setFilterType('month')}
-                    style={{ flex: 1, border: 'none', background: filterType === 'month' ? 'var(--bg-white)' : 'transparent', color: 'var(--text-body)', fontSize: '12px', padding: '6px 0', borderRadius: '6px', fontWeight: filterType === 'month' ? 600 : 500, cursor: 'pointer' }}
+                    style={{ flex: 1, border: 'none', background: filterType === 'month' ? 'var(--bg-white)' : 'transparent', color: 'var(--text-primary)', fontSize: '12px', padding: '6px 0', borderRadius: '6px', fontWeight: filterType === 'month' ? 600 : 500, cursor: 'pointer' }}
                   >
                     Month
                   </button>
                   <button 
                     onClick={() => setFilterType('year')}
-                    style={{ flex: 1, border: 'none', background: filterType === 'year' ? 'var(--bg-white)' : 'transparent', color: 'var(--text-body)', fontSize: '12px', padding: '6px 0', borderRadius: '6px', fontWeight: filterType === 'year' ? 600 : 500, cursor: 'pointer' }}
+                    style={{ flex: 1, border: 'none', background: filterType === 'year' ? 'var(--bg-white)' : 'transparent', color: 'var(--text-primary)', fontSize: '12px', padding: '6px 0', borderRadius: '6px', fontWeight: filterType === 'year' ? 600 : 500, cursor: 'pointer' }}
                   >
                     Year
                   </button>
                   <button 
                     onClick={() => setFilterType('custom')}
-                    style={{ flex: 1, border: 'none', background: filterType === 'custom' ? 'var(--bg-white)' : 'transparent', color: 'var(--text-body)', fontSize: '12px', padding: '6px 0', borderRadius: '6px', fontWeight: filterType === 'custom' ? 600 : 500, cursor: 'pointer' }}
+                    style={{ flex: 1, border: 'none', background: filterType === 'custom' ? 'var(--bg-white)' : 'transparent', color: 'var(--text-primary)', fontSize: '12px', padding: '6px 0', borderRadius: '6px', fontWeight: filterType === 'custom' ? 600 : 500, cursor: 'pointer' }}
                   >
                     Custom
                   </button>
                   <button 
                     onClick={applyAllTime}
-                    style={{ flex: 1, border: 'none', background: filterType === 'all' ? 'var(--bg-white)' : 'transparent', color: 'var(--text-body)', fontSize: '12px', padding: '6px 0', borderRadius: '6px', fontWeight: filterType === 'all' ? 600 : 500, cursor: 'pointer' }}
+                    style={{ flex: 1, border: 'none', background: filterType === 'all' ? 'var(--bg-white)' : 'transparent', color: 'var(--text-primary)', fontSize: '12px', padding: '6px 0', borderRadius: '6px', fontWeight: filterType === 'all' ? 600 : 500, cursor: 'pointer' }}
                   >
                     All
                   </button>
@@ -449,7 +434,7 @@ export default function TradeSummaryPage() {
                       <select 
                         value={selectedMonth} 
                         onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                        style={{ flex: 1, padding: '7px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '13px' }}
+                        style={{ flex: 1, padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '12px', background: 'var(--bg-white)', color: 'var(--text-primary)' }}
                       >
                         {MONTHS.map((m, idx) => (
                           <option key={idx} value={idx}>{m}</option>
@@ -458,15 +443,15 @@ export default function TradeSummaryPage() {
                       <select 
                         value={selectedYear} 
                         onChange={(e) => setSelectedYear(Number(e.target.value))}
-                        style={{ width: '90px', padding: '7px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '13px' }}
+                        style={{ width: '90px', padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '12px', background: 'var(--bg-white)', color: 'var(--text-primary)' }}
                       >
                         {YEARS.map(y => (
                           <option key={y} value={y}>{y}</option>
                         ))}
                       </select>
                     </div>
-                    <Button onClick={applyMonthFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: 'var(--primary)', color: 'white' }}>
-                      Apply Month Filter
+                    <Button onClick={applyMonthFilter} style={{ width: '100%', padding: '7px', fontSize: '12px' }}>
+                      Apply Month
                     </Button>
                   </div>
                 )}
@@ -476,14 +461,14 @@ export default function TradeSummaryPage() {
                     <select 
                       value={selectedYear} 
                       onChange={(e) => setSelectedYear(Number(e.target.value))}
-                      style={{ padding: '7px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '13px' }}
+                      style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '12px', background: 'var(--bg-white)', color: 'var(--text-primary)' }}
                     >
                       {YEARS.map(y => (
                         <option key={y} value={y}>{y}</option>
                       ))}
                     </select>
-                    <Button onClick={applyYearFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: 'var(--primary)', color: 'white' }}>
-                      Apply Year Filter
+                    <Button onClick={applyYearFilter} style={{ width: '100%', padding: '7px', fontSize: '12px' }}>
+                      Apply Year
                     </Button>
                   </div>
                 )}
@@ -491,25 +476,25 @@ export default function TradeSummaryPage() {
                 {filterType === 'custom' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>Start Date</label>
+                      <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500 }}>Start Date</label>
                       <input 
                         type="date"
                         value={customStart}
                         onChange={(e) => setCustomStart(e.target.value)}
-                        style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '13px', width: '100%' }}
+                        style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '12px', background: 'var(--bg-white)', color: 'var(--text-primary)' }}
                       />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>End Date</label>
+                      <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500 }}>End Date</label>
                       <input 
                         type="date"
                         value={customEnd}
                         onChange={(e) => setCustomEnd(e.target.value)}
-                        style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '13px', width: '100%' }}
+                        style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '12px', background: 'var(--bg-white)', color: 'var(--text-primary)' }}
                       />
                     </div>
-                    <Button onClick={applyCustomFilter} style={{ width: '100%', padding: '8px', fontSize: '12px', backgroundColor: 'var(--primary)', color: 'white' }}>
-                      Apply Custom Filter
+                    <Button onClick={applyCustomFilter} style={{ width: '100%', padding: '7px', fontSize: '12px' }}>
+                      Apply Custom Range
                     </Button>
                   </div>
                 )}
@@ -521,9 +506,9 @@ export default function TradeSummaryPage() {
           <Button 
             variant="secondary" 
             onClick={handleExportCSV}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '9px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '8px 14px' }}
           >
-            <Download size={15} /> Export CSV
+            <Download size={14} /> Export CSV
           </Button>
 
           {/* Refresh Button */}
@@ -531,432 +516,249 @@ export default function TradeSummaryPage() {
             variant="secondary"
             onClick={handleManualRefresh}
             disabled={isRefreshing}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 14px', borderRadius: '10px' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 12px' }}
             title="Refresh trades"
           >
-            <RefreshCw size={15} className={isRefreshing ? 'spin-animation' : ''} />
+            <RefreshCw size={14} className={isRefreshing ? 'spin' : ''} />
           </Button>
         </div>
       </div>
 
-      {/* Top 3 KPI Summary Cards (Exactly matching image specification) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+      {/* Top 3 Summary Cards (Matching Growffi Card Design) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
         
         {/* Card 1: Total Investment */}
-        <Card style={{ 
-          padding: '22px 24px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '18px',
-          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 246, 255, 0.7))',
-          border: '1px solid rgba(219, 234, 254, 0.8)',
-          boxShadow: '0 4px 16px rgba(37, 99, 235, 0.05)',
-          borderRadius: '16px'
-        }}>
-          <div style={{ 
-            background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', 
-            color: '#ffffff', 
-            padding: '16px', 
-            borderRadius: '14px',
-            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Wallet size={26} />
-          </div>
-          <div>
-            <div style={{ fontSize: '13px', color: '#1e3a8a', fontWeight: 700, letterSpacing: '0.2px' }}>
-              Total Investment
+        <Card>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>
+                Total Investment
+              </p>
+              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                ₹{topStats.totalInvestment.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+              </h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>
+                Across {filteredSummaries.length} trade executions
+              </p>
             </div>
-            <div style={{ fontSize: '26px', fontWeight: 900, color: '#0f172a', marginTop: '4px', fontFamily: 'Outfit, sans-serif' }}>
-              ₹{topStats.totalInvestment.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-            </div>
-            <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
-              Across {filteredSummaries.length} trade executions
+            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+              <Wallet size={20} />
             </div>
           </div>
         </Card>
 
         {/* Card 2: Total P&L */}
-        <Card style={{ 
-          padding: '22px 24px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '18px',
-          background: topStats.totalPnl >= 0 
-            ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 253, 244, 0.7))'
-            : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(254, 242, 242, 0.7))',
-          border: topStats.totalPnl >= 0 ? '1px solid rgba(187, 247, 208, 0.8)' : '1px solid rgba(254, 202, 202, 0.8)',
-          boxShadow: topStats.totalPnl >= 0 ? '0 4px 16px rgba(22, 163, 74, 0.05)' : '0 4px 16px rgba(220, 38, 38, 0.05)',
-          borderRadius: '16px'
-        }}>
-          <div style={{ 
-            background: topStats.totalPnl >= 0 ? 'linear-gradient(135deg, #22c55e, #15803d)' : 'linear-gradient(135deg, #ef4444, #b91c1c)', 
-            color: '#ffffff', 
-            padding: '16px', 
-            borderRadius: '14px',
-            boxShadow: topStats.totalPnl >= 0 ? '0 4px 12px rgba(22, 163, 74, 0.25)' : '0 4px 12px rgba(220, 38, 38, 0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            {topStats.totalPnl >= 0 ? <TrendingUp size={26} /> : <TrendingDown size={26} />}
-          </div>
-          <div>
-            <div style={{ fontSize: '13px', color: topStats.totalPnl >= 0 ? '#14532d' : '#7f1d1d', fontWeight: 700, letterSpacing: '0.2px' }}>
-              Total P&amp;L
+        <Card>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>
+                Total P&amp;L
+              </p>
+              <h3 style={{ fontSize: '28px', fontWeight: 700, color: topStats.totalPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)', whiteSpace: 'nowrap' }}>
+                {topStats.totalPnl >= 0 ? '+' : ''}₹{topStats.totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </h3>
+              <p style={{ color: topStats.totalPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)', fontSize: '11px', marginTop: '2px', fontWeight: 600 }}>
+                {topStats.totalPnl >= 0 ? '▲' : '▼'} {topStats.pnlPercentage >= 0 ? `+${topStats.pnlPercentage.toFixed(2)}%` : `${topStats.pnlPercentage.toFixed(2)}%`} ROI
+              </p>
             </div>
             <div style={{ 
-              fontSize: '26px', 
-              fontWeight: 900, 
-              color: topStats.totalPnl >= 0 ? '#16a34a' : '#dc2626', 
-              marginTop: '4px',
-              fontFamily: 'Outfit, sans-serif'
+              padding: '10px', 
+              borderRadius: '10px', 
+              backgroundColor: topStats.totalPnl >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', 
+              color: topStats.totalPnl >= 0 ? '#10b981' : '#ef4444' 
             }}>
-              {topStats.totalPnl >= 0 ? `+₹${topStats.totalPnl.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : `-₹${Math.abs(topStats.totalPnl).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
-            </div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11.5px', color: topStats.totalPnl >= 0 ? '#16a34a' : '#dc2626', fontWeight: 700, marginTop: '2px' }}>
-              {topStats.totalPnl >= 0 ? '▲' : '▼'} {topStats.pnlPercentage >= 0 ? `+${topStats.pnlPercentage.toFixed(2)}%` : `${topStats.pnlPercentage.toFixed(2)}%`} ROI
+              {topStats.totalPnl >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
             </div>
           </div>
         </Card>
 
         {/* Card 3: Total No. of Traders */}
-        <Card style={{ 
-          padding: '22px 24px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '18px',
-          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(250, 245, 255, 0.7))',
-          border: '1px solid rgba(233, 213, 255, 0.8)',
-          boxShadow: '0 4px 16px rgba(168, 85, 247, 0.05)',
-          borderRadius: '16px'
-        }}>
-          <div style={{ 
-            background: 'linear-gradient(135deg, #a855f7, #6b21a8)', 
-            color: '#ffffff', 
-            padding: '16px', 
-            borderRadius: '14px',
-            boxShadow: '0 4px 12px rgba(168, 85, 247, 0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Users size={26} />
-          </div>
-          <div>
-            <div style={{ fontSize: '13px', color: '#581c87', fontWeight: 700, letterSpacing: '0.2px' }}>
-              Total No. of Traders
+        <Card>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>
+                Total No. of Traders
+              </p>
+              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {topStats.totalTraders}
+              </h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>
+                Subscribed accounts participating
+              </p>
             </div>
-            <div style={{ fontSize: '26px', fontWeight: 900, color: '#0f172a', marginTop: '4px', fontFamily: 'Outfit, sans-serif' }}>
-              {topStats.totalTraders}
-            </div>
-            <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
-              Subscribed accounts participating
+            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(168, 85, 247, 0.1)', color: '#a855f7' }}>
+              <Users size={20} />
             </div>
           </div>
         </Card>
       </div>
 
-      {/* Main Table Card */}
-      <Card style={{ overflow: 'hidden', padding: 0 }}>
-        
-        {/* Table Filters Header */}
+      {/* Main Table Card (Exact structure & classes matching trades/page.tsx) */}
+      <Card>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
+            Trade Summary Log ({filteredSummaries.length})
+          </h3>
+        </div>
+
+        {/* Filters Bar (Exact layout from trades/page.tsx) */}
         <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '12px',
-          padding: '18px 20px',
-          borderBottom: '1px solid var(--border)',
-          background: 'var(--bg-white)'
+          display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center',
+          flexWrap: 'wrap', background: 'var(--bg-secondary)', padding: '12px 16px',
+          borderRadius: '12px', border: '1px solid var(--border-color)'
         }}>
-          {/* Search Box */}
-          <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: '340px' }}>
-            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input 
+          {/* Search by Symbol / Stock Name */}
+          <div style={{ position: 'relative', flex: '2 1 200px', minWidth: '200px' }}>
+            <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
+            <input
               type="text"
-              placeholder="Search stock name..."
-              value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+              placeholder="Search by symbol, stock name..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               style={{
+                paddingLeft: '32px',
+                height: '34px',
+                fontSize: '12px',
                 width: '100%',
-                padding: '9px 12px 9px 36px',
-                borderRadius: '8px',
-                border: '1px solid var(--border)',
-                background: 'var(--surface)',
-                fontSize: '13px',
                 outline: 'none',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-white)',
                 color: 'var(--text-primary)'
               }}
             />
           </div>
 
-          {/* Dropdown Filters */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            
-            {/* Trade Type Filter */}
-            <select
-              value={typeFilter}
-              onChange={(e) => { setTypeFilter(e.target.value as any); setCurrentPage(1); }}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: '1px solid var(--border)',
-                background: 'var(--surface)',
-                fontSize: '12.5px',
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="ALL">All Types (Long &amp; Short)</option>
-              <option value="LONG">▲ Long Only</option>
-              <option value="SHORT">▼ Short Only</option>
-            </select>
+          {/* Trade Type Filter */}
+          <select 
+            value={typeFilter} 
+            onChange={(e) => { setTypeFilter(e.target.value as any); setCurrentPage(1); }}
+            style={{
+              padding: '6px 10px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+              fontSize: '12px',
+              height: '34px',
+              outline: 'none',
+              background: 'var(--bg-white)',
+              color: 'var(--text-primary)',
+              flex: '1 1 120px',
+              minWidth: '110px'
+            }}
+          >
+            <option value="ALL">All Types</option>
+            <option value="LONG">BUY (LONG)</option>
+            <option value="SHORT">SELL (SHORT)</option>
+          </select>
 
-            {/* PnL Filter */}
-            <select
-              value={pnlFilter}
-              onChange={(e) => { setPnlFilter(e.target.value as any); setCurrentPage(1); }}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: '1px solid var(--border)',
-                background: 'var(--surface)',
-                fontSize: '12.5px',
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="ALL">All P&amp;L</option>
-              <option value="PROFIT">In Profit (+)</option>
-              <option value="LOSS">In Loss (-)</option>
-            </select>
-
-            {/* Results Counter */}
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, marginLeft: '6px' }}>
-              Showing {paginatedList.length} of {totalCount} records
-            </span>
-          </div>
+          {/* PnL Outcome Filter */}
+          <select 
+            value={pnlFilter} 
+            onChange={(e) => { setPnlFilter(e.target.value as any); setCurrentPage(1); }}
+            style={{
+              padding: '6px 10px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+              fontSize: '12px',
+              height: '34px',
+              outline: 'none',
+              background: 'var(--bg-white)',
+              color: 'var(--text-primary)',
+              flex: '1 1 120px',
+              minWidth: '110px'
+            }}
+          >
+            <option value="ALL">All Status</option>
+            <option value="PROFIT">In Profit (+)</option>
+            <option value="LOSS">In Loss (-)</option>
+          </select>
         </div>
 
-        {/* Trade Summary Table (Styled exactly matching user request) */}
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '850px' }}>
+        {/* Table Responsive Wrapper */}
+        <div className="table-responsive" style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%' }}>
             <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0' }}>
-                
-                {/* Column: Date */}
-                <th 
-                  onClick={() => handleSort('date')}
-                  style={{ padding: '14px 18px', fontSize: '13px', fontWeight: 700, color: '#1e3a8a', cursor: 'pointer', userSelect: 'none' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Calendar size={15} style={{ color: '#2563eb' }} />
-                    <span>Date</span>
-                    {sortKey === 'date' && <span style={{ fontSize: '10px' }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                  </div>
-                </th>
-
-                {/* Column: Stock Name */}
-                <th 
-                  onClick={() => handleSort('symbol')}
-                  style={{ padding: '14px 18px', fontSize: '13px', fontWeight: 700, color: '#1e3a8a', cursor: 'pointer', userSelect: 'none' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <BarChart2 size={15} style={{ color: '#2563eb' }} />
-                    <span>Stock Name</span>
-                    {sortKey === 'symbol' && <span style={{ fontSize: '10px' }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                  </div>
-                </th>
-
-                {/* Column: Trade Type */}
-                <th 
-                  onClick={() => handleSort('type')}
-                  style={{ padding: '14px 18px', fontSize: '13px', fontWeight: 700, color: '#1e3a8a', cursor: 'pointer', userSelect: 'none' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <ArrowLeftRight size={15} style={{ color: '#2563eb' }} />
-                    <span>Trade Type</span>
-                    {sortKey === 'type' && <span style={{ fontSize: '10px' }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                  </div>
-                </th>
-
-                {/* Column: Entry */}
-                <th 
-                  onClick={() => handleSort('entry')}
-                  style={{ padding: '14px 18px', fontSize: '13px', fontWeight: 700, color: '#1e3a8a', cursor: 'pointer', userSelect: 'none' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Crosshair size={15} style={{ color: '#2563eb' }} />
-                    <span>Entry</span>
-                    {sortKey === 'entry' && <span style={{ fontSize: '10px' }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                  </div>
-                </th>
-
-                {/* Column: Exit */}
-                <th 
-                  onClick={() => handleSort('exit')}
-                  style={{ padding: '14px 18px', fontSize: '13px', fontWeight: 700, color: '#1e3a8a', cursor: 'pointer', userSelect: 'none' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <ArrowUpRight size={15} style={{ color: '#2563eb' }} />
-                    <span>Exit</span>
-                    {sortKey === 'exit' && <span style={{ fontSize: '10px' }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                  </div>
-                </th>
-
-                {/* Column: P&L */}
-                <th 
-                  onClick={() => handleSort('pnl')}
-                  style={{ padding: '14px 18px', fontSize: '13px', fontWeight: 700, color: '#1e3a8a', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
-                    <TrendingUp size={15} style={{ color: '#2563eb' }} />
-                    <span>P&amp;L</span>
-                    {sortKey === 'pnl' && <span style={{ fontSize: '10px' }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                  </div>
-                </th>
+              <tr>
+                <th style={{ whiteSpace: 'nowrap' }}>DATE &amp; TIME</th>
+                <th style={{ whiteSpace: 'nowrap' }}>STOCK NAME</th>
+                <th style={{ whiteSpace: 'nowrap' }}>TRADE TYPE</th>
+                <th style={{ whiteSpace: 'nowrap' }}>ENTRY</th>
+                <th style={{ whiteSpace: 'nowrap' }}>EXIT</th>
+                <th style={{ whiteSpace: 'nowrap' }}>P&amp;L (₹)</th>
+                <th style={{ whiteSpace: 'nowrap' }}>TRADERS</th>
               </tr>
             </thead>
-
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '40px' }}>
-                    <Loader fullscreen={false} title="Loading Trades" text="Fetching trade summary data..." />
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--text-secondary)' }}>
+                      <RefreshCw size={18} className="spin" style={{ marginRight: '10px' }} /> Loading trade summary data...
+                    </div>
                   </td>
                 </tr>
               ) : paginatedList.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
-                    <AlertCircle size={32} style={{ margin: '0 auto 10px', opacity: 0.5 }} />
-                    <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-heading)' }}>No trade executions found</div>
-                    <div style={{ fontSize: '12px', marginTop: '4px' }}>Try adjusting your date range, stock search, or type filters.</div>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
+                    {searchQuery || typeFilter !== 'ALL' || pnlFilter !== 'ALL'
+                      ? 'No trades match the selected filters.'
+                      : 'No trade transactions recorded in this period.'}
                   </td>
                 </tr>
               ) : (
-                paginatedList.map((item, idx) => {
-                  const isLong = item.tradeType === 'LONG';
-                  const isPositive = item.totalPnl > 0.01;
-                  const isNegative = item.totalPnl < -0.01;
-
-                  // Format Date e.g. "11 Nov, 09:32 am"
-                  const dateStr = item.dateTime.toLocaleString('en-IN', {
-                    day: 'numeric',
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true
-                  });
+                paginatedList.map((row: any, idx: number) => {
+                  const isLong = row.tradeType === 'LONG';
+                  const isProfit = row.totalPnl >= 0;
 
                   return (
-                    <tr 
-                      key={item.key || idx}
-                      onClick={() => setSelectedSummary(item)}
-                      style={{ 
-                        borderBottom: '1px solid #eef2f6', 
-                        cursor: 'pointer',
-                        transition: 'background-color 0.15s ease'
-                      }}
-                      className="summary-table-row"
+                    <tr
+                      key={row.key || idx}
+                      onClick={() => setSelectedSummary(row)}
+                      style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
-                      {/* Date */}
-                      <td style={{ padding: '14px 18px', fontSize: '13px', color: '#334155', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                        {dateStr}
+                      {/* Date & Time */}
+                      <td style={{ fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                        {formatDateTime(row.dateTime)}
                       </td>
 
                       {/* Stock Name */}
-                      <td style={{ padding: '14px 18px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a', letterSpacing: '0.2px' }}>
-                        {item.symbol}
+                      <td style={{ fontWeight: 600, fontSize: '13px', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>
+                        {row.symbol}
                       </td>
 
                       {/* Trade Type */}
-                      <td style={{ padding: '14px 18px', fontSize: '12px' }}>
-                        {isLong ? (
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            background: '#dcfce7',
-                            color: '#15803d',
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                            fontWeight: 700,
-                            fontSize: '11px'
-                          }}>
-                            ▲ LONG
-                          </span>
-                        ) : (
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            background: '#fee2e2',
-                            color: '#b91c1c',
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                            fontWeight: 700,
-                            fontSize: '11px'
-                          }}>
-                            ▼ SHORT
-                          </span>
-                        )}
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <span 
+                          className={`badge ${isLong ? 'badge-blue' : 'badge-red'}`} 
+                          style={{ padding: '3px 8px', fontSize: '10px', textTransform: 'uppercase' }}
+                        >
+                          {isLong ? 'BUY' : 'SELL'}
+                        </span>
                       </td>
 
                       {/* Entry Price */}
-                      <td style={{ padding: '14px 18px', fontSize: '13px', fontWeight: 600, color: '#1e293b' }}>
-                        ₹{item.avgEntry.toFixed(2)}
+                      <td style={{ fontSize: '12px', whiteSpace: 'nowrap', fontWeight: 500 }}>
+                        ₹{row.avgEntry.toFixed(2)}
                       </td>
 
                       {/* Exit Price */}
-                      <td style={{ padding: '14px 18px', fontSize: '13px', fontWeight: 600, color: item.avgExit ? '#1e293b' : '#94a3b8' }}>
-                        {item.avgExit ? `₹${item.avgExit.toFixed(2)}` : '--'}
+                      <td style={{ fontSize: '12px', whiteSpace: 'nowrap', fontWeight: 500, color: row.avgExit ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                        {row.avgExit ? `₹${row.avgExit.toFixed(2)}` : '--'}
                       </td>
 
                       {/* P&L */}
-                      <td style={{ padding: '14px 18px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        {isPositive ? (
-                          <span style={{
-                            display: 'inline-block',
-                            background: '#dcfce7',
-                            color: '#15803d',
-                            padding: '4px 14px',
-                            borderRadius: '9999px',
-                            fontWeight: 800,
-                            fontSize: '13px'
-                          }}>
-                            +₹{Math.abs(item.totalPnl).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                          </span>
-                        ) : isNegative ? (
-                          <span style={{
-                            display: 'inline-block',
-                            background: '#fee2e2',
-                            color: '#b91c1c',
-                            padding: '4px 14px',
-                            borderRadius: '9999px',
-                            fontWeight: 800,
-                            fontSize: '13px'
-                          }}>
-                            -₹{Math.abs(item.totalPnl).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                          </span>
-                        ) : (
-                          <span style={{
-                            display: 'inline-block',
-                            background: '#f1f5f9',
-                            color: '#64748b',
-                            padding: '4px 14px',
-                            borderRadius: '9999px',
-                            fontWeight: 700,
-                            fontSize: '13px'
-                          }}>
-                            ₹0.00
-                          </span>
-                        )}
+                      <td style={{ fontWeight: 600, fontSize: '13px', color: isProfit ? 'var(--color-success)' : 'var(--color-danger)', whiteSpace: 'nowrap' }}>
+                        {isProfit ? `+₹${row.totalPnl.toFixed(2)}` : `-₹${Math.abs(row.totalPnl).toFixed(2)}`}
+                      </td>
+
+                      {/* Traders */}
+                      <td style={{ fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                          <Users size={13} style={{ color: '#2563eb' }} />
+                          {row.tradersCount} Traders
+                        </span>
                       </td>
                     </tr>
                   );
@@ -966,67 +768,68 @@ export default function TradeSummaryPage() {
           </table>
         </div>
 
-        {/* Pagination Controls */}
-        {totalCount > 0 && (
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '14px 20px',
-            borderTop: '1px solid var(--border)',
-            background: 'var(--bg-white)',
-            flexWrap: 'wrap',
-            gap: '12px'
-          }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>
-              Showing {startIndex + 1} - {Math.min(startIndex + pageSize, totalCount)} of {totalCount} records
-            </div>
+        {/* Pagination (Exact style from trades/page.tsx) */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', flexWrap: 'wrap', gap: '12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+          <span>
+            Showing {filteredSummaries.length ? startIndex + 1 : 0} to {Math.min(startIndex + pageSize, filteredSummaries.length)} of {filteredSummaries.length} entries
+          </span>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Button
-                variant="secondary"
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                style={{ padding: '5px 12px', fontSize: '12px' }}
+                style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-white)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: 'var(--text-primary)' }}
               >
-                Previous
-              </Button>
-              
-              <span style={{ fontSize: '12px', fontWeight: 600, padding: '0 6px', color: 'var(--text-primary)' }}>
-                Page {currentPage} of {totalPages}
-              </span>
+                &lt;
+              </button>
 
-              <Button
-                variant="secondary"
+              {Array.from({ length: Math.min(totalPages, 10) }).map((_, i) => {
+                const pageNum = currentPage <= 5
+                  ? i + 1
+                  : currentPage + i - 4;
+                if (pageNum > totalPages) return null;
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    style={{
+                      padding: '4px 10px', borderRadius: '6px',
+                      border: '1px solid var(--border-color)',
+                      background: currentPage === pageNum ? 'var(--primary)' : 'var(--bg-white)',
+                      color: currentPage === pageNum ? 'white' : 'var(--text-primary)',
+                      fontWeight: 600, cursor: 'pointer'
+                    }}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                style={{ padding: '5px 12px', fontSize: '12px' }}
+                style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-white)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: 'var(--text-primary)' }}
               >
-                Next
-              </Button>
-
-              <select
-                value={pageSize}
-                onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
-                style={{
-                  padding: '5px 8px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--border)',
-                  background: 'var(--surface)',
-                  fontSize: '12px',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value={10}>10 / page</option>
-                <option value={25}>25 / page</option>
-                <option value={50}>50 / page</option>
-              </select>
+                &gt;
+              </button>
             </div>
+
+            <select
+              value={pageSize}
+              onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+              style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-white)', cursor: 'pointer', outline: 'none', color: 'var(--text-primary)' }}
+            >
+              <option value={10}>10 / page</option>
+              <option value={25}>25 / page</option>
+              <option value={50}>50 / page</option>
+              <option value={100}>100 / page</option>
+            </select>
           </div>
-        )}
+        </div>
       </Card>
 
-      {/* Drilldown Modal (Click on any stock trade to see client breakdown) */}
+      {/* Drilldown Modal: Client Breakdown for Selected Stock Trade */}
       {selectedSummary && (
         <Modal
           isOpen={!!selectedSummary}
@@ -1042,69 +845,71 @@ export default function TradeSummaryPage() {
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
               gap: '12px',
-              background: 'var(--surface)',
+              background: 'var(--bg-secondary)',
               padding: '16px',
               borderRadius: '12px',
-              border: '1px solid var(--border)'
+              border: '1px solid var(--border-color)'
             }}>
               <div>
                 <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Date &amp; Time</span>
-                <div style={{ fontSize: '13.5px', fontWeight: 700, marginTop: '3px' }}>
-                  {selectedSummary.dateTime.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                <div style={{ fontSize: '13.5px', fontWeight: 600, marginTop: '3px' }}>
+                  {formatDateTime(selectedSummary.dateTime)}
                 </div>
               </div>
 
               <div>
                 <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Trade Type</span>
-                <div style={{ fontSize: '13.5px', fontWeight: 800, color: selectedSummary.tradeType === 'LONG' ? '#16a34a' : '#dc2626', marginTop: '3px' }}>
-                  {selectedSummary.tradeType === 'LONG' ? '▲ LONG' : '▼ SHORT'}
+                <div style={{ marginTop: '3px' }}>
+                  <span className={`badge ${selectedSummary.tradeType === 'LONG' ? 'badge-blue' : 'badge-red'}`} style={{ padding: '2px 8px', fontSize: '10px' }}>
+                    {selectedSummary.tradeType === 'LONG' ? 'BUY (LONG)' : 'SELL (SHORT)'}
+                  </span>
                 </div>
               </div>
 
               <div>
                 <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Avg Entry</span>
-                <div style={{ fontSize: '13.5px', fontWeight: 700, marginTop: '3px' }}>
+                <div style={{ fontSize: '13.5px', fontWeight: 600, marginTop: '3px' }}>
                   ₹{selectedSummary.avgEntry.toFixed(2)}
                 </div>
               </div>
 
               <div>
                 <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Avg Exit</span>
-                <div style={{ fontSize: '13.5px', fontWeight: 700, marginTop: '3px' }}>
+                <div style={{ fontSize: '13.5px', fontWeight: 600, marginTop: '3px' }}>
                   {selectedSummary.avgExit ? `₹${selectedSummary.avgExit.toFixed(2)}` : '--'}
                 </div>
               </div>
 
               <div>
                 <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total P&amp;L</span>
-                <div style={{ fontSize: '14px', fontWeight: 900, color: selectedSummary.totalPnl >= 0 ? '#16a34a' : '#dc2626', marginTop: '3px' }}>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: selectedSummary.totalPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)', marginTop: '3px' }}>
                   {selectedSummary.totalPnl >= 0 ? `+₹${selectedSummary.totalPnl.toFixed(2)}` : `-₹${Math.abs(selectedSummary.totalPnl).toFixed(2)}`}
                 </div>
               </div>
 
               <div>
                 <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Traders</span>
-                <div style={{ fontSize: '13.5px', fontWeight: 700, marginTop: '3px' }}>
-                  {selectedSummary.tradersCount} Clients
+                <div style={{ fontSize: '13.5px', fontWeight: 600, marginTop: '3px' }}>
+                  {selectedSummary.tradersCount} Traders
                 </div>
               </div>
             </div>
 
             {/* Client Breakdown Table */}
             <div>
-              <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '8px' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '10px' }}>
                 Client Order Breakdown ({selectedSummary.clientsList.length})
               </h4>
-              <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '10px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+              <div className="table-responsive" style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                <table style={{ width: '100%' }}>
                   <thead>
-                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)', fontSize: '11.5px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
-                      <th style={{ padding: '10px 14px' }}>Client</th>
-                      <th style={{ padding: '10px 14px' }}>Strategy</th>
-                      <th style={{ padding: '10px 14px' }}>Qty</th>
-                      <th style={{ padding: '10px 14px' }}>Entry</th>
-                      <th style={{ padding: '10px 14px' }}>Exit</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'right' }}>P&amp;L</th>
+                    <tr>
+                      <th style={{ whiteSpace: 'nowrap' }}>Client</th>
+                      <th style={{ whiteSpace: 'nowrap' }}>Strategy</th>
+                      <th style={{ whiteSpace: 'nowrap' }}>Qty</th>
+                      <th style={{ whiteSpace: 'nowrap' }}>Entry</th>
+                      <th style={{ whiteSpace: 'nowrap' }}>Exit</th>
+                      <th style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>P&amp;L</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1112,13 +917,13 @@ export default function TradeSummaryPage() {
                       const cPnlPos = cli.pnl > 0.01;
                       const cPnlNeg = cli.pnl < -0.01;
                       return (
-                        <tr key={cIdx} style={{ borderBottom: '1px solid var(--border)', fontSize: '12px' }}>
-                          <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-primary)' }}>{cli.clientName}</td>
-                          <td style={{ padding: '10px 14px', color: 'var(--text-secondary)' }}>{cli.strategy}</td>
-                          <td style={{ padding: '10px 14px', fontWeight: 600 }}>{cli.qty}</td>
-                          <td style={{ padding: '10px 14px' }}>₹{cli.entryPrice.toFixed(2)}</td>
-                          <td style={{ padding: '10px 14px' }}>{cli.exitPrice ? `₹${cli.exitPrice.toFixed(2)}` : '--'}</td>
-                          <td style={{ padding: '10px 14px', fontWeight: 800, textAlign: 'right', color: cPnlPos ? '#16a34a' : cPnlNeg ? '#dc2626' : '#64748b' }}>
+                        <tr key={cIdx} style={{ fontSize: '12px' }}>
+                          <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{cli.clientName}</td>
+                          <td style={{ color: 'var(--text-secondary)' }}>{cli.strategy}</td>
+                          <td style={{ fontWeight: 600 }}>{cli.qty}</td>
+                          <td>₹{cli.entryPrice.toFixed(2)}</td>
+                          <td>{cli.exitPrice ? `₹${cli.exitPrice.toFixed(2)}` : '--'}</td>
+                          <td style={{ fontWeight: 600, textAlign: 'right', color: cPnlPos ? 'var(--color-success)' : cPnlNeg ? 'var(--color-danger)' : 'var(--text-secondary)' }}>
                             {cPnlPos ? `+₹${cli.pnl.toFixed(2)}` : cPnlNeg ? `-₹${Math.abs(cli.pnl).toFixed(2)}` : '₹0.00'}
                           </td>
                         </tr>
@@ -1129,7 +934,7 @@ export default function TradeSummaryPage() {
               </div>
             </div>
 
-            {/* Close Button */}
+            {/* Footer Close Button */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
               <Button onClick={() => setSelectedSummary(null)} style={{ padding: '8px 20px', fontSize: '13px' }}>
                 Close
@@ -1138,13 +943,6 @@ export default function TradeSummaryPage() {
           </div>
         </Modal>
       )}
-
-      {/* CSS for row hover */}
-      <style jsx global>{`
-        .summary-table-row:hover {
-          background-color: #f1f5f9 !important;
-        }
-      `}</style>
     </div>
   );
 }
