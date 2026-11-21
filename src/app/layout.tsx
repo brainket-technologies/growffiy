@@ -66,9 +66,11 @@ export async function generateMetadata(): Promise<Metadata> {
       description: desc,
       images: [
         {
-          url: "https://growffi.com/hero_mockup.png",
+          url: "https://growffi.com/og-image.jpg",
+          secureUrl: "https://growffi.com/og-image.jpg",
           width: 1200,
           height: 630,
+          type: "image/jpeg",
           alt: `${appName} - Best Algo Trading Platform in India`,
         },
       ],
@@ -77,7 +79,7 @@ export async function generateMetadata(): Promise<Metadata> {
       card: "summary_large_image",
       title: title,
       description: desc,
-      images: ["https://growffi.com/hero_mockup.png"],
+      images: ["https://growffi.com/og-image.jpg"],
       creator: "@growffi",
     },
     robots: {
@@ -155,7 +157,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" prefix="og: http://ogp.me/ns#" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="mobile-web-app-capable" content="yes" />
