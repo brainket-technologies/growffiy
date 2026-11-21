@@ -16,10 +16,19 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://growffi.com/algo-trading',
   },
-  openGraph: {
+    openGraph: {
     title: 'Algo Trading India | Automated Algorithmic Trading Software - Growffi',
     description: 'Growffi provides advanced algo trading software in India. Connect Zerodha Kite and trade breakouts automatically with high speed and precision.',
     url: 'https://growffi.com/algo-trading',
+    images: [
+      {
+        url: 'https://growffi.com/og-image.jpg',
+        width: 1200,
+        height: 630,
+        type: 'image/jpeg',
+        alt: 'Growffi Algo Trading India',
+      },
+    ],
   },
 };
 

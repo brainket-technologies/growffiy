@@ -13,10 +13,19 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://growffi.com/pricing',
   },
-  openGraph: {
+    openGraph: {
     title: 'Algo Trading Pricing & Subscription Plans - Growffi',
     description: 'Choose the best algo trading subscription plans in India. Transparent pricing, Zerodha Kite API integration, and powerful strategies.',
     url: 'https://growffi.com/pricing',
+    images: [
+      {
+        url: 'https://growffi.com/og-image.jpg',
+        width: 1200,
+        height: 630,
+        type: 'image/jpeg',
+        alt: 'Growffi Pricing Plans',
+      },
+    ],
   },
 };
 

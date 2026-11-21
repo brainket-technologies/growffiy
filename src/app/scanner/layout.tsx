@@ -13,10 +13,19 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://growffi.com/scanner',
   },
-  openGraph: {
+    openGraph: {
     title: 'Live NSE Stock Scanner & Breakout Screener - Growffi',
     description: 'Real-time NSE stock breakout screener and intraday market scanner for Indian stock traders.',
     url: 'https://growffi.com/scanner',
+    images: [
+      {
+        url: 'https://growffi.com/og-image.jpg',
+        width: 1200,
+        height: 630,
+        type: 'image/jpeg',
+        alt: 'Live NSE Stock Scanner - Growffi',
+      },
+    ],
   },
 };
 
