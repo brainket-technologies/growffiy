@@ -839,7 +839,7 @@ export default function AdminDashboard() {
             <div style={{ width: '20px', height: '20px', border: '3px solid rgba(59, 130, 246, 0.2)', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
           ) : totalClients}
           subtitle="↑ 12.5% monthly growth"
-          icon={<Users size={22} />}
+          imgSrc="/card_icon_users.png"
           variant="blue"
           onClick={() => router.push('/admin/clients')}
           hoverable
@@ -851,7 +851,7 @@ export default function AdminDashboard() {
             <div style={{ width: '20px', height: '20px', border: '3px solid rgba(147, 51, 234, 0.2)', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
           ) : activeSubscriptions}
           subtitle="Active paid memberships"
-          icon={<Users size={22} />}
+          imgSrc="/card_icon_subscription.png"
           variant="purple"
           onClick={() => router.push('/admin/payments/subscriptions')}
           hoverable
@@ -863,7 +863,7 @@ export default function AdminDashboard() {
             <div style={{ width: '20px', height: '20px', border: '3px solid rgba(6, 182, 212, 0.2)', borderTopColor: '#0891b2', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
           ) : activeStrategies}
           subtitle="↑ 8.3% signal execution"
-          icon={<BarChart3 size={22} />}
+          imgSrc="/card_icon_strategy.png"
           variant="cyan"
           onClick={() => router.push('/admin/strategies')}
           hoverable
@@ -875,7 +875,7 @@ export default function AdminDashboard() {
             <div style={{ width: '20px', height: '20px', border: '3px solid rgba(217, 119, 6, 0.2)', borderTopColor: '#d97706', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
           ) : liveAccounts}
           subtitle="Broker sessions connected"
-          icon={<Zap size={22} />}
+          imgSrc="/card_icon_active_trade.png"
           variant="amber"
           onClick={() => router.push('/admin/clients')}
           hoverable
@@ -913,7 +913,7 @@ export default function AdminDashboard() {
             <div style={{ width: '20px', height: '20px', border: '3px solid rgba(79, 70, 229, 0.2)', borderTopColor: '#4f46e5', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
           ) : `₹${totalPerDayAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
           subtitle="Aggregated daily limit"
-          icon={<Zap size={22} />}
+          imgSrc="/card_icon_wallet.png"
           variant="indigo"
           onClick={() => router.push('/admin/clients')}
           hoverable

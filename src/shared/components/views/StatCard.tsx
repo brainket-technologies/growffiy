@@ -233,6 +233,35 @@ export const StatCard: React.FC<StatCardProps> = ({
 
   const cfg = configs[normalizedVariant] || configs.blue;
 
+  // Intelligent 3D PNG icon resolution based on imgSrc, title, or variant
+  const resolvedImgSrc = imgSrc || (() => {
+    const t = (title || '').toLowerCase();
+    if (t.includes('demat') || t.includes('capital') || t.includes('invest') || t.includes('balance')) return '/card_icon_demat.png';
+    if (t.includes('p&l') || t.includes('pnl') || t.includes('profit') || t.includes('return') || t.includes('earning')) return '/card_icon_pnl.png';
+    if (t.includes('trader')) return '/card_icon_traders.png';
+    if (t.includes('inactive') || t.includes('cancel')) return '/card_icon_inactive.png';
+    if (t.includes('strateg')) return '/card_icon_strategy.png';
+    if (t.includes('per day') || t.includes('wallet') || t.includes('margin') || t.includes('request')) return '/card_icon_wallet.png';
+    if (t.includes('success') || t.includes('closed') || t.includes('target') || t.includes('win')) return '/card_icon_success.png';
+    if (t.includes('fail') || t.includes('loss') || t.includes('stoploss') || t.includes('sl hit')) return '/card_icon_failed.png';
+    if (t.includes('open') || t.includes('live') || t.includes('session')) return '/card_icon_active_trade.png';
+    if (t.includes('trade') || t.includes('batch') || t.includes('execution') || t.includes('transaction')) return '/card_icon_trades.png';
+    if (t.includes('subscript') || t.includes('plan') || t.includes('revenue') || t.includes('top earning')) return '/card_icon_subscription.png';
+    if (t.includes('client') || t.includes('user') || t.includes('staff') || t.includes('account')) return '/card_icon_users.png';
+
+    // Fallback by variant
+    switch (normalizedVariant) {
+      case 'emerald': return '/card_icon_pnl.png';
+      case 'purple': return '/card_icon_traders.png';
+      case 'amber': return '/card_icon_strategy.png';
+      case 'rose': return '/card_icon_failed.png';
+      case 'cyan': return '/card_icon_active_trade.png';
+      case 'indigo': return '/card_icon_trades.png';
+      case 'blue':
+      default: return '/card_icon_users.png';
+    }
+  })();
+
   return (
     <div
       onClick={onClick}
@@ -268,33 +297,20 @@ export const StatCard: React.FC<StatCardProps> = ({
       {/* Textured Background Pattern */}
       {cfg.pattern}
 
-      {/* Leading Icon or Image */}
-      {imgSrc ? (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
-          src={imgSrc}
-          alt={title}
-          style={{ width: '52px', height: '58px', objectFit: 'contain', zIndex: 2, flexShrink: 0 }}
-        />
-      ) : icon ? (
-        <div style={{
+      {/* Leading 3D PNG Image */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={resolvedImgSrc}
+        alt={title}
+        style={{
+          width: '54px',
+          height: '56px',
+          objectFit: 'contain',
           zIndex: 2,
           flexShrink: 0,
-          width: '46px',
-          height: '46px',
-          borderRadius: '14px',
-          background: 'rgba(255, 255, 255, 0.88)',
-          backdropFilter: 'blur(6px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: cfg.iconColor,
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-          border: '1px solid rgba(255, 255, 255, 0.7)'
-        }}>
-          {icon}
-        </div>
-      ) : null}
+          filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.06))'
+        }}
+      />
 
       {/* Main Content Area */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', zIndex: 2, minWidth: 0, flex: 1 }}>

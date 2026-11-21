@@ -384,7 +384,7 @@ export default function ClientsPage() {
           title="Total Clients"
           value={totalCount}
           subtitle="All registered accounts"
-          icon={<Users size={22} />}
+          imgSrc="/card_icon_users.png"
           variant="blue"
         />
 
@@ -392,7 +392,7 @@ export default function ClientsPage() {
           title="Active Clients"
           value={activeCount}
           subtitle={`${Math.round((activeCount / (totalCount || 1)) * 100)}% active rate`}
-          icon={<UserCheck size={22} />}
+          imgSrc="/card_icon_success.png"
           variant="emerald"
         />
 
@@ -400,7 +400,7 @@ export default function ClientsPage() {
           title="Inactive Clients"
           value={inactiveCount}
           subtitle="Dormant / paused accounts"
-          icon={<UserX size={22} />}
+          imgSrc="/card_icon_inactive.png"
           variant="rose"
         />
 
@@ -408,7 +408,7 @@ export default function ClientsPage() {
           title="Connected Sessions"
           value={connectedCount}
           subtitle="Live broker sessions"
-          icon={<Zap size={22} />}
+          imgSrc="/card_icon_active_trade.png"
           variant="amber"
         />
       </div>

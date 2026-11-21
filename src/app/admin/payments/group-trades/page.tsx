@@ -406,7 +406,7 @@ export default function GroupTradesPage() {
           title="Total Trade Batches"
           value={stats.totalGroups}
           subtitle="Grouped batch executions"
-          icon={<Layers size={22} />}
+          imgSrc="/card_icon_trades.png"
           variant="blue"
         />
 
@@ -430,7 +430,7 @@ export default function GroupTradesPage() {
           title="Strategies Active"
           value={stats.strategiesCount}
           subtitle="Live deployed algorithms"
-          icon={<Briefcase size={22} />}
+          imgSrc="/card_icon_strategy.png"
           variant="amber"
         />
       </div>

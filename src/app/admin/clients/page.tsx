@@ -430,21 +430,21 @@ export default function ClientsPage() {
           title="Total Clients"
           value={totalCount}
           subtitle="All registered accounts"
-          icon={<Users size={22} />}
+          imgSrc="/card_icon_users.png"
           variant="blue"
         />
         <StatCard
           title="Active Clients"
           value={activeCount}
           subtitle={`${Math.round((activeCount / (totalCount || 1)) * 100)}% active rate`}
-          icon={<UserCheck size={22} />}
+          imgSrc="/card_icon_success.png"
           variant="emerald"
         />
         <StatCard
           title="Inactive Clients"
           value={inactiveCount}
           subtitle="Dormant / paused accounts"
-          icon={<UserX size={22} />}
+          imgSrc="/card_icon_inactive.png"
           variant="rose"
         />
         <StatCard
@@ -458,7 +458,7 @@ export default function ClientsPage() {
           title="Per Day Amount"
           value={`₹${totalPerDayAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
           subtitle="Daily trade allocation"
-          icon={<Zap size={22} />}
+          imgSrc="/card_icon_wallet.png"
           variant="purple"
         />
       </div>

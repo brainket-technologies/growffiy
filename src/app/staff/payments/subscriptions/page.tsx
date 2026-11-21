@@ -160,7 +160,7 @@ export default function SubscriptionTransactionsPage() {
           title="Total Transactions"
           value={payments.length}
           subtitle={`₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} total`}
-          icon={<CreditCard size={22} />}
+          imgSrc="/card_icon_trades.png"
           variant="blue"
         />
 
@@ -168,7 +168,7 @@ export default function SubscriptionTransactionsPage() {
           title="Successful"
           value={successfulPayments.length}
           subtitle={`₹${totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} collected`}
-          icon={<CheckCircle size={22} />}
+          imgSrc="/card_icon_success.png"
           variant="emerald"
         />
 
@@ -176,7 +176,7 @@ export default function SubscriptionTransactionsPage() {
           title="Failed"
           value={failedPayments.length}
           subtitle={`₹${failedPayments.reduce((s, p) => s + Number(p.amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} attempted`}
-          icon={<AlertCircle size={22} />}
+          imgSrc="/card_icon_failed.png"
           variant="rose"
         />
 
@@ -184,7 +184,7 @@ export default function SubscriptionTransactionsPage() {
           title="Pending"
           value={pendingPayments.length}
           subtitle={`₹${pendingPayments.reduce((s, p) => s + Number(p.amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} in progress`}
-          icon={<Clock size={22} />}
+          imgSrc="/card_icon_inactive.png"
           variant="amber"
         />
 
@@ -192,7 +192,7 @@ export default function SubscriptionTransactionsPage() {
           title="Total Revenue"
           value={`₹${totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
           subtitle="From successful payments"
-          icon={<TrendingUp size={22} />}
+          imgSrc="/card_icon_subscription.png"
           variant="cyan"
         />
       </div>

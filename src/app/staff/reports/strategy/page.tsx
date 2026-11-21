@@ -390,7 +390,7 @@ export default function StrategyReportPage() {
           title="Best Performing Strategy"
           value={bestStrategy ? bestStrategy.name : 'N/A'}
           subtitle={bestStrategy ? `₹${bestStrategy.totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 0 })} P&L` : 'No data'}
-          icon={<Award size={22} />}
+          imgSrc="/card_icon_subscription.png"
           variant="purple"
         />
 
@@ -398,7 +398,7 @@ export default function StrategyReportPage() {
           title="Most Executed Strategy"
           value={mostActive ? mostActive.name : 'N/A'}
           subtitle={mostActive ? `${mostActive.totalTrades} total orders` : 'No data'}
-          icon={<Activity size={22} />}
+          imgSrc="/card_icon_strategy.png"
           variant="blue"
         />
 
@@ -406,7 +406,7 @@ export default function StrategyReportPage() {
           title="Overall Win Rate"
           value={`${overallWinRate.toFixed(1)}%`}
           subtitle={`${totalWinTrades}W / ${totalTradesCount - totalWinTrades}L`}
-          icon={<BarChart3 size={22} />}
+          imgSrc="/card_icon_success.png"
           variant="amber"
         />
       </div>

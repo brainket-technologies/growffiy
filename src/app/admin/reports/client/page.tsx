@@ -391,7 +391,7 @@ export default function ClientReportPage() {
           title="Total Clients"
           value={clientStats.length}
           subtitle={`${activeClients.length} active, ${subscribedClients.length} subscribed`}
-          icon={<Users size={22} />}
+          imgSrc="/card_icon_users.png"
           variant="blue"
         />
 
@@ -415,7 +415,7 @@ export default function ClientReportPage() {
           title="Top Earning Client"
           value={bestClient ? bestClient.name : 'N/A'}
           subtitle={bestClient ? `+₹${bestClient.totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 0 })} Net P&L` : 'No data'}
-          icon={<Award size={22} />}
+          imgSrc="/card_icon_subscription.png"
           variant="purple"
         />
       </div>

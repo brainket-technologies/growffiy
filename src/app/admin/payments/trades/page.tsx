@@ -867,7 +867,7 @@ export default function LiveTradeTransactionsPage() {
           title="Total Trades"
           value={dateFilteredTrades.length}
           subtitle="Across filtered timeframe"
-          icon={<Activity size={22} />}
+          imgSrc="/card_icon_trades.png"
           variant="blue"
         />
 
@@ -875,7 +875,7 @@ export default function LiveTradeTransactionsPage() {
           title="Active (Open)"
           value={openTrades.length}
           subtitle={`₹${openInvestment.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} invested`}
-          icon={<TrendingUp size={22} />}
+          imgSrc="/card_icon_active_trade.png"
           variant="cyan"
         />
 
@@ -883,7 +883,7 @@ export default function LiveTradeTransactionsPage() {
           title="Closed (Success)"
           value={closedTrades.length}
           subtitle={`${closedPnl >= 0 ? '+' : ''}₹${closedPnl.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} booked`}
-          icon={<CheckCircle size={22} />}
+          imgSrc="/card_icon_success.png"
           variant="emerald"
         />
 
@@ -891,7 +891,7 @@ export default function LiveTradeTransactionsPage() {
           title="Failed / Cancelled"
           value={failedTrades.length + cancelledTrades.length}
           subtitle={`${failedTrades.length} failed, ${cancelledTrades.length} cancelled`}
-          icon={<AlertCircle size={22} />}
+          imgSrc="/card_icon_failed.png"
           variant="rose"
         />
 

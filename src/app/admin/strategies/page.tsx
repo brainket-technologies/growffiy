@@ -1325,7 +1325,7 @@ export default function StrategiesPage() {
               title="Total Strategies"
               value={strategies.length}
               subtitle="All time registered algorithms"
-              icon={<TrendingUp size={22} />}
+              imgSrc="/card_icon_strategy.png"
               variant="blue"
             />
 
@@ -1333,7 +1333,7 @@ export default function StrategiesPage() {
               title="Active Strategies"
               value={strategies.filter(s => s.status === 'active').length}
               subtitle="Currently deploying orders"
-              icon={<CheckCircle size={22} />}
+              imgSrc="/card_icon_success.png"
               variant="emerald"
             />
 

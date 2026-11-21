@@ -117,7 +117,7 @@ export default function ClientTradesPage() {
           title="Total Trades"
           value={filtered.length}
           subtitle="Filtered trade history"
-          icon={<Activity size={22} />}
+          imgSrc="/card_icon_trades.png"
           variant="blue"
         />
 
@@ -125,7 +125,7 @@ export default function ClientTradesPage() {
           title="Open"
           value={openCount}
           subtitle="Active market positions"
-          icon={<TrendingUp size={22} />}
+          imgSrc="/card_icon_active_trade.png"
           variant="cyan"
         />
 
@@ -133,7 +133,7 @@ export default function ClientTradesPage() {
           title="Closed"
           value={closedCount}
           subtitle="Completed executions"
-          icon={<CheckCircle2 size={22} />}
+          imgSrc="/card_icon_success.png"
           variant="purple"
         />
 
