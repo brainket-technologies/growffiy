@@ -36,6 +36,7 @@ export default function WebsiteSettingsPage() {
   const [footerDisclaimer, setFooterDisclaimer] = useState('Algorithmic trading involves substantial financial risk. Growffi is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.');
   const [footerBottomTagline, setFooterBottomTagline] = useState('Designed for NSE/BSE Intraday Algo Traders');
   const [googleAnalyticsId, setGoogleAnalyticsId] = useState('');
+  const [googleSiteVerification, setGoogleSiteVerification] = useState('');
 
   // Social Links
   const [socialTelegram, setSocialTelegram] = useState('');
@@ -89,6 +90,7 @@ export default function WebsiteSettingsPage() {
           setFooterDisclaimer(res.settings.footer_disclaimer || 'Algorithmic trading involves substantial financial risk. Growffi is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.');
           setFooterBottomTagline(res.settings.footer_bottom_tagline || 'Designed for NSE/BSE Intraday Algo Traders');
           setGoogleAnalyticsId(res.settings.google_analytics_id || '');
+          setGoogleSiteVerification(res.settings.google_site_verification || '');
           setSocialTelegram(res.settings.social_telegram || '');
           setSocialYoutube(res.settings.social_youtube || '');
           setSocialTwitter(res.settings.social_twitter || '');
@@ -143,6 +145,7 @@ export default function WebsiteSettingsPage() {
         footer_disclaimer: footerDisclaimer,
         footer_bottom_tagline: footerBottomTagline,
         google_analytics_id: googleAnalyticsId,
+        google_site_verification: googleSiteVerification,
         social_telegram: socialTelegram,
         social_youtube: socialYoutube,
         social_twitter: socialTwitter,
@@ -480,6 +483,11 @@ export default function WebsiteSettingsPage() {
               <div style={{ marginTop: '10px' }}>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Google Analytics Measurement ID</label>
                 <input type="text" placeholder="G-XXXXXXXXXX" value={googleAnalyticsId} onChange={(e) => setGoogleAnalyticsId(e.target.value)}
+                  style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+              </div>
+              <div style={{ marginTop: '10px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Google Search Console Verification Token</label>
+                <input type="text" placeholder="e.g. google-site-verification token or code" value={googleSiteVerification} onChange={(e) => setGoogleSiteVerification(e.target.value)}
                   style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
               </div>
             </div>

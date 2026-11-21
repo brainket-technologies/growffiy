@@ -91,6 +91,9 @@ export async function generateMetadata(): Promise<Metadata> {
         "max-snippet": -1,
       },
     },
+    verification: {
+      google: dbSettings["google_site_verification"] || undefined,
+    },
     icons: {
       icon: dbSettings["app_favicon"] || "/favicon.ico",
       apple: dbSettings["app_logo"] || "/logo.png",
