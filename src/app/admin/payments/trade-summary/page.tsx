@@ -523,73 +523,181 @@ export default function TradeSummaryPage() {
         </div>
       </div>
 
-      {/* Top 3 Summary Cards (Matching Growffi Card Design) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-        
-        {/* Card 1: Total Demat */}
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>
+      {/* Top 3 Summary Cards Section with Custom Pastel Gradients, Waves & Candlestick Banner */}
+      <div style={{
+        position: 'relative',
+        borderRadius: '20px',
+        padding: '20px',
+        background: 'linear-gradient(135deg, rgba(219, 234, 254, 0.4) 0%, rgba(240, 249, 255, 0.6) 50%, rgba(255, 255, 255, 0.9) 100%)',
+        border: '1px solid rgba(226, 232, 240, 0.8)',
+        boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)',
+        overflow: 'hidden'
+      }}>
+        {/* Candlestick Silhouette Banner in Top-Right Background */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img 
+          src="/candlestick_banner.png" 
+          alt="" 
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            height: '45px',
+            objectFit: 'contain',
+            opacity: 0.85,
+            pointerEvents: 'none',
+            zIndex: 0
+          }} 
+        />
+
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+          gap: '16px',
+          position: 'relative',
+          zIndex: 1
+        }}>
+          
+          {/* Card 1: Total Demat (Light Blue Pastel with Fluid Waves & Money Pouch PNG) */}
+          <div style={{
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: '16px',
+            padding: '20px 22px',
+            background: 'linear-gradient(135deg, #dbeafe 0%, #e0f2fe 50%, #eff6ff 100%)',
+            border: '1px solid rgba(147, 197, 253, 0.6)',
+            boxShadow: '0 4px 15px rgba(37, 99, 235, 0.05)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px'
+          }}>
+            {/* Money Pouch PNG Icon */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src="/card_icon_demat.png" 
+              alt="Total Demat" 
+              style={{ width: '56px', height: '62px', objectFit: 'contain', zIndex: 2, flexShrink: 0 }} 
+            />
+
+            {/* Card Content */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', zIndex: 2 }}>
+              <span style={{ fontSize: '15px', fontWeight: 700, color: '#0f2744', letterSpacing: '-0.2px' }}>
                 Total Demat
-              </p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: '#10b981' }}>
+              </span>
+              <span style={{ fontSize: '30px', fontWeight: 800, color: '#002060', lineHeight: 1.15, fontFamily: 'var(--font-title, inherit)' }}>
                 ₹{topStats.totalDemat.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-              </h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>
-                Total live client demat balance
-              </p>
+              </span>
             </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-              <Wallet size={20} />
-            </div>
-          </div>
-        </Card>
 
-        {/* Card 2: Total P&L */}
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>
+            {/* Bottom-Right Blue SVG Waves */}
+            <svg viewBox="0 0 160 90" preserveAspectRatio="none" style={{ position: 'absolute', right: 0, bottom: 0, width: '45%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
+              <path d="M0,82 C40,95 70,55 110,65 C135,72 150,55 160,58 L160,90 L0,90 Z" fill="rgba(147, 197, 253, 0.45)" />
+              <path d="M10,88 C50,98 80,68 120,78 C140,84 152,72 160,74 L160,90 L10,90 Z" fill="rgba(96, 165, 250, 0.4)" />
+              <path d="M0,82 C40,95 70,55 110,65 C135,72 150,55 160,58" fill="none" stroke="rgba(147, 197, 253, 0.85)" strokeWidth="1.5" />
+              <path d="M10,88 C50,98 80,68 120,78 C140,84 152,72 160,74" fill="none" stroke="rgba(96, 165, 250, 0.9)" strokeWidth="1.5" />
+            </svg>
+          </div>
+
+          {/* Card 2: Total P&L (Light Green Pastel with Fluid Waves & Growth Chart PNG) */}
+          <div style={{
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: '16px',
+            padding: '20px 22px',
+            background: 'linear-gradient(135deg, #dcfce7 0%, #e6fced 50%, #f0fdf4 100%)',
+            border: '1px solid rgba(187, 247, 208, 0.7)',
+            boxShadow: '0 4px 15px rgba(16, 185, 129, 0.05)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px'
+          }}>
+            {/* Growth Bar Chart PNG Icon */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src="/card_icon_pnl.png" 
+              alt="Total P&L" 
+              style={{ width: '50px', height: '56px', objectFit: 'contain', zIndex: 2, flexShrink: 0 }} 
+            />
+
+            {/* Card Content */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', zIndex: 2 }}>
+              <span style={{ fontSize: '15px', fontWeight: 700, color: '#064e3b', letterSpacing: '-0.2px' }}>
                 Total P&amp;L
-              </p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: topStats.totalPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)', whiteSpace: 'nowrap' }}>
+              </span>
+              <span style={{ 
+                fontSize: '30px', 
+                fontWeight: 800, 
+                color: topStats.totalPnl >= 0 ? '#047857' : '#dc2626', 
+                lineHeight: 1.15, 
+                fontFamily: 'var(--font-title, inherit)',
+                whiteSpace: 'nowrap'
+              }}>
                 {topStats.totalPnl >= 0 ? '+' : ''}₹{topStats.totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </h3>
-              <p style={{ color: topStats.totalPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)', fontSize: '11px', marginTop: '2px', fontWeight: 600 }}>
-                {topStats.totalPnl >= 0 ? '▲' : '▼'} {topStats.pnlPercentage >= 0 ? `+${topStats.pnlPercentage.toFixed(2)}%` : `${topStats.pnlPercentage.toFixed(2)}%`} ROI
-              </p>
+              </span>
+              <div style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '4px', 
+                fontSize: '13px', 
+                fontWeight: 700, 
+                color: topStats.totalPnl >= 0 ? '#047857' : '#dc2626',
+                marginTop: '1px'
+              }}>
+                <span>{topStats.totalPnl >= 0 ? '▲' : '▼'}</span>
+                <span>{topStats.pnlPercentage >= 0 ? `+${topStats.pnlPercentage.toFixed(2)}%` : `${topStats.pnlPercentage.toFixed(2)}%`}</span>
+              </div>
             </div>
-            <div style={{ 
-              padding: '10px', 
-              borderRadius: '10px', 
-              backgroundColor: topStats.totalPnl >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', 
-              color: topStats.totalPnl >= 0 ? '#10b981' : '#ef4444' 
-            }}>
-              {topStats.totalPnl >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
-            </div>
-          </div>
-        </Card>
 
-        {/* Card 3: Total No. of Traders */}
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>
-                Total No. of Traders
-              </p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {topStats.totalTraders}
-              </h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>
-                Subscribed accounts participating
-              </p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(168, 85, 247, 0.1)', color: '#a855f7' }}>
-              <Users size={20} />
-            </div>
+            {/* Bottom-Right Green SVG Waves */}
+            <svg viewBox="0 0 160 90" preserveAspectRatio="none" style={{ position: 'absolute', right: 0, bottom: 0, width: '45%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
+              <path d="M0,78 C35,55 70,88 115,48 C140,25 152,32 160,36 L160,90 L0,90 Z" fill="rgba(167, 243, 208, 0.45)" />
+              <path d="M15,86 C50,65 80,94 125,58 C145,38 155,42 160,46 L160,90 L15,90 Z" fill="rgba(110, 231, 183, 0.4)" />
+              <path d="M0,78 C35,55 70,88 115,48 C140,25 152,32 160,36" fill="none" stroke="rgba(52, 211, 153, 0.85)" strokeWidth="1.5" />
+              <path d="M15,86 C50,65 80,94 125,58 C145,38 155,42 160,46" fill="none" stroke="rgba(16, 185, 129, 0.9)" strokeWidth="1.5" />
+            </svg>
           </div>
-        </Card>
+
+          {/* Card 3: Total No. of Traders (Light Purple Pastel with Fluid Waves & Users PNG) */}
+          <div style={{
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: '16px',
+            padding: '20px 22px',
+            background: 'linear-gradient(135deg, #f3e8ff 0%, #ede9fe 50%, #faf5ff 100%)',
+            border: '1px solid rgba(221, 214, 254, 0.7)',
+            boxShadow: '0 4px 15px rgba(168, 85, 247, 0.05)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px'
+          }}>
+            {/* Users / Traders PNG Icon */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src="/card_icon_traders.png" 
+              alt="Total No. of Traders" 
+              style={{ width: '56px', height: '54px', objectFit: 'contain', zIndex: 2, flexShrink: 0 }} 
+            />
+
+            {/* Card Content */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', zIndex: 2 }}>
+              <span style={{ fontSize: '15px', fontWeight: 700, color: '#4c1d95', letterSpacing: '-0.2px' }}>
+                Total No. of Traders
+              </span>
+              <span style={{ fontSize: '30px', fontWeight: 800, color: '#1e1b4b', lineHeight: 1.15, fontFamily: 'var(--font-title, inherit)' }}>
+                {topStats.totalTraders}
+              </span>
+            </div>
+
+            {/* Bottom-Right Purple SVG Waves */}
+            <svg viewBox="0 0 160 90" preserveAspectRatio="none" style={{ position: 'absolute', right: 0, bottom: 0, width: '45%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
+              <path d="M0,80 C35,62 70,92 115,52 C140,28 152,36 160,40 L160,90 L0,90 Z" fill="rgba(216, 180, 254, 0.4)" />
+              <path d="M15,88 C50,72 80,98 125,62 C145,42 155,48 160,50 L160,90 L15,90 Z" fill="rgba(192, 132, 252, 0.45)" />
+              <path d="M0,80 C35,62 70,92 115,52 C140,28 152,36 160,40" fill="none" stroke="rgba(192, 132, 252, 0.85)" strokeWidth="1.5" />
+              <path d="M15,88 C50,72 80,98 125,62 C145,42 155,48 160,50" fill="none" stroke="rgba(168, 85, 247, 0.9)" strokeWidth="1.5" />
+            </svg>
+          </div>
+
+        </div>
       </div>
 
       {/* Main Table Card (Exact structure & classes matching trades/page.tsx) */}
