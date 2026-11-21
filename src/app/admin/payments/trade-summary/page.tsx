@@ -39,7 +39,7 @@ export default function TradeSummaryPage() {
   const { trades = [], clients = [], loading, refreshAllData } = useAppViewModel();
   const [selectedSummary, setSelectedSummary] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(50);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Search & Type Filters
@@ -819,10 +819,10 @@ export default function TradeSummaryPage() {
               onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
               style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-white)', cursor: 'pointer', outline: 'none', color: 'var(--text-primary)' }}
             >
-              <option value={10}>10 / page</option>
-              <option value={25}>25 / page</option>
               <option value={50}>50 / page</option>
               <option value={100}>100 / page</option>
+              <option value={200}>200 / page</option>
+              <option value={500}>500 / page</option>
             </select>
           </div>
         </div>

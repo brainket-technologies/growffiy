@@ -20,7 +20,7 @@ export default function StrategyReportPage() {
   };
   const [minTrades, setMinTrades] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(50);
 
   const now = new Date();
   const initialStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -546,11 +546,10 @@ export default function StrategyReportPage() {
             </div>
             <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
               style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-white)', cursor: 'pointer', outline: 'none', color: 'var(--text-primary)' }}>
-              <option value={5}>5 / page</option>
-              <option value={10}>10 / page</option>
-              <option value={15}>15 / page</option>
-              <option value={30}>30 / page</option>
               <option value={50}>50 / page</option>
+              <option value={100}>100 / page</option>
+              <option value={200}>200 / page</option>
+              <option value={500}>500 / page</option>
             </select>
           </div>
         </div>

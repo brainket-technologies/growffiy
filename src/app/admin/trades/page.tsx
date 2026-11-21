@@ -242,7 +242,7 @@ export default function LiveTradingPage() {
   const [statusFilter, setStatusFilter] = useState('all');
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(50);
 
   const uniqueClients = Array.from(new Set((trades || []).map(t => t && (t.client?.user?.name || t.clientName)).filter(Boolean))) as string[];
   const uniqueStrategies = Array.from(new Set((trades || []).map(t => t && (t.strategy?.name || t.strategyName)).filter(Boolean))) as string[];
@@ -544,11 +544,10 @@ export default function LiveTradingPage() {
               <button onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-white)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}>&gt;</button>
             </div>
             <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1); }} style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-white)', cursor: 'pointer', outline: 'none' }}>
-              <option value={5}>5 / page</option>
-              <option value={10}>10 / page</option>
-              <option value={15}>15 / page</option>
-              <option value={30}>30 / page</option>
               <option value={50}>50 / page</option>
+              <option value={100}>100 / page</option>
+              <option value={200}>200 / page</option>
+              <option value={500}>500 / page</option>
             </select>
           </div>
         </div>

@@ -336,7 +336,7 @@ export default function ClientDashboardOverview() {
 
   const activeStrategy = matchedClient?.strategy?.name || 'Pre-Open Breakout';
 
-  const pageSize = 10;
+  const pageSize = 50;
 
   // Filter trades placed on behalf of this client dynamically
   const clientTrades = trades.filter(t => {

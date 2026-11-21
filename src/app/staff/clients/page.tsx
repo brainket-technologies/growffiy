@@ -179,7 +179,7 @@ export default function ClientsPage() {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
   const [openMenuClientId, setOpenMenuClientId] = useState<string | null>(null);
   const [openMenuUpwards, setOpenMenuUpwards] = useState<boolean>(false);
   const menuContainerRef = React.useRef<HTMLDivElement>(null);
@@ -840,10 +840,10 @@ export default function ClientsPage() {
                     cursor: 'pointer'
                   }}
                 >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
                   <option value={50}>50</option>
+                  <option value={100}>100</option>
+                  <option value={200}>200</option>
+                  <option value={500}>500</option>
                 </select>
               </div>
 

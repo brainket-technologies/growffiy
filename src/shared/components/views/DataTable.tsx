@@ -53,7 +53,7 @@ export function DataTable<T extends Record<string, any>>({
   exportable = true,
   exportFilename = 'export',
   emptyMessage = 'No data found.',
-  pageSize: defaultPageSize = 15,
+  pageSize: defaultPageSize = 50,
   showPagination = true,
   compact = false,
   onRowClick,
@@ -284,8 +284,8 @@ export function DataTable<T extends Record<string, any>>({
             value={pageSize}
             onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
           >
-            {[10, 15, 25, 50, 100].map(s => (
-              <option key={s} value={s}>{s}</option>
+            {[50, 100, 200, 500].map(s => (
+              <option key={s} value={s}>{s} / page</option>
             ))}
           </select>
         </div>

@@ -13,7 +13,7 @@ export default function ClientTradingReports() {
   const [filterSymbol, setFilterSymbol] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 50;
 
   // Date filter states matching Performance page 1:1
   const [isFilterOpen, setIsFilterOpen] = useState(false);

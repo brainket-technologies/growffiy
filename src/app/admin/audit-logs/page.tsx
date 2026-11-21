@@ -16,7 +16,7 @@ export default function AuditLogsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalLogs, setTotalLogs] = useState(0);
   const [isLive, setIsLive] = useState(true);
-  const itemsPerPage = 10;
+  const itemsPerPage = 50;
 
   const executeClearLogs = async () => {
     setIsClearModalOpen(false);

@@ -69,10 +69,11 @@ export default function ClientTradesPage() {
   const openCount = filtered.filter(t => t.status === 'open').length;
   const closedCount = filtered.filter(t => t.status === 'closed').length;
 
-  const totalPages = Math.ceil(filtered.length / 10);
+  const pageSize = 50;
+  const totalPages = Math.ceil(filtered.length / pageSize);
   const activePage = Math.max(1, Math.min(currentPage, totalPages || 1));
-  const indexOfLastItem = activePage * 10;
-  const indexOfFirstItem = indexOfLastItem - 10;
+  const indexOfLastItem = activePage * pageSize;
+  const indexOfFirstItem = indexOfLastItem - pageSize;
   const currentTrades = filtered.slice(indexOfFirstItem, indexOfLastItem);
 
   return (

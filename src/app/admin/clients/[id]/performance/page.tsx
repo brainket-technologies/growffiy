@@ -98,7 +98,7 @@ export default function ClientPerformancePage() {
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(50);
   
   const [sortKey, setSortKey] = useState<string | null>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -1495,10 +1495,10 @@ export default function ClientPerformancePage() {
               }}
               style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-white)', cursor: 'pointer', outline: 'none' }}
             >
-              <option value={5}>5 / page</option>
-              <option value={10}>10 / page</option>
-              <option value={20}>20 / page</option>
               <option value={50}>50 / page</option>
+              <option value={100}>100 / page</option>
+              <option value={200}>200 / page</option>
+              <option value={500}>500 / page</option>
             </select>
           </div>
         </div>
