@@ -7,7 +7,7 @@ import { StatCard } from '../../../shared/components/views/StatCard';
 import { Button } from '../../../shared/components/views/Button';
 import { Modal } from '../../../shared/components/views/Modal';
 import Link from 'next/link';
-import { Plus, Eye, Trash2, Search, Filter, Download, TrendingUp, ChevronLeft, ChevronRight, ExternalLink, MoreVertical, Users, UserCheck, UserX, Zap } from 'lucide-react';
+import { Plus, Eye, Trash2, Search, Filter, Download, TrendingUp, ChevronLeft, ChevronRight, ExternalLink, MoreVertical, Users, UserCheck, UserX, Zap, User, Tag, Lightbulb, Wallet, Crown, CheckCircle2, Settings } from 'lucide-react';
 import { api } from '../../../shared/services/api';
 import { API_ENDPOINTS } from '../../../core/constants';
 
@@ -551,14 +551,14 @@ export default function ClientsPage() {
           <table className="table-compact">
             <thead>
               <tr>
-                <th style={{ width: '22%' }}>Name</th>
-                <th style={{ width: '10%' }}>Type</th>
-                <th style={{ width: '16%' }}>Strategy</th>
-                <th style={{ width: '15%' }}>Live Margin (INR)</th>
-                <th style={{ width: '13%' }}>Kite Session</th>
-                <th style={{ width: '12%' }}>Subscription</th>
-                <th style={{ width: '12%' }}>Trade Status</th>
-                <th style={{ width: '50px', minWidth: '50px', maxWidth: '60px', textAlign: 'center' }}>Actions</th>
+                <th style={{ width: '22%' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><User size={13} style={{ flexShrink: 0 }} /> NAME</span></th>
+                <th style={{ width: '10%' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Tag size={13} style={{ flexShrink: 0 }} /> TYPE</span></th>
+                <th style={{ width: '16%' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Lightbulb size={13} style={{ flexShrink: 0 }} /> STRATEGY</span></th>
+                <th style={{ width: '15%' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Wallet size={13} style={{ flexShrink: 0 }} /> DEMAT AMOUNT</span></th>
+                <th style={{ width: '13%' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Zap size={13} style={{ flexShrink: 0 }} /> KITE SESSION</span></th>
+                <th style={{ width: '12%' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Crown size={13} style={{ flexShrink: 0 }} /> SUBSCRIPTION</span></th>
+                <th style={{ width: '12%' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={13} style={{ flexShrink: 0 }} /> TRADE STATUS</span></th>
+                <th style={{ width: '65px', minWidth: '65px', maxWidth: '75px', textAlign: 'center' }}><span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}><Settings size={13} style={{ flexShrink: 0 }} /> ACTION</span></th>
               </tr>
             </thead>
             <tbody>

@@ -7,7 +7,7 @@ import { StatCard } from '../../../shared/components/views/StatCard';
 import { Button } from '../../../shared/components/views/Button';
 import { Modal } from '../../../shared/components/views/Modal';
 import Link from 'next/link';
-import { Plus, Eye, EyeOff, Trash2, Search, Filter, Download, TrendingUp, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, LogIn, MoreVertical, Users, UserCheck, UserX, Zap } from 'lucide-react';
+import { Plus, Eye, EyeOff, Trash2, Search, Filter, Download, TrendingUp, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, LogIn, MoreVertical, Users, UserCheck, UserX, Zap, User, Tag, Lightbulb, Wallet, BarChart2, Crown, CheckCircle2, Settings } from 'lucide-react';
 import { api } from '../../../shared/services/api';
 import { API_ENDPOINTS } from '../../../core/constants';
 
@@ -602,15 +602,16 @@ export default function ClientsPage() {
             <thead>
               <tr>
                 {[
-                  { key: 'name', label: 'Name', width: '20%' },
-                  { key: 'productType', label: 'Type', width: '8%' },
-                  { key: 'strategy', label: 'Strategy', width: '15%' },
-                  { key: 'margin', label: 'Demat Amount', width: '14%' },
-                  { key: 'perDayAmount', label: 'P/D Amount', width: '13%' },
-                  { key: 'session', label: 'Kite Session', width: '11%' },
-                  { key: 'subscription', label: 'Subscription', width: '11%' },
-                  { key: 'status', label: 'Trade Status', width: '8%' },
+                  { key: 'name', label: 'NAME', width: '20%', icon: User },
+                  { key: 'productType', label: 'TYPE', width: '8%', icon: Tag },
+                  { key: 'strategy', label: 'STRATEGY', width: '15%', icon: Lightbulb },
+                  { key: 'margin', label: 'DEMAT AMOUNT', width: '14%', icon: Wallet },
+                  { key: 'perDayAmount', label: 'P/D AMOUNT', width: '13%', icon: BarChart2 },
+                  { key: 'session', label: 'KITE SESSION', width: '11%', icon: Zap },
+                  { key: 'subscription', label: 'SUBSCRIPTION', width: '11%', icon: Crown },
+                  { key: 'status', label: 'TRADE STATUS', width: '8%', icon: CheckCircle2 },
                 ].map(col => {
+                  const Icon = col.icon;
                   const isActive = sortKey === col.key;
                   return (
                     <th
@@ -621,21 +622,27 @@ export default function ClientsPage() {
                         cursor: 'pointer',
                         userSelect: 'none',
                         transition: 'background 0.15s, color 0.15s',
-                        background: isActive ? 'rgba(99,102,241,0.08)' : undefined,
-                        color: isActive ? '#6366f1' : undefined,
+                        background: isActive ? 'rgba(255,255,255,0.14)' : undefined,
+                        color: '#ffffff',
                       }}
                     >
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', width: '100%' }}>
-                        <span style={{ flex: 1 }}>{col.label}</span>
-                        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
-                          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
-                          <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+                        <Icon size={13} style={{ flexShrink: 0, color: '#ffffff' }} />
+                        <span style={{ flex: 1, fontWeight: 700 }}>{col.label}</span>
+                        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.45 }}>
+                          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#ffffff' : 'rgba(255,255,255,0.5)'}/>
+                          <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#ffffff' : 'rgba(255,255,255,0.5)'}/>
                         </svg>
                       </span>
                     </th>
                   );
                 })}
-                <th style={{ width: '50px', minWidth: '50px', maxWidth: '60px', textAlign: 'center' }}>Actions</th>
+                <th style={{ width: '65px', minWidth: '65px', maxWidth: '75px', textAlign: 'center', color: '#ffffff' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                    <Settings size={13} style={{ flexShrink: 0, color: '#ffffff' }} />
+                    <span style={{ fontWeight: 700 }}>ACTION</span>
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody>

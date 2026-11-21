@@ -15,7 +15,10 @@ import {
   TrendingUp,
   TrendingDown,
   Users,
-  BarChart2
+  BarChart2,
+  ArrowLeftRight,
+  Crosshair,
+  LogOut
 } from 'lucide-react';
 
 function formatDateTime(timeStr: string | Date | null) {
@@ -834,13 +837,13 @@ export default function TradeSummaryPage() {
           <table style={{ width: '100%' }}>
             <thead>
               <tr>
-                <th style={{ whiteSpace: 'nowrap' }}>DATE &amp; TIME</th>
-                <th style={{ whiteSpace: 'nowrap' }}>STOCK NAME</th>
-                <th style={{ whiteSpace: 'nowrap' }}>TRADE TYPE</th>
-                <th style={{ whiteSpace: 'nowrap' }}>ENTRY</th>
-                <th style={{ whiteSpace: 'nowrap' }}>EXIT</th>
-                <th style={{ whiteSpace: 'nowrap' }}>P&amp;L (₹)</th>
-                <th style={{ whiteSpace: 'nowrap' }}>TRADERS</th>
+                <th style={{ whiteSpace: 'nowrap' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Calendar size={13} style={{ flexShrink: 0 }} /> DATE &amp; TIME</span></th>
+                <th style={{ whiteSpace: 'nowrap' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><BarChart2 size={13} style={{ flexShrink: 0 }} /> STOCK NAME</span></th>
+                <th style={{ whiteSpace: 'nowrap' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><ArrowLeftRight size={13} style={{ flexShrink: 0 }} /> TRADE TYPE</span></th>
+                <th style={{ whiteSpace: 'nowrap' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Crosshair size={13} style={{ flexShrink: 0 }} /> ENTRY</span></th>
+                <th style={{ whiteSpace: 'nowrap' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><LogOut size={13} style={{ flexShrink: 0 }} /> EXIT</span></th>
+                <th style={{ whiteSpace: 'nowrap' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><TrendingUp size={13} style={{ flexShrink: 0 }} /> P&amp;L (₹)</span></th>
+                <th style={{ whiteSpace: 'nowrap' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Users size={13} style={{ flexShrink: 0 }} /> TRADERS</span></th>
               </tr>
             </thead>
             <tbody>

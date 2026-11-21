@@ -440,7 +440,7 @@ export default function GroupTradesPage() {
         <div style={{ overflowX: 'auto' }}>
           <table className="dashboard-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1000px' }}>
             <thead>
-              <tr style={{ background: 'var(--surface)', borderBottom: '1.5px solid var(--border)' }}>
+              <tr style={{ borderBottom: 'none' }}>
                 {[
                   { key: 'date', label: 'Date & Time' },
                   { key: 'strategy', label: 'Strategy' },
@@ -457,12 +457,12 @@ export default function GroupTradesPage() {
                   const isActive = sortKey === col.key;
                   return (
                     <th key={col.key} onClick={() => handleSort(col.key)}
-                      style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer', userSelect: 'none', color: isActive ? '#6366f1' : 'var(--text-secondary)', transition: 'color 0.15s' }}>
+                      style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer', userSelect: 'none', color: '#ffffff', background: isActive ? 'rgba(255,255,255,0.14)' : undefined, transition: 'background 0.15s' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                         <span>{col.label}</span>
-                        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
-                          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
-                          <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.45 }}>
+                          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#ffffff' : 'rgba(255,255,255,0.5)'}/>
+                          <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#ffffff' : 'rgba(255,255,255,0.5)'}/>
                         </svg>
                       </span>
                     </th>

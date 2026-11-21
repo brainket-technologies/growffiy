@@ -970,7 +970,7 @@ export default function LiveTradeTransactionsPage() {
                 <th style={{ whiteSpace: 'nowrap' }}>Type</th>
                 {Array.from({ length: maxLegCount }).map((_, i) => (
                   <th key={`leg-hdr-${i}`} style={{ minWidth: '155px', whiteSpace: 'nowrap' }}>
-                    Leg {i + 1} <span style={{ fontWeight: 400, fontSize: 10, color: 'var(--text-muted)' }}>Entry/SL/Tgt/Qty</span>
+                    Leg {i + 1} <span style={{ fontWeight: 400, fontSize: 10, color: 'rgba(255, 255, 255, 0.75)' }}>Entry/SL/Tgt/Qty</span>
                   </th>
                 ))}
                 <th style={{ whiteSpace: 'nowrap' }}>Exit Reason</th>
