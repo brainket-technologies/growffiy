@@ -36,7 +36,7 @@ function formatDateTime(timeStr: string | Date | null) {
 }
 
 export default function TradeSummaryPage() {
-  const { trades = [], loading, refreshAllData } = useAppViewModel();
+  const { trades = [], clients = [], loading, refreshAllData } = useAppViewModel();
   const [selectedSummary, setSelectedSummary] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -274,12 +274,10 @@ export default function TradeSummaryPage() {
 
   // Top Summary Cards
   const topStats = useMemo(() => {
-    let totalInvestment = 0;
     let totalPnl = 0;
     const uniqueTradersSet = new Set<string>();
 
     filteredSummaries.forEach(item => {
-      totalInvestment += item.totalInvestment;
       totalPnl += item.totalPnl;
       item.clientsList.forEach((c: any) => {
         if (c.id) uniqueTradersSet.add(c.id);
@@ -287,15 +285,16 @@ export default function TradeSummaryPage() {
       });
     });
 
-    const pnlPercentage = totalInvestment > 0 ? (totalPnl / totalInvestment) * 100 : 0;
+    const totalDemat = clients.reduce((acc, c: any) => acc + (Number(c.liveMargin) || 0), 0);
+    const pnlPercentage = totalDemat > 0 ? (totalPnl / totalDemat) * 100 : 0;
 
     return {
-      totalInvestment,
+      totalDemat,
       totalPnl,
       pnlPercentage,
       totalTraders: uniqueTradersSet.size
     };
-  }, [filteredSummaries]);
+  }, [filteredSummaries, clients]);
 
   // Pagination
   const totalCount = filteredSummaries.length;
@@ -527,21 +526,21 @@ export default function TradeSummaryPage() {
       {/* Top 3 Summary Cards (Matching Growffi Card Design) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
         
-        {/* Card 1: Total Investment */}
+        {/* Card 1: Total Demat */}
         <Card>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>
-                Total Investment
+                Total Demat
               </p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                ₹{topStats.totalInvestment.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+              <h3 style={{ fontSize: '28px', fontWeight: 700, color: '#10b981' }}>
+                ₹{topStats.totalDemat.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
               </h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>
-                Across {filteredSummaries.length} trade executions
+                Total live client demat balance
               </p>
             </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
               <Wallet size={20} />
             </div>
           </div>
