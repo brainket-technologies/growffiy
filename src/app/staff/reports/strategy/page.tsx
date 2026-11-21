@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useAppViewModel } from '../../../../shared/viewmodels/AppContext';
 import { Card } from '../../../../shared/components/views/Card';
+import { StatCard } from '../../../../shared/components/views/StatCard';
 import { Button } from '../../../../shared/components/views/Button';
 import { Loader } from '../../../../shared/components/views/Loader';
 import { TrendingUp, Award, Activity, Download, Search, Filter, TrendingDown, BarChart3, Calendar, ChevronDown } from 'lucide-react';
@@ -376,76 +377,38 @@ export default function StrategyReportPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="sp-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Total Algorithmic P&L</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: totalAlgoPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                {totalAlgoPnl >= 0 ? '+' : ''}₹{totalAlgoPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>{strategyStats.length} strategies</p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: totalAlgoPnl >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: totalAlgoPnl >= 0 ? '#10b981' : '#ef4444' }}>
-              {totalAlgoPnl >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
-            </div>
-          </div>
-        </Card>
+      <div className="sp-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px' }}>
+        <StatCard
+          title="Total Algorithmic P&L"
+          value={`${totalAlgoPnl >= 0 ? '+' : ''}₹${totalAlgoPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+          subtitle={`${strategyStats.length} strategies active`}
+          imgSrc="/card_icon_pnl.png"
+          variant={totalAlgoPnl >= 0 ? 'emerald' : 'rose'}
+        />
 
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Best Performing Strategy</p>
-              <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {bestStrategy ? bestStrategy.name : 'N/A'}
-              </h3>
-              {bestStrategy && (
-                <p style={{ color: 'var(--color-success)', fontSize: '11px', marginTop: '2px', fontWeight: 600 }}>
-                  ₹{bestStrategy.totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })} P&L
-                </p>
-              )}
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
-              <Award size={20} />
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Best Performing Strategy"
+          value={bestStrategy ? bestStrategy.name : 'N/A'}
+          subtitle={bestStrategy ? `₹${bestStrategy.totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 0 })} P&L` : 'No data'}
+          icon={<Award size={22} />}
+          variant="purple"
+        />
 
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Most Executed Strategy</p>
-              <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {mostActive ? mostActive.name : 'N/A'}
-              </h3>
-              {mostActive && (
-                <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>
-                  {mostActive.totalTrades} Total Orders
-                </p>
-              )}
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
-              <Activity size={20} />
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Most Executed Strategy"
+          value={mostActive ? mostActive.name : 'N/A'}
+          subtitle={mostActive ? `${mostActive.totalTrades} total orders` : 'No data'}
+          icon={<Activity size={22} />}
+          variant="blue"
+        />
 
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Overall Win Rate</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: overallWinRate >= 50 ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                {overallWinRate.toFixed(1)}%
-              </h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>
-                {totalWinTrades}W / {totalTradesCount - totalWinTrades}L
-              </p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-              <BarChart3 size={20} />
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Overall Win Rate"
+          value={`${overallWinRate.toFixed(1)}%`}
+          subtitle={`${totalWinTrades}W / ${totalTradesCount - totalWinTrades}L`}
+          icon={<BarChart3 size={22} />}
+          variant="amber"
+        />
       </div>
 
       {/* Strategies Table */}

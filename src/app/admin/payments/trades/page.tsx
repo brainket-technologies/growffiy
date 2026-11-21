@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useAppViewModel } from '../../../../shared/viewmodels/AppContext';
 import { Card } from '../../../../shared/components/views/Card';
+import { StatCard } from '../../../../shared/components/views/StatCard';
 import { Loader } from '../../../../shared/components/views/Loader';
 import { Button } from '../../../../shared/components/views/Button';
 import { Modal } from '../../../../shared/components/views/Modal';
@@ -861,76 +862,46 @@ export default function LiveTradeTransactionsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Total Trades</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>{dateFilteredTrades.length}</h3>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>
-              <Activity size={20} />
-            </div>
-          </div>
-        </Card>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px' }}>
+        <StatCard
+          title="Total Trades"
+          value={dateFilteredTrades.length}
+          subtitle="Across filtered timeframe"
+          icon={<Activity size={22} />}
+          variant="blue"
+        />
 
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Active (Open)</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>{openTrades.length}</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>₹{openInvestment.toLocaleString('en-IN', { minimumFractionDigits: 2 })} invested</p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
-              <TrendingUp size={20} />
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Active (Open)"
+          value={openTrades.length}
+          subtitle={`₹${openInvestment.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} invested`}
+          icon={<TrendingUp size={22} />}
+          variant="cyan"
+        />
 
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Closed (Success)</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>{closedTrades.length}</h3>
-              <p style={{ color: closedPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)', fontSize: '11px', marginTop: '2px', fontWeight: 600 }}>
-                {closedPnl >= 0 ? '+' : ''}₹{closedPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-              <CheckCircle size={20} />
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Closed (Success)"
+          value={closedTrades.length}
+          subtitle={`${closedPnl >= 0 ? '+' : ''}₹${closedPnl.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} booked`}
+          icon={<CheckCircle size={22} />}
+          variant="emerald"
+        />
 
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Failed / Cancelled</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>{failedTrades.length + cancelledTrades.length}</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>
-                {failedTrades.length} failed, {cancelledTrades.length} cancelled
-              </p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
-              <AlertCircle size={20} />
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Failed / Cancelled"
+          value={failedTrades.length + cancelledTrades.length}
+          subtitle={`${failedTrades.length} failed, ${cancelledTrades.length} cancelled`}
+          icon={<AlertCircle size={22} />}
+          variant="rose"
+        />
 
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Total P&L</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: totalPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)', whiteSpace: 'nowrap' }}>
-                {totalPnl >= 0 ? '+' : ''}₹{totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>Across all transactions</p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: totalPnl >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: totalPnl >= 0 ? '#10b981' : '#ef4444' }}>
-              {totalPnl >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Total P&L"
+          value={`${totalPnl >= 0 ? '+' : ''}₹${totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+          subtitle="Across all transactions"
+          imgSrc="/card_icon_pnl.png"
+          variant={totalPnl >= 0 ? 'emerald' : 'rose'}
+        />
       </div>
 
       {/* Transactions Table */}

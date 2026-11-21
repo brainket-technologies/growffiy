@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAppViewModel } from '../../shared/viewmodels/AppContext';
 import { Card } from '../../shared/components/views/Card';
+import { StatCard } from '../../shared/components/views/StatCard';
 import { Button } from '../../shared/components/views/Button';
 import { PerformanceChart } from '../../shared/components/views/PerformanceChart';
 import { useRouter } from 'next/navigation';
@@ -831,135 +832,92 @@ export default function AdminDashboard() {
       </div>
 
       {/* Top KPI Cards Grid */}
-      <div className="kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '18px' }}>
-        <Card hoverable onClick={() => router.push('/admin/clients')} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--primary)', cursor: 'pointer' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total Clients</span>
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Users size={18} />
-            </div>
-          </div>
-          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-            {stats === null ? (
-              <div style={{ width: '20px', height: '20px', border: '3px solid var(--border-light)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-            ) : (
-              totalClients
-            )}
-          </h2>
-          <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
-            <Activity size={12} /> ↑ 12.5%
-          </span>
-        </Card>
+      <div className="kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+        <StatCard
+          title="Total Clients"
+          value={stats === null ? (
+            <div style={{ width: '20px', height: '20px', border: '3px solid rgba(59, 130, 246, 0.2)', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          ) : totalClients}
+          subtitle="↑ 12.5% monthly growth"
+          icon={<Users size={22} />}
+          variant="blue"
+          onClick={() => router.push('/admin/clients')}
+          hoverable
+        />
 
-        <Card hoverable onClick={() => router.push('/admin/payments/subscriptions')} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--accent)', cursor: 'pointer' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Subscription</span>
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--accent-light)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Users size={18} />
-            </div>
-          </div>
-          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-            {stats === null ? (
-              <div style={{ width: '20px', height: '20px', border: '3px solid var(--border-light)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-            ) : (
-              activeSubscriptions
-            )}
-          </h2>
-          <span style={{ fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
-            Active subscriptions
-          </span>
-        </Card>
+        <StatCard
+          title="Subscription"
+          value={stats === null ? (
+            <div style={{ width: '20px', height: '20px', border: '3px solid rgba(147, 51, 234, 0.2)', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          ) : activeSubscriptions}
+          subtitle="Active paid memberships"
+          icon={<Users size={22} />}
+          variant="purple"
+          onClick={() => router.push('/admin/payments/subscriptions')}
+          hoverable
+        />
 
-        <Card hoverable onClick={() => router.push('/admin/strategies')} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--purple)', cursor: 'pointer' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Active Strategies</span>
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--purple-light)', color: 'var(--purple)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <BarChart3 size={18} />
-            </div>
-          </div>
-          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-            {stats === null ? (
-              <div style={{ width: '20px', height: '20px', border: '3px solid var(--border-light)', borderTopColor: 'var(--purple)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-            ) : (
-              activeStrategies
-            )}
-          </h2>
-          <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
-            <Activity size={12} /> ↑ 8.3%
-          </span>
-        </Card>
+        <StatCard
+          title="Active Strategies"
+          value={stats === null ? (
+            <div style={{ width: '20px', height: '20px', border: '3px solid rgba(6, 182, 212, 0.2)', borderTopColor: '#0891b2', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          ) : activeStrategies}
+          subtitle="↑ 8.3% signal execution"
+          icon={<BarChart3 size={22} />}
+          variant="cyan"
+          onClick={() => router.push('/admin/strategies')}
+          hoverable
+        />
 
-        <Card hoverable onClick={() => router.push('/admin/clients')} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--accent)', cursor: 'pointer' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Live Accounts</span>
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--accent-light)', color: 'var(--accent-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Zap size={18} />
-            </div>
-          </div>
-          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)' }}>
-            {stats === null ? (
-              <div style={{ width: '20px', height: '20px', border: '3px solid var(--border-light)', borderTopColor: 'var(--accent-dark)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-            ) : (
-              liveAccounts
-            )}
-          </h2>
-          <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
-            <Activity size={12} /> ↑ 10.2%
-          </span>
-        </Card>
+        <StatCard
+          title="Live Accounts"
+          value={stats === null ? (
+            <div style={{ width: '20px', height: '20px', border: '3px solid rgba(217, 119, 6, 0.2)', borderTopColor: '#d97706', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          ) : liveAccounts}
+          subtitle="Broker sessions connected"
+          icon={<Zap size={22} />}
+          variant="amber"
+          onClick={() => router.push('/admin/clients')}
+          hoverable
+        />
       </div>
 
-      <div className="kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '18px' }}>
-        <Card hoverable onClick={() => router.push('/admin/reports/client')} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--warning)', cursor: 'pointer' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total P&L (₹)</span>
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '16px' }}>
-              ₹
-            </div>
-          </div>
-          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: totalPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)', fontFamily: 'var(--font-title)', whiteSpace: 'nowrap' }}>
-            {stats === null ? (
-              <div style={{ width: '20px', height: '20px', border: '3px solid var(--border-light)', borderTopColor: 'var(--warning)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-            ) : (
-              <>{totalPnl >= 0 ? '+₹' : '-₹'}{Math.abs(totalPnl).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</>
-            )}
-          </h2>
-          <span style={{ fontSize: '11px', color: totalPnl >= 0 ? 'var(--accent)' : 'var(--danger)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px' }}>
-            <Activity size={12} /> {totalPnl >= 0 ? '↑' : '↓'} Live Net P&L
-          </span>
-        </Card>
+      <div className="kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+        <StatCard
+          title="Total P&L"
+          value={stats === null ? (
+            <div style={{ width: '20px', height: '20px', border: '3px solid rgba(16, 185, 129, 0.2)', borderTopColor: '#10b981', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          ) : `${totalPnl >= 0 ? '+' : '-'}₹${Math.abs(totalPnl).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+          subtitle="Live net consolidated returns"
+          imgSrc="/card_icon_pnl.png"
+          variant={totalPnl >= 0 ? 'emerald' : 'rose'}
+          onClick={() => router.push('/admin/reports/client')}
+          hoverable
+        />
 
-        <Card hoverable onClick={() => router.push('/admin/clients')} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid #10b981', cursor: 'pointer' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total Demat</span>
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '16px' }}>
-              ₹
-            </div>
-          </div>
-          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: '#10b981', fontFamily: 'var(--font-title)', whiteSpace: 'nowrap' }}>
-            {stats === null ? (
-              <div style={{ width: '20px', height: '20px', border: '3px solid var(--border-light)', borderTopColor: '#10b981', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-            ) : (
-              <>₹{totalDemat.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</>
-            )}
-          </h2>
-        </Card>
+        <StatCard
+          title="Total Demat"
+          value={stats === null ? (
+            <div style={{ width: '20px', height: '20px', border: '3px solid rgba(59, 130, 246, 0.2)', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          ) : `₹${totalDemat.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+          subtitle="Live client capital"
+          imgSrc="/card_icon_demat.png"
+          variant="blue"
+          onClick={() => router.push('/admin/clients')}
+          hoverable
+        />
 
-        <Card hoverable onClick={() => router.push('/admin/clients')} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid #8b5cf6', cursor: 'pointer' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Per Day Trade Amount</span>
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '16px' }}>
-              ₹
-            </div>
-          </div>
-          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: '#8b5cf6', fontFamily: 'var(--font-title)', whiteSpace: 'nowrap' }}>
-            {stats === null ? (
-              <div style={{ width: '20px', height: '20px', border: '3px solid var(--border-light)', borderTopColor: '#8b5cf6', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-            ) : (
-              <>₹{totalPerDayAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</>
-            )}
-          </h2>
-        </Card>
+        <StatCard
+          title="Per Day Trade Amount"
+          value={stats === null ? (
+            <div style={{ width: '20px', height: '20px', border: '3px solid rgba(79, 70, 229, 0.2)', borderTopColor: '#4f46e5', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          ) : `₹${totalPerDayAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+          subtitle="Aggregated daily limit"
+          icon={<Zap size={22} />}
+          variant="indigo"
+          onClick={() => router.push('/admin/clients')}
+          hoverable
+        />
       </div>
 
       {/* Middle Row: P&L Overview & Strategies Performance */}

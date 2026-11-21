@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { Card } from '../../../../shared/components/views/Card';
+import { StatCard } from '../../../../shared/components/views/StatCard';
 import { Loader } from '../../../../shared/components/views/Loader';
 import { Button } from '../../../../shared/components/views/Button';
 import { Modal } from '../../../../shared/components/views/Modal';
@@ -319,81 +320,46 @@ export default function SubscriptionTransactionsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Total Transactions</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>{payments.length}</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} total</p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>
-              <CreditCard size={20} />
-            </div>
-          </div>
-        </Card>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px' }}>
+        <StatCard
+          title="Total Transactions"
+          value={payments.length}
+          subtitle={`₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} volume`}
+          icon={<CreditCard size={22} />}
+          variant="blue"
+        />
 
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Successful</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>{successfulPayments.length}</h3>
-              <p style={{ color: 'var(--color-success)', fontSize: '11px', marginTop: '2px', fontWeight: 600 }}>
-                ₹{totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })} collected
-              </p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-              <CheckCircle size={20} />
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Successful"
+          value={successfulPayments.length}
+          subtitle={`₹${totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} collected`}
+          icon={<CheckCircle size={22} />}
+          variant="emerald"
+        />
 
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Pending Approvals</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: pendingPayments.length > 0 ? '#F59E0B' : 'var(--text-primary)' }}>
-                {pendingPayments.length}
-              </h3>
-              <p style={{ color: '#D97706', fontSize: '11px', marginTop: '2px', fontWeight: 600 }}>
-                {pendingManualCount} manual requests pending
-              </p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
-              <Clock size={20} />
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Pending Approvals"
+          value={pendingPayments.length}
+          subtitle={`${pendingManualCount} manual requests`}
+          icon={<Clock size={22} />}
+          variant="amber"
+        />
 
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Pending Requests</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: pendingManualCount > 0 ? '#EF4444' : 'var(--text-primary)' }}>{pendingManualCount}</h3>
-              <p style={{ color: pendingManualCount > 0 ? '#EF4444' : 'var(--text-secondary)', fontSize: '11px', marginTop: '2px', fontWeight: pendingManualCount > 0 ? 600 : 400 }}>
-                {pendingManualCount > 0 ? `${pendingManualCount} awaiting action` : 'All requests processed'}
-              </p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
-              <Smartphone size={20} />
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Pending Requests"
+          value={pendingManualCount}
+          subtitle={pendingManualCount > 0 ? `${pendingManualCount} awaiting action` : 'All requests processed'}
+          icon={<Smartphone size={22} />}
+          variant={pendingManualCount > 0 ? 'rose' : 'purple'}
+        />
 
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Total Revenue</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-success)' }}>
-                ₹{totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>From approved subscriptions</p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-              <TrendingUp size={20} />
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Total Revenue"
+          value={`₹${totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+          subtitle="From approved subscriptions"
+          icon={<TrendingUp size={22} />}
+          variant="cyan"
+        />
       </div>
 
       {/* 2 Tabs: All Payments vs Manual Requests */}

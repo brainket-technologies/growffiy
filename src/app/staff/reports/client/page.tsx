@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useAppViewModel } from '../../../../shared/viewmodels/AppContext';
 import { Card } from '../../../../shared/components/views/Card';
+import { StatCard } from '../../../../shared/components/views/StatCard';
 import { Button } from '../../../../shared/components/views/Button';
 import { Loader } from '../../../../shared/components/views/Loader';
 import { Users, DollarSign, Award, Download, Search, TrendingUp, TrendingDown, Calendar, ChevronDown } from 'lucide-react';
@@ -417,72 +418,38 @@ export default function ClientReportPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="cp-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Total Clients</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>{clientStats.length}</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>
-                {activeClients.length} active, {subscribedClients.length} subscription
-              </p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>
-              <Users size={20} />
-            </div>
-          </div>
-        </Card>
+      <div className="cp-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px' }}>
+        <StatCard
+          title="Total Clients"
+          value={clientStats.length}
+          subtitle={`${activeClients.length} active, ${subscribedClients.length} subscribed`}
+          icon={<Users size={22} />}
+          variant="blue"
+        />
 
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Total Deployed Capital</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                ₹{totalCapital.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>
-                Across {clientStats.length} clients
-              </p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-              <DollarSign size={20} />
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Total Deployed Capital"
+          value={`₹${totalCapital.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+          subtitle={`Across ${clientStats.length} accounts`}
+          imgSrc="/card_icon_demat.png"
+          variant="cyan"
+        />
 
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Net Client P&L</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: totalClientPnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                {totalClientPnl >= 0 ? '+' : ''}₹{totalClientPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>Aggregate across all clients</p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: totalClientPnl >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: totalClientPnl >= 0 ? '#10b981' : '#ef4444' }}>
-              {totalClientPnl >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Net Client P&L"
+          value={`${totalClientPnl >= 0 ? '+' : ''}₹${totalClientPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+          subtitle="Aggregated net returns"
+          imgSrc="/card_icon_pnl.png"
+          variant={totalClientPnl >= 0 ? 'emerald' : 'rose'}
+        />
 
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Top Earning Client</p>
-              <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {bestClient ? bestClient.name : 'N/A'}
-              </h3>
-              {bestClient && (
-                <p style={{ color: 'var(--color-success)', fontSize: '11px', marginTop: '2px', fontWeight: 600 }}>
-                  +₹{bestClient.totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })} Net
-                </p>
-              )}
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
-              <Award size={20} />
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Top Earning Client"
+          value={bestClient ? bestClient.name : 'N/A'}
+          subtitle={bestClient ? `+₹${bestClient.totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 0 })} Net P&L` : 'No data'}
+          icon={<Award size={22} />}
+          variant="purple"
+        />
       </div>
 
       {/* Clients Table */}

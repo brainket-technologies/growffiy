@@ -19,6 +19,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
 import { Card } from '../../../shared/components/views/Card';
+import { StatCard } from '../../../shared/components/views/StatCard';
 import { Button } from '../../../shared/components/views/Button';
 import { PerformanceChart } from '../../../shared/components/views/PerformanceChart';
 import {
@@ -1319,54 +1320,30 @@ export default function StrategiesPage() {
       {viewMode === 'list' && (
         <>
           {/* Premium Stat Cards */}
-          <div className="strategy-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-            {/* Total Strategies */}
-            <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--primary)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total Strategies</span>
-                <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <TrendingUp size={18} />
-                </div>
-              </div>
-              <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)', lineHeight: 1 }}>
-                {strategies.length}
-              </h2>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                All time registered
-              </span>
-            </Card>
+          <div className="strategy-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+            <StatCard
+              title="Total Strategies"
+              value={strategies.length}
+              subtitle="All time registered algorithms"
+              icon={<TrendingUp size={22} />}
+              variant="blue"
+            />
 
-            {/* Active Strategies */}
-            <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--purple)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Active Strategies</span>
-                <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--purple-light)', color: 'var(--purple)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <CheckCircle size={18} />
-                </div>
-              </div>
-              <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)', lineHeight: 1 }}>
-                {strategies.filter(s => s.status === 'active').length}
-              </h2>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Currently running
-              </span>
-            </Card>
+            <StatCard
+              title="Active Strategies"
+              value={strategies.filter(s => s.status === 'active').length}
+              subtitle="Currently deploying orders"
+              icon={<CheckCircle size={22} />}
+              variant="emerald"
+            />
 
-            {/* Assigned Clients */}
-            <Card hoverable style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '2px', borderTop: '3px solid var(--warning)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Assigned Clients</span>
-                <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Users size={18} />
-                </div>
-              </div>
-              <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', color: 'var(--text-heading)', fontFamily: 'var(--font-title)', lineHeight: 1 }}>
-                {clients.filter(c => c.strategyIds && c.strategyIds.length > 0).length}
-              </h2>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Across all strategies
-              </span>
-            </Card>
+            <StatCard
+              title="Assigned Clients"
+              value={clients.filter(c => c.strategyIds && c.strategyIds.length > 0).length}
+              subtitle="Subscribed accounts participating"
+              imgSrc="/card_icon_traders.png"
+              variant="purple"
+            />
           </div>
 
           {/* Strategy Table - same style as Live Trading page */}

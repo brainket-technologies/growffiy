@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
 import { Card } from '../../../shared/components/views/Card';
+import { StatCard } from '../../../shared/components/views/StatCard';
 import { Button } from '../../../shared/components/views/Button';
 import { Modal } from '../../../shared/components/views/Modal';
 import Link from 'next/link';
-import { Plus, Eye, EyeOff, Trash2, Search, Filter, Download, TrendingUp, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, LogIn, MoreVertical } from 'lucide-react';
+import { Plus, Eye, EyeOff, Trash2, Search, Filter, Download, TrendingUp, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, LogIn, MoreVertical, Users, UserCheck, UserX, Zap } from 'lucide-react';
 import { api } from '../../../shared/services/api';
 import { API_ENDPOINTS } from '../../../core/constants';
 
@@ -424,27 +425,42 @@ export default function ClientsPage() {
       </div>
 
       {/* Stats Summary Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-        <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid var(--primary)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Clients</span>
-          <span style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>{totalCount}</span>
-        </Card>
-        <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid var(--accent)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Clients</span>
-          <span style={{ fontSize: '28px', fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-title)' }}>{activeCount}</span>
-        </Card>
-        <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid var(--text-subtle)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Inactive Clients</span>
-          <span style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-secondary)', fontFamily: 'var(--font-title)' }}>{inactiveCount}</span>
-        </Card>
-        <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid #10b981' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Demat</span>
-          <span style={{ fontSize: '28px', fontWeight: 800, color: '#10b981', fontFamily: 'var(--font-title)' }}>₹{totalLiveMargin.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-        </Card>
-        <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid #8b5cf6' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Per Day Amount</span>
-          <span style={{ fontSize: '28px', fontWeight: 800, color: '#8b5cf6', fontFamily: 'var(--font-title)' }}>₹{totalPerDayAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-        </Card>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px' }}>
+        <StatCard
+          title="Total Clients"
+          value={totalCount}
+          subtitle="All registered accounts"
+          icon={<Users size={22} />}
+          variant="blue"
+        />
+        <StatCard
+          title="Active Clients"
+          value={activeCount}
+          subtitle={`${Math.round((activeCount / (totalCount || 1)) * 100)}% active rate`}
+          icon={<UserCheck size={22} />}
+          variant="emerald"
+        />
+        <StatCard
+          title="Inactive Clients"
+          value={inactiveCount}
+          subtitle="Dormant / paused accounts"
+          icon={<UserX size={22} />}
+          variant="rose"
+        />
+        <StatCard
+          title="Total Demat"
+          value={`₹${totalLiveMargin.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+          subtitle="Live client capital"
+          imgSrc="/card_icon_demat.png"
+          variant="cyan"
+        />
+        <StatCard
+          title="Per Day Amount"
+          value={`₹${totalPerDayAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+          subtitle="Daily trade allocation"
+          icon={<Zap size={22} />}
+          variant="purple"
+        />
       </div>
 
       {/* Main Clients Table */}

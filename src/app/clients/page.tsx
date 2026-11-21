@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAppViewModel } from '../../shared/viewmodels/AppContext';
 import { Card } from '../../shared/components/views/Card';
+import { StatCard } from '../../shared/components/views/StatCard';
 import { PerformanceChart } from '../../shared/components/views/PerformanceChart';
 import { Loader } from '../../shared/components/views/Loader';
 import {
@@ -2424,89 +2425,25 @@ export default function ClientDashboardOverview() {
             // Subscribed Algo client layout
             <>
               {/* Stats and Live TOTP Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                 
                 {/* Today's P&L Card */}
-                <Card hoverable style={{
-                  background: totalPnl >= 0 
-                    ? 'linear-gradient(135deg, var(--bg-card) 0%, rgba(34, 197, 94, 0.03) 100%)' 
-                    : 'linear-gradient(135deg, var(--bg-card) 0%, rgba(239, 68, 68, 0.03) 100%)',
-                  padding: '24px',
-                  borderRadius: '16px'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        Total P&L
-                      </p>
-                      <h3 style={{
-                        fontSize: '28px',
-                        fontWeight: 800,
-                        marginTop: '12px',
-                        color: totalPnl >= 0 ? 'var(--accent)' : 'var(--danger)',
-                        fontFamily: 'var(--font-title)',
-                        display: 'flex',
-                        alignItems: 'baseline',
-                        gap: '4px'
-                      }}>
-                        {totalPnl >= 0 ? `+₹${totalPnl.toFixed(2)}` : `-₹${Math.abs(totalPnl).toFixed(2)}`}
-                      </h3>
-                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {totalPnl >= 0 ? (
-                          <>
-                            <TrendingUp size={14} style={{ color: 'var(--accent)' }} />
-                            <span style={{ color: 'var(--accent-dark)', fontWeight: 600 }}>Positive breakout day</span>
-                          </>
-                        ) : (
-                          <>
-                            <TrendingDown size={14} style={{ color: 'var(--danger)' }} />
-                            <span style={{ color: 'var(--danger)', fontWeight: 600 }}>Engine auto-risk managed</span>
-                          </>
-                        )}
-                      </p>
-                    </div>
-                    <div style={{
-                      padding: '12px',
-                      borderRadius: '12px',
-                      backgroundColor: totalPnl >= 0 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                      color: totalPnl >= 0 ? 'var(--accent-dark)' : 'var(--danger)'
-                    }}>
-                      {totalPnl >= 0 ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
-                    </div>
-                  </div>
-                </Card>
+                <StatCard
+                  title="Total P&L"
+                  value={`${totalPnl >= 0 ? '+' : '-'}₹${Math.abs(totalPnl).toFixed(2)}`}
+                  subtitle={totalPnl >= 0 ? 'Positive breakout day' : 'Engine auto-risk managed'}
+                  imgSrc="/card_icon_pnl.png"
+                  variant={totalPnl >= 0 ? 'emerald' : 'rose'}
+                />
 
                 {/* Zerodha Balance Card */}
-                <Card hoverable style={{ padding: '24px', borderRadius: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        Zerodha Live Balance
-                      </p>
-                      <h3 style={{
-                        fontSize: '28px',
-                        fontWeight: 800,
-                        marginTop: '12px',
-                        color: 'var(--text-heading)',
-                        fontFamily: 'var(--font-title)'
-                      }}>
-                        ₹{(liveMargin !== null ? liveMargin : capital).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </h3>
-                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <CheckCircle2 size={14} style={{ color: 'var(--accent)' }} />
-                        <span>Live balance fetched successfully</span>
-                      </p>
-                    </div>
-                    <div style={{
-                      padding: '12px',
-                      borderRadius: '12px',
-                      backgroundColor: 'rgba(18, 82, 171, 0.1)',
-                      color: 'var(--primary)'
-                    }}>
-                      <Wallet size={24} />
-                    </div>
-                  </div>
-                </Card>
+                <StatCard
+                  title="Zerodha Live Balance"
+                  value={`₹${(liveMargin !== null ? liveMargin : capital).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+                  subtitle="Live balance fetched successfully"
+                  imgSrc="/card_icon_demat.png"
+                  variant="blue"
+                />
 
                 {/* Zerodha Live TOTP Card with SVG circular animation */}
                 {matchedClient?.zerodhaTotpSecret && (

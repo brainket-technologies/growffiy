@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { Card } from '../../../../shared/components/views/Card';
+import { StatCard } from '../../../../shared/components/views/StatCard';
 import { Loader } from '../../../../shared/components/views/Loader';
 import { Button } from '../../../../shared/components/views/Button';
 import { Modal } from '../../../../shared/components/views/Modal';
@@ -154,79 +155,46 @@ export default function SubscriptionTransactionsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="sub-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Total Transactions</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>{payments.length}</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} total</p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>
-              <CreditCard size={20} />
-            </div>
-          </div>
-        </Card>
+      <div className="sub-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px' }}>
+        <StatCard
+          title="Total Transactions"
+          value={payments.length}
+          subtitle={`₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} total`}
+          icon={<CreditCard size={22} />}
+          variant="blue"
+        />
 
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Successful</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>{successfulPayments.length}</h3>
-              <p style={{ color: 'var(--color-success)', fontSize: '11px', marginTop: '2px', fontWeight: 600 }}>
-                ₹{totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })} collected
-              </p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-              <CheckCircle size={20} />
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Successful"
+          value={successfulPayments.length}
+          subtitle={`₹${totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} collected`}
+          icon={<CheckCircle size={22} />}
+          variant="emerald"
+        />
 
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Failed</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>{failedPayments.length}</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>
-                ₹{failedPayments.reduce((s, p) => s + Number(p.amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} attempted
-              </p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
-              <AlertCircle size={20} />
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Failed"
+          value={failedPayments.length}
+          subtitle={`₹${failedPayments.reduce((s, p) => s + Number(p.amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} attempted`}
+          icon={<AlertCircle size={22} />}
+          variant="rose"
+        />
 
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Pending</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>{pendingPayments.length}</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>
-                ₹{pendingPayments.reduce((s, p) => s + Number(p.amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} in progress
-              </p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
-              <Clock size={20} />
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Pending"
+          value={pendingPayments.length}
+          subtitle={`₹${pendingPayments.reduce((s, p) => s + Number(p.amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} in progress`}
+          icon={<Clock size={22} />}
+          variant="amber"
+        />
 
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Total Revenue</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-success)' }}>
-                ₹{totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>From successful payments</p>
-            </div>
-            <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-              <TrendingUp size={20} />
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Total Revenue"
+          value={`₹${totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+          subtitle="From successful payments"
+          icon={<TrendingUp size={22} />}
+          variant="cyan"
+        />
       </div>
 
       {/* Transactions Table */}

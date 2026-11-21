@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useAppViewModel } from '../../../../shared/viewmodels/AppContext';
 import { Card } from '../../../../shared/components/views/Card';
+import { StatCard } from '../../../../shared/components/views/StatCard';
 import { Loader } from '../../../../shared/components/views/Loader';
 import { Button } from '../../../../shared/components/views/Button';
 import { Modal } from '../../../../shared/components/views/Modal';
@@ -401,47 +402,37 @@ export default function GroupTradesPage() {
 
       {/* Grid Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-        <Card style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ background: 'rgba(37, 99, 235, 0.1)', color: '#2563eb', padding: '10px', borderRadius: '10px' }}>
-            <Layers size={20} />
-          </div>
-          <div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Total Trade Batches</div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-heading)', marginTop: '2px' }}>{stats.totalGroups}</div>
-          </div>
-        </Card>
+        <StatCard
+          title="Total Trade Batches"
+          value={stats.totalGroups}
+          subtitle="Grouped batch executions"
+          icon={<Layers size={22} />}
+          variant="blue"
+        />
 
-        <Card style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ background: 'rgba(34, 197, 94, 0.1)', color: stats.totalPnl >= 0 ? '#16a34a' : '#ef4444', padding: '10px', borderRadius: '10px' }}>
-            {stats.totalPnl >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
-          </div>
-          <div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Total Aggregated P&L</div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: stats.totalPnl >= 0 ? '#16a34a' : '#ef4444', marginTop: '2px' }}>
-              {stats.totalPnl >= 0 ? `+₹${stats.totalPnl.toFixed(2)}` : `-₹${Math.abs(stats.totalPnl).toFixed(2)}`}
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          title="Total Aggregated P&L"
+          value={`${stats.totalPnl >= 0 ? '+' : ''}₹${stats.totalPnl.toFixed(2)}`}
+          subtitle="Net grouped profit/loss"
+          imgSrc="/card_icon_pnl.png"
+          variant={stats.totalPnl >= 0 ? 'emerald' : 'rose'}
+        />
 
-        <Card style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1', padding: '10px', borderRadius: '10px' }}>
-            <Activity size={20} />
-          </div>
-          <div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Total Trades Executed</div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-heading)', marginTop: '2px' }}>{stats.tradesCount} Trades</div>
-          </div>
-        </Card>
+        <StatCard
+          title="Total Active Executions"
+          value={`${stats.tradesCount} Clients`}
+          subtitle="Participating accounts"
+          imgSrc="/card_icon_traders.png"
+          variant="purple"
+        />
 
-        <Card style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ background: 'rgba(234, 179, 8, 0.1)', color: '#eab308', padding: '10px', borderRadius: '10px' }}>
-            <Briefcase size={20} />
-          </div>
-          <div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Strategies Active</div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-heading)', marginTop: '2px' }}>{stats.strategiesCount}</div>
-          </div>
-        </Card>
+        <StatCard
+          title="Strategies Active"
+          value={stats.strategiesCount}
+          subtitle="Live deployed algorithms"
+          icon={<Briefcase size={22} />}
+          variant="amber"
+        />
       </div>
 
       {/* Main Table Card */}

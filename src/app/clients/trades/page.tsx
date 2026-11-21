@@ -3,8 +3,9 @@
 import React, { useState } from 'react';
 import { useAppViewModel } from '../../../shared/viewmodels/AppContext';
 import { Card } from '../../../shared/components/views/Card';
+import { StatCard } from '../../../shared/components/views/StatCard';
 import { Loader } from '../../../shared/components/views/Loader';
-import { Search, Clock, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { Search, Clock, ChevronLeft, ChevronRight, RefreshCw, Activity, TrendingUp, CheckCircle2 } from 'lucide-react';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const YEARS = [2024, 2025, 2026];
@@ -111,25 +112,38 @@ export default function ClientTradesPage() {
         </div>
       </div>
 
-      <div className="clients-trades-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-        <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid var(--primary)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Trades</span>
-          <span className="card-value" style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>{filtered.length}</span>
-        </Card>
-        <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid var(--warning)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Open</span>
-          <span style={{ fontSize: '28px', fontWeight: 800, color: 'var(--warning)', fontFamily: 'var(--font-title)' }}>{openCount}</span>
-        </Card>
-        <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid var(--accent)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Closed</span>
-          <span style={{ fontSize: '28px', fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-title)' }}>{closedCount}</span>
-        </Card>
-        <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid var(--danger)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>P&L</span>
-          <span style={{ fontSize: '28px', fontWeight: 800, color: totalPnl >= 0 ? 'var(--accent)' : 'var(--danger)', fontFamily: 'var(--font-title)' }}>
-            {totalPnl >= 0 ? '+' : ''}₹{Math.abs(totalPnl).toFixed(2)}
-          </span>
-        </Card>
+      <div className="clients-trades-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px' }}>
+        <StatCard
+          title="Total Trades"
+          value={filtered.length}
+          subtitle="Filtered trade history"
+          icon={<Activity size={22} />}
+          variant="blue"
+        />
+
+        <StatCard
+          title="Open"
+          value={openCount}
+          subtitle="Active market positions"
+          icon={<TrendingUp size={22} />}
+          variant="cyan"
+        />
+
+        <StatCard
+          title="Closed"
+          value={closedCount}
+          subtitle="Completed executions"
+          icon={<CheckCircle2 size={22} />}
+          variant="purple"
+        />
+
+        <StatCard
+          title="P&L"
+          value={`${totalPnl >= 0 ? '+' : ''}₹${Math.abs(totalPnl).toFixed(2)}`}
+          subtitle="Net trade P&L booked"
+          imgSrc="/card_icon_pnl.png"
+          variant={totalPnl >= 0 ? 'emerald' : 'rose'}
+        />
       </div>
 
       <Card style={{ maxWidth: '100%', overflow: 'hidden' }}>
