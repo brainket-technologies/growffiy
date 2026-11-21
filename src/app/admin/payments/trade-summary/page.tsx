@@ -530,145 +530,223 @@ export default function TradeSummaryPage() {
         gap: '16px'
       }}>
         
-        {/* Card 1: Total Demat (Light Blue Pastel with Fluid Waves & Money Pouch PNG) */}
+        {/* Card 1: Total Demat (Fintech Dot Matrix Grid & Gentle Ocean Swell) */}
+        <div style={{
+          position: 'relative',
+          overflow: 'hidden',
+          borderRadius: '16px',
+          padding: '22px 24px',
+          background: 'linear-gradient(135deg, #e0f2fe 0%, #dbeafe 50%, #eff6ff 100%)',
+          border: '1px solid #bfdbfe',
+          boxShadow: '0 4px 15px rgba(37, 99, 235, 0.06)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '18px'
+        }}>
+          {/* Subtle Dot Matrix Pattern */}
           <div style={{
-            position: 'relative',
-            overflow: 'hidden',
-            borderRadius: '16px',
-            padding: '20px 22px',
-            background: 'linear-gradient(135deg, #dbeafe 0%, #e0f2fe 50%, #eff6ff 100%)',
-            border: '1px solid rgba(147, 197, 253, 0.6)',
-            boxShadow: '0 4px 15px rgba(37, 99, 235, 0.05)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px'
-          }}>
-            {/* Money Pouch PNG Icon */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img 
-              src="/card_icon_demat.png" 
-              alt="Total Demat" 
-              style={{ width: '56px', height: '62px', objectFit: 'contain', zIndex: 2, flexShrink: 0 }} 
-            />
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundImage: 'radial-gradient(rgba(59, 130, 246, 0.12) 1.5px, transparent 1.5px)',
+            backgroundSize: '16px 16px',
+            pointerEvents: 'none',
+            zIndex: 0
+          }} />
 
-            {/* Card Content */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', zIndex: 2 }}>
-              <span style={{ fontSize: '15px', fontWeight: 700, color: '#0f2744', letterSpacing: '-0.2px' }}>
-                Total Demat
-              </span>
-              <span style={{ fontSize: '30px', fontWeight: 800, color: '#002060', lineHeight: 1.15, fontFamily: 'var(--font-title, inherit)' }}>
-                ₹{topStats.totalDemat.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-              </span>
-            </div>
+          {/* Money Pouch PNG Icon */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src="/card_icon_demat.png" 
+            alt="Total Demat" 
+            style={{ width: '56px', height: '62px', objectFit: 'contain', zIndex: 2, flexShrink: 0 }} 
+          />
 
-            {/* Bottom-Right Blue SVG Waves */}
-            <svg viewBox="0 0 160 90" preserveAspectRatio="none" style={{ position: 'absolute', right: 0, bottom: 0, width: '45%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
-              <path d="M0,82 C40,95 70,55 110,65 C135,72 150,55 160,58 L160,90 L0,90 Z" fill="rgba(147, 197, 253, 0.45)" />
-              <path d="M10,88 C50,98 80,68 120,78 C140,84 152,72 160,74 L160,90 L10,90 Z" fill="rgba(96, 165, 250, 0.4)" />
-              <path d="M0,82 C40,95 70,55 110,65 C135,72 150,55 160,58" fill="none" stroke="rgba(147, 197, 253, 0.85)" strokeWidth="1.5" />
-              <path d="M10,88 C50,98 80,68 120,78 C140,84 152,72 160,74" fill="none" stroke="rgba(96, 165, 250, 0.9)" strokeWidth="1.5" />
-            </svg>
+          {/* Card Content */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', zIndex: 2 }}>
+            <span style={{ fontSize: '15px', fontWeight: 700, color: '#0f2744', letterSpacing: '-0.2px' }}>
+              Total Demat
+            </span>
+            <span style={{ fontSize: '30px', fontWeight: 800, color: '#002060', lineHeight: 1.15, fontFamily: 'var(--font-title, inherit)' }}>
+              ₹{topStats.totalDemat.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            </span>
           </div>
 
-          {/* Card 2: Total P&L (Light Green Pastel with Fluid Waves & Growth Chart PNG) */}
-          <div style={{
-            position: 'relative',
-            overflow: 'hidden',
-            borderRadius: '16px',
-            padding: '20px 22px',
-            background: 'linear-gradient(135deg, #dcfce7 0%, #e6fced 50%, #f0fdf4 100%)',
-            border: '1px solid rgba(187, 247, 208, 0.7)',
-            boxShadow: '0 4px 15px rgba(16, 185, 129, 0.05)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px'
-          }}>
-            {/* Growth Bar Chart PNG Icon */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img 
-              src="/card_icon_pnl.png" 
-              alt="Total P&L" 
-              style={{ width: '50px', height: '56px', objectFit: 'contain', zIndex: 2, flexShrink: 0 }} 
-            />
-
-            {/* Card Content */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', zIndex: 2 }}>
-              <span style={{ fontSize: '15px', fontWeight: 700, color: '#064e3b', letterSpacing: '-0.2px' }}>
-                Total P&amp;L
-              </span>
-              <span style={{ 
-                fontSize: '30px', 
-                fontWeight: 800, 
-                color: topStats.totalPnl >= 0 ? '#047857' : '#dc2626', 
-                lineHeight: 1.15, 
-                fontFamily: 'var(--font-title, inherit)',
-                whiteSpace: 'nowrap'
-              }}>
-                {topStats.totalPnl >= 0 ? '+' : ''}₹{topStats.totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-              <div style={{ 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                gap: '4px', 
-                fontSize: '13px', 
-                fontWeight: 700, 
-                color: topStats.totalPnl >= 0 ? '#047857' : '#dc2626',
-                marginTop: '1px'
-              }}>
-                <span>{topStats.totalPnl >= 0 ? '▲' : '▼'}</span>
-                <span>{topStats.pnlPercentage >= 0 ? `+${topStats.pnlPercentage.toFixed(2)}%` : `${topStats.pnlPercentage.toFixed(2)}%`}</span>
-              </div>
-            </div>
-
-            {/* Bottom-Right Green SVG Waves */}
-            <svg viewBox="0 0 160 90" preserveAspectRatio="none" style={{ position: 'absolute', right: 0, bottom: 0, width: '45%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
-              <path d="M0,78 C35,55 70,88 115,48 C140,25 152,32 160,36 L160,90 L0,90 Z" fill="rgba(167, 243, 208, 0.45)" />
-              <path d="M15,86 C50,65 80,94 125,58 C145,38 155,42 160,46 L160,90 L15,90 Z" fill="rgba(110, 231, 183, 0.4)" />
-              <path d="M0,78 C35,55 70,88 115,48 C140,25 152,32 160,36" fill="none" stroke="rgba(52, 211, 153, 0.85)" strokeWidth="1.5" />
-              <path d="M15,86 C50,65 80,94 125,58 C145,38 155,42 160,46" fill="none" stroke="rgba(16, 185, 129, 0.9)" strokeWidth="1.5" />
-            </svg>
-          </div>
-
-          {/* Card 3: Total No. of Traders (Light Purple Pastel with Fluid Waves & Users PNG) */}
-          <div style={{
-            position: 'relative',
-            overflow: 'hidden',
-            borderRadius: '16px',
-            padding: '20px 22px',
-            background: 'linear-gradient(135deg, #f3e8ff 0%, #ede9fe 50%, #faf5ff 100%)',
-            border: '1px solid rgba(221, 214, 254, 0.7)',
-            boxShadow: '0 4px 15px rgba(168, 85, 247, 0.05)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px'
-          }}>
-            {/* Users / Traders PNG Icon */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img 
-              src="/card_icon_traders.png" 
-              alt="Total No. of Traders" 
-              style={{ width: '56px', height: '54px', objectFit: 'contain', zIndex: 2, flexShrink: 0 }} 
-            />
-
-            {/* Card Content */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', zIndex: 2 }}>
-              <span style={{ fontSize: '15px', fontWeight: 700, color: '#4c1d95', letterSpacing: '-0.2px' }}>
-                Total No. of Traders
-              </span>
-              <span style={{ fontSize: '30px', fontWeight: 800, color: '#1e1b4b', lineHeight: 1.15, fontFamily: 'var(--font-title, inherit)' }}>
-                {topStats.totalTraders}
-              </span>
-            </div>
-
-            {/* Bottom-Right Purple SVG Waves */}
-            <svg viewBox="0 0 160 90" preserveAspectRatio="none" style={{ position: 'absolute', right: 0, bottom: 0, width: '45%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
-              <path d="M0,80 C35,62 70,92 115,52 C140,28 152,36 160,40 L160,90 L0,90 Z" fill="rgba(216, 180, 254, 0.4)" />
-              <path d="M15,88 C50,72 80,98 125,62 C145,42 155,48 160,50 L160,90 L15,90 Z" fill="rgba(192, 132, 252, 0.45)" />
-              <path d="M0,80 C35,62 70,92 115,52 C140,28 152,36 160,40" fill="none" stroke="rgba(192, 132, 252, 0.85)" strokeWidth="1.5" />
-              <path d="M15,88 C50,72 80,98 125,62 C145,42 155,48 160,50" fill="none" stroke="rgba(168, 85, 247, 0.9)" strokeWidth="1.5" />
-            </svg>
-          </div>
+          {/* Gentle Rolling Ocean Waves (Low horizontal ripple profile) */}
+          <svg viewBox="0 0 180 90" preserveAspectRatio="none" style={{ position: 'absolute', right: 0, bottom: 0, width: '45%', height: '75%', pointerEvents: 'none', zIndex: 1 }}>
+            <path d="M0,70 C45,50 85,85 130,60 C155,45 170,52 180,55 L180,90 L0,90 Z" fill="rgba(147, 197, 253, 0.5)" />
+            <path d="M20,80 C60,65 95,90 140,72 C160,60 172,64 180,66 L180,90 L20,90 Z" fill="rgba(96, 165, 250, 0.45)" />
+            <path d="M0,70 C45,50 85,85 130,60 C155,45 170,52 180,55" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" />
+            <path d="M20,80 C60,65 95,90 140,72 C160,60 172,64 180,66" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" />
+          </svg>
         </div>
+
+        {/* Card 2: Total P&L (Stock Market Grid, Mountain Growth Slope & Glowing Peak Dot) */}
+        <div style={{
+          position: 'relative',
+          overflow: 'hidden',
+          borderRadius: '16px',
+          padding: '22px 24px',
+          background: 'linear-gradient(135deg, #dcfce7 0%, #e6fced 50%, #f0fdf4 100%)',
+          border: '1px solid #bbf7d0',
+          boxShadow: '0 4px 15px rgba(16, 185, 129, 0.06)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '18px'
+        }}>
+          {/* Subtle Financial Chart Grid Lines */}
+          <svg style={{ position: 'absolute', top: 0, right: 0, width: '60%', height: '100%', pointerEvents: 'none', zIndex: 0, opacity: 0.22 }}>
+            <line x1="20%" y1="0" x2="20%" y2="100%" stroke="#10b981" strokeWidth="1" strokeDasharray="3 3" />
+            <line x1="50%" y1="0" x2="50%" y2="100%" stroke="#10b981" strokeWidth="1" strokeDasharray="3 3" />
+            <line x1="80%" y1="0" x2="80%" y2="100%" stroke="#10b981" strokeWidth="1" strokeDasharray="3 3" />
+            <line x1="0" y1="35%" x2="100%" y2="35%" stroke="#10b981" strokeWidth="1" strokeDasharray="3 3" />
+            <line x1="0" y1="65%" x2="100%" y2="65%" stroke="#10b981" strokeWidth="1" strokeDasharray="3 3" />
+          </svg>
+
+          {/* Growth Bar Chart PNG Icon */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src="/card_icon_pnl.png" 
+            alt="Total P&L" 
+            style={{ width: '50px', height: '56px', objectFit: 'contain', zIndex: 2, flexShrink: 0 }} 
+          />
+
+          {/* Card Content */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', zIndex: 2 }}>
+            <span style={{ fontSize: '15px', fontWeight: 700, color: '#064e3b', letterSpacing: '-0.2px' }}>
+              Total P&amp;L
+            </span>
+            <span style={{ 
+              fontSize: '30px', 
+              fontWeight: 800, 
+              color: topStats.totalPnl >= 0 ? '#047857' : '#dc2626', 
+              lineHeight: 1.15, 
+              fontFamily: 'var(--font-title, inherit)',
+              whiteSpace: 'nowrap'
+            }}>
+              {topStats.totalPnl >= 0 ? '+' : ''}₹{topStats.totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <div style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '4px', 
+              fontSize: '13px', 
+              fontWeight: 700, 
+              color: topStats.totalPnl >= 0 ? '#047857' : '#dc2626',
+              marginTop: '1px'
+            }}>
+              <span>{topStats.totalPnl >= 0 ? '▲' : '▼'}</span>
+              <span>{topStats.pnlPercentage >= 0 ? `+${topStats.pnlPercentage.toFixed(2)}%` : `${topStats.pnlPercentage.toFixed(2)}%`}</span>
+            </div>
+          </div>
+
+          {/* Steep Upward Growth Mountain Slope Wave with Glowing Peak Indicator */}
+          <svg viewBox="0 0 180 100" preserveAspectRatio="none" style={{ position: 'absolute', right: 0, bottom: 0, width: '52%', height: '95%', pointerEvents: 'none', zIndex: 1 }}>
+            <defs>
+              <linearGradient id="pnlGreenGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#86efac" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="#d1fae5" stopOpacity="0.1" />
+              </linearGradient>
+            </defs>
+            <path 
+              d="M0,90 C40,82 70,55 110,38 C145,22 168,25 180,35 L180,100 L0,100 Z" 
+              fill="url(#pnlGreenGrad)" 
+            />
+            <path 
+              d="M0,90 C40,82 70,55 110,38 C145,22 168,25 180,35" 
+              fill="none" 
+              stroke="#10b981" 
+              strokeWidth="2.5" 
+              strokeLinecap="round" 
+            />
+            {/* Secondary climbing accent line */}
+            <path 
+              d="M30,95 C70,88 95,68 130,52 C155,40 172,42 180,48" 
+              fill="none" 
+              stroke="#34d399" 
+              strokeWidth="2" 
+              strokeDasharray="4 4" 
+            />
+            {/* Peak indicator dot */}
+            <circle cx="168" cy="25" r="4" fill="#059669" />
+            <circle cx="168" cy="25" r="7" fill="none" stroke="#34d399" strokeWidth="1.5" opacity="0.6" />
+          </svg>
+        </div>
+
+        {/* Card 3: Total No. of Traders (Constellation Network Nodes & Flowing Ribbon S-Wave) */}
+        <div style={{
+          position: 'relative',
+          overflow: 'hidden',
+          borderRadius: '16px',
+          padding: '22px 24px',
+          background: 'linear-gradient(135deg, #f3e8ff 0%, #ede9fe 50%, #faf5ff 100%)',
+          border: '1px solid #ddd6fe',
+          boxShadow: '0 4px 15px rgba(168, 85, 247, 0.06)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '18px'
+        }}>
+          {/* Constellation Network Nodes Texture */}
+          <svg style={{ position: 'absolute', top: 0, right: 0, width: '50%', height: '100%', pointerEvents: 'none', zIndex: 0, opacity: 0.35 }}>
+            <line x1="85%" y1="20%" x2="60%" y2="45%" stroke="#a855f7" strokeWidth="1" />
+            <line x1="60%" y1="45%" x2="75%" y2="70%" stroke="#a855f7" strokeWidth="1" />
+            <line x1="60%" y1="45%" x2="35%" y2="35%" stroke="#a855f7" strokeWidth="1" />
+            <circle cx="85%" cy="20%" r="3" fill="#a855f7" />
+            <circle cx="60%" cy="45%" r="4" fill="#7c3aed" />
+            <circle cx="75%" cy="70%" r="3" fill="#a855f7" />
+            <circle cx="35%" cy="35%" r="2.5" fill="#a855f7" />
+          </svg>
+
+          {/* Users / Traders PNG Icon */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src="/card_icon_traders.png" 
+            alt="Total No. of Traders" 
+            style={{ width: '56px', height: '54px', objectFit: 'contain', zIndex: 2, flexShrink: 0 }} 
+          />
+
+          {/* Card Content */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', zIndex: 2 }}>
+            <span style={{ fontSize: '15px', fontWeight: 700, color: '#4c1d95', letterSpacing: '-0.2px' }}>
+              Total No. of Traders
+            </span>
+            <span style={{ fontSize: '30px', fontWeight: 800, color: '#1e1b4b', lineHeight: 1.15, fontFamily: 'var(--font-title, inherit)' }}>
+              {topStats.totalTraders}
+            </span>
+          </div>
+
+          {/* Flowing Ribbon S-Wave (Deep Swooping Parabolic Curve) */}
+          <svg viewBox="0 0 180 100" preserveAspectRatio="none" style={{ position: 'absolute', right: 0, bottom: 0, width: '50%', height: '88%', pointerEvents: 'none', zIndex: 1 }}>
+            <defs>
+              <linearGradient id="tradersPurpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#d8b4fe" stopOpacity="0.5" />
+                <stop offset="100%" stopColor="#c084fc" stopOpacity="0.25" />
+              </linearGradient>
+            </defs>
+            <path 
+              d="M0,95 C50,100 85,82 115,55 C145,28 165,30 180,40 L180,100 L0,100 Z" 
+              fill="url(#tradersPurpleGrad)" 
+            />
+            <path 
+              d="M0,95 C50,100 85,82 115,55 C145,28 165,30 180,40" 
+              fill="none" 
+              stroke="#a855f7" 
+              strokeWidth="2.5" 
+              strokeLinecap="round" 
+            />
+            {/* Secondary flowing ribbon layer */}
+            <path 
+              d="M25,100 C75,100 105,88 135,68 C160,48 172,50 180,55" 
+              fill="none" 
+              stroke="#c084fc" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+            />
+          </svg>
+        </div>
+      </div>
 
       {/* Main Table Card (Exact structure & classes matching trades/page.tsx) */}
       <Card>
