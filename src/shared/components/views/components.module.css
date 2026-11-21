@@ -154,6 +154,7 @@
   min-height: 100vh;
   background: linear-gradient(180deg, #F0F6FE 0%, #E6F0FC 60%, #E2EDFC 100%);
   position: relative;
+  overflow-x: hidden;
 }
 
 :global([data-theme="dark"]) .layoutWrapper {
@@ -163,7 +164,7 @@
 .contentWrapper {
   margin-left: var(--sidebar-width);
   margin-top: var(--header-height);
-  padding: 28px;
+  padding: 28px 28px 120px 28px;
   width: calc(100% - var(--sidebar-width));
   min-height: calc(100vh - var(--header-height));
   background: transparent;
@@ -406,7 +407,7 @@
     margin-left: 0;
     margin-top: var(--header-height);
     width: 100%;
-    padding: 16px;
+    padding: 16px 16px 110px 16px;
   }
 
   .layoutWrapper {
@@ -418,7 +419,7 @@
   .contentWrapper {
     margin-left: 0;
     margin-top: 56px;
-    padding: 12px 10px;
+    padding: 12px 10px 110px 10px;
     width: 100%;
     overflow-x: hidden;
   }

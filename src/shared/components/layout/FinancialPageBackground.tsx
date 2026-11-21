@@ -5,100 +5,113 @@ import React from 'react';
 /**
  * Institutional Financial Trading Background
  * Features:
- * 1. Top-Right: Stock Candlestick Chart pattern (cyan/magenta/blue candles with wicks).
- * 2. Bottom: Multi-layered flowing horizon wave curve in royal navy, electric blue, and sky blue.
+ * 1. Top-Right: Stock Candlestick Chart watermark pattern (soft opacity ~0.20 for high visibility of top controls).
+ * 2. Bottom: Multi-layered flowing horizon wave curve positioned at the bottom of the page content (scrolls naturally with page height).
  */
 export const FinancialPageBackground: React.FC = () => {
   return (
     <>
       <style>{`
+        .financial-bg-top-candles {
+          position: absolute;
+          top: var(--header-height, 70px);
+          right: 0;
+          width: 380px;
+          height: 180px;
+          pointer-events: none;
+          z-index: 0;
+          overflow: hidden;
+          opacity: 0.20;
+          transition: opacity 0.2s ease;
+        }
+
         .financial-bg-bottom-waves {
-          position: fixed;
+          position: absolute;
           bottom: 0;
           left: var(--sidebar-width, 260px);
           right: 0;
-          height: 110px;
+          height: 105px;
           pointer-events: none;
           z-index: 0;
           overflow: hidden;
           transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
+        :global([data-theme="dark"]) .financial-bg-top-candles {
+          opacity: 0.14;
+        }
+
+        :global([data-theme="dark"]) .financial-bg-bottom-waves {
+          opacity: 0.55;
+        }
+
         @media (max-width: 1024px) {
           .financial-bg-bottom-waves {
             left: 0 !important;
           }
+          .financial-bg-top-candles {
+            width: 260px !important;
+            height: 130px !important;
+          }
         }
       `}</style>
 
-      {/* Top-Right Candlestick Chart Watermark */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'fixed',
-          top: 0,
-          right: 0,
-          width: '420px',
-          height: '220px',
-          pointerEvents: 'none',
-          zIndex: 0,
-          overflow: 'hidden',
-          opacity: 0.95
-        }}
-      >
+      {/* Top-Right Candlestick Chart Watermark (Soft Opacity, Scrolls with Page) */}
+      <div aria-hidden="true" className="financial-bg-top-candles">
         <svg
-          viewBox="0 0 420 220"
+          viewBox="0 0 380 180"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           style={{ width: '100%', height: '100%' }}
         >
           {/* Subtle horizontal grid lines */}
-          <line x1="20" y1="170" x2="420" y2="170" stroke="rgba(147, 197, 253, 0.25)" strokeDasharray="3 3" />
-          <line x1="80" y1="115" x2="420" y2="115" stroke="rgba(147, 197, 253, 0.2)" strokeDasharray="3 3" />
-          <line x1="160" y1="60" x2="420" y2="60" stroke="rgba(147, 197, 253, 0.15)" strokeDasharray="3 3" />
+          <line x1="20" y1="140" x2="380" y2="140" stroke="#93c5fd" strokeOpacity="0.35" strokeDasharray="3 3" />
+          <line x1="80" y1="95" x2="380" y2="95" stroke="#93c5fd" strokeOpacity="0.25" strokeDasharray="3 3" />
+          <line x1="160" y1="50" x2="380" y2="50" stroke="#93c5fd" strokeOpacity="0.2" strokeDasharray="3 3" />
 
           {/* Candle 1: Cyan Bullish */}
-          <line x1="50" y1="95" x2="50" y2="175" stroke="#38bdf8" strokeWidth="1.5" />
-          <rect x="44" y="115" width="12" height="42" rx="2" fill="#38bdf8" fillOpacity="0.75" />
+          <line x1="40" y1="80" x2="40" y2="150" stroke="#38bdf8" strokeWidth="1.5" />
+          <rect x="35" y="98" width="10" height="36" rx="2" fill="#38bdf8" fillOpacity="0.75" />
 
           {/* Candle 2: Magenta Bearish */}
-          <line x1="88" y1="120" x2="88" y2="195" stroke="#e879f9" strokeWidth="1.5" />
-          <rect x="82" y="135" width="12" height="48" rx="2" fill="#d946ef" fillOpacity="0.75" />
+          <line x1="75" y1="100" x2="75" y2="165" stroke="#e879f9" strokeWidth="1.5" />
+          <rect x="70" y="112" width="10" height="42" rx="2" fill="#d946ef" fillOpacity="0.75" />
 
           {/* Candle 3: Royal Blue Bullish */}
-          <line x1="126" y1="80" x2="126" y2="165" stroke="#3b82f6" strokeWidth="1.5" />
-          <rect x="120" y="95" width="12" height="52" rx="2" fill="#2563eb" fillOpacity="0.8" />
+          <line x1="110" y1="65" x2="110" y2="140" stroke="#3b82f6" strokeWidth="1.5" />
+          <rect x="105" y="80" width="10" height="45" rx="2" fill="#2563eb" fillOpacity="0.8" />
 
           {/* Candle 4: Cyan Bullish */}
-          <line x1="164" y1="65" x2="164" y2="145" stroke="#06b6d4" strokeWidth="1.5" />
-          <rect x="158" y="78" width="12" height="48" rx="2" fill="#06b6d4" fillOpacity="0.8" />
+          <line x1="145" y1="55" x2="145" y2="125" stroke="#06b6d4" strokeWidth="1.5" />
+          <rect x="140" y="68" width="10" height="42" rx="2" fill="#06b6d4" fillOpacity="0.8" />
 
           {/* Candle 5: Rose/Magenta Bearish */}
-          <line x1="202" y1="85" x2="202" y2="170" stroke="#f43f5e" strokeWidth="1.5" />
-          <rect x="196" y="100" width="12" height="45" rx="2" fill="#f43f5e" fillOpacity="0.75" />
+          <line x1="180" y1="70" x2="180" y2="145" stroke="#f43f5e" strokeWidth="1.5" />
+          <rect x="175" y="85" width="10" height="40" rx="2" fill="#f43f5e" fillOpacity="0.75" />
 
           {/* Candle 6: Emerald Bullish */}
-          <line x1="240" y1="45" x2="240" y2="135" stroke="#10b981" strokeWidth="1.5" />
-          <rect x="234" y="58" width="12" height="58" rx="2" fill="#10b981" fillOpacity="0.8" />
+          <line x1="215" y1="40" x2="215" y2="115" stroke="#10b981" strokeWidth="1.5" />
+          <rect x="210" y="52" width="10" height="48" rx="2" fill="#10b981" fillOpacity="0.8" />
 
           {/* Candle 7: Royal Blue Bullish */}
-          <line x1="278" y1="30" x2="278" y2="115" stroke="#1d4ed8" strokeWidth="1.5" />
-          <rect x="272" y="42" width="12" height="55" rx="2" fill="#1d4ed8" fillOpacity="0.85" />
+          <line x1="250" y1="25" x2="250" y2="100" stroke="#1d4ed8" strokeWidth="1.5" />
+          <rect x="245" y="38" width="10" height="48" rx="2" fill="#1d4ed8" fillOpacity="0.85" />
 
           {/* Candle 8: Violet Bearish */}
-          <line x1="316" y1="55" x2="316" y2="140" stroke="#a855f7" strokeWidth="1.5" />
-          <rect x="310" y="68" width="12" height="48" rx="2" fill="#a855f7" fillOpacity="0.75" />
+          <line x1="285" y1="48" x2="285" y2="120" stroke="#a855f7" strokeWidth="1.5" />
+          <rect x="280" y="60" width="10" height="42" rx="2" fill="#a855f7" fillOpacity="0.75" />
 
           {/* Candle 9: Bright Cyan Bullish Peak */}
-          <line x1="354" y1="20" x2="354" y2="100" stroke="#0ea5e9" strokeWidth="1.5" />
-          <rect x="348" y="30" width="12" height="50" rx="2" fill="#0ea5e9" fillOpacity="0.9" />
+          <line x1="320" y1="18" x2="320" y2="88" stroke="#0ea5e9" strokeWidth="1.5" />
+          <rect x="315" y="28" width="10" height="44" rx="2" fill="#0ea5e9" fillOpacity="0.9" />
 
           {/* Candle 10: Deep Royal Blue High */}
-          <line x1="392" y1="10" x2="392" y2="88" stroke="#2563eb" strokeWidth="1.5" />
-          <rect x="386" y="20" width="12" height="46" rx="2" fill="#2563eb" fillOpacity="0.9" />
+          <line x1="355" y1="10" x2="355" y2="78" stroke="#2563eb" strokeWidth="1.5" />
+          <rect x="350" y="18" width="10" height="40" rx="2" fill="#2563eb" fillOpacity="0.9" />
 
-          {/* Subtle trendline connecting higher lows */}
+          {/* Subtle trendline */}
           <path
-            d="M50 115 Q164 78 240 58 T392 20"
+            d="M40 98 Q145 68 215 52 T355 18"
             stroke="url(#topCandleGrad)"
             strokeWidth="1.8"
             strokeDasharray="4 4"
@@ -115,10 +128,10 @@ export const FinancialPageBackground: React.FC = () => {
         </svg>
       </div>
 
-      {/* Bottom Fluid Wave Horizon Banner */}
+      {/* Bottom Fluid Wave Horizon Banner (Scrolls with Page, Sits at True Bottom) */}
       <div aria-hidden="true" className="financial-bg-bottom-waves">
         <svg
-          viewBox="0 0 1200 110"
+          viewBox="0 0 1200 105"
           preserveAspectRatio="none"
           style={{ width: '100%', height: '100%' }}
         >
@@ -143,19 +156,19 @@ export const FinancialPageBackground: React.FC = () => {
 
           {/* Layer 3: Light sky blue crest */}
           <path
-            d="M0,75 C220,100 420,30 680,55 C920,80 1080,25 1200,40 L1200,110 L0,110 Z"
+            d="M0,70 C220,95 420,25 680,50 C920,75 1080,20 1200,35 L1200,105 L0,105 Z"
             fill="url(#waveSkyLight)"
           />
 
           {/* Layer 2: Mid vibrant electric blue */}
           <path
-            d="M0,85 C180,60 380,95 620,65 C880,35 1050,65 1200,50 L1200,110 L0,110 Z"
+            d="M0,80 C180,55 380,90 620,60 C880,30 1050,60 1200,45 L1200,105 L0,105 Z"
             fill="url(#waveMidCyan)"
           />
 
           {/* Layer 1: Deep royal navy blue base curve */}
           <path
-            d="M0,95 C260,75 500,105 760,75 C980,45 1100,60 1200,65 L1200,110 L0,110 Z"
+            d="M0,90 C260,70 500,100 760,70 C980,40 1100,55 1200,60 L1200,105 L0,105 Z"
             fill="url(#waveDeepBlue)"
           />
         </svg>
