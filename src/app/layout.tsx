@@ -13,18 +13,127 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Growffi | Institutional Algo Trading Platform",
-  description: "Advanced automated algorithmic trading platform, client portfolio management, and strategy breakout executor connected with Zerodha Kite API.",
+  metadataBase: new URL("https://growffi.com"),
+  title: {
+    default: "Growffi | Best Algo Trading Platform in India | Automated Stock & Options Trading",
+    template: "%s | Growffi - India's Leading Algo Trading Platform",
+  },
+  description: "Growffi is India's leading automated algorithmic trading platform. Trade Nifty, Bank Nifty, and equity stocks seamlessly with Zerodha Kite API, custom breakout strategies, and low-latency execution.",
+  keywords: [
+    "algo trading",
+    "algo trading india",
+    "trade",
+    "algorithmic trading",
+    "algorithmic trading india",
+    "automated trading platform",
+    "best algo trading software india",
+    "zerodha algo trading",
+    "kite connect algo",
+    "nifty algo trading",
+    "bank nifty automated trading",
+    "stock market algo software",
+    "intraday algo trading",
+    "options algo trading india",
+    "growffi",
+    "growffi algo trading",
+    "breakout trading strategies",
+    "indian stock market automation",
+    "algo trading software for retail traders",
+    "quantitative trading india"
+  ],
+  authors: [{ name: "Growffi Fintech", url: "https://growffi.com" }],
+  creator: "Growffi Fintech Pvt Ltd",
+  publisher: "Growffi",
+  applicationName: "Growffi Algo Trading",
+  category: "Finance",
   manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "Growffi",
+  alternates: {
+    canonical: "https://growffi.com",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_IN",
+    url: "https://growffi.com",
+    siteName: "Growffi Algo Trading",
+    title: "Growffi | Best Algo Trading Platform in India | Automated Stock & Options Trading",
+    description: "Growffi is India's premier automated algorithmic trading platform. Connect Zerodha Kite Connect API and trade Nifty, Bank Nifty & stocks with institutional speed.",
+    images: [
+      {
+        url: "https://growffi.com/hero_mockup.png",
+        width: 1200,
+        height: 630,
+        alt: "Growffi - Best Algo Trading Platform in India",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Growffi | Best Algo Trading Platform in India",
+    description: "Automate your trading with Growffi. Advanced algorithmic execution with Zerodha Kite API for Nifty, Bank Nifty, and NSE stocks.",
+    images: ["https://growffi.com/hero_mockup.png"],
+    creator: "@growffi",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
   icons: {
     icon: "/favicon.ico",
     apple: "/logo.png",
   },
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://growffi.com/#organization",
+      "name": "Growffi",
+      "url": "https://growffi.com",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://growffi.com/logo.png",
+        "width": 512,
+        "height": 512
+      },
+      "description": "Growffi is India's premier algorithmic and automated stock trading platform connecting with Zerodha Kite.",
+      "sameAs": [
+        "https://twitter.com/growffi",
+        "https://www.linkedin.com/company/growffi"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://growffi.com/#website",
+      "url": "https://growffi.com",
+      "name": "Growffi Algo Trading",
+      "publisher": {
+        "@id": "https://growffi.com/#organization"
+      },
+      "inLanguage": "en-IN"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://growffi.com/#software",
+      "name": "Growffi Algo Trading Platform",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web, Android, iOS",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "INR"
+      },
+      "description": "Advanced automated algo trading software for Indian stock market. Connects seamlessly with Zerodha Kite for Nifty, Bank Nifty and stock breakout trading."
+    }
+  ]
 };
 
 export default function RootLayout({
@@ -41,6 +150,10 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Growffi" />
         <link rel="apple-touch-icon" href="/logo.png" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
       </head>
       <body>
         <Script id="theme-initializer" src="/theme.js" strategy="afterInteractive" />
