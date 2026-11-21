@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-  --primary: #033691;
-  --primary-dark: #012a7c;
+  --primary: #104193;
+  --primary-dark: #0c3374;
   --primary-light: #e8f0fe;
   --accent: #22c55e;
   --accent-dark: #16a34a;
@@ -420,7 +420,7 @@ table {
 thead,
 [data-theme="light"] thead,
 [data-theme="dark"] thead {
-  background: linear-gradient(90deg, #012a7c 0%, #033691 42%, #0242ae 100%) !important;
+  background: linear-gradient(180deg, #104193 0%, #0c3374 100%) !important;
 }
 
 thead tr {
@@ -876,18 +876,18 @@ tr.clickable-row:hover td {
   border-radius: var(--radius-full);
   font-size: 14px;
   font-weight: 700;
-  background: linear-gradient(135deg, #012a7c 0%, #033691 50%, #0242ae 100%);
+  background: linear-gradient(180deg, #104193 0%, #0c3374 100%);
   color: white;
   border: none;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 6px 20px rgba(1, 42, 124, 0.25);
+  box-shadow: 0 6px 20px rgba(16, 65, 147, 0.25);
   text-decoration: none;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(1, 42, 124, 0.38);
+  box-shadow: 0 10px 30px rgba(16, 65, 147, 0.38);
 }
 
 .btn-secondary {

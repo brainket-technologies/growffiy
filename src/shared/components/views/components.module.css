@@ -14,13 +14,13 @@
 }
 
 .btnPrimary {
-  background: linear-gradient(135deg, #012a7c 0%, #033691 50%, #0242ae 100%);
+  background: linear-gradient(180deg, #104193 0%, #0c3374 100%);
   color: #ffffff;
-  box-shadow: 0 4px 10px rgba(1, 42, 124, 0.2);
+  box-shadow: 0 4px 10px rgba(16, 65, 147, 0.2);
 }
 .btnPrimary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(1, 42, 124, 0.32);
+  box-shadow: 0 6px 14px rgba(16, 65, 147, 0.32);
 }
 
 .btnSecondary {

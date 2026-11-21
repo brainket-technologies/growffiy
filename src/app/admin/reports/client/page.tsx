@@ -465,25 +465,25 @@ export default function ClientReportPage() {
             <thead>
               <tr>
                 {[
-                  { key: 'name', label: 'Client Name' },
-                  { key: 'capital', label: 'Capital Deployed' },
-                  { key: 'strategy', label: 'Assigned Strategy' },
-                  { key: 'trades', label: 'Orders (Tot/Act)' },
-                  { key: 'status', label: 'Status' },
-                  { key: 'subscription', label: 'Subscription' },
-                  { key: 'todayPnl', label: 'Today P&L (INR)' },
-                  { key: 'pnl', label: 'Net P&L (INR)' },
-                  { key: 'pnlPercent', label: 'Net P&L (%)' }
+                  { key: 'name', label: 'CLIENT NAME' },
+                  { key: 'capital', label: 'CAPITAL DEPLOYED' },
+                  { key: 'strategy', label: 'ASSIGNED STRATEGY' },
+                  { key: 'trades', label: 'ORDERS (TOT/ACT)' },
+                  { key: 'status', label: 'STATUS' },
+                  { key: 'subscription', label: 'SUBSCRIPTION' },
+                  { key: 'todayPnl', label: 'TODAY P&L' },
+                  { key: 'pnl', label: 'NET P&L' },
+                  { key: 'pnlPercent', label: 'NET P&L (%)' }
                 ].map(col => {
                   const isActive = sortKey === col.key;
                   return (
                     <th key={col.key} onClick={() => handleSort(col.key)}
-                      style={{ cursor: 'pointer', userSelect: 'none', color: isActive ? '#6366f1' : undefined, transition: 'color 0.15s', textAlign: col.key === 'trades' ? 'center' : 'left' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                        <span>{col.label}</span>
-                        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.35 }}>
-                          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
-                          <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#6366f1' : 'rgba(148,163,184,0.8)'}/>
+                      style={{ cursor: 'pointer', userSelect: 'none', background: isActive ? 'rgba(255, 255, 255, 0.16)' : undefined, color: '#ffffff', transition: 'background 0.15s, color 0.15s', textAlign: col.key === 'trades' ? 'center' : 'left' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontWeight: 700 }}>{col.label}</span>
+                        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.45 }}>
+                          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortDir === 'asc' ? '#ffffff' : 'rgba(255,255,255,0.5)'}/>
+                          <path d="M4 12L1 8H7L4 12Z" fill={isActive && sortDir === 'desc' ? '#ffffff' : 'rgba(255,255,255,0.5)'}/>
                         </svg>
                       </span>
                     </th>
