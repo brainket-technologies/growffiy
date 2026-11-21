@@ -55,8 +55,8 @@ export async function POST(request: Request) {
 
           await sendEmail({
             to: adminTargetEmail,
-            subject: '🚨 Growffiy Alert: Admin Password Changed Successfully',
-            text: `Hello ${user.name},\n\nYour administrator password has been updated.\n\nCredentials Details:\n- Admin ID: ${user.userId}\n- New Password: ${newPassword}\n- Control Panel URL: ${loginUrl}\n\nSecurity & Location Details:\n- Location: ${locationInfo.formatted}\n- IP Address: ${rawIp}\n- Device: ${deviceInfo.formatted}\n- Raw User Agent: ${userAgent}\n- Time: ${timestamp} IST\n\nIf you did not authorize this change, please check security logs immediately.\n\nBest Regards,\nGrowffiy Security Team`,
+            subject: '🚨 Growffi Alert: Admin Password Changed Successfully',
+            text: `Hello ${user.name},\n\nYour administrator password has been updated.\n\nCredentials Details:\n- Admin ID: ${user.userId}\n- New Password: ${newPassword}\n- Control Panel URL: ${loginUrl}\n\nSecurity & Location Details:\n- Location: ${locationInfo.formatted}\n- IP Address: ${rawIp}\n- Device: ${deviceInfo.formatted}\n- Raw User Agent: ${userAgent}\n- Time: ${timestamp} IST\n\nIf you did not authorize this change, please check security logs immediately.\n\nBest Regards,\nGrowffi Security Team`,
             html: `
               <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 24px; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
                 <div style="text-align: center; margin-bottom: 24px;">
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
                 </div>
                 
                 <p style="font-size: 15px; margin-bottom: 12px;">Hello <strong>${user.name}</strong>,</p>
-                <p style="font-size: 14px; color: #475569; margin-bottom: 20px;">The password for your Growffiy Administrator account has been updated successfully.</p>
+                <p style="font-size: 14px; color: #475569; margin-bottom: 20px;">The password for your Growffi Administrator account has been updated successfully.</p>
                 
                 <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 20px 0;">
                   <h4 style="margin: 0 0 12px 0; color: #0f172a; font-size: 14px;">🔑 Updated Credentials:</h4>
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
                   If you did not initiate this password change, please contact system security support immediately and lock your account.
                 </p>
                 <div style="margin-top: 28px; border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center; font-size: 11px; color: #94a3b8;">
-                  © 2026 Growffiy Inc. All admin activities are monitored.
+                  © 2026 Growffi Inc. All admin activities are monitored.
                 </div>
               </div>
             `
@@ -133,8 +133,8 @@ export async function POST(request: Request) {
         try {
           await sendEmail({
             to: user.email,
-            subject: 'Growffiy Alert: Password Changed Successfully',
-            text: `Hello ${user.name},\n\nYour account password has been updated.\n\nCredentials Details:\n- User ID: ${user.userId}\n- New Password: ${newPassword}\n- Login URL: ${loginUrl}\n\nSystem Details:\n- IP Address: ${ip}\n- Device: ${userAgent}\n- Time: ${timestamp}\n\nIf you did not authorize this change, please contact support immediately.\n\nBest Regards,\nGrowffiy Security Team`,
+            subject: 'Growffi Alert: Password Changed Successfully',
+            text: `Hello ${user.name},\n\nYour account password has been updated.\n\nCredentials Details:\n- User ID: ${user.userId}\n- New Password: ${newPassword}\n- Login URL: ${loginUrl}\n\nSystem Details:\n- IP Address: ${ip}\n- Device: ${userAgent}\n- Time: ${timestamp}\n\nIf you did not authorize this change, please contact support immediately.\n\nBest Regards,\nGrowffi Security Team`,
             html: `
               <div style="font-family: sans-serif; padding: 24px; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
                 <div style="text-align: center; margin-bottom: 24px;">
@@ -143,7 +143,7 @@ export async function POST(request: Request) {
                 </div>
                 
                 <p>Hello <strong>${user.name}</strong>,</p>
-                <p>The password for your Growffiy account has been updated successfully.</p>
+                <p>The password for your Growffi account has been updated successfully.</p>
                 
                 <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 20px 0;">
                   <h4 style="margin: 0 0 12px 0; color: #0f172a; font-size: 14px;">Updated Credentials Details:</h4>
@@ -185,7 +185,7 @@ export async function POST(request: Request) {
                   If you did not authorize this password change, please contact support immediately.
                 </p>
                 <div style="margin-top: 32px; border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center; font-size: 11px; color: #94a3b8;">
-                  © 2026 Growffiy Inc. All rights reserved.
+                  © 2026 Growffi Inc. All rights reserved.
                 </div>
               </div>
             `

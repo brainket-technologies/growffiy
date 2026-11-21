@@ -470,13 +470,13 @@ async function main() {
     where: { id: 'e6c7bda0-716e-48da-9c8a-73b8dd4f856c' },
     update: {
       settingKey: 'smtp_sender_name',
-      settingValue: 'Growffiy',
+      settingValue: 'Growffi',
       type: 'string'
     },
     create: {
       id: 'e6c7bda0-716e-48da-9c8a-73b8dd4f856c',
       settingKey: 'smtp_sender_name',
-      settingValue: 'Growffiy',
+      settingValue: 'Growffi',
       type: 'string'
     },
   });
@@ -512,13 +512,13 @@ async function main() {
     where: { id: '3c7d6b7f-c7f1-4026-9695-c35e01b9cdb8' },
     update: {
       settingKey: 'support_email',
-      settingValue: 'support@growffiy.com',
+      settingValue: 'support@growffi.com',
       type: 'string'
     },
     create: {
       id: '3c7d6b7f-c7f1-4026-9695-c35e01b9cdb8',
       settingKey: 'support_email',
-      settingValue: 'support@growffiy.com',
+      settingValue: 'support@growffi.com',
       type: 'string'
     },
   });
@@ -708,13 +708,13 @@ async function main() {
     where: { id: '0daab40f-3239-432d-8d3c-0388fd7062f4' },
     update: {
       settingKey: 'app_title',
-      settingValue: 'Growffiy — ',
+      settingValue: 'Growffi — ',
       type: 'string'
     },
     create: {
       id: '0daab40f-3239-432d-8d3c-0388fd7062f4',
       settingKey: 'app_title',
-      settingValue: 'Growffiy — ',
+      settingValue: 'Growffi — ',
       type: 'string'
     },
   });

@@ -1,8 +1,8 @@
-# Growffiy — Project Rules & AI Guidelines
+# Growffi — Project Rules & AI Guidelines
 
 ## 🏗️ Project Overview
 
-Growffiy is an algorithmic trading platform. It has two portals:
+Growffi is an algorithmic trading platform. It has two portals:
 - **Admin Portal** (`/admin`) — Real strategy management, client management, live trading controls
 - **Client Portal** (`/clients`) — Client-facing dashboard, demo strategy builder, reports
 

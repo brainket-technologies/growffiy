@@ -85,8 +85,8 @@ export async function POST(request: Request) {
 
           await sendEmail({
             to: adminAlertTarget,
-            subject: '🛡️ Growffiy Alert: Admin Login Detected',
-            text: `Hello ${user.name},\n\nA successful administrator login was detected on Growffiy Control Panel.\n\nAccount Details:\n- Admin ID: ${user.userId}\n- Email: ${user.email}\n\nLogin & System Details:\n- Location: ${locationInfo.formatted}\n- IP Address: ${rawIp}\n- Device: ${deviceInfo.formatted}\n- Raw User Agent: ${userAgent}\n- Time: ${timestamp} IST\n\nIf you did not authorize this login, please immediately change your administrator password and terminate active sessions.\n\nBest Regards,\nGrowffiy Security Team`,
+            subject: '🛡️ Growffi Alert: Admin Login Detected',
+            text: `Hello ${user.name},\n\nA successful administrator login was detected on Growffi Control Panel.\n\nAccount Details:\n- Admin ID: ${user.userId}\n- Email: ${user.email}\n\nLogin & System Details:\n- Location: ${locationInfo.formatted}\n- IP Address: ${rawIp}\n- Device: ${deviceInfo.formatted}\n- Raw User Agent: ${userAgent}\n- Time: ${timestamp} IST\n\nIf you did not authorize this login, please immediately change your administrator password and terminate active sessions.\n\nBest Regards,\nGrowffi Security Team`,
             html: `
               <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 24px; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
                 <div style="text-align: center; margin-bottom: 24px;">
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
                 </div>
                 
                 <p style="font-size: 15px; margin-bottom: 12px;">Hello <strong>${user.name}</strong>,</p>
-                <p style="font-size: 14px; color: #475569; margin-bottom: 20px;">A successful login was just completed for your Administrator account on the Growffiy Management Portal.</p>
+                <p style="font-size: 14px; color: #475569; margin-bottom: 20px;">A successful login was just completed for your Administrator account on the Growffi Management Portal.</p>
                 
                 <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin: 20px 0;">
                   <h4 style="margin: 0 0 10px 0; color: #0f172a; font-size: 14px;">👤 Admin Profile:</h4>
@@ -137,7 +137,7 @@ export async function POST(request: Request) {
                   If this was not you, someone else may have gained access to your admin credentials. Change your password immediately to terminate all other active sessions across all devices.
                 </p>
                 <div style="margin-top: 28px; border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center; font-size: 11px; color: #94a3b8;">
-                  © 2026 Growffiy Inc. All admin activities are monitored.
+                  © 2026 Growffi Inc. All admin activities are monitored.
                 </div>
               </div>
             `

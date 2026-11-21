@@ -127,7 +127,7 @@ export default function ClientSubscriptionPlans() {
         throw new Error(orderData.error || 'Failed to initialize payment order.');
       }
 
-      const brandName = settingsData.appName || (typeof window !== 'undefined' ? localStorage.getItem('growffiy_brand_name') : null) || 'Growffiy';
+      const brandName = settingsData.appName || (typeof window !== 'undefined' ? localStorage.getItem('growffiy_brand_name') : null) || 'Growffi';
       const brandLogo = settingsData.appLogo || (typeof window !== 'undefined' ? localStorage.getItem('growffiy_brand_logo') : null) || undefined;
 
       const options = {

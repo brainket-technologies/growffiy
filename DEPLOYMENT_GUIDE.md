@@ -1,4 +1,4 @@
-# Growffiy Client Deployment & Server Management Guide
+# Growffi Client Deployment & Server Management Guide
 
 Iss document mein har client setup, unke server infrastructure, database, aur deployment/update process ki details hai.
 

@@ -116,7 +116,7 @@ export default function AdminLayout({
       <div className={styles.layoutWrapper}>
         <Sidebar isAdmin={true} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <Header title="Growffiy Admin Panel" userName={adminName} userRole="Administrator" />
+          <Header title="Growffi Admin Panel" userName={adminName} userRole="Administrator" />
           <main className={styles.contentWrapper}>
             {children}
           </main>

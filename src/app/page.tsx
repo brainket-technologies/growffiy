@@ -27,7 +27,7 @@ interface Stock {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function GrowffiyLanding() {
+export default function GrowffiLanding() {
   // Live stock state
   const [stocks, setStocks] = useState<Stock[]>([
     { symbol: 'RELIANCE',   name: 'Reliance Industries', ltp: 2432.85, change: 2.35, chgAmt: 55.80, high: 2450.00, low: 2410.00, volume: '2.5M' },
@@ -56,9 +56,9 @@ export default function GrowffiyLanding() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [brandLogo, setBrandLogo] = useState('');
-  const [brandName, setBrandName] = useState('Growffiy');
+  const [brandName, setBrandName] = useState('Growffi');
   const [heroTitle, setHeroTitle] = useState('Automate Your<br /><span class="text-gradient">Stock Market</span><br />Trades Smarter');
-  const [heroSubtitle, setHeroSubtitle] = useState('Growffiy connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.');
+  const [heroSubtitle, setHeroSubtitle] = useState('Growffi connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.');
 
   // Dynamic Testimonials List & Auto-Scroll Logic
   const [testimonials, setTestimonials] = useState<any[]>([
@@ -69,7 +69,7 @@ export default function GrowffiyLanding() {
       avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&h=120&q=80',
       rating: 5,
       stat: '+38.4% PnL',
-      text: 'Growffiy has completely transformed my trading discipline. The pre-open momentum strategy connects directly with my Zerodha Kite API and executes breakout trades in milliseconds without emotional bias.'
+      text: 'Growffi has completely transformed my trading discipline. The pre-open momentum strategy connects directly with my Zerodha Kite API and executes breakout trades in milliseconds without emotional bias.'
     },
     {
       name: 'Ananya Deshmukh',
@@ -78,7 +78,7 @@ export default function GrowffiyLanding() {
       avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&h=120&q=80',
       rating: 5,
       stat: 'Zero Slippage',
-      text: 'The automated stop-loss and 1% risk management engine is top-notch. I used to miss target exits while working, but Growffiy manages position sizing and square-off automatically at 3:15 PM.'
+      text: 'The automated stop-loss and 1% risk management engine is top-notch. I used to miss target exits while working, but Growffi manages position sizing and square-off automatically at 3:15 PM.'
     },
     {
       name: 'Vikram Patel',
@@ -87,7 +87,7 @@ export default function GrowffiyLanding() {
       avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&h=120&q=80',
       rating: 5,
       stat: '99.9% Uptime',
-      text: 'Operating client accounts with dedicated static proxy IPs was complex before Growffiy. Now everything runs smoothly with live logs, instant order signals, and absolute peace of mind.'
+      text: 'Operating client accounts with dedicated static proxy IPs was complex before Growffi. Now everything runs smoothly with live logs, instant order signals, and absolute peace of mind.'
     }
   ]);
 
@@ -219,9 +219,9 @@ export default function GrowffiyLanding() {
     const fetchPublicSettings = () => {
       // First load from localStorage for instant display
       setBrandLogo(localStorage.getItem('growffiy_brand_logo') || '');
-      setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffiy');
+      setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffi');
       setHeroTitle(localStorage.getItem('growffiy_hero_title') || 'Automate Your<br /><span class="text-gradient">Stock Market</span><br />Trades Smarter');
-      setHeroSubtitle(localStorage.getItem('growffiy_hero_subtitle') || 'Growffiy connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.');
+      setHeroSubtitle(localStorage.getItem('growffiy_hero_subtitle') || 'Growffi connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.');
 
       // Then fetch from server to get latest changes
       fetch('/api/settings/public', { cache: 'no-store' })
@@ -547,7 +547,7 @@ export default function GrowffiyLanding() {
           <div className="hero-right" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '20px' }}>
             <img
               src="/hero_mockup.png"
-              alt="Growffiy Laptop and Mobile Mockup"
+              alt="Growffi Laptop and Mobile Mockup"
               style={{
                 width: '115%',
                 maxWidth: 'none',
@@ -1361,7 +1361,7 @@ export default function GrowffiyLanding() {
           <div className="text-center">
             <div className="section-tag">Got Questions?</div>
             <h2 className="section-title">Frequently Asked <span className="text-gradient">Questions</span></h2>
-            <p className="section-sub">Everything you need to know about Growffiy's trading automation.</p>
+            <p className="section-sub">Everything you need to know about Growffi's trading automation.</p>
           </div>
 
           <div style={{
@@ -1417,7 +1417,7 @@ export default function GrowffiyLanding() {
           <div className="text-center">
             <div className="section-tag">Client Reviews</div>
             <h2 className="section-title">What Our <span className="text-gradient">Clients Say</span></h2>
-            <p className="section-sub">Real feedback and experiences from active traders using Growffiy automated strategy execution.</p>
+            <p className="section-sub">Real feedback and experiences from active traders using Growffi automated strategy execution.</p>
           </div>
 
           <div

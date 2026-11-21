@@ -287,7 +287,7 @@ export default function Footer() {
             <div>
               <div className="footer-col-title">Contact</div>
               <div className="footer-link" style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                <Mail size={13} style={{ marginTop: 2, flexShrink: 0 }} /> {supportEmail || 'support@growffiy.in'}
+                <Mail size={13} style={{ marginTop: 2, flexShrink: 0 }} /> {supportEmail || 'support@growffi.com'}
               </div>
               <div className="footer-link" style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <Phone size={13} style={{ marginTop: 2, flexShrink: 0 }} /> {supportPhone || '+91-XXXX-XXXXXX'}
@@ -322,11 +322,11 @@ export default function Footer() {
 
           <div className="footer-disclaimer">
             <strong style={{ color: 'var(--text-subtle)' }}>REGULATORY RISK DISCLAIMER:</strong>{' '}
-            {footerDisclaimer || 'Algorithmic trading involves substantial financial risk. Growffiy is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.'}
+            {footerDisclaimer || 'Algorithmic trading involves substantial financial risk. Growffi is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.'}
           </div>
 
           <div className="footer-bottom">
-            <span>{footerText || '© 2026 Growffiy Inc. All rights reserved.'}</span>
+            <span>{footerText || '© 2026 Growffi Inc. All rights reserved.'}</span>
 
             {/* Centered Clean Integration Badge - In the middle */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

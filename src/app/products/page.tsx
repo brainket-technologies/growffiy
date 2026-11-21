@@ -17,7 +17,7 @@ interface Stock {
 
 export default function ProductsPage() {
   const [brandLogo, setBrandLogo] = useState('');
-  const [brandName, setBrandName] = useState('Growffiy');
+  const [brandName, setBrandName] = useState('Growffi');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -112,7 +112,7 @@ export default function ProductsPage() {
   useEffect(() => {
     const load = () => {
       setBrandLogo(localStorage.getItem('growffiy_brand_logo') || '');
-      setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffiy');
+      setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffi');
     };
     load();
     window.addEventListener('branding-updated', load);
@@ -121,7 +121,7 @@ export default function ProductsPage() {
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          const appName = data.appName || 'Growffiy';
+          const appName = data.appName || 'Growffi';
           const appLogo = data.appLogo || '';
           setBrandName(appName);
           setBrandLogo(appLogo);

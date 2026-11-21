@@ -13,7 +13,7 @@ export default function StaffLoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [brandLogo, setBrandLogo] = useState('');
-  const [brandName, setBrandName] = useState('Growffiy');
+  const [brandName, setBrandName] = useState('Growffi');
   const [isDark, setIsDark] = useState(true);
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function StaffLoginPage() {
   useEffect(() => {
     const load = () => {
       setBrandLogo(localStorage.getItem('growffiy_brand_logo') || '');
-      setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffiy');
+      setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffi');
     };
     load();
 
@@ -223,7 +223,7 @@ export default function StaffLoginPage() {
             background: 'linear-gradient(135deg, #1E88FF, #1252AB)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <img src="/logo.png" alt="Growffiy" style={{ width: 18, height: 18, objectFit: 'contain' }} />
+            <img src="/logo.png" alt="Growffi" style={{ width: 18, height: 18, objectFit: 'contain' }} />
           </div>
           <span style={{
             fontSize: 18, fontWeight: 800, color: '#f1f5f9',

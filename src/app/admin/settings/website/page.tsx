@@ -14,13 +14,13 @@ export default function WebsiteSettingsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('branding');
 
   // Branding
-  const [appName, setAppName] = useState('Growffiy');
-  const [appTitle, setAppTitle] = useState('Growffiy — Algo Trading Terminal');
+  const [appName, setAppName] = useState('Growffi');
+  const [appTitle, setAppTitle] = useState('Growffi — Algo Trading Terminal');
   const [appFavicon, setAppFavicon] = useState('');
   const [appLogo, setAppLogo] = useState('');
 
   // Support contact info
-  const [supportEmail, setSupportEmail] = useState('support@growffiy.com');
+  const [supportEmail, setSupportEmail] = useState('support@growffi.com');
   const [supportPhone, setSupportPhone] = useState('+91 98765 43210');
   const [supportWhatsapp, setSupportWhatsapp] = useState('+91 902666305');
   const [supportTimings, setSupportTimings] = useState('Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)');
@@ -28,12 +28,12 @@ export default function WebsiteSettingsPage() {
 
   // Website / SEO
   const [heroTitle, setHeroTitle] = useState('Automate Your<br /><span class="text-gradient">Stock Market</span><br />Trades Smarter');
-  const [heroSubtitle, setHeroSubtitle] = useState('Growffiy connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.');
+  const [heroSubtitle, setHeroSubtitle] = useState('Growffi connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.');
   const [metaDescription, setMetaDescription] = useState('');
   const [metaKeywords, setMetaKeywords] = useState('');
   const [footerText, setFooterText] = useState('');
   const [footerTagline, setFooterTagline] = useState('Advanced algorithmic trading middleware connecting directly with Zerodha Kite API. Built for mathematical discipline and speed.');
-  const [footerDisclaimer, setFooterDisclaimer] = useState('Algorithmic trading involves substantial financial risk. Growffiy is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.');
+  const [footerDisclaimer, setFooterDisclaimer] = useState('Algorithmic trading involves substantial financial risk. Growffi is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.');
   const [footerBottomTagline, setFooterBottomTagline] = useState('Designed for NSE/BSE Intraday Algo Traders');
   const [googleAnalyticsId, setGoogleAnalyticsId] = useState('');
 
@@ -55,9 +55,9 @@ export default function WebsiteSettingsPage() {
   const defaultFaqItems: {q: string; a: string}[] = [
     {q: "How does the Pre-Open Momentum Breakout strategy work?", a: "<p style=\"font-size:14px;line-height:1.75;color:#475569;margin:0;\">The Pre-Open Momentum Breakout strategy scans NSE/BSE stocks during the pre-open session (9:00-9:08 AM) to identify high-momentum candidates based on volume and price thresholds. Once identified, it places automated MIS (Margin Intraday Squared-off) orders at market open. All orders are squared off by 3:15 PM automatically.</p>"},
     {q: "How is position sizing calculated?", a: "<p style=\"font-size:14px;line-height:1.75;color:#475569;margin:0;\">Position sizing is calculated based on your configured risk per trade (default 5-8% of available capital) and the stock's current market price. The system automatically calculates the number of lots or shares to allocate to each trade, ensuring no single position exceeds your predefined risk tolerance.</p>"},
-    {q: "Do I need a Zerodha Kite Connect subscription?", a: "<p style=\"font-size:14px;line-height:1.75;color:#475569;margin:0;\">Yes, Growffiy requires an active Zerodha Kite Connect subscription (API access). Your Zerodha account must have Kite Connect enabled, and you will need to generate API Key, API Secret, and Access Token from the Zerodha Kite Console. The free tier of Kite Connect (3 tokens) is sufficient for getting started.</p>"},
+    {q: "Do I need a Zerodha Kite Connect subscription?", a: "<p style=\"font-size:14px;line-height:1.75;color:#475569;margin:0;\">Yes, Growffi requires an active Zerodha Kite Connect subscription (API access). Your Zerodha account must have Kite Connect enabled, and you will need to generate API Key, API Secret, and Access Token from the Zerodha Kite Console. The free tier of Kite Connect (3 tokens) is sufficient for getting started.</p>"},
     {q: "Can I pause the bot at any time?", a: "<p style=\"font-size:14px;line-height:1.75;color:#475569;margin:0;\">Absolutely. You can pause or stop the automated trading bot at any time from your client dashboard. When paused, no new trades will be placed. Any open positions held at the time of pausing will continue until their configured square-off time (3:15 PM) unless manually closed from your broker terminal.</p>"},
-    {q: "What happens if my internet goes down during a trade?", a: "<p style=\"font-size:14px;line-height:1.75;color:#475569;margin:0;\">Growffiy runs on cloud servers, not your local machine. Once a strategy is deployed and active, trade execution continues server-side regardless of your internet connectivity. However, you may lose visibility of real-time updates on your dashboard until your connection is restored. All trades follow their pre-configured square-off schedule.</p>"},
+    {q: "What happens if my internet goes down during a trade?", a: "<p style=\"font-size:14px;line-height:1.75;color:#475569;margin:0;\">Growffi runs on cloud servers, not your local machine. Once a strategy is deployed and active, trade execution continues server-side regardless of your internet connectivity. However, you may lose visibility of real-time updates on your dashboard until your connection is restored. All trades follow their pre-configured square-off schedule.</p>"},
   ];
   const [faqItems, setFaqItems] = useState<{q: string; a: string}[]>(defaultFaqItems);
 
@@ -71,22 +71,22 @@ export default function WebsiteSettingsPage() {
       try {
         const res = await api.get(API_ENDPOINTS.SETTINGS);
         if (res.success && res.settings) {
-          setAppName(res.settings.app_name || 'Growffiy');
-          setAppTitle(res.settings.app_title || 'Growffiy — Algo Trading Terminal');
+          setAppName(res.settings.app_name || 'Growffi');
+          setAppTitle(res.settings.app_title || 'Growffi — Algo Trading Terminal');
           setAppFavicon(res.settings.app_favicon || '');
           setAppLogo(res.settings.app_logo || '');
-          setSupportEmail(res.settings.support_email || 'support@growffiy.com');
+          setSupportEmail(res.settings.support_email || 'support@growffi.com');
           setSupportPhone(res.settings.support_phone || '+91 98765 43210');
           setSupportWhatsapp(res.settings.support_whatsapp || '+91 902666305');
           setSupportTimings(res.settings.support_timings || 'Live Chat (Mon-Fri, 9:00 AM - 3:30 PM)');
           setSupportAddress(res.settings.support_address || 'Mumbai, India');
           setHeroTitle(res.settings.hero_title || 'Automate Your<br /><span class="text-gradient">Stock Market</span><br />Trades Smarter');
-          setHeroSubtitle(res.settings.hero_subtitle || 'Growffiy connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.');
+          setHeroSubtitle(res.settings.hero_subtitle || 'Growffi connects to your Zerodha Kite API and executes pre-open momentum breakout strategies with strict 1% risk management — fully automated.');
           setMetaDescription(res.settings.meta_description || '');
           setMetaKeywords(res.settings.meta_keywords || '');
           setFooterText(res.settings.footer_text || '');
           setFooterTagline(res.settings.footer_tagline || 'Advanced algorithmic trading middleware connecting directly with Zerodha Kite API. Built for mathematical discipline and speed.');
-          setFooterDisclaimer(res.settings.footer_disclaimer || 'Algorithmic trading involves substantial financial risk. Growffiy is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.');
+          setFooterDisclaimer(res.settings.footer_disclaimer || 'Algorithmic trading involves substantial financial risk. Growffi is a software utility and is NOT a SEBI-registered investment advisor, broker, or portfolio manager. All simulated performance data shown does not represent guaranteed future results. Past performance is not indicative of future returns. Trade responsibly.');
           setFooterBottomTagline(res.settings.footer_bottom_tagline || 'Designed for NSE/BSE Intraday Algo Traders');
           setGoogleAnalyticsId(res.settings.google_analytics_id || '');
           setSocialTelegram(res.settings.social_telegram || '');
@@ -459,7 +459,7 @@ export default function WebsiteSettingsPage() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>Footer Text</label>
-                <input type="text" placeholder="© 2026 Growffiy. All rights reserved." value={footerText} onChange={(e) => setFooterText(e.target.value)}
+                <input type="text" placeholder="© 2026 Growffi. All rights reserved." value={footerText} onChange={(e) => setFooterText(e.target.value)}
                   style={{ width: '100%', height: '40px', fontSize: '14px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
               </div>
               <div>

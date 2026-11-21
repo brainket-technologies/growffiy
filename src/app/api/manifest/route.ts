@@ -9,7 +9,7 @@ export async function GET() {
       map[s.settingKey] = s.settingValue;
     });
 
-    const appName = map.app_name || 'Growffiy';
+    const appName = map.app_name || 'Growffi';
     const appTitle = map.app_title || `${appName} - Institutional Algo Trading Platform`;
     const appLogo = map.app_logo || '/logo.png';
 
@@ -55,8 +55,8 @@ export async function GET() {
   } catch (error) {
     // Fallback if DB fetch fails
     return NextResponse.json({
-      name: 'Growffiy - Institutional Algo Trading Platform',
-      short_name: 'Growffiy',
+      name: 'Growffi - Institutional Algo Trading Platform',
+      short_name: 'Growffi',
       description: 'Advanced automated algorithmic trading platform',
       start_url: '/',
       display: 'standalone',

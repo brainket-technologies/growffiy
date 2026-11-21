@@ -438,8 +438,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = true, staffPermissio
         const res = await api.get(API_ENDPOINTS.SETTINGS);
         if (res.success && res.settings) {
           const logo = res.settings.app_logo || '';
-          const name = res.settings.app_name || 'Growffiy';
-          const title = res.settings.app_title || 'Growffiy — Algo Trading Terminal';
+          const name = res.settings.app_name || 'Growffi';
+          const title = res.settings.app_title || 'Growffi — Algo Trading Terminal';
           const desc = res.settings.meta_description || '';
           const keywords = res.settings.meta_keywords || '';
           const gaId = res.settings.google_analytics_id || '';

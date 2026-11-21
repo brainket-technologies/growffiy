@@ -47,7 +47,7 @@ export default function SettingsPage() {
   const [smtpPort, setSmtpPort] = useState('587');
   const [smtpUser, setSmtpUser] = useState('');
   const [smtpPassword, setSmtpPassword] = useState('');
-  const [smtpSenderName, setSmtpSenderName] = useState('Growffiy');
+  const [smtpSenderName, setSmtpSenderName] = useState('Growffi');
   const [smtpEncryption, setSmtpEncryption] = useState('tls');
   const [smtpStatus, setSmtpStatus] = useState('false'); // 'true' or 'false'
 
@@ -1528,7 +1528,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                               <li>Set <strong>Port</strong> to: <code style={{ backgroundColor: 'var(--surface)', padding: '2px 6px', borderRadius: '4px' }}>587</code> and <strong>Encryption</strong> to: <strong>STARTTLS (587)</strong>.</li>
                               <li><strong>Step 1 (2-Step Verification):</strong> Open <a href="https://myaccount.google.com/signinoptions/two-step-verification" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>Google 2-Step Verification Settings</a> and make sure it is turned <strong>ON</strong>.</li>
                               <li><strong>Step 2 (App Password Page):</strong> Go directly to <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>Google App Passwords Settings Page</a>.</li>
-                              <li><strong>Step 3 (Generate Key):</strong> In the input box, enter a name (e.g., <code>Growffiy SMTP</code>) and click <strong>Create</strong>. Copy the generated 16-character password (e.g., <code>abcd efgh ijkl mnop</code>).</li>
+                              <li><strong>Step 3 (Generate Key):</strong> In the input box, enter a name (e.g., <code>Growffi SMTP</code>) and click <strong>Create</strong>. Copy the generated 16-character password (e.g., <code>abcd efgh ijkl mnop</code>).</li>
                               <li><strong>Step 4 (Setup):</strong> Enter your full Gmail address as <strong>SMTP Username / Email</strong> and paste the 16-character App Password (without spaces) as <strong>SMTP Password</strong>.</li>
                             </ul>
                           </div>
@@ -1656,7 +1656,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
                     required
                     value={smtpSenderName}
                     onChange={(e) => setSmtpSenderName(e.target.value)}
-                    placeholder="Growffiy Notifications"
+                    placeholder="Growffi Notifications"
                     style={{ height: '38px', fontSize: '13px' }}
                   />
                 </div>

@@ -25,7 +25,7 @@ interface Stock {
 export default function LegalLayout({ title, lastUpdated, children, bannerSrc }: LegalLayoutProps) {
   const [brandLogo, setBrandLogo] = useState('');
   const isUp = (change: number) => change >= 0;
-  const [brandName, setBrandName] = useState('Growffiy');
+  const [brandName, setBrandName] = useState('Growffi');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [stocks, setStocks] = useState<Stock[]>([
@@ -39,7 +39,7 @@ export default function LegalLayout({ title, lastUpdated, children, bannerSrc }:
   useEffect(() => {
     const load = () => {
       setBrandLogo(localStorage.getItem('growffiy_brand_logo') || '');
-      setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffiy');
+      setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffi');
     };
     load();
     window.addEventListener('branding-updated', load);
@@ -48,7 +48,7 @@ export default function LegalLayout({ title, lastUpdated, children, bannerSrc }:
       .then(res => res.json())
       .then(data => {
         if (data.success && data.settings) {
-          const appName = data.settings.appName || 'Growffiy';
+          const appName = data.settings.appName || 'Growffi';
           const appLogo = data.settings.appLogo || '';
           setBrandName(appName);
           setBrandLogo(appLogo);

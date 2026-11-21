@@ -542,7 +542,7 @@ export default function ClientPerformancePage() {
         </head>
         <body>
           <div class="header">
-            <h1 class="title">Growffiy Client Performance Report</h1>
+            <h1 class="title">Growffi Client Performance Report</h1>
             <div class="meta">
               <strong>Client:</strong> ${clientName} (${clientCode}) | <strong>Date Range:</strong> ${dateRangeStr}
             </div>

@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [brandLogo, setBrandLogo] = useState('');
-  const [brandName, setBrandName] = useState('Growffiy');
+  const [brandName, setBrandName] = useState('Growffi');
   const [heroSubtitle, setHeroSubtitle] = useState('Connect your Zerodha Kite API and let our pre-open momentum engine execute disciplined, risk-managed trades while you focus on what matters.');
 
   // Forgot Password & Registration States
@@ -80,7 +80,7 @@ export default function LoginPage() {
   useEffect(() => {
     const load = () => {
       setBrandLogo(localStorage.getItem('growffiy_brand_logo') || '');
-      setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffiy');
+      setBrandName(localStorage.getItem('growffiy_brand_name') || 'Growffi');
       setHeroSubtitle(localStorage.getItem('growffiy_hero_subtitle') || 'Connect your Zerodha Kite API and let our pre-open momentum engine execute disciplined, risk-managed trades while you focus on what matters.');
     };
     load();
@@ -456,7 +456,7 @@ export default function LoginPage() {
             background: 'linear-gradient(135deg, #1E88FF, #1252AB)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <img src="/logo.png" alt="Growffiy" style={{ width: 18, height: 18, objectFit: 'contain' }} />
+            <img src="/logo.png" alt="Growffi" style={{ width: 18, height: 18, objectFit: 'contain' }} />
           </div>
           <span style={{
             fontSize: 18, fontWeight: 800, color: '#f1f5f9',

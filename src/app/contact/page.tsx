@@ -29,7 +29,7 @@ export default function ContactPage() {
           {/* Header */}
           <div className="contact-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <img src="/logo.png" alt="Growffiy" style={{ width: 24, height: 24, objectFit: 'contain' }} />
+              <img src="/logo.png" alt="Growffi" style={{ width: 24, height: 24, objectFit: 'contain' }} />
               <span style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-title)' }}>GROWFFIY</span>
             </div>
             <Link href="/">
@@ -54,7 +54,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <p style={{ fontSize: '11px', color: '#9ca3af' }}>Support Email</p>
-                    <p style={{ fontSize: '14px', fontWeight: 600 }}>support@growffiy.com</p>
+                    <p style={{ fontSize: '14px', fontWeight: 600 }}>support@growffi.com</p>
                   </div>
                 </div>
 

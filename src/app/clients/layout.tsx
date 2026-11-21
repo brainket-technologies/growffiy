@@ -109,7 +109,7 @@ export default function ClientDashboardLayout({
       <div className={`${styles.layoutWrapper} client-layout`}>
         <Sidebar isAdmin={false} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflowX: 'hidden' }}>
-          <Header title="Growffiy Client Portal" userName={activeUser.name} userRole="Client Account" />
+          <Header title="Growffi Client Portal" userName={activeUser.name} userRole="Client Account" />
           <main className={styles.contentWrapper} style={{ maxWidth: '100%', boxSizing: 'border-box' }}>
             {children}
           </main>

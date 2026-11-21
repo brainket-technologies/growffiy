@@ -117,9 +117,9 @@ export async function GET(request: Request) {
       const diffTime = end.getTime() - today.getTime();
       const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-      const emailSubject = `Alert: Your Growffiy Subscription expires in ${daysLeft} days`;
+      const emailSubject = `Alert: Your Growffi Subscription expires in ${daysLeft} days`;
       
-      const emailText = `Hello ${sub.user.name},\n\nYour Growffiy automated trading subscription (${sub.plan.name}) is expiring in ${daysLeft} days on ${formattedExpiry}.\n\nTo prevent any disruption to your automated momentum breakout execution, please renew your subscription package by visiting your billing dashboard: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/clients/subscription.\n\nBest Regards,\nGrowffiy Operations Team`;
+      const emailText = `Hello ${sub.user.name},\n\nYour Growffi automated trading subscription (${sub.plan.name}) is expiring in ${daysLeft} days on ${formattedExpiry}.\n\nTo prevent any disruption to your automated momentum breakout execution, please renew your subscription package by visiting your billing dashboard: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/clients/subscription.\n\nBest Regards,\nGrowffi Operations Team`;
 
       const emailHtml = `
         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 32px; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
@@ -168,7 +168,7 @@ export async function GET(request: Request) {
           </p>
 
           <div style="margin-top: 36px; border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center; font-size: 11px; color: #94a3b8; line-height: 1.5;">
-            © 2026 Growffiy Inc. All rights reserved. <br />
+            © 2026 Growffi Inc. All rights reserved. <br />
             This is an automated operational notice regarding your active subscription.
           </div>
         </div>

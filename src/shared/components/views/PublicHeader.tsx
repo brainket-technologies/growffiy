@@ -18,7 +18,7 @@ export default function PublicHeader() {
   const [downloadOpen, setDownloadOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [brandLogo, setBrandLogo] = useState('');
-  const [brandName, setBrandName] = useState('Growffiy');
+  const [brandName, setBrandName] = useState('Growffi');
   const [playStoreUrl, setPlayStoreUrl] = useState('');
   const [appStoreUrl, setAppStoreUrl] = useState('');
   

@@ -118,9 +118,9 @@ export async function POST(request: Request) {
         year: 'numeric'
       });
 
-      const emailSubject = `Growffiy Invoice: Purchase Successful - ${payment.plan.name}`;
+      const emailSubject = `Growffi Invoice: Purchase Successful - ${payment.plan.name}`;
 
-      const emailText = `Hello ${user.name},\n\nThank you for your purchase. Your subscription to ${payment.plan.name} is now active.\n\nInvoice Details:\n- Payment ID: ${razorpayPaymentId}\n- Order ID: ${razorpayOrderId}\n- Date: ${invoiceDate}\n- Amount: ₹${Number(payment.amount).toLocaleString('en-IN')}\n- Expiry Date: ${formattedExpiry}\n\nBest Regards,\nGrowffiy Operations Team`;
+      const emailText = `Hello ${user.name},\n\nThank you for your purchase. Your subscription to ${payment.plan.name} is now active.\n\nInvoice Details:\n- Payment ID: ${razorpayPaymentId}\n- Order ID: ${razorpayOrderId}\n- Date: ${invoiceDate}\n- Amount: ₹${Number(payment.amount).toLocaleString('en-IN')}\n- Expiry Date: ${formattedExpiry}\n\nBest Regards,\nGrowffi Operations Team`;
 
       const emailHtml = `
         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 32px; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
@@ -197,8 +197,8 @@ export async function POST(request: Request) {
           </p>
 
           <div style="margin-top: 36px; border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center; font-size: 11px; color: #94a3b8;">
-            © 2026 Growffiy Inc. All rights reserved. <br />
-            Thank you for choosing Growffiy.
+            © 2026 Growffi Inc. All rights reserved. <br />
+            Thank you for choosing Growffi.
           </div>
         </div>
       `;

@@ -5,7 +5,7 @@ import LegalLayout from '../../shared/components/views/LegalLayout';
 
 const fallbackContent = `<div style="background:linear-gradient(135deg,rgba(239,68,68,0.06),rgba(239,68,68,0.02));border:1px solid rgba(239,68,68,0.15);border-radius:12px;padding:16px 20px;margin-bottom:32px;display:flex;gap:12px;align-items:flex-start;">
   <span style="font-size:20px;flex-shrink:0;">⚠️</span>
-  <p style="font-size:14px;color:#dc2626;font-weight:600;margin:0;line-height:1.6;">Trading in financial instruments involves substantial risk of loss and is not suitable for all investors. Please read this Disclaimer carefully before using Growffiy.</p>
+  <p style="font-size:14px;color:#dc2626;font-weight:600;margin:0;line-height:1.6;">Trading in financial instruments involves substantial risk of loss and is not suitable for all investors. Please read this Disclaimer carefully before using Growffi.</p>
 </div>
 
 <h3 style="font-size:16px;font-weight:700;margin-bottom:10px;color:#1e293b;display:flex;align-items:center;gap:8px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,rgba(14,165,233,0.1),rgba(18,82,171,0.1));font-size:12px;font-weight:800;color:#1E88FF;flex-shrink:0;">1</span> General Information</h3>

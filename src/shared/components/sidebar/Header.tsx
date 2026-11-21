@@ -267,7 +267,7 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  const [appName, setAppName] = useState<string>('Growffiy');
+  const [appName, setAppName] = useState<string>('Growffi');
 
   useEffect(() => {
     const syncAppName = () => {
@@ -294,7 +294,7 @@ export const Header: React.FC<HeaderProps> = ({
   const userInitial = (currentUserName || 'A').charAt(0).toUpperCase();
 
   const renderBreadcrumb = () => {
-    const dynamicTitle = title.replace(/Growffiy/gi, appName);
+    const dynamicTitle = title.replace(/Growffi/gi, appName);
     if (!dynamicTitle.includes('|')) return <span className={styles.currentPage}>{dynamicTitle}</span>;
     const parts = dynamicTitle.split('|').map(s => s.trim());
     return (

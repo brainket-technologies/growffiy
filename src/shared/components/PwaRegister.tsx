@@ -8,10 +8,10 @@ export default function PwaRegister() {
       navigator.serviceWorker
         .register('/sw.js')
         .then((registration) => {
-          console.log('Growffiy PWA ServiceWorker registered with scope: ', registration.scope);
+          console.log('Growffi PWA ServiceWorker registered with scope: ', registration.scope);
         })
         .catch((err) => {
-          console.warn('Growffiy PWA ServiceWorker registration failed: ', err);
+          console.warn('Growffi PWA ServiceWorker registration failed: ', err);
         });
     }
   }, []);

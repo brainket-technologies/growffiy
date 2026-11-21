@@ -13,8 +13,8 @@ export default function BrandingProvider({ children }: { children: React.ReactNo
         const data = await res.json();
         if (data.success && data.settings) {
           const logo = data.settings.app_logo || '';
-          const name = data.settings.app_name || 'Growffiy';
-          const title = data.settings.app_title || 'Growffiy — Algo Trading Terminal';
+          const name = data.settings.app_name || 'Growffi';
+          const title = data.settings.app_title || 'Growffi — Algo Trading Terminal';
           const desc = data.settings.meta_description || '';
           const keywords = data.settings.meta_keywords || '';
           const gaId = data.settings.google_analytics_id || '';

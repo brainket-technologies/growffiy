@@ -22,7 +22,7 @@ export async function logSystemEvent({
         const newAdmin = await prisma.user.create({
           data: {
             name: 'Administrator',
-            email: 'admin@growffiy.com',
+            email: 'admin@growffi.com',
             userId: 'admin',
             password: 'admin_secure_password_123',
             role: 'admin',

@@ -37,7 +37,7 @@ export async function sendClientWelcomeEmail({
     const port = parseInt(settings['smtp_port'] || '587', 10);
     const user = settings['smtp_user'];
     const pass = settings['smtp_password'];
-    const fromName = settings['smtp_sender_name'] || 'Growffiy';
+    const fromName = settings['smtp_sender_name'] || 'Growffi';
     const encryption = settings['smtp_encryption'] || 'tls'; // tls, ssl, none
 
     if (!host || !user || !pass) {
@@ -153,7 +153,7 @@ export async function sendClientOtpEmail({
     const port = parseInt(settings['smtp_port'] || '587', 10);
     const user = settings['smtp_user'];
     const pass = settings['smtp_password'];
-    const fromName = settings['smtp_sender_name'] || 'Growffiy';
+    const fromName = settings['smtp_sender_name'] || 'Growffi';
     const encryption = settings['smtp_encryption'] || 'tls';
 
     if (!host || !user || !pass) {

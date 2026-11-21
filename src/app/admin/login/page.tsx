@@ -16,7 +16,7 @@ export default function AdminLoginPage() {
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   const [brandLogo, setBrandLogo] = useState('');
-  const [brandName, setBrandName] = useState('Growffiy');
+  const [brandName, setBrandName] = useState('Growffi');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -160,7 +160,7 @@ export default function AdminLoginPage() {
           background: `linear-gradient(135deg, ${THEME_COLORS.PRIMARY}, #1252AB)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <img src="/logo.png" alt="Growffiy" style={{ width: 16, height: 16, objectFit: 'contain' }} />
+          <img src="/logo.png" alt="Growffi" style={{ width: 16, height: 16, objectFit: 'contain' }} />
         </div>
         <span style={{ fontSize: 17, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.5px' }}>GROWFFIY</span>
       </div>
@@ -183,7 +183,7 @@ export default function AdminLoginPage() {
               background: `linear-gradient(135deg, ${THEME_COLORS.PRIMARY}, #1252AB)`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <img src="/logo.png" alt="Growffiy" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+              <img src="/logo.png" alt="Growffi" style={{ width: 22, height: 22, objectFit: 'contain' }} />
             </div>
             <span style={{
               fontSize: 22, fontWeight: 900, letterSpacing: '-0.5px',
@@ -276,7 +276,7 @@ export default function AdminLoginPage() {
                 <User size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: focusedField === 'userId' ? THEME_COLORS.PRIMARY : '#94a3b8', transition: 'color 0.2s' }} />
                 <input
                   type="text"
-                  placeholder="admin@growffiy.in"
+                  placeholder="admin@growffi.com"
                   value={userId}
                   onFocus={() => setFocusedField('userId')}
                   onBlur={() => setFocusedField(null)}

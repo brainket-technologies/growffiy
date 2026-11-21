@@ -19,7 +19,7 @@ export async function GET() {
           avatar: '/testimonials/avatar-3.jpg',
           rating: 5,
           stat: '+38.4% PnL',
-          text: 'Growffiy has completely transformed my trading discipline. The pre-open momentum strategy connects directly with my Zerodha Kite API and executes breakout trades in milliseconds without emotional bias.',
+          text: 'Growffi has completely transformed my trading discipline. The pre-open momentum strategy connects directly with my Zerodha Kite API and executes breakout trades in milliseconds without emotional bias.',
           status: 'active'
         },
         {
@@ -29,7 +29,7 @@ export async function GET() {
           avatar: '/testimonials/avatar-1.jpg',
           rating: 5,
           stat: 'Zero Slippage',
-          text: 'The automated stop-loss and 1% risk management engine is top-notch. I used to miss target exits while working, but Growffiy manages position sizing and square-off automatically at 3:15 PM.',
+          text: 'The automated stop-loss and 1% risk management engine is top-notch. I used to miss target exits while working, but Growffi manages position sizing and square-off automatically at 3:15 PM.',
           status: 'active'
         },
         {
@@ -39,7 +39,7 @@ export async function GET() {
           avatar: '/testimonials/avatar-5.jpg',
           rating: 5,
           stat: '99.9% Uptime',
-          text: 'Operating client accounts with dedicated static proxy IPs was complex before Growffiy. Now everything runs smoothly with live logs, instant order signals, and absolute peace of mind.',
+          text: 'Operating client accounts with dedicated static proxy IPs was complex before Growffi. Now everything runs smoothly with live logs, instant order signals, and absolute peace of mind.',
           status: 'active'
         },
         {

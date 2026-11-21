@@ -34,13 +34,13 @@ export async function POST(request: Request) {
       token: token,
       notification: {
         title: title || 'Test Notification',
-        body: notificationBody || 'This is a test push notification from Growffiy Admin Panel.',
+        body: notificationBody || 'This is a test push notification from Growffi Admin Panel.',
       },
     } : {
       topic: 'all_users', // fallback topic if token is not provided
       notification: {
         title: title || 'Test Notification',
-        body: notificationBody || 'This is a test push notification from Growffiy Admin Panel.',
+        body: notificationBody || 'This is a test push notification from Growffi Admin Panel.',
       },
     };
 
