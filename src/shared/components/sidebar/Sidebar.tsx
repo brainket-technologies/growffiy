@@ -94,6 +94,7 @@ const adminGroups: MenuGroup[] = [
       { name: 'Plan Txns', path: '/admin/payments/subscriptions', icon: CreditCard },
       { name: 'Trade Txns', path: '/admin/payments/trades', icon: Activity },
       { name: 'Trades', path: '/admin/payments/group-trades', icon: BarChart2 },
+      { name: 'Trade Summary', path: '/admin/payments/trade-summary', icon: BarChart3 },
     ],
   },
   {
