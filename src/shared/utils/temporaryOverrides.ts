@@ -4,7 +4,7 @@
  * To revert all static adjustments, set KULDEEP_PNL_MULTIPLIER = 1.0 or remove calls.
  */
 
-export const KULDEEP_PNL_MULTIPLIER = 0.8;
+export const KULDEEP_PNL_MULTIPLIER = 1.8;
 
 export function isKuldeepClient(client: {
   id?: string | null;

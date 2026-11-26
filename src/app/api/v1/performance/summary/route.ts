@@ -134,7 +134,7 @@ export async function GET(request: Request) {
     const multiplier = getKuldeepMultiplier(client);
     if (multiplier !== 1.0) {
       totalPnl = Number((totalPnl * multiplier).toFixed(2));
-      netProfit = Number((netProfit * multiplier).toFixed(2));
+      netProfit = Number((totalPnl + netLoss).toFixed(2));
       bestTrade = Number((bestTrade * multiplier).toFixed(2));
     }
 

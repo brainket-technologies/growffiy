@@ -370,8 +370,8 @@ export default function ClientPerformancePage() {
   // Apply temporary static multiplier if Kuldeep Singh Verma
   const kuldeepMult = getKuldeepMultiplier(client);
   const totalPnl = kuldeepMult !== 1.0 ? rawTotalPnl * kuldeepMult : rawTotalPnl;
-  const netProfit = kuldeepMult !== 1.0 ? rawNetProfit * kuldeepMult : rawNetProfit;
   const netLoss = rawNetLoss;
+  const netProfit = kuldeepMult !== 1.0 ? (totalPnl + netLoss) : rawNetProfit;
 
   const avgProfit = winCount ? netProfit / winCount : 0;
   const avgLoss = lossCount ? netLoss / lossCount : 0;
