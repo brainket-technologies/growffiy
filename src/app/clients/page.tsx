@@ -31,9 +31,11 @@ import {
 } from 'lucide-react';
 import { KiteClient } from '../../shared/services/kite';
 import { generateClientTOTP, getTOTPCountdown } from '../../shared/services/totpClient';
-import { API_ENDPOINTS } from '../../core/constants';import { Modal } from '../../shared/components/views/Modal';
+import { API_ENDPOINTS } from '../../core/constants';
+import { Modal } from '../../shared/components/views/Modal';
 import { Button } from '../../shared/components/views/Button';
 import { api } from '../../shared/services/api';
+import { getKuldeepMultiplier } from '../../shared/utils/temporaryOverrides';
 
 
 export default function ClientDashboardOverview() {
@@ -387,7 +389,9 @@ export default function ClientDashboardOverview() {
   const startIndex = (currentPage - 1) * pageSize;
   const paginatedTrades = sortedTrades.slice(startIndex, startIndex + pageSize);
 
-  const totalPnl = clientTrades.reduce((sum, t) => sum + getTradePnl(t), 0);
+  const rawTotalPnl = clientTrades.reduce((sum, t) => sum + getTradePnl(t), 0);
+  const kuldeepMult = getKuldeepMultiplier(matchedClient);
+  const totalPnl = kuldeepMult !== 1.0 ? rawTotalPnl * kuldeepMult : rawTotalPnl;
   
   // Find the active subscription dynamically
   const now = new Date();

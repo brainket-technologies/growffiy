@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
 import jwt from 'jsonwebtoken';
+import { getKuldeepMultiplier } from '@/shared/utils/temporaryOverrides';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'growffi-secret-key-fallback';
 
@@ -24,7 +25,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: 'User ID missing in token' }, { status: 401 });
     }
 
-    const client = await prisma.client.findUnique({ where: { userId } });
+    const client = await prisma.client.findUnique({
+      where: { userId },
+      include: { user: true },
+    });
     if (!client) {
       return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
     }
@@ -117,7 +121,13 @@ export async function GET(request: Request) {
       _sum: { pnl: true }
     });
 
-    const netPnl = Number(agg._sum.pnl || 0);
+    let netPnl = Number(agg._sum.pnl || 0);
+
+    // Apply temporary static multiplier if Kuldeep
+    const multiplier = getKuldeepMultiplier(client);
+    if (multiplier !== 1.0) {
+      netPnl = Number((netPnl * multiplier).toFixed(2));
+    }
 
     const winningTradesPercent = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
     const losingTradesPercent = totalTrades > 0 ? (losingTrades / totalTrades) * 100 : 0;

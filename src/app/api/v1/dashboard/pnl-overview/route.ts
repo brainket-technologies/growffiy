@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
 import jwt from 'jsonwebtoken';
+import { getKuldeepMultiplier } from '@/shared/utils/temporaryOverrides';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'growffi-secret-key-fallback';
 
@@ -43,6 +44,7 @@ export async function GET(req: NextRequest) {
 
     const period = req.nextUrl.searchParams.get('period') || 'Weekly';
     const client = user.client;
+    const multiplier = getKuldeepMultiplier({ ...client, user });
 
     const now = new Date();
     let startDate: Date;
@@ -89,6 +91,10 @@ export async function GET(req: NextRequest) {
           }
         });
 
+        if (multiplier !== 1.0 && dayPnl > 0) {
+          dayPnl = Number((dayPnl * multiplier).toFixed(2));
+        }
+
         let state = "noTrade";
         if (tradeCount > 0) {
           state = dayPnl >= 0 ? "profit" : "loss";
@@ -116,6 +122,10 @@ export async function GET(req: NextRequest) {
           }
         });
 
+        if (multiplier !== 1.0 && monthPnl > 0) {
+          monthPnl = Number((monthPnl * multiplier).toFixed(2));
+        }
+
         let state = "noTrade";
         if (tradeCount > 0) {
           state = monthPnl >= 0 ? "profit" : "loss";
@@ -135,6 +145,10 @@ export async function GET(req: NextRequest) {
             tradeCount++;
           }
         });
+
+        if (multiplier !== 1.0 && yearPnl > 0) {
+          yearPnl = Number((yearPnl * multiplier).toFixed(2));
+        }
 
         let state = "noTrade";
         if (tradeCount > 0) {

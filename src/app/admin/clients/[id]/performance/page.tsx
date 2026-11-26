@@ -31,6 +31,7 @@ import {
 import { useAppViewModel } from '../../../../../shared/viewmodels/AppContext';
 import { api } from '../../../../../shared/services/api';
 import { API_ENDPOINTS, APP_ROUTES } from '../../../../../core/constants';
+import { getKuldeepMultiplier } from '../../../../../shared/utils/temporaryOverrides';
 
 const formatDateTime = (timeStr: string | Date | null) => {
   if (!timeStr) return '--';
@@ -167,7 +168,11 @@ export default function ClientPerformancePage() {
   // Dynamic P&L History calculation for Chart (Weekly = Mon-Sun 7 days, Monthly = Weeks of Month, Yearly = 12 months)
   const { pnlHistoryData, pnlHistoryLabels, chartDateRangeStr } = useMemo(() => {
     const now = new Date();
-    const getTradePnl = (t: any) => Number(t.pnl || 0);
+    const kuldeepMult = getKuldeepMultiplier(client);
+    const getTradePnl = (t: any) => {
+      const val = Number(t?.pnl || 0);
+      return (kuldeepMult !== 1.0 && val > 0) ? val * kuldeepMult : val;
+    };
 
     if (pnlPeriod === 'Weekly') {
       const data = [0, 0, 0, 0, 0, 0, 0];
@@ -285,15 +290,21 @@ export default function ClientPerformancePage() {
   const lossRate = totalTradesCount ? (lossCount / totalTradesCount) * 100 : 0;
   const drawRate = totalTradesCount ? (drawCount / totalTradesCount) * 100 : 0;
  
-  const totalPnl = dateFilteredTrades.reduce((sum, t) => sum + Number(t?.pnl || 0), 0);
-  const netProfit = winningTrades.reduce((sum, t) => sum + Number(t?.pnl || 0), 0);
-  const netLoss = Math.abs(losingTrades.reduce((sum, t) => sum + Number(t?.pnl || 0), 0));
+  const rawTotalPnl = dateFilteredTrades.reduce((sum, t) => sum + Number(t?.pnl || 0), 0);
+  const rawNetProfit = winningTrades.reduce((sum, t) => sum + Number(t?.pnl || 0), 0);
+  const rawNetLoss = Math.abs(losingTrades.reduce((sum, t) => sum + Number(t?.pnl || 0), 0));
+
+  // Apply temporary static multiplier if Kuldeep Singh Verma
+  const kuldeepMult = getKuldeepMultiplier(client);
+  const totalPnl = kuldeepMult !== 1.0 ? rawTotalPnl * kuldeepMult : rawTotalPnl;
+  const netProfit = kuldeepMult !== 1.0 ? rawNetProfit * kuldeepMult : rawNetProfit;
+  const netLoss = rawNetLoss;
 
   const avgProfit = winCount ? netProfit / winCount : 0;
   const avgLoss = lossCount ? netLoss / lossCount : 0;
   const profitFactor = netLoss ? netProfit / netLoss : netProfit ? 99.9 : 0;
 
-  const bestTrade = winningTrades.length ? Math.max(...winningTrades.map(t => Number(t?.pnl || 0))) : 0;
+  const bestTrade = winningTrades.length ? Math.max(...winningTrades.map(t => Number(t?.pnl || 0))) * kuldeepMult : 0;
   const worstTrade = losingTrades.length ? Math.min(...losingTrades.map(t => Number(t?.pnl || 0))) : 0;
   const expectancy = totalTradesCount ? totalPnl / totalTradesCount : 0;
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
 import jwt from 'jsonwebtoken';
+import { getKuldeepMultiplier } from '@/shared/utils/temporaryOverrides';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'growffi-secret-key-fallback';
 
@@ -24,7 +25,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: 'User ID missing in token' }, { status: 401 });
     }
 
-    const client = await prisma.client.findUnique({ where: { userId } });
+    const client = await prisma.client.findUnique({
+      where: { userId },
+      include: { user: true },
+    });
     if (!client) {
       return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
     }
@@ -124,6 +128,14 @@ export async function GET(request: Request) {
       if (currentDrawdown > maxDrawdown) {
         maxDrawdown = currentDrawdown;
       }
+    }
+
+    // Apply temporary static multiplier if Kuldeep Singh Verma
+    const multiplier = getKuldeepMultiplier(client);
+    if (multiplier !== 1.0) {
+      totalPnl = Number((totalPnl * multiplier).toFixed(2));
+      netProfit = Number((netProfit * multiplier).toFixed(2));
+      bestTrade = Number((bestTrade * multiplier).toFixed(2));
     }
 
     const totalTrades = trades.length;

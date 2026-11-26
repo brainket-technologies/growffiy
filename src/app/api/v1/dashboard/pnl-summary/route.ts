@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/database/db';
 import jwt from 'jsonwebtoken';
+import { getKuldeepMultiplier } from '@/shared/utils/temporaryOverrides';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'growffi-secret-key-fallback';
 export async function GET(req: NextRequest) {
@@ -87,8 +88,14 @@ export async function GET(req: NextRequest) {
       _sum: { pnl: true }
     });
 
-    const realizedPnl = Number(agg._sum.pnl || 0);
+    let realizedPnl = Number(agg._sum.pnl || 0);
     const winAccuracy = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
+
+    // Apply temporary static multiplier if Kuldeep
+    const multiplier = getKuldeepMultiplier({ ...client, user });
+    if (multiplier !== 1.0) {
+      realizedPnl = Number((realizedPnl * multiplier).toFixed(2));
+    }
 
     return NextResponse.json({
       success: true,
