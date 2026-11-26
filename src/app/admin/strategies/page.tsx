@@ -146,10 +146,13 @@ const migrateLegacyConfig = (config: any): StrategyConfig => {
   if (!basic.engineType) {
     const stratName = (basic.name || '').toLowerCase();
     if (stratName.includes('ten am') || stratName.includes('10 am') || stratName.includes('10:00')) basic.engineType = 'TEN_AM';
-    else if (stratName.includes('nifty market') || stratName.includes('universal') || stratName.includes('nifty 500') || basic.indexName || basic.snapshotTimeSlot) basic.engineType = 'NIFTY_MARKET';
     else if (stratName.includes('pre open') || stratName.includes('pre-open') || stratName.includes('po ') || stratName.includes('pogapdown')) basic.engineType = 'PRE_OPEN';
     else if (stratName.includes('first minute') || stratName.includes('first-minute') || stratName.includes('ohp') || stratName.includes('olp')) basic.engineType = 'FIRST_MINUTE';
+    else if (stratName.includes('nifty market') || stratName.includes('universal') || stratName.includes('nifty 500') || basic.indexName) basic.engineType = 'NIFTY_MARKET';
     else basic.engineType = 'FIRST_MINUTE';
+  }
+  if (basic.engineType !== 'NIFTY_MARKET' && basic.snapshotTimeSlot && basic.snapshotTimeSlot !== 'PRE_OPEN') {
+    delete basic.snapshotTimeSlot;
   }
   return {
     basicInfo: basic,
@@ -176,9 +179,9 @@ const INITIAL_CONFIG: StrategyConfig = {
     exchange: 'NSE',
     segment: 'NSE F&O',
     indexName: 'NIFTY 500',
-    snapshotTimeSlot: '09:20',
+    snapshotTimeSlot: 'PRE_OPEN',
     engineType: 'FIRST_MINUTE',
-    preSelectTime: '09:15',
+    preSelectTime: '09:13:30',
     exitTime: '15:05:00',
     maxTradesPerDay: 1,
     selectPosition: 1,
@@ -1010,13 +1013,14 @@ export default function StrategiesPage() {
       return;
     }
 
-    const isSnapshotStrategy = formData.basicInfo.snapshotTimeSlot && formData.basicInfo.snapshotTimeSlot !== 'PRE_OPEN';
+    const isSnapshotStrategy = formData.basicInfo.engineType === 'NIFTY_MARKET' && formData.basicInfo.snapshotTimeSlot && formData.basicInfo.snapshotTimeSlot !== 'PRE_OPEN';
     const configToSave = {
       ...formData,
       basicInfo: {
         ...formData.basicInfo,
         engineType: formData.basicInfo.engineType || 'FIRST_MINUTE',
-        preSelectTime: isSnapshotStrategy ? '' : formData.basicInfo.preSelectTime
+        preSelectTime: isSnapshotStrategy ? '' : formData.basicInfo.preSelectTime,
+        snapshotTimeSlot: formData.basicInfo.engineType === 'NIFTY_MARKET' ? (formData.basicInfo.snapshotTimeSlot || '09:20') : 'PRE_OPEN'
       }
     };
 
@@ -1816,7 +1820,7 @@ export default function StrategiesPage() {
                   <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '16px' }}>
                     <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>TIMING</label>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      {formData.basicInfo.snapshotTimeSlot && formData.basicInfo.snapshotTimeSlot !== 'PRE_OPEN' ? (
+                      {formData.basicInfo.engineType === 'NIFTY_MARKET' && formData.basicInfo.snapshotTimeSlot && formData.basicInfo.snapshotTimeSlot !== 'PRE_OPEN' ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)' }}>Pre-Select Timing</label>
                           <div style={{ padding: '8px 12px', borderRadius: '6px', border: '1px dashed #10b981', background: 'rgba(16, 185, 129, 0.08)', color: '#10b981', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '6px', height: '38px' }}>
